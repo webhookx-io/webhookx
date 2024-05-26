@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
+	"github.com/webhookx-io/webhookx/internal/cmd"
 )
 
 func main() {
-	fmt.Println("WebhookX!")
+	cmd.Execute()
 }

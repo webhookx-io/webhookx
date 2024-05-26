@@ -1,0 +1,3 @@
+CREATE TABLE IF NOT EXISTS "endpoints" (
+    "id" UUID PRIMARY KEY
+);

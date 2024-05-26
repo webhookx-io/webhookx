@@ -1,10 +1,14 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/webhookx-io/webhookx/internal/config"
 )
 
 var (
+	cfg *config.Config
+
 	cmd = &cobra.Command{
 		Use:          "webhookx",
 		Short:        "",
@@ -17,10 +21,14 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	cmd.AddCommand(newVersionCmd())
+	cmd.AddCommand(newMigrationsCmd())
 }
 
 func initConfig() {
-
+	var err error
+	cfg, err = config.Init()
+	cobra.CheckErr(err)
+	fmt.Println("configuration:", cfg)
 }
 
 func Execute() {

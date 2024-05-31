@@ -22,6 +22,7 @@ func init() {
 
 	cmd.AddCommand(newVersionCmd())
 	cmd.AddCommand(newMigrationsCmd())
+	cmd.AddCommand(newStartCmd())
 }
 
 func initConfig() {

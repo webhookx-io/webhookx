@@ -5,7 +5,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/webhookx-io/webhookx/internal/config"
-	"github.com/webhookx-io/webhookx/migrations"
+	"github.com/webhookx-io/webhookx/internal/db/migrations"
 )
 
 // Migrator is a database migrator
@@ -41,7 +41,7 @@ func (m *Migrator) init() (*migrate.Migrate, error) {
 }
 
 func (m *Migrator) Bootstrap() error {
-	return nil
+	panic("implement me")
 }
 
 // Reset reset database

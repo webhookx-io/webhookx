@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/webhookx-io/webhookx/internal/config"
+	"github.com/webhookx-io/webhookx/config"
 	"net/http"
 )
 

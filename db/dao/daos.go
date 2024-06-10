@@ -2,7 +2,7 @@ package dao
 
 import (
 	"context"
-	"github.com/webhookx-io/webhookx/internal/db/query"
+	"github.com/webhookx-io/webhookx/db/query"
 )
 
 type BaseDAO[T any] interface {

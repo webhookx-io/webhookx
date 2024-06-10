@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/webhookx-io/webhookx/internal/config"
+	"github.com/webhookx-io/webhookx/config"
 	"go.uber.org/zap"
 	"net/http"
 	"os"

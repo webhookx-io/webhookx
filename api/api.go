@@ -3,9 +3,9 @@ package api
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"github.com/webhookx-io/webhookx/internal/config"
-	"github.com/webhookx-io/webhookx/internal/db/query"
-	"github.com/webhookx-io/webhookx/internal/utils"
+	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/utils"
 	"net/http"
 	"strconv"
 )

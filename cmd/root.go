@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/webhookx-io/webhookx/internal/config"
+	"github.com/webhookx-io/webhookx/config"
 )
 
 var (

@@ -4,8 +4,8 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	"github.com/webhookx-io/webhookx/internal/config"
-	"github.com/webhookx-io/webhookx/internal/db/migrations"
+	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/db/migrations"
 )
 
 // Migrator is a database migrator

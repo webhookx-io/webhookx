@@ -1,9 +1,10 @@
-package webhookx
+package cmd
 
 import (
-	"github.com/webhookx-io/webhookx/internal/api"
-	"github.com/webhookx-io/webhookx/internal/config"
-	"github.com/webhookx-io/webhookx/internal/server"
+	"github.com/spf13/cobra"
+	"github.com/webhookx-io/webhookx/api"
+	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/server"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -40,4 +41,18 @@ func initServer(cfg *config.Config) (*server.Server, error) {
 
 	srv := server.NewServer(cfg.ServerConfig, api.Handler())
 	return srv, nil
+}
+
+func newStartCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "start",
+		Short: "Start server",
+		Long:  ``,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := Start(cfg); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"github.com/webhookx-io/webhookx/internal/config"
+	"github.com/webhookx-io/webhookx/config"
 )
 
 type DB struct {

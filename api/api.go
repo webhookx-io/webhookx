@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/query"
-	"github.com/webhookx-io/webhookx/utils"
+	"github.com/webhookx-io/webhookx/pkg/errs"
 	"net/http"
 	"strconv"
 )
@@ -15,10 +16,17 @@ const (
 )
 
 type API struct {
+	DB *db.DB
 }
 
 func NewAPI(cfg *config.Config) (*API, error) {
-	return &API{}, nil
+	db, err := db.NewDB(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return &API{
+		DB: db,
+	}, nil
 }
 
 // param returns the value of an url variable
@@ -59,7 +67,7 @@ func (api *API) bindQuery(r *http.Request, q *query.Query) {
 }
 
 func (api *API) error(code int, w http.ResponseWriter, err error) {
-	if e, ok := err.(*utils.ValidateError); ok {
+	if e, ok := err.(*errs.ValidateError); ok {
 		api.json(code, w, ErrorResponse{
 			Message: "Reqeust Validation",
 			Error:   e,
@@ -83,7 +91,15 @@ func (api *API) assert(err error) {
 func (api *API) Handler() http.Handler {
 	r := mux.NewRouter()
 
+	r.Use(panicRecovery)
+
 	r.HandleFunc("/", api.Index).Methods("GET")
+
+	r.HandleFunc("/endpoints", api.PageEndpoint).Methods("GET")
+	r.HandleFunc("/endpoints", api.CreateEndpoint).Methods("POST")
+	r.HandleFunc("/endpoints/{id}", api.GetEndpoint).Methods("GET")
+	r.HandleFunc("/endpoints/{id}", api.UpdateEndpoint).Methods("PUT")
+	r.HandleFunc("/endpoints/{id}", api.DeleteEndpoint).Methods("DELETE")
 
 	return r
 }

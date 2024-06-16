@@ -5,10 +5,13 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/db/dao"
 )
 
 type DB struct {
 	DB *sqlx.DB
+
+	Endpoints dao.EndpointDAO
 }
 
 func initSqlxDB(cfg config.PostgresConfig) (*sqlx.DB, error) {
@@ -27,6 +30,8 @@ func NewDB(cfg *config.Config) (*DB, error) {
 
 	db := &DB{
 		DB: sqlxDB,
+
+		Endpoints: dao.NewEndpointDAO(sqlxDB),
 	}
 
 	return db, nil

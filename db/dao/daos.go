@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 )
 
@@ -13,4 +14,8 @@ type BaseDAO[T any] interface {
 	Page(ctx context.Context, q query.DatabaseQuery) ([]*T, int64, error)
 	List(ctx context.Context, q query.DatabaseQuery) ([]*T, error)
 	BatchInsert(ctx context.Context, entities []*T) error
+}
+
+type EndpointDAO interface {
+	BaseDAO[entities.Endpoint]
 }

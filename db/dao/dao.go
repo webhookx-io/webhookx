@@ -3,9 +3,10 @@ package dao
 import (
 	"context"
 	"database/sql"
+	"errors"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
+	"github.com/lib/pq"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/utils"
@@ -14,7 +15,10 @@ import (
 	"time"
 )
 
-var ErrNoRows = sql.ErrNoRows
+var (
+	ErrNoRows              = sql.ErrNoRows
+	ErrConstraintViolation = errors.New("constraint violation")
+)
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 type DAO[T any] struct {
@@ -123,7 +127,14 @@ func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 	statement, args := psql.Insert(dao.table).Columns(columns...).Values(values...).
 		Suffix("RETURNING *").
 		MustSql()
-	return dao.db.Unsafe().QueryRowxContext(ctx, statement, args...).StructScan(entity)
+	err := dao.db.Unsafe().QueryRowxContext(ctx, statement, args...).StructScan(entity)
+	if err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return ErrConstraintViolation
+		}
+	}
+	return nil
 }
 
 func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {

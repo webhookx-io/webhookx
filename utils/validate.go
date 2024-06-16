@@ -4,34 +4,17 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"github.com/webhookx-io/webhookx/pkg/errs"
 	"reflect"
 	"strings"
 )
 
 var validate = validator.New(validator.WithRequiredStructEnabled())
 
-type ValidateError struct {
-	err     error
-	Message string            `json:"message"`
-	Fields  map[string]string `json:"fields"`
-}
-
-func NewValidateError(err error) *ValidateError {
-	return &ValidateError{
-		err:     err,
-		Message: err.Error(),
-		Fields:  make(map[string]string),
-	}
-}
-
-func (e *ValidateError) Error() string {
-	return e.err.Error()
-}
-
 func Validate(v interface{}) error {
 	err := validate.Struct(v)
 	if err != nil {
-		validateErr := NewValidateError(errors.New("reqeust validation"))
+		validateErr := errs.NewValidateError(errors.New("reqeust validation"))
 		for _, e := range err.(validator.ValidationErrors) {
 			// todo nested fields
 			t := reflect.ValueOf(v).Type()

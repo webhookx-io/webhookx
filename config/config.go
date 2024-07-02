@@ -2,8 +2,8 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/creasty/defaults"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/mcuadros/go-defaults"
 )
 
 var (
@@ -46,7 +46,9 @@ func (cfg Config) Validate() error {
 }
 
 func Init() (*Config, error) {
-	defaults.SetDefaults(&cfg)
+	if err := defaults.Set(&cfg); err != nil {
+		return nil, err
+	}
 
 	err := envconfig.Process("WEBHOOKX", &cfg)
 	if err != nil {

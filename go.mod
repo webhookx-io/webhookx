@@ -4,13 +4,13 @@ go 1.22.0
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
+	github.com/creasty/defaults v1.7.0
 	github.com/go-playground/validator/v10 v10.22.0
 	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/gorilla/mux v1.8.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lib/pq v1.10.9
-	github.com/mcuadros/go-defaults v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.6.0
 	github.com/satori/go.uuid v1.2.0

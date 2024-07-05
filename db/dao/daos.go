@@ -19,3 +19,7 @@ type BaseDAO[T any] interface {
 type EndpointDAO interface {
 	BaseDAO[entities.Endpoint]
 }
+
+type EventDAO interface {
+	BaseDAO[entities.Event]
+}

@@ -101,5 +101,9 @@ func (api *API) Handler() http.Handler {
 	r.HandleFunc("/endpoints/{id}", api.UpdateEndpoint).Methods("PUT")
 	r.HandleFunc("/endpoints/{id}", api.DeleteEndpoint).Methods("DELETE")
 
+	r.HandleFunc("/events", api.PageEvent).Methods("GET")
+	r.HandleFunc("/events", api.CreateEvent).Methods("POST")
+	r.HandleFunc("/events/{id}", api.GetEvent).Methods("GET")
+
 	return r
 }

@@ -12,6 +12,7 @@ type DB struct {
 	DB *sqlx.DB
 
 	Endpoints dao.EndpointDAO
+	Events    dao.EventDAO
 }
 
 func initSqlxDB(cfg config.PostgresConfig) (*sqlx.DB, error) {
@@ -32,6 +33,7 @@ func NewDB(cfg *config.Config) (*DB, error) {
 		DB: sqlxDB,
 
 		Endpoints: dao.NewEndpointDAO(sqlxDB),
+		Events:    dao.NewEventDao(sqlxDB),
 	}
 
 	return db, nil

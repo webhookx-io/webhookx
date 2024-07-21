@@ -7,6 +7,7 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/errs"
+	"github.com/webhookx-io/webhookx/pkg/queue"
 	"net/http"
 	"strconv"
 )
@@ -16,17 +17,18 @@ const (
 )
 
 type API struct {
-	DB *db.DB
+	cfg *config.Config
+
+	DB    *db.DB
+	queue queue.TaskQueue
 }
 
-func NewAPI(cfg *config.Config) (*API, error) {
-	db, err := db.NewDB(cfg)
-	if err != nil {
-		return nil, err
-	}
+func NewAPI(cfg *config.Config, db *db.DB, queue queue.TaskQueue) *API {
 	return &API{
-		DB: db,
-	}, nil
+		cfg:   cfg,
+		DB:    db,
+		queue: queue,
+	}
 }
 
 // param returns the value of an url variable

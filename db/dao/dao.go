@@ -131,7 +131,7 @@ func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 	if err != nil {
 		var pgErr *pq.Error
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return ErrConstraintViolation
+			return ErrConstraintViolation // TODO attach the violated column
 		}
 	}
 	return nil

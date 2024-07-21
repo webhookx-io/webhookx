@@ -83,7 +83,8 @@ func NewRedisQueue(client *redis.Client) *RedisTaskQueue {
 	return q
 }
 
-func (q *RedisTaskQueue) Add(task *Task, delay time.Duration) error {
+func (q *RedisTaskQueue) Add(task *TaskMessage, delay time.Duration) error {
+	zap.S().Debugf("[redis-queue]: add task %s with delay: %ds", task.ID, delay.Milliseconds()/1000)
 	keys := []string{DefaultQueueName, QueueDataHashName}
 	data, err := json.Marshal(task.Data)
 	if err != nil {
@@ -104,7 +105,7 @@ func (q *RedisTaskQueue) Add(task *Task, delay time.Duration) error {
 	return nil
 }
 
-func (q *RedisTaskQueue) Get() (*Task, error) {
+func (q *RedisTaskQueue) Get() (*TaskMessage, error) {
 	keys := []string{DefaultQueueName, QueueDataHashName, InvisibleQueueName}
 	argv := []interface{}{
 		VisibilityTimeout,
@@ -119,7 +120,7 @@ func (q *RedisTaskQueue) Get() (*Task, error) {
 			return nil, nil
 		}
 
-		var task Task
+		var task TaskMessage
 		task.ID = v[0].(string)
 		task.data = []byte((v[1].(string)))
 		return &task, nil
@@ -128,7 +129,8 @@ func (q *RedisTaskQueue) Get() (*Task, error) {
 	}
 }
 
-func (q *RedisTaskQueue) Delete(task *Task) error {
+func (q *RedisTaskQueue) Delete(task *TaskMessage) error {
+	zap.S().Debugf("[redis-queue]: delete task %s", task.ID)
 	keys := []string{InvisibleQueueName, DefaultQueueName, QueueDataHashName}
 	argv := []interface{}{
 		task.ID,

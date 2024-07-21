@@ -1,6 +1,7 @@
 package deliverer
 
 import (
+	"fmt"
 	"net/http"
 )
 
@@ -31,5 +32,5 @@ func (r *Response) Is2xx() bool {
 }
 
 func (r *Response) String() string {
-	panic("implement me")
+	return fmt.Sprintf("%s %s %d", r.Request.Method, r.Request.URL, r.StatusCode)
 }

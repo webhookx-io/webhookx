@@ -2,21 +2,35 @@ package queue
 
 import (
 	"encoding/json"
+	"github.com/webhookx-io/webhookx/utils"
 	"time"
 )
 
-type Task struct {
-	ID   string
+type TaskMessage struct {
+	ID string
+
 	data []byte
 	Data interface{}
 }
 
-func (t *Task) UnmarshalData(v interface{}) error {
+func NewTaskMessage(data interface{}) *TaskMessage {
+	task := &TaskMessage{
+		ID:   utils.UUID(),
+		Data: data,
+	}
+	return task
+}
+
+func (t *TaskMessage) String() string {
+	return t.ID + ":" + string(t.data)
+}
+
+func (t *TaskMessage) UnmarshalData(v interface{}) error {
 	return json.Unmarshal(t.data, v)
 }
 
 type TaskQueue interface {
-	Add(task *Task, delay time.Duration) error
-	Get() (task *Task, err error)
-	Delete(task *Task) error
+	Add(task *TaskMessage, delay time.Duration) error
+	Get() (task *TaskMessage, err error)
+	Delete(task *TaskMessage) error
 }

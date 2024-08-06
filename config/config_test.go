@@ -38,6 +38,7 @@ func TestRedisConfig(t *testing.T) {
 }
 
 func TestConfig(t *testing.T) {
-	cfg := cfg
+	cfg, err := Init()
+	assert.Nil(t, err)
 	assert.Nil(t, cfg.Validate())
 }

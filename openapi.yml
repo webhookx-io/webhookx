@@ -1,0 +1,13 @@
+openapi: 3.0.3
+info:
+  title: WebhookX APIs
+  contact:
+    name: WebhookX
+    url: https://github.com/webhookx-io/webhookx
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  version: dev
+
+servers:
+  - url: http://localhost:8080

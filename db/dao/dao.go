@@ -9,6 +9,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/db/transaction"
 	"github.com/webhookx-io/webhookx/utils"
 	"reflect"
 	"strings"
@@ -20,6 +21,13 @@ var (
 	ErrConstraintViolation = errors.New("constraint violation")
 )
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+// Queryable is an interface to be used interchangeably for sqlx.Db and sqlx.Tx
+type Queryable interface {
+	sqlx.ExtContext
+	GetContext(context.Context, interface{}, string, ...interface{}) error
+	SelectContext(context.Context, interface{}, string, ...interface{}) error
+}
 
 type DAO[T any] struct {
 	db    *sqlx.DB
@@ -34,13 +42,35 @@ func NewDAO[T any](table string, db *sqlx.DB) *DAO[T] {
 	return &dao
 }
 
+func (dao *DAO[T]) DB(ctx context.Context) Queryable {
+	if ctx == nil {
+		ctx = context.TODO()
+	}
+
+	if tx, ok := transaction.FromContext(ctx); ok {
+		return tx
+	}
+
+	return dao.db
+}
+
+func (dao *DAO[T]) UnsafeDB(ctx context.Context) Queryable {
+	db := dao.DB(ctx)
+
+	if tx, ok := db.(*sqlx.Tx); ok {
+		return tx.Unsafe()
+	}
+
+	return db.(*sqlx.DB).Unsafe()
+}
+
 func (dao *DAO[T]) Get(ctx context.Context, id string) (entity *T, err error) {
 	if ok := utils.IsValidUUID(id); !ok {
 		return nil, nil
 	}
 	statement, args := psql.Select("*").From(dao.table).Where(sq.Eq{"id": id}).MustSql()
 	entity = new(T)
-	err = dao.db.Unsafe().GetContext(ctx, entity, statement, args...)
+	err = dao.UnsafeDB(ctx).GetContext(ctx, entity, statement, args...)
 	if errors.Is(err, ErrNoRows) {
 		return nil, nil
 	}
@@ -53,7 +83,7 @@ func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
 	}
 	statement, args := psql.Delete(dao.table).Where(sq.Eq{"id": id}).
 		MustSql()
-	result, err := dao.db.ExecContext(ctx, statement, args...)
+	result, err := dao.DB(ctx).ExecContext(ctx, statement, args...)
 	if err != nil {
 		return false, err
 	}
@@ -75,7 +105,7 @@ func (dao *DAO[T]) Page(ctx context.Context, q query.DatabaseQuery) (list []*T, 
 
 func (dao *DAO[T]) Count(ctx context.Context, where map[string]interface{}) (total int64, err error) {
 	statement, args := psql.Select("COUNT(*)").From(dao.table).Where(where).MustSql()
-	err = dao.db.GetContext(ctx, &total, statement, args...)
+	err = dao.DB(ctx).GetContext(ctx, &total, statement, args...)
 	return
 }
 
@@ -88,7 +118,7 @@ func (dao *DAO[T]) List(ctx context.Context, q query.DatabaseQuery) (list []*T, 
 	// TODO: add order by support
 	statement, args := builder.MustSql()
 	list = make([]*T, 0)
-	err = dao.db.Unsafe().SelectContext(ctx, &list, statement, args...)
+	err = dao.UnsafeDB(ctx).SelectContext(ctx, &list, statement, args...)
 	return
 }
 
@@ -127,7 +157,7 @@ func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 	statement, args := psql.Insert(dao.table).Columns(columns...).Values(values...).
 		Suffix("RETURNING *").
 		MustSql()
-	err := dao.db.Unsafe().QueryRowxContext(ctx, statement, args...).StructScan(entity)
+	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
 	if err != nil {
 		var pgErr *pq.Error
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -167,7 +197,7 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 	}
 
 	statement, args := builder.Suffix("RETURNING *").MustSql()
-	rows, err := dao.db.Unsafe().QueryxContext(ctx, statement, args...)
+	rows, err := dao.UnsafeDB(ctx).QueryxContext(ctx, statement, args...)
 	if err != nil {
 		return err
 	}
@@ -184,7 +214,7 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 
 func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interface{}) (int64, error) {
 	statement, args := psql.Update(dao.table).SetMap(maps).Where(sq.Eq{"id": id}).MustSql()
-	result, err := dao.db.ExecContext(ctx, statement, args...)
+	result, err := dao.DB(ctx).ExecContext(ctx, statement, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -207,5 +237,5 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 		}
 	})
 	statement, args := builder.Where(sq.Eq{"id": id}).Suffix("RETURNING *").MustSql()
-	return dao.db.Unsafe().QueryRowxContext(ctx, statement, args...).StructScan(entity)
+	return dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
 }

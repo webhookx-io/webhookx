@@ -6,10 +6,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db/dao"
+	"github.com/webhookx-io/webhookx/db/transaction"
+	"go.uber.org/zap"
 )
 
 type DB struct {
-	DB *sqlx.DB
+	DB  *sqlx.DB
+	log *zap.SugaredLogger
 
 	Endpoints dao.EndpointDAO
 	Events    dao.EventDAO
@@ -30,8 +33,8 @@ func NewDB(cfg *config.Config) (*DB, error) {
 	}
 
 	db := &DB{
-		DB: sqlxDB,
-
+		DB:        sqlxDB,
+		log:       zap.S(),
 		Endpoints: dao.NewEndpointDAO(sqlxDB),
 		Events:    dao.NewEventDao(sqlxDB),
 	}
@@ -43,14 +46,23 @@ func (db *DB) Ping() error {
 	return db.DB.Ping()
 }
 
-// TODO
 func (db *DB) TX(ctx context.Context, fn func(ctx context.Context) error) error {
 	tx, err := db.DB.Beginx()
 	if err != nil {
 		return err
 	}
 
-	// todo panic handler
+	defer func() {
+		if err := recover(); err != nil {
+			db.log.Errorf("[db] panic recovered: %v", err)
+			if rbErr := tx.Rollback(); rbErr != nil {
+				db.log.Errorf("[db] failed to rollback the tx: %v", rbErr)
+			}
+			panic(err)
+		}
+	}()
+
+	ctx = transaction.WithTx(ctx, tx)
 
 	err = fn(ctx)
 

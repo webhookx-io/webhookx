@@ -56,32 +56,37 @@ func (api *API) CreateEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func DispatchEvent(api *API, ctx context.Context, event *entities.Event) error {
-	// TODO: db.begin()
-	err := api.DB.Events.Insert(ctx, event)
-	if err != nil {
-		return err
-	}
-
 	endpoints, err := listSubscribedEndpoints(ctx, api.DB, event.EventType)
 	if err != nil {
 		return err
 	}
-
 	tasks := make([]*queue.TaskMessage, 0, len(endpoints))
-	for _, endpoint := range endpoints {
-		task := &queue.TaskMessage{
-			ID: utils.UUID(),
-			Data: &model.MessageData{
-				EventID:     event.ID,
-				EndpointId:  endpoint.ID,
-				Attempt:     1,
-				AttemptLeft: len(endpoint.Retry.Config.Attempts) - 1,
-				Delay:       endpoint.Retry.Config.Attempts[0],
-			},
+
+	err = api.DB.TX(ctx, func(ctx context.Context) error {
+
+		err := api.DB.Events.Insert(ctx, event)
+		if err != nil {
+			return err
 		}
-		tasks = append(tasks, task)
+
+		for _, endpoint := range endpoints {
+			task := &queue.TaskMessage{
+				ID: utils.UUID(),
+				Data: &model.MessageData{
+					EventID:     event.ID,
+					EndpointId:  endpoint.ID,
+					Attempt:     1,
+					AttemptLeft: len(endpoint.Retry.Config.Attempts) - 1,
+					Delay:       endpoint.Retry.Config.Attempts[0],
+				},
+			}
+			tasks = append(tasks, task)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
 	}
-	// TODO: db.commit()
 
 	for _, task := range tasks {
 		err := api.queue.Add(task, utils.DurationS(task.Data.(*model.MessageData).Delay))

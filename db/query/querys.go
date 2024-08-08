@@ -10,12 +10,16 @@ func (q *EndpointQuery) WhereMap() map[string]interface{} {
 
 type EventQuery struct {
 	Query
-
-	EndpointId *string
 }
 
 func (q EventQuery) WhereMap() map[string]interface{} {
-	return map[string]interface{}{
-		"endpoint_id": q.EndpointId,
-	}
+	return map[string]interface{}{}
+}
+
+type WorkspaceQuery struct {
+	Query
+}
+
+func (q *WorkspaceQuery) WhereMap() map[string]interface{} {
+	return map[string]interface{}{}
 }

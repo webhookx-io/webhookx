@@ -9,8 +9,8 @@ type endpointDAO struct {
 	*DAO[entities.Endpoint]
 }
 
-func NewEndpointDAO(db *sqlx.DB) EndpointDAO {
+func NewEndpointDAO(db *sqlx.DB, workspace bool) EndpointDAO {
 	return &endpointDAO{
-		DAO: NewDAO[entities.Endpoint]("endpoints", db),
+		DAO: NewDAO[entities.Endpoint]("endpoints", db, workspace),
 	}
 }

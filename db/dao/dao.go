@@ -10,7 +10,9 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/db/transaction"
+	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/utils"
+	"go.uber.org/zap"
 	"reflect"
 	"strings"
 	"time"
@@ -30,16 +32,24 @@ type Queryable interface {
 }
 
 type DAO[T any] struct {
-	db    *sqlx.DB
-	table string
+	log       *zap.SugaredLogger
+	db        *sqlx.DB
+	table     string
+	workspace bool
 }
 
-func NewDAO[T any](table string, db *sqlx.DB) *DAO[T] {
+func NewDAO[T any](table string, db *sqlx.DB, workspace bool) *DAO[T] {
 	dao := DAO[T]{
-		db:    db,
-		table: table,
+		log:       zap.S(),
+		db:        db,
+		table:     table,
+		workspace: workspace,
 	}
 	return &dao
+}
+
+func (dao *DAO[T]) debugSQL(sql string, args []interface{}) {
+	dao.log.Debugf("[dao] execute: %s", sql)
 }
 
 func (dao *DAO[T]) DB(ctx context.Context) Queryable {
@@ -68,7 +78,29 @@ func (dao *DAO[T]) Get(ctx context.Context, id string) (entity *T, err error) {
 	if ok := utils.IsValidUUID(id); !ok {
 		return nil, nil
 	}
-	statement, args := psql.Select("*").From(dao.table).Where(sq.Eq{"id": id}).MustSql()
+	builder := psql.Select("*").From(dao.table).Where(sq.Eq{"id": id})
+	if dao.workspace {
+		wid := ucontext.GetWorkspaceID(ctx)
+		builder = builder.Where(sq.Eq{"ws_id": wid})
+	}
+	statement, args := builder.MustSql()
+	dao.debugSQL(statement, args)
+	entity = new(T)
+	err = dao.UnsafeDB(ctx).GetContext(ctx, entity, statement, args...)
+	if errors.Is(err, ErrNoRows) {
+		return nil, nil
+	}
+	return
+}
+
+func (dao *DAO[T]) selectByField(ctx context.Context, field string, value string) (entity *T, err error) {
+	builder := psql.Select("*").From(dao.table).Where(sq.Eq{field: value})
+	if dao.workspace {
+		wid := ucontext.GetWorkspaceID(ctx)
+		builder = builder.Where(sq.Eq{"ws_id": wid})
+	}
+	statement, args := builder.MustSql()
+	dao.debugSQL(statement, args)
 	entity = new(T)
 	err = dao.UnsafeDB(ctx).GetContext(ctx, entity, statement, args...)
 	if errors.Is(err, ErrNoRows) {
@@ -81,8 +113,13 @@ func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
 	if ok := utils.IsValidUUID(id); !ok {
 		return false, nil
 	}
-	statement, args := psql.Delete(dao.table).Where(sq.Eq{"id": id}).
-		MustSql()
+	builder := psql.Delete(dao.table).Where(sq.Eq{"id": id})
+	if dao.workspace {
+		wid := ucontext.GetWorkspaceID(ctx)
+		builder = builder.Where(sq.Eq{"ws_id": wid})
+	}
+	statement, args := builder.MustSql()
+	dao.debugSQL(statement, args)
 	result, err := dao.DB(ctx).ExecContext(ctx, statement, args...)
 	if err != nil {
 		return false, err
@@ -104,19 +141,37 @@ func (dao *DAO[T]) Page(ctx context.Context, q query.DatabaseQuery) (list []*T, 
 }
 
 func (dao *DAO[T]) Count(ctx context.Context, where map[string]interface{}) (total int64, err error) {
-	statement, args := psql.Select("COUNT(*)").From(dao.table).Where(where).MustSql()
+	builder := psql.Select("COUNT(*)").From(dao.table)
+	if where != nil && len(where) > 0 {
+		builder = builder.Where(where)
+	}
+	if dao.workspace {
+		wid := ucontext.GetWorkspaceID(ctx)
+		builder = builder.Where(sq.Eq{"ws_id": wid})
+	}
+	statement, args := builder.MustSql()
+	dao.debugSQL(statement, args)
 	err = dao.DB(ctx).GetContext(ctx, &total, statement, args...)
 	return
 }
 
 func (dao *DAO[T]) List(ctx context.Context, q query.DatabaseQuery) (list []*T, err error) {
-	builder := psql.Select("*").From(dao.table).Where(q.WhereMap())
+	builder := psql.Select("*").From(dao.table)
+	where := q.WhereMap()
+	if where != nil && len(where) > 0 {
+		builder = builder.Where(where)
+	}
+	if dao.workspace {
+		wid := ucontext.GetWorkspaceID(ctx)
+		builder = builder.Where(sq.Eq{"ws_id": wid})
+	}
 	if q.GetLimit() != 0 {
 		builder = builder.Offset(uint64(q.GetOffset()))
 		builder = builder.Limit(uint64(q.GetLimit()))
 	}
 	// TODO: add order by support
 	statement, args := builder.MustSql()
+	dao.debugSQL(statement, args)
 	list = make([]*T, 0)
 	err = dao.UnsafeDB(ctx).SelectContext(ctx, &list, statement, args...)
 	return
@@ -157,6 +212,7 @@ func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 	statement, args := psql.Insert(dao.table).Columns(columns...).Values(values...).
 		Suffix("RETURNING *").
 		MustSql()
+	dao.debugSQL(statement, args)
 	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
 	if err != nil {
 		var pgErr *pq.Error
@@ -164,7 +220,7 @@ func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 			return ErrConstraintViolation // TODO attach the violated column
 		}
 	}
-	return nil
+	return err
 }
 
 func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
@@ -213,12 +269,13 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 }
 
 func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interface{}) (int64, error) {
-	statement, args := psql.Update(dao.table).SetMap(maps).Where(sq.Eq{"id": id}).MustSql()
-	result, err := dao.DB(ctx).ExecContext(ctx, statement, args...)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
+	//statement, args := psql.Update(dao.table).SetMap(maps).Where(sq.Eq{"id": id}).MustSql()
+	//result, err := dao.DB(ctx).ExecContext(ctx, statement, args...)
+	//if err != nil {
+	//	return 0, err
+	//}
+	//return result.RowsAffected()
+	panic("implement me")
 }
 
 func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
@@ -236,6 +293,11 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 			builder = builder.Set(column, v.Interface())
 		}
 	})
+	if dao.workspace {
+		wid := ucontext.GetWorkspaceID(ctx)
+		builder = builder.Where(sq.Eq{"ws_id": wid})
+	}
 	statement, args := builder.Where(sq.Eq{"id": id}).Suffix("RETURNING *").MustSql()
+	dao.debugSQL(statement, args)
 	return dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
 }

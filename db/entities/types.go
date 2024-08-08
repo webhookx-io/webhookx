@@ -60,6 +60,7 @@ func (t UnixTime) Value() (driver.Value, error) {
 }
 
 type BaseModel struct {
-	CreatedAt UnixTime `db:"created_at" json:"created_at"`
-	UpdatedAt UnixTime `db:"updated_at" json:"updated_at"`
+	CreatedAt   UnixTime `db:"created_at" json:"created_at"`
+	UpdatedAt   UnixTime `db:"updated_at" json:"updated_at"`
+	WorkspaceId string   `db:"ws_id" json:"-"`
 }

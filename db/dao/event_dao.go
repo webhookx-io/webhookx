@@ -9,8 +9,8 @@ type eventDao struct {
 	*DAO[entities.Event]
 }
 
-func NewEventDao(db *sqlx.DB) EventDAO {
+func NewEventDao(db *sqlx.DB, workspace bool) EventDAO {
 	return &eventDao{
-		DAO: NewDAO[entities.Event]("events", db),
+		DAO: NewDAO[entities.Event]("events", db, workspace),
 	}
 }

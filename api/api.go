@@ -94,18 +94,29 @@ func (api *API) Handler() http.Handler {
 	r := mux.NewRouter()
 
 	r.Use(panicRecovery)
+	r.Use(api.contextMiddleware)
 
 	r.HandleFunc("/", api.Index).Methods("GET")
 
-	r.HandleFunc("/endpoints", api.PageEndpoint).Methods("GET")
-	r.HandleFunc("/endpoints", api.CreateEndpoint).Methods("POST")
-	r.HandleFunc("/endpoints/{id}", api.GetEndpoint).Methods("GET")
-	r.HandleFunc("/endpoints/{id}", api.UpdateEndpoint).Methods("PUT")
-	r.HandleFunc("/endpoints/{id}", api.DeleteEndpoint).Methods("DELETE")
+	r.HandleFunc("/workspaces", api.PageWorkspace).Methods("GET")
+	r.HandleFunc("/workspaces", api.CreateWorkspace).Methods("POST")
+	r.HandleFunc("/workspaces/{id}", api.GetWorkspace).Methods("GET")
+	r.HandleFunc("/workspaces/{id}", api.UpdateWorkspace).Methods("PUT")
+	r.HandleFunc("/workspaces/{id}", api.DeleteWorkspace).Methods("DELETE")
 
-	r.HandleFunc("/events", api.PageEvent).Methods("GET")
-	r.HandleFunc("/events", api.CreateEvent).Methods("POST")
-	r.HandleFunc("/events/{id}", api.GetEvent).Methods("GET")
+	for _, prefix := range []string{"", "/workspaces/{workspace}"} {
+		r.HandleFunc(prefix+"/endpoints", api.PageEndpoint).Methods("GET")
+		r.HandleFunc(prefix+"/endpoints", api.CreateEndpoint).Methods("POST")
+		r.HandleFunc(prefix+"/endpoints/{id}", api.GetEndpoint).Methods("GET")
+		r.HandleFunc(prefix+"/endpoints/{id}", api.UpdateEndpoint).Methods("PUT")
+		r.HandleFunc(prefix+"/endpoints/{id}", api.DeleteEndpoint).Methods("DELETE")
+	}
+
+	for _, prefix := range []string{"", "/workspaces/{workspace}"} {
+		r.HandleFunc(prefix+"/events", api.PageEvent).Methods("GET")
+		r.HandleFunc(prefix+"/events", api.CreateEvent).Methods("POST")
+		r.HandleFunc(prefix+"/events/{id}", api.GetEvent).Methods("GET")
+	}
 
 	return r
 }

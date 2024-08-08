@@ -14,8 +14,11 @@ type DB struct {
 	DB  *sqlx.DB
 	log *zap.SugaredLogger
 
-	Endpoints dao.EndpointDAO
-	Events    dao.EventDAO
+	Workspaces  dao.WorkspaceDAO
+	Endpoints   dao.EndpointDAO
+	EndpointsWS dao.EndpointDAO
+	Events      dao.EventDAO
+	EventsWS    dao.EventDAO
 }
 
 func initSqlxDB(cfg config.PostgresConfig) (*sqlx.DB, error) {
@@ -33,10 +36,13 @@ func NewDB(cfg *config.Config) (*DB, error) {
 	}
 
 	db := &DB{
-		DB:        sqlxDB,
-		log:       zap.S(),
-		Endpoints: dao.NewEndpointDAO(sqlxDB),
-		Events:    dao.NewEventDao(sqlxDB),
+		DB:          sqlxDB,
+		log:         zap.S(),
+		Workspaces:  dao.NewWorkspaceDAO(sqlxDB),
+		Endpoints:   dao.NewEndpointDAO(sqlxDB, false),
+		EndpointsWS: dao.NewEndpointDAO(sqlxDB, true),
+		Events:      dao.NewEventDao(sqlxDB, false),
+		EventsWS:    dao.NewEventDao(sqlxDB, true),
 	}
 
 	return db, nil

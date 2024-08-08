@@ -8,6 +8,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/model"
 	"github.com/webhookx-io/webhookx/pkg/queue"
+	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/utils"
 	"net/http"
 )
@@ -16,7 +17,7 @@ func (api *API) PageEvent(w http.ResponseWriter, r *http.Request) {
 	var q query.EventQuery
 	api.bindQuery(r, &q.Query)
 
-	list, total, err := api.DB.Events.Page(r.Context(), &q)
+	list, total, err := api.DB.EventsWS.Page(r.Context(), &q)
 	api.assert(err)
 
 	api.json(200, w, NewPagination(total, list))
@@ -24,7 +25,7 @@ func (api *API) PageEvent(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) GetEvent(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	event, err := api.DB.Events.Get(r.Context(), id)
+	event, err := api.DB.EventsWS.Get(r.Context(), id)
 	api.assert(err)
 
 	if event == nil {
@@ -49,6 +50,7 @@ func (api *API) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	event.WorkspaceId = ucontext.GetWorkspaceID(r.Context())
 	err := DispatchEvent(api, r.Context(), &event)
 	api.assert(err)
 
@@ -102,7 +104,7 @@ func DispatchEvent(api *API, ctx context.Context, event *entities.Event) error {
 
 func listSubscribedEndpoints(ctx context.Context, db *db.DB, eventType string) (list []*entities.Endpoint, err error) {
 	var q query.EndpointQuery
-	endpoints, err := db.Endpoints.List(ctx, &q)
+	endpoints, err := db.EndpointsWS.List(ctx, &q)
 	if err != nil {
 		return nil, err
 	}

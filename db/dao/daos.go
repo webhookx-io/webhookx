@@ -16,6 +16,11 @@ type BaseDAO[T any] interface {
 	BatchInsert(ctx context.Context, entities []*T) error
 }
 
+type WorkspaceDAO interface {
+	BaseDAO[entities.Workspace]
+	GetDefault(ctx context.Context) (*entities.Workspace, error)
+}
+
 type EndpointDAO interface {
 	BaseDAO[entities.Endpoint]
 }

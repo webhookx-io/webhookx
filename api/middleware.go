@@ -4,11 +4,42 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/db/dao"
+	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"go.uber.org/zap"
 	"net/http"
 	"runtime"
 )
+
+func (api *API) contextMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var workspace *entities.Workspace
+		var err error
+
+		wid := mux.Vars(r)["workspace"]
+		if wid == "" || wid == "default" {
+			wid = "default"
+			workspace, err = api.DB.Workspaces.GetDefault(r.Context())
+		} else {
+			workspace, err = api.DB.Workspaces.Get(r.Context(), wid)
+		}
+		api.assert(err)
+
+		if workspace == nil {
+			api.error(400, w, errors.New("invalid workspace: "+wid))
+			return
+		}
+
+		ctx := ucontext.WithContext(r.Context(), &ucontext.UContext{
+			WorkspaceID: workspace.ID,
+		})
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
+}
 
 func panicRecovery(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

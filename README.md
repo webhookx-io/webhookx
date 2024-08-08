@@ -5,6 +5,11 @@
 
 WebhookX is a webhooks gateway.
 
+## Features
+
+## Roadmap
+
+- [ ] Workspace Isolation
 
 ## Installation
 

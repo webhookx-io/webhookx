@@ -10,6 +10,7 @@ WebhookX is a webhooks gateway.
 ## Roadmap
 
 - [x] Workspace Isolation
+- [ ] Ingest/Proxy: a module that expose an http listener to receive events.
 
 ## Installation
 

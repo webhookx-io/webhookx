@@ -20,6 +20,15 @@ WebhookX is a webhooks gateway.
 
 ## Installation
 
+```shell
+$ docker build . -t webhookx-io/webhookx:latest
+$ docker compose up
+```
+
+```shell
+$ curl http://localhost:8080
+```
+
 ## Contributing
 
 ## License

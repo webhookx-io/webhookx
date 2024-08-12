@@ -17,6 +17,7 @@ WebhookX is a webhooks gateway.
 
 - [ ] HTTPS port
 - [ ] Middleware
+- [ ] OpenAPI
 
 ## Installation
 

@@ -19,6 +19,8 @@ type DB struct {
 	EndpointsWS dao.EndpointDAO
 	Events      dao.EventDAO
 	EventsWS    dao.EventDAO
+	Attempts    dao.AttemptDAO
+	AttemptsWS  dao.AttemptDAO
 }
 
 func initSqlxDB(cfg config.PostgresConfig) (*sqlx.DB, error) {
@@ -43,6 +45,8 @@ func NewDB(cfg *config.Config) (*DB, error) {
 		EndpointsWS: dao.NewEndpointDAO(sqlxDB, true),
 		Events:      dao.NewEventDao(sqlxDB, false),
 		EventsWS:    dao.NewEventDao(sqlxDB, true),
+		Attempts:    dao.NewAttemptDao(sqlxDB, false),
+		AttemptsWS:  dao.NewAttemptDao(sqlxDB, true),
 	}
 
 	return db, nil

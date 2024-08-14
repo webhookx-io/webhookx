@@ -8,6 +8,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/queue"
+	"go.uber.org/zap"
 	"net/http"
 	"strconv"
 )
@@ -17,8 +18,8 @@ const (
 )
 
 type API struct {
-	cfg *config.Config
-
+	cfg   *config.Config
+	log   *zap.SugaredLogger
 	DB    *db.DB
 	queue queue.TaskQueue
 }
@@ -26,6 +27,7 @@ type API struct {
 func NewAPI(cfg *config.Config, db *db.DB, queue queue.TaskQueue) *API {
 	return &API{
 		cfg:   cfg,
+		log:   zap.S(),
 		DB:    db,
 		queue: queue,
 	}
@@ -116,6 +118,11 @@ func (api *API) Handler() http.Handler {
 		r.HandleFunc(prefix+"/events", api.PageEvent).Methods("GET")
 		r.HandleFunc(prefix+"/events", api.CreateEvent).Methods("POST")
 		r.HandleFunc(prefix+"/events/{id}", api.GetEvent).Methods("GET")
+	}
+
+	for _, prefix := range []string{"", "/workspaces/{workspace}"} {
+		r.HandleFunc(prefix+"/attempts", api.PageAttempt).Methods("GET")
+		r.HandleFunc(prefix+"/attempts/{id}", api.GetAttempt).Methods("GET")
 	}
 
 	return r

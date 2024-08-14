@@ -15,6 +15,7 @@ WebhookX is a webhooks gateway.
 
 ## Todo list
 
+- [ ] manual retry an attempt
 - [ ] HTTPS port
 - [ ] Middleware
 - [ ] OpenAPI

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"time"
 )
 
 type BaseDAO[T any] interface {
@@ -27,4 +28,10 @@ type EndpointDAO interface {
 
 type EventDAO interface {
 	BaseDAO[entities.Event]
+}
+
+type AttemptDAO interface {
+	BaseDAO[entities.Attempt]
+	UpdateStatus(ctx context.Context, id string, status entities.AttemptStatus) error
+	UpdateDelivery(ctx context.Context, id string, request *entities.AttemptRequest, response *entities.AttemptResponse, attemptAt time.Time, status entities.AttemptStatus) error
 }

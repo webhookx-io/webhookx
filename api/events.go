@@ -62,29 +62,40 @@ func DispatchEvent(api *API, ctx context.Context, event *entities.Event) error {
 	if err != nil {
 		return err
 	}
+
+	attempts := make([]*entities.Attempt, 0, len(endpoints))
 	tasks := make([]*queue.TaskMessage, 0, len(endpoints))
 
 	err = api.DB.TX(ctx, func(ctx context.Context) error {
-
 		err := api.DB.Events.Insert(ctx, event)
 		if err != nil {
 			return err
 		}
 
 		for _, endpoint := range endpoints {
+			attempt := &entities.Attempt{
+				ID:            utils.UUID(),
+				EventId:       event.ID,
+				EndpointId:    endpoint.ID,
+				Status:        entities.AttemptStatusInit,
+				AttemptNumber: 1,
+			}
+			attempt.WorkspaceId = endpoint.WorkspaceId
+
 			task := &queue.TaskMessage{
-				ID: utils.UUID(),
+				ID: attempt.ID,
 				Data: &model.MessageData{
-					EventID:     event.ID,
-					EndpointId:  endpoint.ID,
-					Attempt:     1,
-					AttemptLeft: len(endpoint.Retry.Config.Attempts) - 1,
-					Delay:       endpoint.Retry.Config.Attempts[0],
+					EventID:    event.ID,
+					EndpointId: endpoint.ID,
+					Delay:      endpoint.Retry.Config.Attempts[0],
+					Attempt:    1,
 				},
 			}
+			attempts = append(attempts, attempt)
 			tasks = append(tasks, task)
 		}
-		return nil
+
+		return api.DB.AttemptsWS.BatchInsert(ctx, attempts)
 	})
 	if err != nil {
 		return err
@@ -93,11 +104,13 @@ func DispatchEvent(api *API, ctx context.Context, event *entities.Event) error {
 	for _, task := range tasks {
 		err := api.queue.Add(task, utils.DurationS(task.Data.(*model.MessageData).Delay))
 		if err != nil {
-			return err
+			api.log.Warnf("failed to add task to queue: %v", err)
+		}
+		err = api.DB.AttemptsWS.UpdateStatus(ctx, task.ID, entities.AttemptStatusQueued)
+		if err != nil {
+			api.log.Warnf("failed to update attempt status: %v", err)
 		}
 	}
-
-	// TODO: record tasks has been successfully queued
 
 	return nil
 }

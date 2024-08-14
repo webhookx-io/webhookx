@@ -269,13 +269,18 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 }
 
 func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interface{}) (int64, error) {
-	//statement, args := psql.Update(dao.table).SetMap(maps).Where(sq.Eq{"id": id}).MustSql()
-	//result, err := dao.DB(ctx).ExecContext(ctx, statement, args...)
-	//if err != nil {
-	//	return 0, err
-	//}
-	//return result.RowsAffected()
-	panic("implement me")
+	builder := psql.Update(dao.table).SetMap(maps).Where(sq.Eq{"id": id})
+	if dao.workspace {
+		wid := ucontext.GetWorkspaceID(ctx)
+		builder = builder.Where(sq.Eq{"ws_id": wid})
+	}
+	statement, args := builder.MustSql()
+	dao.debugSQL(statement, args)
+	result, err := dao.DB(ctx).ExecContext(ctx, statement, args...)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {

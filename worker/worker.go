@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/model"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/safe"
@@ -135,33 +136,41 @@ func (w *Worker) Stop() error {
 func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error {
 	data := task.Data.(*model.MessageData)
 
-	event, err := w.DB.Events.Get(ctx, data.EventID)
-	if err != nil {
-		return err
-	} else if event == nil {
-		w.log.Warnf("event not found: %s", data.EventID)
-		return nil
-	}
-
+	// verifying endpoint
 	endpoint, err := w.DB.Endpoints.Get(ctx, data.EndpointId)
 	if err != nil {
 		return err
-	} else if endpoint == nil {
+	}
+	if endpoint == nil {
 		w.log.Warnf("endpoint not found: %s", data.EndpointId)
-		return nil
+		return w.DB.Attempts.UpdateStatus(ctx, task.ID, entities.AttemptStatusCanceled)
+	}
+	if !endpoint.Enabled {
+		w.log.Warnf("endpoint is disabled: %s", data.EndpointId)
+		return w.DB.Attempts.UpdateStatus(ctx, task.ID, entities.AttemptStatusEndpointDisabled)
 	}
 
-	client := &http.Client{
-		// TODO: timeout
+	// verifying event
+	event, err := w.DB.Events.Get(ctx, data.EventID)
+	if err != nil {
+		return err
 	}
-	httpd := deliverer.NewHTTPDeliverer(client)
+	if event == nil {
+		w.log.Warnf("event not found: %s", data.EventID)
+		return w.DB.Attempts.UpdateStatus(ctx, task.ID, entities.AttemptStatusCanceled)
+	}
 
+	httpd := deliverer.NewHTTPDeliverer(&http.Client{
+		// TODO: timeout based on the endpoint setting
+	})
 	request := &deliverer.Request{
 		URL:     endpoint.Request.URL,
 		Method:  endpoint.Request.Method,
 		Payload: event.Data,
 		//Headers: nil, TODO
 	}
+
+	now := time.Now()
 	response, err := httpd.Deliver(request)
 	if err != nil {
 		w.log.Infof("[worker] failed to send webhook %v", err)
@@ -169,28 +178,72 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 
 	w.log.Debugf("[worker] webhook response: %v", response)
 
-	// TODO: add http log record
+	attemptRequest := &entities.AttemptRequest{
+		URL:    request.URL,
+		Method: request.Method,
+		Header: map[string]string{},
+		Body:   string(request.Payload),
+	}
 
+	attemptResponse := &entities.AttemptResponse{
+		Status: response.StatusCode,
+		Header: map[string]string{},
+		Body:   string(response.ResponseBody),
+	}
+
+	var status entities.AttemptStatus
 	if response.Is2xx() {
-		w.log.Debugf("[worker] deliver webhook successful")
+		//w.log.Debugf("[worker] deliver webhook successful")
+		status = entities.AttemptStatusSuccess
+	} else {
+		//w.log.Debugf("[worker] deliver webhook failed")
+		status = entities.AttemptStatusFailure
+	}
+
+	err = w.DB.Attempts.UpdateDelivery(ctx, task.ID, attemptRequest, attemptResponse, now, status)
+	if err != nil {
+		return err
+	}
+
+	if status == entities.AttemptStatusSuccess {
 		return nil
 	}
 
-	if data.AttemptLeft == 0 {
-		w.log.Debugf("[worker] webhook delivery exhausted")
+	if data.Attempt >= len(endpoint.Retry.Config.Attempts) {
+		w.log.Debugf("[worker] webhook delivery exhausted : %s", task.ID)
 		return nil
+	}
+
+	NextAttempt := &entities.Attempt{
+		ID:            utils.UUID(),
+		EventId:       event.ID,
+		EndpointId:    endpoint.ID,
+		Status:        entities.AttemptStatusInit,
+		AttemptNumber: data.Attempt + 1,
+	}
+	NextAttempt.WorkspaceId = endpoint.WorkspaceId
+
+	err = w.DB.AttemptsWS.Insert(ctx, NextAttempt)
+	if err != nil {
+		return err
 	}
 
 	task = &queue.TaskMessage{
-		ID: utils.UUID(),
+		ID: NextAttempt.ID,
 		Data: &model.MessageData{
-			EventID:     data.EventID,
-			EndpointId:  data.EndpointId,
-			Time:        0,
-			Attempt:     data.Attempt + 1,
-			Delay:       endpoint.Retry.Config.Attempts[data.Attempt],
-			AttemptLeft: data.AttemptLeft - 1,
+			EventID:    data.EventID,
+			EndpointId: data.EndpointId,
+			Delay:      endpoint.Retry.Config.Attempts[NextAttempt.AttemptNumber-1],
+			Attempt:    NextAttempt.AttemptNumber,
 		},
 	}
-	return w.queue.Add(task, utils.DurationS(task.Data.(*model.MessageData).Delay))
+	err = w.queue.Add(task, utils.DurationS(task.Data.(*model.MessageData).Delay))
+	if err != nil {
+		w.log.Warnf("[worker] failed to add task to queue: %v", err)
+	}
+	err = w.DB.Attempts.UpdateStatus(ctx, NextAttempt.ID, entities.AttemptStatusQueued)
+	if err != nil {
+		w.log.Warnf("[worker] failed to update attempt status: %v", err)
+	}
+	return nil
 }

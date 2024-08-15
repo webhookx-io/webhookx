@@ -6,10 +6,10 @@ import (
 )
 
 type RedisConfig struct {
-	Host     string `default:"localhost"`
-	Port     uint32 `default:"6379"`
-	Password string `default:""`
-	Database uint32 `default:"0"`
+	Host     string `yaml:"host" default:"localhost"`
+	Port     uint32 `yaml:"port" default:"6379"`
+	Password string `yaml:"password" default:""`
+	Database uint32 `yaml:"database" default:"0"`
 	// fixme: pool property
 }
 

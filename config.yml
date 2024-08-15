@@ -1,0 +1,20 @@
+admin:
+  listen: 127.0.0.1:8080
+
+log:
+  level: INFO
+  format: text
+
+database:
+  host: localhost
+  port: 5432
+  username: webhookx
+  password:
+  database: webhookx
+
+redis:
+  host: localhost
+  port: 6379
+  password:
+  database: 0
+

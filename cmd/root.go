@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	cfg *config.Config
+	configurationFile string
+	cfg               *config.Config
 
 	cmd = &cobra.Command{
 		Use:          "webhookx",
@@ -22,6 +23,8 @@ var (
 func init() {
 	cobra.OnInitialize(initConfig, initLogger)
 
+	cmd.PersistentFlags().StringVarP(&configurationFile, "config", "", "", "The configuration filename")
+
 	cmd.AddCommand(newVersionCmd())
 	cmd.AddCommand(newMigrationsCmd())
 	cmd.AddCommand(newStartCmd())
@@ -29,7 +32,14 @@ func init() {
 
 func initConfig() {
 	var err error
-	cfg, err = config.Init()
+	if configurationFile != "" {
+		cfg, err = config.InitWithFile(configurationFile)
+	} else {
+		cfg, err = config.Init()
+	}
+	cobra.CheckErr(err)
+
+	err = cfg.Validate()
 	cobra.CheckErr(err)
 	fmt.Println("configuration:", cfg)
 }

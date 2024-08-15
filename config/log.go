@@ -22,8 +22,8 @@ const (
 )
 
 type LogConfig struct {
-	Level  LogLevel `default:"INFO"`
-	Format string   `default:"text"`
+	Level  LogLevel `yaml:"level" default:"INFO"`
+	Format string   `yaml:"format" default:"text"`
 }
 
 func (cfg LogConfig) Validate() error {

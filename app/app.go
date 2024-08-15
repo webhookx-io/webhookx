@@ -49,7 +49,7 @@ func (app *App) init() error {
 
 	// server
 	handler := api.NewAPI(cfg, db, queue).Handler()
-	app.server = server.NewServer(cfg.ServerConfig, handler)
+	app.server = server.NewServer(cfg.AdminConfig, handler)
 	return nil
 }
 

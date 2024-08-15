@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"github.com/webhookx-io/webhookx/config"
 	"go.uber.org/zap"
 	"net/http"
@@ -19,10 +18,10 @@ type Server struct {
 	stopChan chan bool
 }
 
-func NewServer(cfg config.ServerConfig, handler http.Handler) *Server {
+func NewServer(cfg config.AdminConfig, handler http.Handler) *Server {
 	s := &http.Server{
 		Handler: handler,
-		Addr:    fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
+		Addr:    cfg.Listen,
 
 		WriteTimeout: 60 * time.Second,
 		ReadTimeout:  60 * time.Second,

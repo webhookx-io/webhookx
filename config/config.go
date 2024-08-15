@@ -3,7 +3,9 @@ package config
 import (
 	"encoding/json"
 	"github.com/creasty/defaults"
-	"github.com/kelseyhightower/envconfig"
+	"github.com/webhookx-io/webhookx/pkg/envconfig"
+	"gopkg.in/yaml.v3"
+	"os"
 )
 
 var (
@@ -14,10 +16,10 @@ var (
 var cfg Config
 
 type Config struct {
-	Log            LogConfig      `envconfig:"LOG"`
-	PostgresConfig PostgresConfig `envconfig:"DATABASE"`
-	RedisConfig    RedisConfig    `envconfig:"REDIS"`
-	ServerConfig   ServerConfig   `envconfig:"SERVER"`
+	Log            LogConfig      `yaml:"log" envconfig:"LOG"`
+	DatabaseConfig DatabaseConfig `yaml:"database" envconfig:"DATABASE"`
+	RedisConfig    RedisConfig    `yaml:"redis" envconfig:"REDIS"`
+	AdminConfig    AdminConfig    `yaml:"admin" envconfig:"ADMIN"`
 }
 
 func (cfg Config) String() string {
@@ -32,13 +34,13 @@ func (cfg Config) Validate() error {
 	if err := cfg.Log.Validate(); err != nil {
 		return err
 	}
-	if err := cfg.PostgresConfig.Validate(); err != nil {
+	if err := cfg.DatabaseConfig.Validate(); err != nil {
 		return err
 	}
 	if err := cfg.RedisConfig.Validate(); err != nil {
 		return err
 	}
-	if err := cfg.ServerConfig.Validate(); err != nil {
+	if err := cfg.AdminConfig.Validate(); err != nil {
 		return err
 	}
 
@@ -51,6 +53,30 @@ func Init() (*Config, error) {
 	}
 
 	err := envconfig.Process("WEBHOOKX", &cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
+}
+
+func InitWithFile(filename string) (*Config, error) {
+	if err := defaults.Set(&cfg); err != nil {
+		return nil, err
+	}
+
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	decoder := yaml.NewDecoder(f)
+	err = decoder.Decode(&cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	err = envconfig.Process("WEBHOOKX", &cfg)
 	if err != nil {
 		return nil, err
 	}

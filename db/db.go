@@ -23,7 +23,7 @@ type DB struct {
 	AttemptsWS  dao.AttemptDAO
 }
 
-func initSqlxDB(cfg config.PostgresConfig) (*sqlx.DB, error) {
+func initSqlxDB(cfg config.DatabaseConfig) (*sqlx.DB, error) {
 	db, err := cfg.GetDB()
 	if err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func initSqlxDB(cfg config.PostgresConfig) (*sqlx.DB, error) {
 }
 
 func NewDB(cfg *config.Config) (*DB, error) {
-	sqlxDB, err := initSqlxDB(cfg.PostgresConfig)
+	sqlxDB, err := initSqlxDB(cfg.DatabaseConfig)
 	if err != nil {
 		return nil, err
 	}

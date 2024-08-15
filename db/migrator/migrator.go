@@ -20,13 +20,13 @@ func New(cfg *config.Config) *Migrator {
 }
 
 func (m *Migrator) init() (*migrate.Migrate, error) {
-	db, err := m.cfg.PostgresConfig.GetDB()
+	db, err := m.cfg.DatabaseConfig.GetDB()
 	if err != nil {
 		return nil, err
 	}
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{
-		DatabaseName: m.cfg.PostgresConfig.Database,
+		DatabaseName: m.cfg.DatabaseConfig.Database,
 	})
 	if err != nil {
 		return nil, err

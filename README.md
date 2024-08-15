@@ -13,6 +13,7 @@ WebhookX is a webhooks gateway.
 - [x] Workspace 
 - [ ] Data retention policy
 - [ ] OpenAPI
+- [ ] Insight admin APIs
 - [ ] Observability(o11y) including tracing and metrics
 
 ### Outbound

@@ -11,8 +11,9 @@ WebhookX is a webhooks gateway.
 ## Roadmap
 
 - [x] Workspace 
-- [ ] Observability(o11y) including tracing and metrics.
+- [ ] Data retention policy
 - [ ] OpenAPI
+- [ ] Observability(o11y) including tracing and metrics
 
 ### Outbound
 

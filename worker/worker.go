@@ -13,9 +13,7 @@ import (
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.uber.org/zap"
 	"net/http"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -25,9 +23,9 @@ var (
 )
 
 type Worker struct {
+	ctx     context.Context
 	mux     sync.Mutex
 	started bool
-	signal  chan struct{}
 	log     *zap.SugaredLogger
 
 	queue queue.TaskQueue
@@ -35,12 +33,12 @@ type Worker struct {
 	DB *db.DB
 }
 
-func NewWorker(cfg *config.Config, db *db.DB, queue queue.TaskQueue) *Worker {
+func NewWorker(ctx context.Context, cfg *config.Config, db *db.DB, queue queue.TaskQueue) *Worker {
 	worker := &Worker{
-		signal: make(chan struct{}),
-		queue:  queue,
-		log:    zap.S(),
-		DB:     db,
+		ctx:   ctx,
+		queue: queue,
+		log:   zap.S(),
+		DB:    db,
 	}
 
 	return worker
@@ -52,7 +50,7 @@ func (w *Worker) run() {
 
 	for {
 		select {
-		case <-w.signal:
+		case <-w.ctx.Done():
 			w.log.Info("[worker] receive stop signal")
 			return
 		case <-ticker.C:
@@ -99,13 +97,6 @@ func (w *Worker) Start() error {
 		return ErrServerStarted
 	}
 
-	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-ctx.Done()
-		w.log.Infof("[worker] worker is shutting down")
-		w.Stop()
-	}()
-
 	go w.run()
 	w.started = true
 	w.log.Info("[worker] started")
@@ -121,8 +112,6 @@ func (w *Worker) Stop() error {
 	if !w.started {
 		return ErrServerStopped
 	}
-
-	w.signal <- struct{}{}
 
 	// TODO: wait for all go routines finished
 	time.Sleep(time.Second)

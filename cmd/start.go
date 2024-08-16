@@ -11,7 +11,7 @@ func newStartCmd() *cobra.Command {
 		Short: "Start server",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			app, err := app.NewApp(cfg)
+			app, err := app.NewApplication(cfg)
 			if err != nil {
 				return err
 			}

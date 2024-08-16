@@ -15,7 +15,7 @@ services:
     environment:
       WEBHOOKX_DATABASE_HOST: webhookx-database
       WEBHOOKX_REDIS_HOST: redis
-      WEBHOOKX_SERVER_HOST: 0.0.0.0
+      WEBHOOKX_ADMIN_LISTEN: 0.0.0.0:8080
     ports:
       - "8080:8080"
     depends_on:

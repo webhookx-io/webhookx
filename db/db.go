@@ -21,10 +21,16 @@ type DB struct {
 	EventsWS    dao.EventDAO
 	Attempts    dao.AttemptDAO
 	AttemptsWS  dao.AttemptDAO
+	Sources     dao.SourceDAO
+	SourcesWS   dao.SourceDAO
 }
 
 func initSqlxDB(cfg config.DatabaseConfig) (*sqlx.DB, error) {
 	db, err := cfg.GetDB()
+	//db.SetMaxOpenConns(100)
+	//db.SetMaxIdleConns(100)
+	//db.SetConnMaxLifetime(time.Hour)
+	//db.SetConnMaxIdleTime(time.Hour)
 	if err != nil {
 		return nil, err
 	}
@@ -47,6 +53,8 @@ func NewDB(cfg *config.Config) (*DB, error) {
 		EventsWS:    dao.NewEventDao(sqlxDB, true),
 		Attempts:    dao.NewAttemptDao(sqlxDB, false),
 		AttemptsWS:  dao.NewAttemptDao(sqlxDB, true),
+		Sources:     dao.NewSourceDAO(sqlxDB, false),
+		SourcesWS:   dao.NewSourceDAO(sqlxDB, true),
 	}
 
 	return db, nil

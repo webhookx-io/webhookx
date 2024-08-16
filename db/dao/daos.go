@@ -35,3 +35,7 @@ type AttemptDAO interface {
 	UpdateStatus(ctx context.Context, id string, status entities.AttemptStatus) error
 	UpdateDelivery(ctx context.Context, id string, request *entities.AttemptRequest, response *entities.AttemptResponse, attemptAt time.Time, status entities.AttemptStatus) error
 }
+
+type SourceDAO interface {
+	BaseDAO[entities.Source]
+}

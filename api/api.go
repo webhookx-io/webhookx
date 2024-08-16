@@ -115,6 +115,14 @@ func (api *API) Handler() http.Handler {
 	}
 
 	for _, prefix := range []string{"", "/workspaces/{workspace}"} {
+		r.HandleFunc(prefix+"/sources", api.PageSource).Methods("GET")
+		r.HandleFunc(prefix+"/sources", api.CreateSource).Methods("POST")
+		r.HandleFunc(prefix+"/sources/{id}", api.GetSource).Methods("GET")
+		r.HandleFunc(prefix+"/sources/{id}", api.UpdateSource).Methods("PUT")
+		r.HandleFunc(prefix+"/sources/{id}", api.DeleteSource).Methods("DELETE")
+	}
+
+	for _, prefix := range []string{"", "/workspaces/{workspace}"} {
 		r.HandleFunc(prefix+"/events", api.PageEvent).Methods("GET")
 		r.HandleFunc(prefix+"/events", api.CreateEvent).Methods("POST")
 		r.HandleFunc(prefix+"/events/{id}", api.GetEvent).Methods("GET")

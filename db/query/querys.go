@@ -37,3 +37,11 @@ func (q *AttemptQuery) WhereMap() map[string]interface{} {
 	}
 	return maps
 }
+
+type SourceQuery struct {
+	Query
+}
+
+func (q *SourceQuery) WhereMap() map[string]interface{} {
+	return map[string]interface{}{}
+}

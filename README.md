@@ -23,7 +23,7 @@ WebhookX is a webhooks gateway.
 
 ### Inbound
 
-- [ ] Inbound Gateway
+- [x] Inbound Gateway
 - [ ] Middlewares/Plugins
 
 ## Installation

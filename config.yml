@@ -1,9 +1,11 @@
-admin:
-  listen: 127.0.0.1:8080
+# ---------------------------
+# WebhookX configuration file
+# ---------------------------
 
 log:
-  level: INFO
-  format: text
+  level: INFO   # supported values are DEBUG, INFO, WARN, and ERROR.
+  format: text  # supported values:
+                # text
 
 database:
   host: localhost
@@ -18,3 +20,29 @@ redis:
   password:
   database: 0
 
+
+
+#------------------------------------------------------------------------------
+# ADMIN
+#------------------------------------------------------------------------------
+
+admin:
+  listen: 127.0.0.1:8080
+
+#------------------------------------------------------------------------------
+# PROXY
+#------------------------------------------------------------------------------
+proxy:
+  listen: 127.0.0.1:8081
+  max_request_body_size: 1048576
+  response:
+    code: 200
+    content-type: application/json
+    body: '{"message": "OK"}'
+
+  queue:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password:
+      database: 0

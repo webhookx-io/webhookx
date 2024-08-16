@@ -20,6 +20,7 @@ type Config struct {
 	DatabaseConfig DatabaseConfig `yaml:"database" envconfig:"DATABASE"`
 	RedisConfig    RedisConfig    `yaml:"redis" envconfig:"REDIS"`
 	AdminConfig    AdminConfig    `yaml:"admin" envconfig:"ADMIN"`
+	ProxyConfig    ProxyConfig    `yaml:"proxy" envconfig:"PROXY"`
 }
 
 func (cfg Config) String() string {
@@ -41,6 +42,9 @@ func (cfg Config) Validate() error {
 		return err
 	}
 	if err := cfg.AdminConfig.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.ProxyConfig.Validate(); err != nil {
 		return err
 	}
 

@@ -25,6 +25,8 @@ WebhookX is a webhooks gateway.
 
 - [x] Inbound Gateway
 - [ ] Middlewares/Plugins
+- [ ] Authentication
+- [ ] Event Transformer
 
 ## Installation
 

@@ -26,3 +26,16 @@ jobs:
 
     - name: run tests
       run: go test -v ./...
+
+  test-docker-compose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name:
+        run: |
+          docker build . -t webhookx-io/webhookx:latest
+          docker compose up -d
+          sleep 10
+          curl http://localhost:8080

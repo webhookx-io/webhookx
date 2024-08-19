@@ -1,4 +1,5 @@
 openapi: 3.0.3
+
 info:
   title: WebhookX APIs
   contact:
@@ -11,3 +12,648 @@ info:
 
 servers:
   - url: http://localhost:8080
+
+paths:
+  /:
+    get:
+      summary: Get WebhookX information
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+
+  /workspaces:
+    get:
+      summary: Page workspaces
+      tags:
+        - Workspace
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Pagination"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Workspace"
+    post:
+      summary: Create a workspace
+      tags:
+        - Workspace
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Workspace'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+
+  /workspaces/{id}:
+    get:
+      summary: Retrieve a workspace
+      tags:
+        - Workspace
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+    put:
+      summary: Update a workspace
+      tags:
+        - Workspace
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Workspace'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+    delete:
+      summary: Delete a workspace
+      tags:
+        - Workspace
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+
+
+  /workspaces/{ws_id}/endpoints:
+    get:
+      summary: Page endpoints
+      tags:
+        - Endpoint
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Pagination"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Endpoint"
+    post:
+      tags:
+        - Endpoint
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+      summary: Create a endpoint
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Endpoint'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Endpoint'
+
+  /workspaces/{ws_id}/endpoints/{id}:
+    get:
+      summary: Retrieve a endpoint
+      tags:
+        - Endpoint
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Endpoint'
+    put:
+      summary: Update a endpoint
+      tags:
+        - Endpoint
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Endpoint'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Endpoint'
+
+    delete:
+      summary: Delete a endpoint
+      tags:
+        - Endpoint
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+
+  /workspaces/{ws_id}/attempts:
+    get:
+      summary: Page webhook attempts
+      tags:
+        - Attempt
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Pagination"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Attempt"
+
+
+  /workspaces/{ws_id}/attempts/{id}:
+    get:
+      summary: Retrieve a webhook attempt
+      tags:
+        - Attempt
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attempt'
+
+  /workspaces/{ws_id}/events:
+    get:
+      summary: Page events
+      tags:
+        - Event
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Pagination"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Event"
+
+    post:
+      summary: Create an event
+      tags:
+        - Event
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+
+
+  /workspaces/{ws_id}/events/{id}:
+    get:
+      summary: Retrieve an event
+      tags:
+        - Event
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+
+
+  /workspaces/{ws_id}/sources:
+    get:
+      summary: Page sources
+      tags:
+        - Source
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Pagination"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Source"
+    post:
+      summary: Create a source
+      tags:
+        - Source
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Source'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+
+  /workspaces/{ws_id}/source/{id}:
+    get:
+      summary: Retrieve a source
+      tags:
+        - Source
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+    put:
+      summary: Update a source
+      tags:
+        - Source
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Source'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+
+    delete:
+      summary: Delete a source
+      tags:
+        - Source
+      parameters:
+        - in: path
+          name: ws_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
+
+
+components:
+  responses:
+    NotFound:
+      description: The resource was not found
+
+    NotContent:
+      description: The resource has been successfully deleted or the resource didn't exist
+
+  schemas:
+    Pagination:
+      properties:
+        total:
+          type: integer
+
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: integer
+        updated_at:
+          type: integer
+
+    Endpoint:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        enabled:
+          type: boolean
+        request:
+          type: object
+          properties:
+            url:
+              type: string
+            method:
+              type: string
+            headers: {}
+            timeout:
+              type: object
+              properties:
+                connect:
+                  type: number
+                read:
+                  type: number
+                write:
+                  type: number
+          required:
+            - url
+            - method
+        retry:
+          type: object
+          properties:
+            strategy:
+              type: string
+            config:
+              type: object
+              properties:
+                attempts:
+                  type: array
+                  items:
+                    type: number
+              required:
+                - attempts
+          required:
+            - strategy
+            - config
+        events:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: integer
+        updated_at:
+          type: integer
+      required:
+        - id
+        - request
+        - retry
+        - events
+
+    Attempt:
+      type: object
+      properties:
+        id:
+          type: string
+        event_id:
+          type: string
+        endpoint_id:
+          type: string
+        status:
+          type: string
+        attempt_number:
+          type: integer
+        attempt_at:
+          type: integer
+        request:
+          type: object
+          properties:
+            method:
+              type: string
+            url:
+              type: string
+            header:
+              type: object
+            body:
+              type: string
+        response:
+          type: object
+          properties:
+            status:
+              type: number
+            header:
+              type: object
+            body:
+              type: string
+        created_at:
+          type: integer
+        updated_at:
+          type: integer
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+        event_type:
+          type: string
+        data:
+          type: object
+        created_at:
+          type: integer
+        updated_at:
+          type: integer
+
+    Source:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        enabled:
+          type: boolean
+        path:
+          type: string
+        methods:
+          type: array
+          items:
+            type: string
+        response:
+          type: object
+          properties:
+            code:
+              type: number
+            content_type:
+              type: string
+            body:
+              type: string
+        created_at:
+          type: integer
+        updated_at:
+          type: integer
+      required:
+        - path
+        - methods

@@ -80,14 +80,20 @@ func (app *Application) initialize() error {
 	app.queue = queue
 
 	// worker
-	app.worker = worker.NewWorker(app.ctx, cfg, db, queue)
+	if cfg.WorkerConfig.Enabled {
+		app.worker = worker.NewWorker(app.ctx, cfg.WorkerConfig, db, queue)
+	}
 
 	// server
-	handler := api.NewAPI(cfg, db, queue).Handler()
-	app.admin = admin.NewAdmin(cfg.AdminConfig, handler)
+	if cfg.AdminConfig.IsEnabled() {
+		handler := api.NewAPI(cfg, db, queue).Handler()
+		app.admin = admin.NewAdmin(cfg.AdminConfig, handler)
+	}
 
 	// gateway
-	app.gateway = proxy.NewGateway(&cfg.ProxyConfig, db, queue)
+	if cfg.ProxyConfig.IsEnabled() {
+		app.gateway = proxy.NewGateway(&cfg.ProxyConfig, db, queue)
+	}
 
 	return nil
 }
@@ -100,9 +106,15 @@ func (app *Application) Start() error {
 		app.Stop()
 	}()
 
-	app.admin.Start()
-	app.worker.Start()
-	app.gateway.Start()
+	if app.admin != nil {
+		app.admin.Start()
+	}
+	if app.gateway != nil {
+		app.gateway.Start()
+	}
+	if app.worker != nil {
+		app.worker.Start()
+	}
 
 	app.wait()
 
@@ -121,9 +133,15 @@ func (app *Application) Stop() {
 
 	app.cancel()
 
-	app.admin.Stop()
-	app.worker.Stop()
-	app.gateway.Stop()
+	if app.admin != nil {
+		app.admin.Stop()
+	}
+	if app.gateway != nil {
+		app.gateway.Stop()
+	}
+	if app.worker != nil {
+		app.worker.Stop()
+	}
 
 	app.stopChan <- true
 }

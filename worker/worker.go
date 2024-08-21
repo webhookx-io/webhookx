@@ -33,7 +33,7 @@ type Worker struct {
 	DB *db.DB
 }
 
-func NewWorker(ctx context.Context, cfg *config.Config, db *db.DB, queue queue.TaskQueue) *Worker {
+func NewWorker(ctx context.Context, cfg config.WorkerConfig, db *db.DB, queue queue.TaskQueue) *Worker {
 	worker := &Worker{
 		ctx:   ctx,
 		queue: queue,

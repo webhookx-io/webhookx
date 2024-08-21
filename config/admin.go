@@ -1,9 +1,16 @@
 package config
 
 type AdminConfig struct {
-	Listen string `yaml:"listen" default:"127.0.0.1:8080"`
+	Listen string `yaml:"listen"`
 }
 
 func (cfg AdminConfig) Validate() error {
 	return nil
+}
+
+func (cfg AdminConfig) IsEnabled() bool {
+	if cfg.Listen == "" || cfg.Listen == "off" {
+		return false
+	}
+	return true
 }

@@ -21,6 +21,7 @@ type Config struct {
 	RedisConfig    RedisConfig    `yaml:"redis" envconfig:"REDIS"`
 	AdminConfig    AdminConfig    `yaml:"admin" envconfig:"ADMIN"`
 	ProxyConfig    ProxyConfig    `yaml:"proxy" envconfig:"PROXY"`
+	WorkerConfig   WorkerConfig   `yaml:"worker" envconfig:"WORKER"`
 }
 
 func (cfg Config) String() string {
@@ -45,6 +46,9 @@ func (cfg Config) Validate() error {
 		return err
 	}
 	if err := cfg.ProxyConfig.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.WorkerConfig.Validate(); err != nil {
 		return err
 	}
 

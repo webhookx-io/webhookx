@@ -11,7 +11,7 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 - **Admin API:** The admin API(:8080) provides a RESTful API for webhooks entities management.
 - **Retries:** WebhookX automatically retries unsuccessful deliveries at configurable delays.
 - **Fan out:** Events can be fan out to multiple destinations.
-
+- **Declarative configuration:**  Managing your configuration through declarative configuration file, and be DevOps compliant.
 
 ## Roadmap
 

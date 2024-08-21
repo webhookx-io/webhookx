@@ -45,6 +45,17 @@ $ docker compose up
 $ curl http://localhost:8080
 ```
 
+
+## Getting started
+
+
+## Runtime dependencies
+
+The gateway requires the following runtime dependencies to work:
+
+- PostgreSQL(>=13)
+- Redis(>=4)
+
 ## Sponsoring
 
 ## Contributing

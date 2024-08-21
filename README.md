@@ -45,6 +45,8 @@ $ docker compose up
 $ curl http://localhost:8080
 ```
 
+## Sponsoring
+
 ## Contributing
 
 We ❤️ pull requests

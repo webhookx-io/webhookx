@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"github.com/webhookx-io/webhookx/admin"
-	"github.com/webhookx-io/webhookx/api"
+	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/pkg/queue"

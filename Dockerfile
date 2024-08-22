@@ -13,6 +13,8 @@ FROM alpine:3.15
 
 COPY --from=build-env /go/bin/webhookx /usr/local/bin
 
+RUN apk add --no-cache gcompat
+
 EXPOSE 8080
 
 CMD ["webhookx", "start"]

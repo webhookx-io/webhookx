@@ -48,6 +48,67 @@ $ curl http://localhost:8080
 
 ## Getting started
 
+##### 1. Create an endpoint
+
+```
+curl --location 'http://localhost:8080/workspaces/default/endpoints' \
+--header 'Content-Type: application/json' \
+--data '{
+    "request": {
+        "url": "https://httpbin.org/anything",
+        "method": "POST"
+    },
+    "events": [
+        "charge.succeeded"
+    ]
+}'
+```
+
+#### 2. Send an event to proxy
+
+```
+curl --location 'http://localhost:8081/' \
+--header 'Content-Type: application/json' \
+--data '{
+    "event_type": "charge.succeeded",
+    "data": {
+        "key": "value"
+    }
+}'
+```
+
+#### 3. Retrieve delivery attemp
+
+```
+curl --location 'http://localhost:8080/workspaces/default/attempts'
+
+{
+    "total": 1,
+    "data": [
+        {
+            "id": "c11b4011-623c-4aa0-8c54-4e4672799e15",
+            "event_id": "dfc3fa33-4e0e-4b43-96ab-c1ad92de67f4",
+            "endpoint_id": "97d5fecd-f912-43fb-9a22-2073931acbeb",
+            "status": "SUCCESSFUL",
+            "attempt_number": 1,
+            "attempt_at": 1724336398,
+            "request": {
+                "method": "POST",
+                "url": "https://httpbin.org/anything",
+                "header": {},
+                "body": "{\"key\": \"value\"}"
+            },
+            "response": {
+                "status": 200,
+                "header": {},
+                "body": "{\n  \"args\": {}, \n  \"data\": \"{\\\"key\\\": \\\"value\\\"}\", \n  \"files\": {}, \n  \"form\": {}, \n  \"headers\": {\n    \"Accept-Encoding\": \"gzip\", \n    \"Content-Length\": \"16\", \n    \"Content-Type\": \"application/json; charset=utf-8\", \n    \"Host\": \"httpbin.org\", \n    \"User-Agent\": \"WebhookX/dev\", \n    \"X-Amzn-Trace-Id\": \"Root=1-66c7490f-044864fb41bb67160fe2a4e3\"\n  }, \n  \"json\": {\n    \"key\": \"value\"\n  }, \n  \"method\": \"POST\", \n  \"origin\": \"117.186.1.161\", \n  \"url\": \"https://httpbin.org/anything\"\n}\n"
+            },
+            "created_at": 1724307597,
+            "updated_at": 1724307597
+        }
+    ]
+}
+```
 
 ## Runtime dependencies
 

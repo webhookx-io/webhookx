@@ -15,7 +15,7 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 
 ## Roadmap
 
-- [x] Workspace 
+- [x] Workspace
 - [ ] Data retention policy
 - [x] OpenAPI
 - [ ] Insight admin APIs
@@ -51,7 +51,7 @@ $ curl http://localhost:8080
 ##### 1. Create an endpoint
 
 ```
-curl --location 'http://localhost:8080/workspaces/default/endpoints' \
+curl -X POST 'http://localhost:8080/workspaces/default/endpoints' \
 --header 'Content-Type: application/json' \
 --data '{
     "request": {
@@ -64,10 +64,22 @@ curl --location 'http://localhost:8080/workspaces/default/endpoints' \
 }'
 ```
 
-#### 2. Send an event to proxy
+##### 2. Create a source
 
 ```
-curl --location 'http://localhost:8081/' \
+curl -X POST 'http://localhost:8080/workspaces/default/sources' \
+--header 'accept: application/json' \
+--header 'Content-Type: application/json' \
+--data '{
+  "path": "/",
+  "methods": ["POST"]
+}'
+```
+
+#### 3. Send an event to proxy
+
+```
+curl -X POST 'http://localhost:8081/' \
 --header 'Content-Type: application/json' \
 --data '{
     "event_type": "charge.succeeded",
@@ -77,10 +89,10 @@ curl --location 'http://localhost:8081/' \
 }'
 ```
 
-#### 3. Retrieve delivery attemp
+#### 4. Retrieve delivery attemp
 
 ```
-curl --location 'http://localhost:8080/workspaces/default/attempts'
+curl 'http://localhost:8080/workspaces/default/attempts'
 
 {
     "total": 1,

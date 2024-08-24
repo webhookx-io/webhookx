@@ -21,15 +21,15 @@ func (api *API) PageSource(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) GetSource(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	endpoint, err := api.DB.SourcesWS.Get(r.Context(), id)
+	source, err := api.DB.SourcesWS.Get(r.Context(), id)
 	api.assert(err)
 
-	if endpoint == nil {
+	if source == nil {
 		api.json(404, w, ErrorResponse{Message: MsgNotFound})
 		return
 	}
 
-	api.json(200, w, endpoint)
+	api.json(200, w, source)
 }
 
 func (api *API) CreateSource(w http.ResponseWriter, r *http.Request) {
@@ -55,28 +55,28 @@ func (api *API) CreateSource(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) UpdateSource(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	endpoint, err := api.DB.SourcesWS.Get(r.Context(), id)
+	source, err := api.DB.SourcesWS.Get(r.Context(), id)
 	api.assert(err)
-	if endpoint == nil {
+	if source == nil {
 		api.json(404, w, ErrorResponse{Message: MsgNotFound})
 		return
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(endpoint); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(source); err != nil {
 		api.error(400, w, err)
 		return
 	}
 
-	if err := endpoint.Validate(); err != nil {
+	if err := source.Validate(); err != nil {
 		api.error(400, w, err)
 		return
 	}
 
-	endpoint.ID = id
-	err = api.DB.SourcesWS.Update(r.Context(), endpoint)
+	source.ID = id
+	err = api.DB.SourcesWS.Update(r.Context(), source)
 	api.assert(err)
 
-	api.json(200, w, endpoint)
+	api.json(200, w, source)
 }
 
 func (api *API) DeleteSource(w http.ResponseWriter, r *http.Request) {

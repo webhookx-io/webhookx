@@ -12,6 +12,7 @@ import (
 
 func (api *API) PageWorkspace(w http.ResponseWriter, r *http.Request) {
 	var q query.WorkspaceQuery
+	q.Order("id", query.DESC)
 	api.bindQuery(r, &q.Query)
 	list, total, err := api.DB.Workspaces.Page(r.Context(), &q)
 	api.assert(err)

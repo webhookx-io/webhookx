@@ -131,7 +131,7 @@ func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
 	return rows > 0, nil
 }
 
-func (dao *DAO[T]) Page(ctx context.Context, q query.DatabaseQuery) (list []*T, total int64, err error) {
+func (dao *DAO[T]) Page(ctx context.Context, q query.Queryer) (list []*T, total int64, err error) {
 	total, err = dao.Count(ctx, q.WhereMap())
 	if err != nil {
 		return
@@ -155,7 +155,7 @@ func (dao *DAO[T]) Count(ctx context.Context, where map[string]interface{}) (tot
 	return
 }
 
-func (dao *DAO[T]) List(ctx context.Context, q query.DatabaseQuery) (list []*T, err error) {
+func (dao *DAO[T]) List(ctx context.Context, q query.Queryer) (list []*T, err error) {
 	builder := psql.Select("*").From(dao.table)
 	where := q.WhereMap()
 	if where != nil && len(where) > 0 {
@@ -165,11 +165,13 @@ func (dao *DAO[T]) List(ctx context.Context, q query.DatabaseQuery) (list []*T, 
 		wid := ucontext.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
 	}
-	if q.GetLimit() != 0 {
-		builder = builder.Offset(uint64(q.GetOffset()))
-		builder = builder.Limit(uint64(q.GetLimit()))
+	if q.Limit() != 0 {
+		builder = builder.Offset(uint64(q.Offset()))
+		builder = builder.Limit(uint64(q.Limit()))
 	}
-	// TODO: add order by support
+	for _, order := range q.Orders() {
+		builder = builder.OrderBy(order.Column + " " + order.Sort)
+	}
 	statement, args := builder.MustSql()
 	dao.debugSQL(statement, args)
 	list = make([]*T, 0)

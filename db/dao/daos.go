@@ -12,8 +12,8 @@ type BaseDAO[T any] interface {
 	Insert(ctx context.Context, entity *T) error
 	Update(ctx context.Context, entity *T) error
 	Delete(ctx context.Context, id string) (bool, error)
-	Page(ctx context.Context, q query.DatabaseQuery) ([]*T, int64, error)
-	List(ctx context.Context, q query.DatabaseQuery) ([]*T, error)
+	Page(ctx context.Context, q query.Queryer) ([]*T, int64, error)
+	List(ctx context.Context, q query.Queryer) ([]*T, error)
 	BatchInsert(ctx context.Context, entities []*T) error
 }
 

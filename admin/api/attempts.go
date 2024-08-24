@@ -8,6 +8,7 @@ import (
 
 func (api *API) PageAttempt(w http.ResponseWriter, r *http.Request) {
 	var q query.AttemptQuery
+	q.Order("id", query.DESC)
 	api.bindQuery(r, &q.Query)
 	if r.URL.Query().Get("event_id") != "" {
 		q.EventId = utils.Pointer(r.URL.Query().Get("event_id"))

@@ -15,6 +15,7 @@ import (
 
 func (api *API) PageEvent(w http.ResponseWriter, r *http.Request) {
 	var q query.EventQuery
+	q.Order("id", query.DESC)
 	api.bindQuery(r, &q.Query)
 
 	list, total, err := api.DB.EventsWS.Page(r.Context(), &q)

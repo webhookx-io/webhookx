@@ -65,8 +65,6 @@ func (api *API) bindQuery(r *http.Request, q *query.Query) {
 		pagesize = 20
 	}
 
-	// TODO: order
-
 	q.Page(uint64(page), uint64(pagesize))
 }
 

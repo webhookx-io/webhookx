@@ -11,6 +11,7 @@ import (
 
 func (api *API) PageEndpoint(w http.ResponseWriter, r *http.Request) {
 	var q query.EndpointQuery
+	q.Order("id", query.DESC)
 	api.bindQuery(r, &q.Query)
 	list, total, err := api.DB.EndpointsWS.Page(r.Context(), &q)
 	api.assert(err)

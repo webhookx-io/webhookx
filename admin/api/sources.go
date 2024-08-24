@@ -11,6 +11,7 @@ import (
 
 func (api *API) PageSource(w http.ResponseWriter, r *http.Request) {
 	var q query.SourceQuery
+	q.Order("id", query.DESC)
 	api.bindQuery(r, &q.Query)
 	list, total, err := api.DB.SourcesWS.Page(r.Context(), &q)
 	api.assert(err)

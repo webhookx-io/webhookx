@@ -1,14 +1,16 @@
 package query
 
-type DatabaseQuery interface {
-	GetOffset() int64
-	GetLimit() int64
+type Queryer interface {
+	Offset() int64
+	Limit() int64
 	WhereMap() map[string]interface{}
+	Orders() []*Order
 }
 
 type Query struct {
-	Offset int64
-	Limit  int64
+	offset int64
+	limit  int64
+	orders []*Order
 }
 
 func (q *Query) Page(pageNo, pageSize uint64) {
@@ -16,18 +18,26 @@ func (q *Query) Page(pageNo, pageSize uint64) {
 		pageNo = 1
 	}
 	offset := (pageNo - 1) * pageSize
-	q.Offset = int64(offset)
-	q.Limit = int64(int(pageSize))
+	q.offset = int64(offset)
+	q.limit = int64(int(pageSize))
 }
 
-func (q *Query) GetOffset() int64 {
-	return q.Offset
+func (q *Query) Offset() int64 {
+	return q.offset
 }
 
-func (q *Query) GetLimit() int64 {
-	return q.Limit
+func (q *Query) Limit() int64 {
+	return q.limit
 }
 
 func (q *Query) WhereMap() map[string]interface{} {
 	return nil
+}
+
+func (q *Query) Orders() []*Order {
+	return q.orders
+}
+
+func (q *Query) Order(column string, sort Sort) {
+	q.orders = append(q.orders, &Order{column, sort})
 }

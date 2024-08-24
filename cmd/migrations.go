@@ -27,7 +27,7 @@ func newMigrationsCmd() *cobra.Command {
 		Short: "print the migration status",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			m := migrator.New(cfg)
+			m := migrator.New(&cfg.DatabaseConfig)
 			version, dirty, err := m.Status()
 			if err != nil {
 				return err
@@ -47,7 +47,7 @@ func newMigrationsCmd() *cobra.Command {
 		Short: "run any new migrations",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			m := migrator.New(cfg)
+			m := migrator.New(&cfg.DatabaseConfig)
 			if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 				return err
 			}
@@ -62,7 +62,7 @@ func newMigrationsCmd() *cobra.Command {
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// fixme: add promp
-			m := migrator.New(cfg)
+			m := migrator.New(&cfg.DatabaseConfig)
 			fmt.Println("resetting database...")
 			if err := m.Reset(); err != nil {
 				return err

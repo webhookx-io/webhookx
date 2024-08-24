@@ -39,7 +39,7 @@ func (api *API) GetEvent(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	var event entities.Event
-	event.ID = utils.UUID()
+	event.ID = utils.KSUID()
 
 	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
 		api.error(400, w, err)
@@ -75,7 +75,7 @@ func DispatchEvent(api *API, ctx context.Context, event *entities.Event) error {
 
 		for _, endpoint := range endpoints {
 			attempt := &entities.Attempt{
-				ID:            utils.UUID(),
+				ID:            utils.KSUID(),
 				EventId:       event.ID,
 				EndpointId:    endpoint.ID,
 				Status:        entities.AttemptStatusInit,

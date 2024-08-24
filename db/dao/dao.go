@@ -75,9 +75,6 @@ func (dao *DAO[T]) UnsafeDB(ctx context.Context) Queryable {
 }
 
 func (dao *DAO[T]) Get(ctx context.Context, id string) (entity *T, err error) {
-	if ok := utils.IsValidUUID(id); !ok {
-		return nil, nil
-	}
 	builder := psql.Select("*").From(dao.table).Where(sq.Eq{"id": id})
 	if dao.workspace {
 		wid := ucontext.GetWorkspaceID(ctx)
@@ -110,9 +107,6 @@ func (dao *DAO[T]) selectByField(ctx context.Context, field string, value string
 }
 
 func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
-	if ok := utils.IsValidUUID(id); !ok {
-		return false, nil
-	}
 	builder := psql.Delete(dao.table).Where(sq.Eq{"id": id})
 	if dao.workspace {
 		wid := ucontext.GetWorkspaceID(ctx)

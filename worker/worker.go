@@ -204,7 +204,7 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 	}
 
 	NextAttempt := &entities.Attempt{
-		ID:            utils.UUID(),
+		ID:            utils.KSUID(),
 		EventId:       event.ID,
 		EndpointId:    endpoint.ID,
 		Status:        entities.AttemptStatusInit,

@@ -108,7 +108,7 @@ func (gw *Gateway) DispatchEvent(ctx context.Context, event *entities.Event) err
 
 		for _, endpoint := range endpoints {
 			attempt := &entities.Attempt{
-				ID:            utils.UUID(),
+				ID:            utils.KSUID(),
 				EventId:       event.ID,
 				EndpointId:    endpoint.ID,
 				Status:        entities.AttemptStatusInit,
@@ -185,7 +185,7 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 	r = r.WithContext(ctx)
 
 	var event entities.Event
-	event.ID = utils.UUID()
+	event.ID = utils.KSUID()
 	r.Body = http.MaxBytesReader(w, r.Body, gw.cfg.MaxRequestBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
 		if _, ok := err.(*http.MaxBytesError); ok {

@@ -5,28 +5,30 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/migrations"
+	"github.com/webhookx-io/webhookx/utils"
 )
 
-// Migrator is a database migrator
 type Migrator struct {
-	cfg *config.Config
+	cfg *config.DatabaseConfig
 }
 
-func New(cfg *config.Config) *Migrator {
-	return &Migrator{
+func New(cfg *config.DatabaseConfig) *Migrator {
+	migrator := &Migrator{
 		cfg: cfg,
 	}
+	return migrator
 }
 
 func (m *Migrator) init() (*migrate.Migrate, error) {
-	db, err := m.cfg.DatabaseConfig.GetDB()
+	db, err := m.cfg.GetDB()
 	if err != nil {
 		return nil, err
 	}
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{
-		DatabaseName: m.cfg.DatabaseConfig.Database,
+		DatabaseName: m.cfg.Database,
 	})
 	if err != nil {
 		return nil, err
@@ -58,7 +60,12 @@ func (m *Migrator) Up() error {
 	if err != nil {
 		return err
 	}
-	return migrate.Up()
+	err = migrate.Up()
+	if err != nil {
+		return err
+	}
+
+	return m.initDefaultWorkspace()
 }
 
 func (m *Migrator) Down() error {
@@ -76,4 +83,14 @@ func (m *Migrator) Status() (version uint, dirty bool, err error) {
 		return 0, false, err
 	}
 	return migrate.Version()
+}
+
+func (m *Migrator) initDefaultWorkspace() error {
+	db, err := db.NewDB(m.cfg)
+	if err != nil {
+		return err
+	}
+	sql := `INSERT INTO workspaces(id, name) VALUES($1, 'default') ON CONFLICT(name) DO NOTHING;`
+	_, err = db.DB.Exec(sql, utils.KSUID())
+	return err
 }

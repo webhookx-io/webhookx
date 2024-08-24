@@ -25,7 +25,7 @@ type DB struct {
 	SourcesWS   dao.SourceDAO
 }
 
-func initSqlxDB(cfg config.DatabaseConfig) (*sqlx.DB, error) {
+func initSqlxDB(cfg *config.DatabaseConfig) (*sqlx.DB, error) {
 	db, err := cfg.GetDB()
 	//db.SetMaxOpenConns(100)
 	//db.SetMaxIdleConns(100)
@@ -37,8 +37,8 @@ func initSqlxDB(cfg config.DatabaseConfig) (*sqlx.DB, error) {
 	return sqlx.NewDb(db, "postgres"), nil
 }
 
-func NewDB(cfg *config.Config) (*DB, error) {
-	sqlxDB, err := initSqlxDB(cfg.DatabaseConfig)
+func NewDB(cfg *config.DatabaseConfig) (*DB, error) {
+	sqlxDB, err := initSqlxDB(cfg)
 	if err != nil {
 		return nil, err
 	}

@@ -46,7 +46,7 @@ func (api *API) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	workspace.ID = utils.UUID()
+	workspace.ID = utils.KSUID()
 	err := api.DB.Workspaces.Insert(r.Context(), &workspace)
 	api.assert(err)
 

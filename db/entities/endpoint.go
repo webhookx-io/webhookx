@@ -20,7 +20,7 @@ type Endpoint struct {
 }
 
 func (m *Endpoint) Init() {
-	m.ID = utils.UUID()
+	m.ID = utils.KSUID()
 	m.Enabled = true
 }
 

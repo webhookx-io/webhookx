@@ -39,6 +39,6 @@ func (m *Source) Validate() error {
 }
 
 func (m *Source) Init() {
-	m.ID = utils.UUID()
+	m.ID = utils.KSUID()
 	m.Enabled = true
 }

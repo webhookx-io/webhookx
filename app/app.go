@@ -68,7 +68,7 @@ func (app *Application) initialize() error {
 	app.log = zap.S()
 
 	// db
-	db, err := db.NewDB(cfg)
+	db, err := db.NewDB(&cfg.DatabaseConfig)
 	if err != nil {
 		return err
 	}

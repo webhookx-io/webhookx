@@ -51,35 +51,35 @@ $ curl http://localhost:8080
 ##### 1. Create an endpoint
 
 ```
-curl -X POST 'http://localhost:8080/workspaces/default/endpoints' \
---header 'Content-Type: application/json' \
---data '{
-    "request": {
-        "url": "https://httpbin.org/anything",
-        "method": "POST"
-    },
-    "events": [
-        "charge.succeeded"
-    ]
-}'
+$ curl -X POST http://localhost:8080/workspaces/default/endpoints \
+  --header 'Content-Type: application/json' \
+  --data '{
+      "request": {
+          "url": "https://httpbin.org/anything",
+          "method": "POST"
+      },
+      "events": [
+          "charge.succeeded"
+      ]
+  }'
 ```
 
 ##### 2. Create a source
 
 ```
-curl -X POST 'http://localhost:8080/workspaces/default/sources' \
---header 'accept: application/json' \
---header 'Content-Type: application/json' \
---data '{
-  "path": "/",
-  "methods": ["POST"]
-}'
+$ curl -X POST http://localhost:8080/workspaces/default/sources \
+  --header 'accept: application/json' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "path": "/",
+    "methods": ["POST"]
+  }'
 ```
 
 #### 3. Send an event to proxy
 
 ```
-curl -X POST 'http://localhost:8081/' \
+$ curl -X POST http://localhost:8081 \
 --header 'Content-Type: application/json' \
 --data '{
     "event_type": "charge.succeeded",
@@ -92,33 +92,33 @@ curl -X POST 'http://localhost:8081/' \
 #### 4. Retrieve delivery attemp
 
 ```
-curl 'http://localhost:8080/workspaces/default/attempts'
+$ curl http://localhost:8080/workspaces/default/attempts
 
 {
-    "total": 1,
-    "data": [
-        {
-            "id": "c11b4011-623c-4aa0-8c54-4e4672799e15",
-            "event_id": "dfc3fa33-4e0e-4b43-96ab-c1ad92de67f4",
-            "endpoint_id": "97d5fecd-f912-43fb-9a22-2073931acbeb",
-            "status": "SUCCESSFUL",
-            "attempt_number": 1,
-            "attempt_at": 1724336398,
-            "request": {
-                "method": "POST",
-                "url": "https://httpbin.org/anything",
-                "header": {},
-                "body": "{\"key\": \"value\"}"
-            },
-            "response": {
-                "status": 200,
-                "header": {},
-                "body": "{\n  \"args\": {}, \n  \"data\": \"{\\\"key\\\": \\\"value\\\"}\", \n  \"files\": {}, \n  \"form\": {}, \n  \"headers\": {\n    \"Accept-Encoding\": \"gzip\", \n    \"Content-Length\": \"16\", \n    \"Content-Type\": \"application/json; charset=utf-8\", \n    \"Host\": \"httpbin.org\", \n    \"User-Agent\": \"WebhookX/dev\", \n    \"X-Amzn-Trace-Id\": \"Root=1-66c7490f-044864fb41bb67160fe2a4e3\"\n  }, \n  \"json\": {\n    \"key\": \"value\"\n  }, \n  \"method\": \"POST\", \n  \"origin\": \"117.186.1.161\", \n  \"url\": \"https://httpbin.org/anything\"\n}\n"
-            },
-            "created_at": 1724307597,
-            "updated_at": 1724307597
-        }
-    ]
+  "total": 1,
+  "data": [
+    {
+      "id": "2l6HMc9FSJHsGqf8ouLdqTGx1GB",
+      "event_id": "2l6HMYvsWlK35Kz5RzIi1KV1jvl",
+      "endpoint_id": "2l6HLC2usWDFOj7H4e8dIgEaJO5",
+      "status": "SUCCESSFUL",
+      "attempt_number": 1,
+      "attempt_at": 1724493558,
+      "request": {
+        "method": "POST",
+        "url": "https://httpbin.org/anything",
+        "header": {},
+        "body": "{\"key\": \"value\"}"
+      },
+      "response": {
+        "status": 200,
+        "header": {},
+        "body": "{\n  \"args\": {}, \n  \"data\": \"{\\\"key\\\": \\\"value\\\"}\", \n  \"files\": {}, \n  \"form\": {}, \n  \"headers\": {\n    \"Accept-Encoding\": \"gzip\", \n    \"Content-Length\": \"16\", \n    \"Content-Type\": \"application/json; charset=utf-8\", \n    \"Host\": \"httpbin.org\", \n    \"User-Agent\": \"WebhookX/dev\", \n    \"X-Amzn-Trace-Id\": \"Root=1-66c9aef9-214447eb1bcaad151f29744e\"\n  }, \n  \"json\": {\n    \"key\": \"value\"\n  }, \n  \"method\": \"POST\", \n  \"origin\": \"13.114.230.241\", \n  \"url\": \"https://httpbin.org/anything\"\n}\n"
+      },
+      "created_at": 1724493559,
+      "updated_at": 1724493559
+    }
+  ]
 }
 ```
 

@@ -49,8 +49,8 @@ func NewGateway(cfg *config.ProxyConfig, db *db.DB, queue queue.TaskQueue) *Gate
 		Handler: r,
 		Addr:    cfg.Listen,
 
-		WriteTimeout: 60 * time.Second,
-		ReadTimeout:  60 * time.Second,
+		ReadTimeout:  time.Duration(cfg.TimeoutRead) * time.Second,
+		WriteTimeout: time.Duration(cfg.TimeoutWrite) * time.Second,
 	}
 
 	return gw

@@ -14,6 +14,8 @@ type Queue struct {
 
 type ProxyConfig struct {
 	Listen             string        `yaml:"listen"`
+	TimeoutRead        int64         `yaml:"timeout_read" default:"10"`
+	TimeoutWrite       int64         `yaml:"timeout_write" default:"10"`
 	MaxRequestBodySize int64         `yaml:"max_request_body_size" default:"1048576"`
 	Response           ProxyResponse `yaml:"response"`
 	Queue              Queue         `yaml:"queue"`
@@ -22,6 +24,12 @@ type ProxyConfig struct {
 func (cfg ProxyConfig) Validate() error {
 	if cfg.MaxRequestBodySize < 0 {
 		return errors.New("max_request_body_size cannot be negative value")
+	}
+	if cfg.TimeoutRead < 0 {
+		return errors.New("timeout_read cannot be negative value")
+	}
+	if cfg.TimeoutWrite < 0 {
+		return errors.New("timeout_write cannot be negative value")
 	}
 	return nil
 }

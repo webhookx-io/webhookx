@@ -41,6 +41,8 @@ worker:
 #------------------------------------------------------------------------------
 proxy:
   #listen: 127.0.0.1:8081
+  timeout_read: 10                  # read timeout (in seconds), 0 indicates unlimited.
+  timeout_write: 60                 # write timeout (in seconds), 0 indicates unlimited.
   max_request_body_size: 1048576
   response:
     code: 200

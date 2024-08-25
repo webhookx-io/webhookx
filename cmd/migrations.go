@@ -8,6 +8,32 @@ import (
 	"github.com/webhookx-io/webhookx/db/migrator"
 )
 
+func newMigrationsResetCmd() *cobra.Command {
+	var yes bool
+	reset := &cobra.Command{
+		Use:   "reset",
+		Short: "reset the database",
+		Long:  ``,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Println(args)
+			if !yes {
+				if !prompt("Are you sure? This operation is irreversible.") {
+					return errors.New("canceled")
+				}
+			}
+			m := migrator.New(&cfg.DatabaseConfig)
+			fmt.Println("resetting database...")
+			if err := m.Reset(); err != nil {
+				return err
+			}
+			fmt.Println("database successfully reset")
+			return nil
+		},
+	}
+	reset.PersistentFlags().BoolVarP(&yes, "yes", "y", false, "yes")
+	return reset
+}
+
 func newMigrationsCmd() *cobra.Command {
 
 	migration := &cobra.Command{
@@ -56,23 +82,7 @@ func newMigrationsCmd() *cobra.Command {
 		},
 	})
 
-	migration.AddCommand(&cobra.Command{
-		Use:   "reset",
-		Short: "reset the database",
-		Long:  ``,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if !prompt("Are you sure? This operation is irreversible.") {
-				return errors.New("canceled")
-			}
-			m := migrator.New(&cfg.DatabaseConfig)
-			fmt.Println("resetting database...")
-			if err := m.Reset(); err != nil {
-				return err
-			}
-			fmt.Println("database successfully reset")
-			return nil
-		},
-	})
+	migration.AddCommand(newMigrationsResetCmd())
 
 	return migration
 }

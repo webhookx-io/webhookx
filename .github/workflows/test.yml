@@ -15,17 +15,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions/setup-go@v4
+    - uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
+        go-version-file: go.mod
 
     - name: build
-      run: go build -v ./...
+      run: make build
 
     - name: run tests
-      run: go test -v ./...
+      run: make test-coverage
+
+    - name: upload coverage reselt to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   test-docker-compose:
     runs-on: ubuntu-latest
@@ -33,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name:
+      - name: test docker compose
         run: |
           docker build . -t webhookx-io/webhookx:latest
           docker compose up -d

@@ -1,0 +1,10 @@
+.idea
+.vscode
+.DS_Store
+
+.dockerignore
+.gitignore
+.env
+
+coverage.*
+webhookx

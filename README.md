@@ -89,7 +89,7 @@ $ curl -X POST http://localhost:8081 \
 }'
 ```
 
-#### 4. Retrieve delivery attemp
+#### 4. Retrieve delivery attempt
 
 ```
 $ curl http://localhost:8080/workspaces/default/attempts

@@ -68,7 +68,7 @@ var (
 	`)
 )
 
-// RedisTaskQueue use redis as queue implemention
+// RedisTaskQueue use redis as queue implementation
 type RedisTaskQueue struct {
 	queue string
 	c     *redis.Client

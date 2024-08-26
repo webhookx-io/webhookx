@@ -14,7 +14,7 @@ const (
 const Stop time.Duration = -1
 
 type Retry interface {
-	NextDelay(attemps int) time.Duration
+	NextDelay(attempts int) time.Duration
 }
 
 type Option func(Retry)

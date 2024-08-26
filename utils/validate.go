@@ -14,7 +14,7 @@ var validate = validator.New(validator.WithRequiredStructEnabled())
 func Validate(v interface{}) error {
 	err := validate.Struct(v)
 	if err != nil {
-		validateErr := errs.NewValidateError(errors.New("reqeust validation"))
+		validateErr := errs.NewValidateError(errors.New("request validation"))
 		for _, e := range err.(validator.ValidationErrors) {
 			// todo nested fields
 			t := reflect.ValueOf(v).Type()

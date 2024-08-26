@@ -135,4 +135,10 @@ The gateway requires the following runtime dependencies to work:
 
 We ❤️ pull requests
 
+## Contributors
+
+Thank you for your contribution to WebhookX!
+
+[![Contributors](https://contrib.rocks/image?repo=webhookx-io/webhookx)](https://github.com/webhookx-io/webhookx/graphs/contributors)
+
 ## License

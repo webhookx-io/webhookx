@@ -7,13 +7,11 @@ COPY go.sum /go/src/webhookx-io/webhookx
 RUN go mod download
 
 COPY . .
-RUN go install
+RUN make build
 
 FROM alpine:3.15
 
-COPY --from=build-env /go/bin/webhookx /usr/local/bin
-
-RUN apk add --no-cache gcompat
+COPY --from=build-env /go/src/webhookx-io/webhookx/webhookx /usr/local/bin
 
 EXPOSE 8080
 

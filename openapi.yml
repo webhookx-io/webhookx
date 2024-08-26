@@ -118,18 +118,14 @@ paths:
         '204':
           description: Deleted
 
-
   /workspaces/{ws_id}/endpoints:
+    parameters:
+      - $ref: '#/components/parameters/workspace_id'
+
     get:
       summary: Page endpoints
       tags:
         - Endpoint
-      parameters:
-        - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           description: OK
@@ -147,12 +143,6 @@ paths:
     post:
       tags:
         - Endpoint
-      parameters:
-        - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
       summary: Create a endpoint
       requestBody:
         content:
@@ -168,16 +158,14 @@ paths:
                 $ref: '#/components/schemas/Endpoint'
 
   /workspaces/{ws_id}/endpoints/{id}:
+    parameters:
+      - $ref: '#/components/parameters/workspace_id'
+
     get:
       summary: Retrieve a endpoint
       tags:
         - Endpoint
       parameters:
-        - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
         - in: path
           name: id
           required: true
@@ -195,11 +183,6 @@ paths:
       tags:
         - Endpoint
       parameters:
-        - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
         - in: path
           name: id
           required: true
@@ -224,11 +207,6 @@ paths:
         - Endpoint
       parameters:
         - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
-        - in: path
           name: id
           required: true
           schema:
@@ -238,16 +216,13 @@ paths:
           description: Deleted
 
   /workspaces/{ws_id}/attempts:
+    parameters:
+      - $ref: '#/components/parameters/workspace_id'
+
     get:
       summary: Page webhook attempts
       tags:
         - Attempt
-      parameters:
-        - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           description: OK
@@ -265,16 +240,14 @@ paths:
 
 
   /workspaces/{ws_id}/attempts/{id}:
+    parameters:
+      - $ref: '#/components/parameters/workspace_id'
+
     get:
       summary: Retrieve a webhook attempt
       tags:
         - Attempt
       parameters:
-        - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
         - in: path
           name: id
           required: true
@@ -289,16 +262,13 @@ paths:
                 $ref: '#/components/schemas/Attempt'
 
   /workspaces/{ws_id}/events:
+    parameters:
+      - $ref: '#/components/parameters/workspace_id'
+
     get:
       summary: Page events
       tags:
         - Event
-      parameters:
-        - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           description: OK
@@ -318,12 +288,6 @@ paths:
       summary: Create an event
       tags:
         - Event
-      parameters:
-        - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
       requestBody:
         content:
           application/json:
@@ -339,16 +303,14 @@ paths:
 
 
   /workspaces/{ws_id}/events/{id}:
+    parameters:
+      - $ref: '#/components/parameters/workspace_id'
+
     get:
       summary: Retrieve an event
       tags:
         - Event
       parameters:
-        - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
         - in: path
           name: id
           required: true
@@ -364,16 +326,13 @@ paths:
 
 
   /workspaces/{ws_id}/sources:
+    parameters:
+      - $ref: '#/components/parameters/workspace_id'
+
     get:
       summary: Page sources
       tags:
         - Source
-      parameters:
-        - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           description: OK
@@ -392,12 +351,6 @@ paths:
       summary: Create a source
       tags:
         - Source
-      parameters:
-        - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
       requestBody:
         content:
           application/json:
@@ -412,16 +365,14 @@ paths:
                 $ref: '#/components/schemas/Source'
 
   /workspaces/{ws_id}/source/{id}:
+    parameters:
+      - $ref: '#/components/parameters/workspace_id'
+
     get:
       summary: Retrieve a source
       tags:
         - Source
       parameters:
-        - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
         - in: path
           name: id
           required: true
@@ -440,11 +391,6 @@ paths:
         - Source
       parameters:
         - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
-        - in: path
           name: id
           required: true
           schema:
@@ -461,17 +407,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Source'
-
     delete:
       summary: Delete a source
       tags:
         - Source
       parameters:
-        - in: path
-          name: ws_id
-          required: true
-          schema:
-            type: string
         - in: path
           name: id
           required: true
@@ -483,6 +423,15 @@ paths:
 
 
 components:
+  parameters:
+    workspace_id:
+      in: path
+      name: ws_id
+      required: true
+      schema:
+        type: string
+        example: 'default'
+      description: The workspace id
   responses:
     NotFound:
       description: The resource was not found

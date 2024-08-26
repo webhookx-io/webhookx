@@ -17,10 +17,10 @@ func WithFixedDelay(fixedDelaySeconds []int64) Option {
 	}
 }
 
-func (r *FixedStrategyRetry) NextDelay(attemps int) time.Duration {
-	if attemps > len(r.fixedDelaySeconds) {
+func (r *FixedStrategyRetry) NextDelay(attempts int) time.Duration {
+	if attempts > len(r.fixedDelaySeconds) {
 		return Stop
 	}
-	seconds := r.fixedDelaySeconds[attemps-1]
+	seconds := r.fixedDelaySeconds[attempts-1]
 	return time.Duration(seconds) * time.Second
 }

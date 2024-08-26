@@ -71,7 +71,7 @@ func (api *API) bindQuery(r *http.Request, q *query.Query) {
 func (api *API) error(code int, w http.ResponseWriter, err error) {
 	if e, ok := err.(*errs.ValidateError); ok {
 		api.json(code, w, ErrorResponse{
-			Message: "Reqeust Validation",
+			Message: "Request Validation",
 			Error:   e,
 		})
 		return

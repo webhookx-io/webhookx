@@ -201,7 +201,7 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 
 	if err := event.Validate(); err != nil {
 		utils.JsonResponse(400, w, ErrorResponse{
-			Message: "Reqeust Validation",
+			Message: "Request Validation",
 			Error:   err,
 		})
 		return

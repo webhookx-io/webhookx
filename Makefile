@@ -18,3 +18,6 @@ test-integration:
 test-coverage:
 	go test ./... -coverprofile=coverage.txt
 
+.PHONY: goreleaser
+goreleaser:
+	goreleaser release --snapshot --clean

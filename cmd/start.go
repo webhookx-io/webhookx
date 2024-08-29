@@ -6,7 +6,7 @@ import (
 )
 
 func newStartCmd() *cobra.Command {
-	return &cobra.Command{
+	start := &cobra.Command{
 		Use:   "start",
 		Short: "Start server",
 		Long:  ``,
@@ -21,4 +21,8 @@ func newStartCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	start.PersistentFlags().StringVarP(&configurationFile, "config", "", "", "The configuration filename")
+
+	return start
 }

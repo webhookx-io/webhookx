@@ -12,7 +12,7 @@ func newMigrationsResetCmd() *cobra.Command {
 	var yes bool
 	reset := &cobra.Command{
 		Use:   "reset",
-		Short: "reset the database",
+		Short: "Reset the database",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Println(args)
@@ -42,15 +42,11 @@ func newMigrationsCmd() *cobra.Command {
 		Long:  ``,
 	}
 
-	var (
-		timeout int
-	)
-	migration.PersistentFlags().IntVarP(&timeout, "timeout", "", 0, "timeout seconds")
-	migration.PersistentFlags().IntVarP(&timeout, "lock-timeout", "", 0, "lock timeout seconds")
+	migration.PersistentFlags().StringVarP(&configurationFile, "config", "", "", "The configuration filename")
 
 	migration.AddCommand(&cobra.Command{
 		Use:   "status",
-		Short: "print the migration status",
+		Short: "Print the migration status",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := migrator.New(&cfg.DatabaseConfig)
@@ -70,7 +66,7 @@ func newMigrationsCmd() *cobra.Command {
 
 	migration.AddCommand(&cobra.Command{
 		Use:   "up",
-		Short: "run any new migrations",
+		Short: "Run any new migrations",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m := migrator.New(&cfg.DatabaseConfig)

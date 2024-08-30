@@ -11,6 +11,7 @@ type Deliverer interface {
 }
 
 type Request struct {
+	Request *http.Request
 	URL     string
 	Method  string
 	Payload []byte

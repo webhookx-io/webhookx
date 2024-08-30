@@ -1,24 +1,20 @@
 package test
 
 import (
-	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/suite"
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db/migrator"
 	"os"
+	"time"
 )
 
 type BasicSuite struct {
 	suite.Suite
-
-	Client *resty.Client
 }
 
 func (s *BasicSuite) SetupSuite() {
-	c := resty.New()
-	c.SetBaseURL("http://localhost:8080")
-	s.Client = c
+
 }
 
 func (s *BasicSuite) ResetDatabase() error {
@@ -35,24 +31,25 @@ func (s *BasicSuite) ResetDatabase() error {
 	return migrator.Up()
 }
 
-func Start(envs map[string]string) error {
+func Start(envs map[string]string) (*app.Application, error) {
 	for name, value := range envs {
 		err := os.Setenv(name, value)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	cfg, err := config.Init()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	app, err := app.NewApplication(cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	go app.Start()
 
-	return nil
+	time.Sleep(time.Second)
+	return app, nil
 }

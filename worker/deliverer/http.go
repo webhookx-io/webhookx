@@ -48,6 +48,7 @@ func (d *HTTPDeliverer) Deliver(req *Request) (res *Response) {
 		return
 	}
 
+	req.Request = request
 	for name, value := range defaultHeaders {
 		request.Header.Add(name, value)
 	}

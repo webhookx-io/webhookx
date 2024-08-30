@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 func JsonResponse(code int, w http.ResponseWriter, data interface{}) {
@@ -14,4 +15,12 @@ func JsonResponse(code int, w http.ResponseWriter, data interface{}) {
 		panic(err)
 	}
 	_, _ = w.Write(bytes)
+}
+
+func HeaderMap(header http.Header) map[string]string {
+	headers := make(map[string]string)
+	for name, values := range header {
+		headers[name] = strings.Join(values, ",")
+	}
+	return headers
 }

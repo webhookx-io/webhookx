@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS "attempts" (
 
     "attempt_number" SMALLINT    NOT NULL DEFAULT 1,
     "attempt_at"     INTEGER,
+    "error_code"     VARCHAR(30),
 
     "request"        JSONB,
     "response"       JSONB,

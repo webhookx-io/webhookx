@@ -29,10 +29,10 @@ func (m *Endpoint) Validate() error {
 }
 
 type RequestConfig struct {
-	URL     string        `json:"url" validate:"required"`
-	Method  string        `json:"method" validate:"required,oneof=GET POST PUT DELETE PATCH"`
-	Headers []HeaderEntry `json:"headers"`
-	Timeout int64         `json:"timeout" default:"10000" validate:"gte=0"`
+	URL     string            `json:"url" validate:"required"`
+	Method  string            `json:"method" validate:"required,oneof=GET POST PUT DELETE PATCH"`
+	Headers map[string]string `json:"headers"`
+	Timeout int64             `json:"timeout" default:"10000" validate:"gte=0"`
 }
 
 func (m *RequestConfig) Scan(src interface{}) error {
@@ -41,11 +41,6 @@ func (m *RequestConfig) Scan(src interface{}) error {
 
 func (m RequestConfig) Value() (driver.Value, error) {
 	return json.Marshal(m)
-}
-
-type HeaderEntry struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
 }
 
 type RetryStrategy string

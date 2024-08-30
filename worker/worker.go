@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/model"
 	"github.com/webhookx-io/webhookx/pkg/queue"
@@ -125,74 +126,77 @@ func (w *Worker) Stop() error {
 func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error {
 	data := task.Data.(*model.MessageData)
 
-	// verifying endpoint
+	// verify endpoint
 	endpoint, err := w.DB.Endpoints.Get(ctx, data.EndpointId)
 	if err != nil {
 		return err
 	}
 	if endpoint == nil {
-		w.log.Warnf("endpoint not found: %s", data.EndpointId)
-		return w.DB.Attempts.UpdateStatus(ctx, task.ID, entities.AttemptStatusCanceled)
+		return w.DB.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeEndpointNotFound)
 	}
 	if !endpoint.Enabled {
-		w.log.Warnf("endpoint is disabled: %s", data.EndpointId)
-		return w.DB.Attempts.UpdateStatus(ctx, task.ID, entities.AttemptStatusEndpointDisabled)
+		return w.DB.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeEndpointDisabled)
 	}
 
-	// verifying event
+	// verify event
 	event, err := w.DB.Events.Get(ctx, data.EventID)
 	if err != nil {
 		return err
 	}
 	if event == nil {
-		w.log.Warnf("event not found: %s", data.EventID)
-		return w.DB.Attempts.UpdateStatus(ctx, task.ID, entities.AttemptStatusCanceled)
+		return w.DB.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeUnknown)
 	}
 
 	request := &deliverer.Request{
 		URL:     endpoint.Request.URL,
 		Method:  endpoint.Request.Method,
 		Payload: event.Data,
-		//Headers: nil, TODO
+		Headers: endpoint.Request.Headers,
 		Timeout: time.Duration(endpoint.Request.Timeout) * time.Millisecond,
 	}
 
-	now := time.Now()
+	result := &dao.DeliveryResult{
+		AttemptAt: time.Now(),
+	}
+
 	response := w.deliverer.Deliver(request)
 	if response.Error != nil {
-		w.log.Infof("[worker] failed to send webhook %v", response.Error)
+		if errors.Is(response.Error, context.DeadlineExceeded) {
+			result.ErrorCode = utils.Pointer(entities.AttemptErrorCodeTimeout)
+		} else {
+			result.ErrorCode = utils.Pointer(entities.AttemptErrorCodeUnknown)
+		}
+		w.log.Infof("[worker] failed to delivery event: %v", response.Error)
 	}
 
-	w.log.Debugf("[worker] webhook response: %v", response)
+	w.log.Debugf("[worker] delivery response: %v", response)
 
-	attemptRequest := &entities.AttemptRequest{
-		URL:    request.URL,
-		Method: request.Method,
-		Header: map[string]string{},
-		Body:   string(request.Payload),
-	}
-
-	attemptResponse := &entities.AttemptResponse{
-		Status: response.StatusCode,
-		Header: map[string]string{},
-		Body:   string(response.ResponseBody),
-	}
-
-	var status entities.AttemptStatus
 	if response.Is2xx() {
-		//w.log.Debugf("[worker] deliver webhook successful")
-		status = entities.AttemptStatusSuccess
+		result.Status = entities.AttemptStatusSuccess
 	} else {
-		//w.log.Debugf("[worker] deliver webhook failed")
-		status = entities.AttemptStatusFailure
+		result.Status = entities.AttemptStatusFailure
 	}
 
-	err = w.DB.Attempts.UpdateDelivery(ctx, task.ID, attemptRequest, attemptResponse, now, status)
+	result.Request = &entities.AttemptRequest{
+		URL:     request.URL,
+		Method:  request.Method,
+		Headers: utils.HeaderMap(request.Request.Header),
+		Body:    utils.Pointer(string(request.Payload)),
+	}
+	if response.StatusCode != 0 {
+		result.Response = &entities.AttemptResponse{
+			Status:  response.StatusCode,
+			Headers: utils.HeaderMap(response.Header),
+			Body:    utils.Pointer(string(response.ResponseBody)),
+		}
+	}
+
+	err = w.DB.Attempts.UpdateDelivery(ctx, task.ID, result)
 	if err != nil {
 		return err
 	}
 
-	if status == entities.AttemptStatusSuccess {
+	if result.Status == entities.AttemptStatusSuccess {
 		return nil
 	}
 

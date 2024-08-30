@@ -15,7 +15,6 @@ func newMigrationsResetCmd() *cobra.Command {
 		Short: "Reset the database",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println(args)
 			if !yes {
 				if !prompt("Are you sure? This operation is irreversible.") {
 					return errors.New("canceled")

@@ -12,7 +12,6 @@ import (
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.uber.org/zap"
-	"net/http"
 	"sync"
 	"time"
 )
@@ -28,17 +27,18 @@ type Worker struct {
 	started bool
 	log     *zap.SugaredLogger
 
-	queue queue.TaskQueue
-
-	DB *db.DB
+	queue     queue.TaskQueue
+	deliverer deliverer.Deliverer
+	DB        *db.DB
 }
 
-func NewWorker(ctx context.Context, cfg config.WorkerConfig, db *db.DB, queue queue.TaskQueue) *Worker {
+func NewWorker(ctx context.Context, cfg *config.WorkerConfig, db *db.DB, queue queue.TaskQueue) *Worker {
 	worker := &Worker{
-		ctx:   ctx,
-		queue: queue,
-		log:   zap.S(),
-		DB:    db,
+		ctx:       ctx,
+		queue:     queue,
+		log:       zap.S(),
+		deliverer: deliverer.NewHTTPDeliverer(&cfg.Deliverer),
+		DB:        db,
 	}
 
 	return worker
@@ -149,20 +149,18 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		return w.DB.Attempts.UpdateStatus(ctx, task.ID, entities.AttemptStatusCanceled)
 	}
 
-	httpd := deliverer.NewHTTPDeliverer(&http.Client{
-		// TODO: timeout based on the endpoint setting
-	})
 	request := &deliverer.Request{
 		URL:     endpoint.Request.URL,
 		Method:  endpoint.Request.Method,
 		Payload: event.Data,
 		//Headers: nil, TODO
+		Timeout: time.Duration(endpoint.Request.Timeout) * time.Millisecond,
 	}
 
 	now := time.Now()
-	response, err := httpd.Deliver(request)
-	if err != nil {
-		w.log.Infof("[worker] failed to send webhook %v", err)
+	response := w.deliverer.Deliver(request)
+	if response.Error != nil {
+		w.log.Infof("[worker] failed to send webhook %v", response.Error)
 	}
 
 	w.log.Debugf("[worker] webhook response: %v", response)

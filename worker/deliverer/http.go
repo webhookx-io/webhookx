@@ -2,14 +2,11 @@ package deliverer
 
 import (
 	"bytes"
+	"context"
 	"github.com/webhookx-io/webhookx/config"
 	"io"
 	"net/http"
 	"time"
-)
-
-const (
-	DefaultTimeout = time.Second * 10
 )
 
 var defaultHeaders = map[string]string{
@@ -19,29 +16,38 @@ var defaultHeaders = map[string]string{
 
 // HTTPDeliverer delivers via HTTP
 type HTTPDeliverer struct {
-	client *http.Client
+	defaultTimeout time.Duration
+	client         *http.Client
 }
 
-func NewHTTPDeliverer(client *http.Client) *HTTPDeliverer {
-	if client == nil {
-		client = &http.Client{
-			Timeout: DefaultTimeout,
-		}
-	}
+func NewHTTPDeliverer(cfg *config.WorkerDeliverer) *HTTPDeliverer {
+	client := &http.Client{}
+
 	return &HTTPDeliverer{
-		client: client,
+		defaultTimeout: time.Duration(cfg.Timeout) * time.Millisecond,
+		client:         client,
 	}
 }
 
-func (d *HTTPDeliverer) Deliver(req *Request) (res *Response, err error) {
+func (d *HTTPDeliverer) Deliver(req *Request) (res *Response) {
+	timeout := req.Timeout
+	if timeout == 0 {
+		timeout = d.defaultTimeout
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	res = &Response{
 		Request: req,
 	}
 
-	request, err := http.NewRequest(req.Method, req.URL, bytes.NewBuffer(req.Payload))
+	request, err := http.NewRequestWithContext(ctx, req.Method, req.URL, bytes.NewBuffer(req.Payload))
 	if err != nil {
+		res.Error = err
 		return
 	}
+
 	for name, value := range defaultHeaders {
 		request.Header.Add(name, value)
 	}
@@ -49,21 +55,22 @@ func (d *HTTPDeliverer) Deliver(req *Request) (res *Response, err error) {
 		request.Header.Add(name, value)
 	}
 
-	resp, err := d.client.Do(request)
+	response, err := d.client.Do(request)
 	if err != nil {
-		return
-	}
-	body, err := io.ReadAll(resp.Body)
-	defer resp.Body.Close()
-	if err != nil {
+		res.Error = err
 		return
 	}
 
-	res.resp = resp
-	res.Status = resp.Status
-	res.StatusCode = resp.StatusCode
-	res.Header = resp.Header
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		res.Error = err
+		return
+	}
+	response.Body.Close()
+
+	res.StatusCode = response.StatusCode
+	res.Header = response.Header
 	res.ResponseBody = body
 
-	return res, nil
+	return
 }

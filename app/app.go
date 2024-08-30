@@ -81,7 +81,7 @@ func (app *Application) initialize() error {
 
 	// worker
 	if cfg.WorkerConfig.Enabled {
-		app.worker = worker.NewWorker(app.ctx, cfg.WorkerConfig, db, queue)
+		app.worker = worker.NewWorker(app.ctx, &cfg.WorkerConfig, db, queue)
 	}
 
 	// server

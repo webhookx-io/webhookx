@@ -3,28 +3,27 @@ package deliverer
 import (
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type Deliverer interface {
-	Deliver(req *Request) (res *Response, err error)
+	Deliver(req *Request) (res *Response)
 }
 
-// Request is HTTP request
 type Request struct {
 	URL     string
 	Method  string
 	Payload []byte
 	Headers map[string]string
+	Timeout time.Duration
 }
 
-// Response is HTTP response
 type Response struct {
-	Status       string
+	Request      *Request
 	StatusCode   int
 	Header       http.Header
 	ResponseBody []byte
-	Request      *Request
-	resp         *http.Response
+	Error        error
 }
 
 func (r *Response) Is2xx() bool {

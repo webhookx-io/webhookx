@@ -32,7 +32,7 @@ type RequestConfig struct {
 	URL     string        `json:"url" validate:"required"`
 	Method  string        `json:"method" validate:"required,oneof=GET POST PUT DELETE PATCH"`
 	Headers []HeaderEntry `json:"headers"`
-	Timeout Timeout       `json:"timeout"`
+	Timeout int64         `json:"timeout" default:"10000" validate:"gte=0"`
 }
 
 func (m *RequestConfig) Scan(src interface{}) error {
@@ -46,12 +46,6 @@ func (m RequestConfig) Value() (driver.Value, error) {
 type HeaderEntry struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
-}
-
-type Timeout struct {
-	Connect int `json:"connect" default:"60000" validate:"gt=0"`
-	Read    int `json:"read" default:"60000" validate:"gt=0"`
-	Write   int `json:"write" default:"60000" validate:"gt=0"`
 }
 
 type RetryStrategy string

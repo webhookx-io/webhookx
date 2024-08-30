@@ -11,7 +11,7 @@ on:
       - '**/*.md'
 
 jobs:
-  test:
+  unit-tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,6 +31,43 @@ jobs:
       uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+
+  integration-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: build
+        run: make build
+
+      - name: run tests
+        run: make test-integration-coverage
+
+      - name: upload coverage reselt to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: webhookx
+          POSTGRES_DB: webhookx
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 3s --health-timeout 5s --health-retries 3
+
+      redis:
+        image: redis:6
+        ports:
+          - 6379:6379
 
   test-docker-compose:
     runs-on: ubuntu-latest

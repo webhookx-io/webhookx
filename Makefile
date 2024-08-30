@@ -8,15 +8,19 @@ build:
 
 .PHONY: test
 test:
-	go test ./...
-
-.PHONY: test-integration
-test-integration:
-	echo "run integration tests"
+	go test $$(go list ./... | grep -v /test/)
 
 .PHONY: test-coverage
 test-coverage:
-	go test ./... -coverprofile=coverage.txt
+	go test $$(go list ./... | grep -v /test/) -coverprofile=coverage.txt
+
+.PHONY: test-integration
+test-integration:
+	go test ./test/...
+
+.PHONY: test-integration-coverage
+test-integration-coverage:
+	go test ./test/... --coverpkg ./... -coverprofile=coverage.txt
 
 .PHONY: goreleaser
 goreleaser:

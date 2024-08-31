@@ -41,10 +41,7 @@ jobs:
           go-version-file: go.mod
 
       - name: install
-        run: make build
-
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
+        run: make install
 
       - name: run tests
         run: make test-integration-coverage

@@ -24,6 +24,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 	var ws *entities.Workspace
 
 	BeforeAll(func() {
+		assert.Nil(GinkgoT(), helper.ResetDB())
 		db = helper.DB()
 		var err error
 		adminClient = helper.AdminClient()

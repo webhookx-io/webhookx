@@ -4,6 +4,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/migrator"
 )
 
 func AdminClient() *resty.Client {
@@ -28,4 +29,18 @@ func DB() *db.DB {
 		return nil
 	}
 	return db
+}
+
+func ResetDB() error {
+	cfg, err := config.Init()
+	if err != nil {
+		return err
+	}
+
+	migrator := migrator.New(&cfg.DatabaseConfig)
+	err = migrator.Reset()
+	if err != nil {
+		return err
+	}
+	return migrator.Up()
 }

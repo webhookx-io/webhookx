@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/webhookx-io/webhookx/config"
@@ -92,4 +93,10 @@ func (db *DB) TX(ctx context.Context, fn func(ctx context.Context) error) error 
 	}
 
 	return tx.Commit()
+}
+
+func (db *DB) Truncate(table string) error {
+	sql := fmt.Sprintf("DELETE FROM %s", table)
+	_, err := db.DB.Exec(sql)
+	return err
 }

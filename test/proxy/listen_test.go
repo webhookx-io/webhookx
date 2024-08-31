@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -30,7 +29,6 @@ func (s *ProxyListenSuite) SetupSuite() {
 }
 
 func (s *ProxyListenSuite) TearDownSuite() {
-	fmt.Println("done")
 	s.app.Stop()
 }
 

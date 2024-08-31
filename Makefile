@@ -21,11 +21,11 @@ test-coverage: clean
 
 .PHONY: test-integration
 test-integration: clean
-	go test -v ./test/...
+	go test -p 1 -v ./test/...
 
 .PHONY: test-integration-coverage
 test-integration-coverage: clean
-	go test -v ./test/... --coverpkg ./... -coverprofile=coverage.txt
+	go test -p 1 -v ./test/... --coverpkg ./... -coverprofile=coverage.txt
 
 .PHONY: goreleaser
 goreleaser:

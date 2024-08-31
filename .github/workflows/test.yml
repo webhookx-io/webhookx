@@ -21,9 +21,6 @@ jobs:
       with:
         go-version-file: go.mod
 
-    - name: build
-      run: make build
-
     - name: run tests
       run: make test-coverage
 
@@ -31,6 +28,7 @@ jobs:
       uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true
 
   integration-tests:
     runs-on: ubuntu-latest
@@ -42,10 +40,8 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: build
-        run: |
-          make build
-          mv webhookx /usr/local/bin/webhookx
+      - name: install
+        run: make build
 
       - name: run tests
         run: make test-integration-coverage
@@ -54,6 +50,7 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
 
     services:
       postgres:

@@ -11,6 +11,10 @@ clean:
 build:
 	CGO_ENABLED=0 go build ${LDFLAGS}
 
+.PHONY: install
+install:
+	go install ${LDFLAGS}
+
 .PHONY: test
 test: clean
 	go test $$(go list ./... | grep -v /test/)

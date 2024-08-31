@@ -42,8 +42,9 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: build
-        run: make build
+      - name: build and install
+        run: |
+          make install
 
       - name: run tests
         run: make test-integration-coverage

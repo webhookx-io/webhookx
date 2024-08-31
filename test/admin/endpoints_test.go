@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -53,7 +54,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 				Post("/workspaces/default/endpoints")
 			assert.Nil(GinkgoT(), err)
 
-			Expect(resp.RawResponse).To(HaveHTTPStatus(201))
+			assert.Equal(GinkgoT(), 201, resp.StatusCode())
 
 			result := resp.Result().(*entities.Endpoint)
 			assert.NotNil(GinkgoT(), result.ID)
@@ -69,6 +70,30 @@ var _ = Describe("/endpoints", Ordered, func() {
 			e, err := db.Endpoints.Get(context.TODO(), result.ID)
 			assert.Nil(GinkgoT(), err)
 			assert.NotNil(GinkgoT(), e)
+		})
+
+		Context("errors", func() {
+			It("returns HTTP 400 for invalid json", func() {
+				resp, err := adminClient.R().
+					SetBody("").
+					SetResult(entities.Endpoint{}).
+					Post("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				fmt.Println(string(resp.Body()))
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+			})
+
+			It("returns HTTP 400 for missing required fields", func() {
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{}).
+					SetResult(entities.Endpoint{}).
+					Post("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"method":"invalid method","url":"invalid url"}}}`,
+					string(resp.Body()))
+			})
 		})
 	})
 

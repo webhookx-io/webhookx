@@ -43,6 +43,9 @@ jobs:
       - name: install
         run: make build
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - name: run tests
         run: make test-integration-coverage
 

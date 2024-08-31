@@ -46,7 +46,7 @@ func (m RequestConfig) Value() (driver.Value, error) {
 type RetryStrategy string
 
 const (
-	FixedStrategy RetryStrategy = "fixed"
+	RetryStrategyFixed RetryStrategy = "fixed"
 )
 
 func (m RetryStrategy) String() string {

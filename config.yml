@@ -3,9 +3,9 @@
 # ---------------------------
 
 log:
-  level: INFO   # supported values are DEBUG, INFO, WARN, and ERROR.
-  format: text  # supported values:
-                # text
+  file: /dev/stdout
+  level: info   # supported values are debug, info, warn, and error.
+  format: text  # supported values are text and json
 
 database:
   host: localhost

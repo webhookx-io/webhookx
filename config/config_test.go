@@ -37,6 +37,59 @@ func TestRedisConfig(t *testing.T) {
 	}
 }
 
+func TestLogConfig(t *testing.T) {
+	tests := []struct {
+		desc                string
+		cfg                 LogConfig
+		expectedValidateErr error
+	}{
+		{
+			desc: "sanity",
+			cfg: LogConfig{
+				Level:  LogLevelInfo,
+				Format: LogFormatText,
+			},
+			expectedValidateErr: nil,
+		},
+		{
+			desc: "invalid level",
+			cfg: LogConfig{
+				Level:  "",
+				Format: LogFormatText,
+			},
+			expectedValidateErr: errors.New("invalid level: "),
+		},
+		{
+			desc: "invalid level: x",
+			cfg: LogConfig{
+				Level:  "x",
+				Format: LogFormatText,
+			},
+			expectedValidateErr: errors.New("invalid level: x"),
+		},
+		{
+			desc: "invalid format",
+			cfg: LogConfig{
+				Level:  "info",
+				Format: "",
+			},
+			expectedValidateErr: errors.New("invalid format: "),
+		},
+		{
+			desc: "invalid format: x",
+			cfg: LogConfig{
+				Level:  "info",
+				Format: "x",
+			},
+			expectedValidateErr: errors.New("invalid format: x"),
+		},
+	}
+	for _, test := range tests {
+		actualValidateErr := test.cfg.Validate()
+		assert.Equal(t, test.expectedValidateErr, actualValidateErr, "expected %v got %v", test.expectedValidateErr, actualValidateErr)
+	}
+}
+
 func TestConfig(t *testing.T) {
 	cfg, err := Init()
 	assert.Nil(t, err)

@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"github.com/webhookx-io/webhookx/config"
+	"os"
 )
 
 var (
@@ -39,5 +40,7 @@ func initConfig() {
 }
 
 func Execute() {
-	cmd.Execute()
+	if err := cmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }

@@ -136,7 +136,7 @@ func (dao *DAO[T]) Page(ctx context.Context, q query.Queryer) (list []*T, total 
 
 func (dao *DAO[T]) Count(ctx context.Context, where map[string]interface{}) (total int64, err error) {
 	builder := psql.Select("COUNT(*)").From(dao.table)
-	if where != nil && len(where) > 0 {
+	if len(where) > 0 {
 		builder = builder.Where(where)
 	}
 	if dao.workspace {
@@ -152,7 +152,7 @@ func (dao *DAO[T]) Count(ctx context.Context, where map[string]interface{}) (tot
 func (dao *DAO[T]) List(ctx context.Context, q query.Queryer) (list []*T, err error) {
 	builder := psql.Select("*").From(dao.table)
 	where := q.WhereMap()
-	if where != nil && len(where) > 0 {
+	if len(where) > 0 {
 		builder = builder.Where(where)
 	}
 	if dao.workspace {

@@ -65,7 +65,7 @@ func panicRecovery(h http.Handler) http.Handler {
 					w.Header().Set("Content-Type", ApplicationJsonType)
 					w.WriteHeader(400)
 					bytes, _ := json.Marshal(ErrorResponse{Message: err.Error()})
-					w.Write(bytes)
+					_, _ = w.Write(bytes)
 					return
 				}
 
@@ -76,7 +76,7 @@ func panicRecovery(h http.Handler) http.Handler {
 				zap.S().Errorf("panic recovered: %v\n %s", err, buf)
 				w.Header().Set("Content-Type", ApplicationJsonType)
 				w.WriteHeader(500)
-				w.Write([]byte(`{"message": "internal error"}`))
+				_, _ = w.Write([]byte(`{"message": "internal error"}`))
 			}
 		}()
 

@@ -54,13 +54,30 @@ func (app *Application) initialize() error {
 	cfg := app.cfg
 
 	// log
-	level, err := zapcore.ParseLevel(cfg.Log.Level)
+	level, err := zapcore.ParseLevel(string(cfg.Log.Level))
 	if err != nil {
 		return err
 	}
-	log, err := zap.NewDevelopment(
-		zap.AddStacktrace(zap.PanicLevel),
-		zap.IncreaseLevel(level))
+
+	encodingMap := map[string]string{
+		"text": "console",
+		"json": "json",
+	}
+	encoderMap := map[string]zapcore.EncoderConfig{
+		"text": zap.NewDevelopmentEncoderConfig(),
+		"json": zap.NewProductionEncoderConfig(),
+	}
+	zap.NewProductionConfig()
+	zapConfig := zap.Config{
+		Level:         zap.NewAtomicLevelAt(level),
+		Development:   false,
+		Encoding:      encodingMap[string(cfg.Log.Format)],
+		EncoderConfig: encoderMap[string(cfg.Log.Format)],
+	}
+	if len(cfg.Log.File) > 0 {
+		zapConfig.OutputPaths = []string{cfg.Log.File}
+	}
+	log, err := zapConfig.Build()
 	if err != nil {
 		return err
 	}

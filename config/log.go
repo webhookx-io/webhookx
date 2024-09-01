@@ -5,25 +5,26 @@ import (
 	"slices"
 )
 
-type LogLevel = string
+type LogLevel string
 
 const (
-	LogLevelDebug = "DEBUG"
-	LogLevelInfo  = "INFO"
-	LogLevelWarn  = "WARN"
-	LogLevelError = "ERROR"
+	LogLevelDebug LogLevel = "debug"
+	LogLevelInfo  LogLevel = "info"
+	LogLevelWarn  LogLevel = "warn"
+	LogLevelError LogLevel = "error"
 )
 
-type LogFormat = string
+type LogFormat string
 
 const (
-	LogFormatText = "text"
-	LogFormatJson = "json"
+	LogFormatText LogFormat = "text"
+	LogFormatJson LogFormat = "json"
 )
 
 type LogConfig struct {
-	Level  LogLevel `yaml:"level" default:"INFO"`
-	Format string   `yaml:"format" default:"text"`
+	File   string    `yaml:"file" default:"/dev/stdout"`
+	Level  LogLevel  `yaml:"level" default:"info"`
+	Format LogFormat `yaml:"format" default:"text"`
 }
 
 func (cfg LogConfig) Validate() error {

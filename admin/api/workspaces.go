@@ -22,15 +22,15 @@ func (api *API) PageWorkspace(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) GetWorkspace(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	endpoint, err := api.DB.Workspaces.Get(r.Context(), id)
+	workspace, err := api.DB.Workspaces.Get(r.Context(), id)
 	api.assert(err)
 
-	if endpoint == nil {
+	if workspace == nil {
 		api.json(404, w, ErrorResponse{Message: MsgNotFound})
 		return
 	}
 
-	api.json(200, w, endpoint)
+	api.json(200, w, workspace)
 }
 
 func (api *API) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -91,20 +91,18 @@ func (api *API) UpdateWorkspace(w http.ResponseWriter, r *http.Request) {
 func (api *API) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
 
-	endpoint, err := api.DB.Workspaces.Get(r.Context(), id)
+	workspace, err := api.DB.Workspaces.Get(r.Context(), id)
 	api.assert(err)
 
-	if endpoint == nil {
-		w.WriteHeader(204)
-	}
+	if workspace != nil {
+		if workspace.Name != nil && *workspace.Name == "default" {
+			api.error(400, w, errors.New("cannot delete a default workspace"))
+			return
+		}
 
-	if endpoint.Name != nil && *endpoint.Name == "default" {
-		api.error(400, w, errors.New("cannot delete a default workspace"))
-		return
+		_, err = api.DB.Workspaces.Delete(r.Context(), id)
+		api.assert(err)
 	}
-
-	_, err = api.DB.Workspaces.Delete(r.Context(), id)
-	api.assert(err)
 
 	w.WriteHeader(204)
 }

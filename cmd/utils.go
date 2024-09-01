@@ -15,6 +15,6 @@ var ANSWERS = map[string]bool{
 func prompt(q string) bool {
 	fmt.Print("> " + q + " [Y/N] ")
 	var answer string
-	fmt.Scan(&answer)
+	_, _ = fmt.Scan(&answer)
 	return ANSWERS[strings.ToLower(answer)]
 }

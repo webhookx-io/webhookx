@@ -2,42 +2,38 @@ package proxy
 
 import (
 	"github.com/go-resty/resty/v2"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 	"github.com/webhookx-io/webhookx/app"
-	"github.com/webhookx-io/webhookx/test"
 	"github.com/webhookx-io/webhookx/test/helper"
+	"github.com/webhookx-io/webhookx/utils"
 	"testing"
 )
 
-type ProxyListenSuite struct {
-	test.BasicSuite
-
-	app         *app.Application
-	proxyClient *resty.Client
-}
-
-func (s *ProxyListenSuite) SetupSuite() {
-	s.BasicSuite.SetupSuite()
-	assert.Nil(s.T(), s.BasicSuite.ResetDatabase())
-	app, err := test.Start(map[string]string{
-		"WEBHOOKX_PROXY_LISTEN": "0.0.0.0:8081",
+var _ = Describe("proxy", Ordered, func() {
+	var app *app.Application
+	var proxyClient *resty.Client
+	BeforeAll(func() {
+		helper.InitDB(true, nil)
+		app = utils.Must(helper.Start(map[string]string{
+			"WEBHOOKX_PROXY_LISTEN": "0.0.0.0:8081",
+		}))
+		proxyClient = helper.ProxyClient()
 	})
-	assert.Nil(s.T(), err)
-	s.app = app
-	s.proxyClient = helper.ProxyClient()
-}
+	AfterAll(func() {
+		app.Stop()
+	})
 
-func (s *ProxyListenSuite) TearDownSuite() {
-	s.app.Stop()
-}
+	It("proxy listen", func() {
+		resp, err := proxyClient.R().Get("/")
+		assert.Nil(GinkgoT(), err)
+		assert.Equal(GinkgoT(), 404, resp.StatusCode())
+	})
 
-func (s *ProxyListenSuite) Test() {
-	resp, err := s.proxyClient.R().Get("/")
-	assert.Nil(s.T(), err)
-	assert.Equal(s.T(), 404, resp.StatusCode())
-}
+})
 
-func TestProxyListenSuite(t *testing.T) {
-	suite.Run(t, new(ProxyListenSuite))
+func TestProxyListen(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Proxy Listen Suite")
 }

@@ -7,9 +7,9 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
-	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/db/transaction"
+	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
@@ -289,7 +289,7 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 			id = v.Interface().(string)
 		case "created_at": // ignore
 		case "updated_at":
-			builder = builder.Set(column, entities.NewUnixTime(time.Now()))
+			builder = builder.Set(column, types.NewUnixTime(time.Now()))
 		default:
 			builder = builder.Set(column, v.Interface())
 		}

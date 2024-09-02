@@ -18,9 +18,7 @@ const (
 
 var (
 	addScript = redis.NewScript(`
-		redis.replicate_commands()
-		local now = redis.call('TIME')[1]
-		local score = now + tonumber(ARGV[1])
+		local score = ARGV[1]
 		local task_id = ARGV[2]
 		local queue_data = ARGV[3]
 		redis.call('ZADD', KEYS[1], score, task_id)
@@ -30,7 +28,8 @@ var (
 
 	getScript = redis.NewScript(`
 		redis.replicate_commands()
-		local now = redis.call('TIME')[1]
+		local time = redis.call('TIME')
+		local now = time[1] * 1000 + math.floor(time[2] / 1000)
 		local keys = redis.call('ZRANGEBYSCORE', KEYS[1], 0, now, 'LIMIT', 0, 1)
 		local task_id = keys and keys[1]
 		local invisible_timeout = ARGV[1]
@@ -83,15 +82,15 @@ func NewRedisQueue(client *redis.Client) *RedisTaskQueue {
 	return q
 }
 
-func (q *RedisTaskQueue) Add(task *TaskMessage, delay time.Duration) error {
-	zap.S().Debugf("[redis-queue]: add task %s with delay: %ds", task.ID, delay.Milliseconds()/1000)
+func (q *RedisTaskQueue) Add(task *TaskMessage, scheduleAt time.Time) error {
+	zap.S().Debugf("[redis-queue]: add task %s schedule at: %s", task.ID, scheduleAt.Format("2006-01-02T15:04:05.000"))
 	keys := []string{DefaultQueueName, QueueDataHashName}
 	data, err := json.Marshal(task.Data)
 	if err != nil {
 		return err
 	}
 	argv := []interface{}{
-		delay.Milliseconds() / 1000,
+		scheduleAt.UnixMilli(),
 		task.ID,
 		data,
 	}

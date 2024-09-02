@@ -6,8 +6,8 @@ import (
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/pkg/errs"
-	"github.com/webhookx-io/webhookx/pkg/queue"
 	"go.uber.org/zap"
 	"net/http"
 	"strconv"
@@ -18,18 +18,18 @@ const (
 )
 
 type API struct {
-	cfg   *config.Config
-	log   *zap.SugaredLogger
-	DB    *db.DB
-	queue queue.TaskQueue
+	cfg        *config.Config
+	log        *zap.SugaredLogger
+	DB         *db.DB
+	dispatcher dispatcher.Dispatcher
 }
 
-func NewAPI(cfg *config.Config, db *db.DB, queue queue.TaskQueue) *API {
+func NewAPI(cfg *config.Config, db *db.DB, dispatcher dispatcher.Dispatcher) *API {
 	return &API{
-		cfg:   cfg,
-		log:   zap.S(),
-		DB:    db,
-		queue: queue,
+		cfg:        cfg,
+		log:        zap.S(),
+		DB:         db,
+		dispatcher: dispatcher,
 	}
 }
 

@@ -18,7 +18,7 @@ func Test(t *testing.T) {
 		deliverer := NewHTTPDeliverer(&cfg)
 
 		req := &Request{
-			URL:     "https://httpbin.org/anything",
+			URL:     "http://localhost:9999/anything",
 			Method:  "POST",
 			Payload: []byte(`{"foo": "bar"}`),
 			Headers: map[string]string{
@@ -44,9 +44,9 @@ func Test(t *testing.T) {
 		deliverer := NewHTTPDeliverer(&cfg)
 
 		req := &Request{
-			URL:     "https://httpbin.org/anything",
+			URL:     "http://localhost:9999/anything",
 			Method:  "GET",
-			Timeout: time.Millisecond * 1,
+			Timeout: time.Microsecond * 1,
 		}
 
 		res := deliverer.Deliver(req)

@@ -33,7 +33,8 @@ type AttemptDAO interface {
 	BaseDAO[entities.Attempt]
 	UpdateStatus(ctx context.Context, id string, status entities.AttemptStatus) error
 	UpdateErrorCode(ctx context.Context, id string, status entities.AttemptStatus, code entities.AttemptErrorCode) error
-	UpdateDelivery(ctx context.Context, id string, result *DeliveryResult) error
+	UpdateDelivery(ctx context.Context, id string, result *AttemptResult) error
+	ListUnqueued(ctx context.Context, limit int64) (list []*entities.Attempt, err error)
 }
 
 type SourceDAO interface {

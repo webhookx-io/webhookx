@@ -5,8 +5,7 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db/migrator"
-	"os"
-	"time"
+	"github.com/webhookx-io/webhookx/test/helper"
 )
 
 type BasicSuite struct {
@@ -32,28 +31,5 @@ func (s *BasicSuite) ResetDatabase() error {
 }
 
 func Start(envs map[string]string) (*app.Application, error) {
-	for name, value := range envs {
-		err := os.Setenv(name, value)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	cfg, err := config.Init()
-	if err != nil {
-		return nil, err
-	}
-
-	app, err := app.NewApplication(cfg)
-	if err != nil {
-		return nil, err
-	}
-	if err := app.Start(); err != nil {
-		return nil, err
-	}
-
-	go app.Wait()
-
-	time.Sleep(time.Second)
-	return app, nil
+	return helper.Start(envs)
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/proxy"
@@ -27,9 +28,10 @@ type Application struct {
 
 	cfg *config.Config
 
-	log   *zap.SugaredLogger
-	db    *db.DB
-	queue queue.TaskQueue
+	log        *zap.SugaredLogger
+	db         *db.DB
+	queue      queue.TaskQueue
+	dispatcher dispatcher.Dispatcher
 
 	admin   *admin.Admin
 	gateway *proxy.Gateway
@@ -72,6 +74,8 @@ func (app *Application) initialize() error {
 	queue := queue.NewRedisQueue(client)
 	app.queue = queue
 
+	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db)
+
 	// worker
 	if cfg.WorkerConfig.Enabled {
 		app.worker = worker.NewWorker(&cfg.WorkerConfig, db, queue)
@@ -79,13 +83,13 @@ func (app *Application) initialize() error {
 
 	// admin
 	if cfg.AdminConfig.IsEnabled() {
-		handler := api.NewAPI(cfg, db, queue).Handler()
+		handler := api.NewAPI(cfg, db, app.dispatcher).Handler()
 		app.admin = admin.NewAdmin(cfg.AdminConfig, handler)
 	}
 
 	// gateway
 	if cfg.ProxyConfig.IsEnabled() {
-		app.gateway = proxy.NewGateway(&cfg.ProxyConfig, db, queue)
+		app.gateway = proxy.NewGateway(&cfg.ProxyConfig, db, app.dispatcher)
 	}
 
 	return nil

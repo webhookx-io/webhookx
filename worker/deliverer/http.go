@@ -29,6 +29,13 @@ func NewHTTPDeliverer(cfg *config.WorkerDeliverer) *HTTPDeliverer {
 	}
 }
 
+func timing(fn func()) time.Duration {
+	start := time.Now()
+	fn()
+	stop := time.Now()
+	return time.Duration(stop.UnixNano() - start.UnixNano())
+}
+
 func (d *HTTPDeliverer) Deliver(req *Request) (res *Response) {
 	timeout := req.Timeout
 	if timeout == 0 {
@@ -56,22 +63,25 @@ func (d *HTTPDeliverer) Deliver(req *Request) (res *Response) {
 		request.Header.Add(name, value)
 	}
 
-	response, err := d.client.Do(request)
-	if err != nil {
-		res.Error = err
-		return
-	}
+	t := timing(func() {
+		response, err := d.client.Do(request)
+		if err != nil {
+			res.Error = err
+			return
+		}
+		res.StatusCode = response.StatusCode
+		res.Header = response.Header
 
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		res.Error = err
-		return
-	}
-	response.Body.Close()
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			res.Error = err
+			return
+		}
+		response.Body.Close()
+		res.ResponseBody = body
+	})
 
-	res.StatusCode = response.StatusCode
-	res.Header = response.Header
-	res.ResponseBody = body
+	res.Latancy = t
 
 	return
 }

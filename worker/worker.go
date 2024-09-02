@@ -10,32 +10,29 @@ import (
 	"github.com/webhookx-io/webhookx/model"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/safe"
+	"github.com/webhookx-io/webhookx/pkg/schedule"
+	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.uber.org/zap"
-	"sync"
 	"time"
 )
 
-var (
-	ErrServerStarted = errors.New("already started")
-	ErrServerStopped = errors.New("already stopped")
-)
-
 type Worker struct {
-	ctx     context.Context
-	mux     sync.Mutex
-	started bool
-	log     *zap.SugaredLogger
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	stop chan struct{}
+	log  *zap.SugaredLogger
 
 	queue     queue.TaskQueue
 	deliverer deliverer.Deliverer
 	DB        *db.DB
 }
 
-func NewWorker(ctx context.Context, cfg *config.WorkerConfig, db *db.DB, queue queue.TaskQueue) *Worker {
+func NewWorker(cfg *config.WorkerConfig, db *db.DB, queue queue.TaskQueue) *Worker {
 	worker := &Worker{
-		ctx:       ctx,
+		stop:      make(chan struct{}),
 		queue:     queue,
 		log:       zap.S(),
 		deliverer: deliverer.NewHTTPDeliverer(&cfg.Deliverer),
@@ -51,11 +48,10 @@ func (w *Worker) run() {
 
 	for {
 		select {
-		case <-w.ctx.Done():
+		case <-w.stop:
 			w.log.Info("[worker] receive stop signal")
 			return
 		case <-ticker.C:
-			// w.log.Debugf("[worker] ticker tick")
 			for {
 				task, err := w.queue.Get()
 				if err != nil {
@@ -91,36 +87,70 @@ func (w *Worker) run() {
 
 // Start starts worker
 func (w *Worker) Start() error {
-	w.mux.Lock()
-	defer w.mux.Unlock()
-
-	if w.started {
-		return ErrServerStarted
-	}
-
 	go w.run()
-	w.started = true
-	w.log.Info("[worker] started")
 
+	w.ctx, w.cancel = context.WithCancel(context.Background())
+	schedule.Schedule(w.ctx, w.processUnqueued, time.Second*60)
+
+	w.log.Info("[worker] started")
 	return nil
 }
 
 // Stop stops worker
 func (w *Worker) Stop() error {
-	w.mux.Lock()
-	defer w.mux.Unlock()
-
-	if !w.started {
-		return ErrServerStopped
-	}
-
 	// TODO: wait for all go routines finished
-	time.Sleep(time.Second)
 
-	w.started = false
+	w.cancel()
+
+	w.stop <- struct{}{}
 	w.log.Info("[worker] stopped")
 
 	return nil
+}
+
+func (w *Worker) processUnqueued() {
+	batch := 100
+	ctx := context.Background()
+	for {
+		attempts, err := w.DB.Attempts.ListUnqueued(ctx, int64(batch))
+		if err != nil {
+			w.log.Errorf("failed to query unqueued attempts: %v", err)
+			break
+		}
+		if len(attempts) == 0 {
+			break
+		}
+
+		tasks := make([]*queue.TaskMessage, 0, len(attempts))
+		for _, attempt := range attempts {
+			task := &queue.TaskMessage{
+				ID: attempt.ID,
+				Data: &model.MessageData{
+					EventID:    attempt.EventId,
+					EndpointId: attempt.EndpointId,
+					Attempt:    attempt.AttemptNumber,
+				},
+			}
+			tasks = append(tasks, task)
+		}
+
+		for i, task := range tasks {
+			err := w.queue.Add(task, attempts[i].ScheduledAt.Time)
+			if err != nil {
+				w.log.Warnf("failed to add task to queue: %v", err)
+				continue
+			}
+			err = w.DB.Attempts.UpdateStatus(ctx, task.ID, entities.AttemptStatusQueued)
+			if err != nil {
+				w.log.Warnf("failed to update attempt status: %v", err)
+			}
+		}
+
+		if len(attempts) < batch {
+			break
+		}
+	}
+
 }
 
 func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error {
@@ -155,8 +185,8 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		Timeout: time.Duration(endpoint.Request.Timeout) * time.Millisecond,
 	}
 
-	result := &dao.DeliveryResult{
-		AttemptAt: time.Now(),
+	result := &dao.AttemptResult{
+		AttemptedAt: types.NewUnixTime(time.Now()),
 	}
 
 	response := w.deliverer.Deliver(request)
@@ -168,6 +198,8 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		}
 		w.log.Infof("[worker] failed to delivery event: %v", response.Error)
 	}
+
+	finishAt := time.Now()
 
 	w.log.Debugf("[worker] delivery response: %v", response)
 
@@ -205,34 +237,36 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		return nil
 	}
 
-	NextAttempt := &entities.Attempt{
+	delay := endpoint.Retry.Config.Attempts[data.Attempt]
+	nextAttempt := &entities.Attempt{
 		ID:            utils.KSUID(),
 		EventId:       event.ID,
 		EndpointId:    endpoint.ID,
 		Status:        entities.AttemptStatusInit,
 		AttemptNumber: data.Attempt + 1,
+		ScheduledAt:   types.NewUnixTime(finishAt.Add(time.Second * time.Duration(delay))),
 	}
-	NextAttempt.WorkspaceId = endpoint.WorkspaceId
+	nextAttempt.WorkspaceId = endpoint.WorkspaceId
 
-	err = w.DB.AttemptsWS.Insert(ctx, NextAttempt)
+	err = w.DB.AttemptsWS.Insert(ctx, nextAttempt)
 	if err != nil {
 		return err
 	}
 
 	task = &queue.TaskMessage{
-		ID: NextAttempt.ID,
+		ID: nextAttempt.ID,
 		Data: &model.MessageData{
 			EventID:    data.EventID,
 			EndpointId: data.EndpointId,
-			Delay:      endpoint.Retry.Config.Attempts[NextAttempt.AttemptNumber-1],
-			Attempt:    NextAttempt.AttemptNumber,
+			Attempt:    nextAttempt.AttemptNumber,
 		},
 	}
-	err = w.queue.Add(task, utils.DurationS(task.Data.(*model.MessageData).Delay))
+
+	err = w.queue.Add(task, nextAttempt.ScheduledAt.Time)
 	if err != nil {
 		w.log.Warnf("[worker] failed to add task to queue: %v", err)
 	}
-	err = w.DB.Attempts.UpdateStatus(ctx, NextAttempt.ID, entities.AttemptStatusQueued)
+	err = w.DB.Attempts.UpdateStatus(ctx, nextAttempt.ID, entities.AttemptStatusQueued)
 	if err != nil {
 		w.log.Warnf("[worker] failed to update attempt status: %v", err)
 	}

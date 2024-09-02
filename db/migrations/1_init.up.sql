@@ -2,7 +2,6 @@ CREATE TABLE IF NOT EXISTS "workspaces" (
     "id"          char(27) PRIMARY KEY,
     "name"        TEXT UNIQUE,
     "description" TEXT,
-    "metadata"    JSONB NOT NULL DEFAULT '{}'::jsonb,
 
     "created_at"  TIMESTAMPTZ    DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC'),
     "updated_at"  TIMESTAMPTZ    DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC')
@@ -45,7 +44,8 @@ CREATE TABLE IF NOT EXISTS "attempts" (
     "status"         varchar(20) not null,
 
     "attempt_number" SMALLINT    NOT NULL DEFAULT 1,
-    "attempt_at"     INTEGER,
+    "scheduled_at"   TIMESTAMPTZ,
+    "attempted_at"   TIMESTAMPTZ,
     "error_code"     VARCHAR(30),
 
     "request"        JSONB,

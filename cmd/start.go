@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"github.com/spf13/cobra"
 	"github.com/webhookx-io/webhookx/app"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func newStartCmd() *cobra.Command {
@@ -15,9 +19,22 @@ func newStartCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+			go func() {
+				<-ctx.Done()
+				err = app.Stop()
+				if err != nil {
+					os.Exit(1)
+				}
+			}()
+
 			if err := app.Start(); err != nil {
 				return err
 			}
+
+			app.Wait()
+
 			return nil
 		},
 	}

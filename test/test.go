@@ -48,7 +48,11 @@ func Start(envs map[string]string) (*app.Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	go app.Start()
+	if err := app.Start(); err != nil {
+		return nil, err
+	}
+
+	go app.Wait()
 
 	time.Sleep(time.Second)
 	return app, nil

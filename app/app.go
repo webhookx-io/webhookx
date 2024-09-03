@@ -1,25 +1,29 @@
 package app
 
 import (
-	"context"
+	"errors"
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/proxy"
 	"github.com/webhookx-io/webhookx/worker"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"os/signal"
-	"syscall"
-	"time"
+	"sync"
+)
+
+var (
+	ErrApplicationStarted = errors.New("already started")
+	ErrApplicationStopped = errors.New("already stopped")
 )
 
 type Application struct {
-	ctx      context.Context
-	cancel   func()
-	stopChan chan bool
+	mux     sync.Mutex
+	started bool
+
+	stop chan struct{}
 
 	cfg *config.Config
 
@@ -33,13 +37,9 @@ type Application struct {
 }
 
 func NewApplication(cfg *config.Config) (*Application, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-
 	app := &Application{
-		ctx:      ctx,
-		cancel:   cancel,
-		cfg:      cfg,
-		stopChan: make(chan bool, 1),
+		stop: make(chan struct{}),
+		cfg:  cfg,
 	}
 
 	err := app.initialize()
@@ -53,31 +53,7 @@ func NewApplication(cfg *config.Config) (*Application, error) {
 func (app *Application) initialize() error {
 	cfg := app.cfg
 
-	// log
-	level, err := zapcore.ParseLevel(string(cfg.Log.Level))
-	if err != nil {
-		return err
-	}
-
-	encodingMap := map[string]string{
-		"text": "console",
-		"json": "json",
-	}
-	encoderMap := map[string]zapcore.EncoderConfig{
-		"text": zap.NewDevelopmentEncoderConfig(),
-		"json": zap.NewProductionEncoderConfig(),
-	}
-	zap.NewProductionConfig()
-	zapConfig := zap.Config{
-		Level:         zap.NewAtomicLevelAt(level),
-		Development:   false,
-		Encoding:      encodingMap[string(cfg.Log.Format)],
-		EncoderConfig: encoderMap[string(cfg.Log.Format)],
-	}
-	if len(cfg.Log.File) > 0 {
-		zapConfig.OutputPaths = []string{cfg.Log.File}
-	}
-	log, err := zapConfig.Build()
+	log, err := log.NewZapLogger(&cfg.Log)
 	if err != nil {
 		return err
 	}
@@ -98,10 +74,10 @@ func (app *Application) initialize() error {
 
 	// worker
 	if cfg.WorkerConfig.Enabled {
-		app.worker = worker.NewWorker(app.ctx, &cfg.WorkerConfig, db, queue)
+		app.worker = worker.NewWorker(&cfg.WorkerConfig, db, queue)
 	}
 
-	// server
+	// admin
 	if cfg.AdminConfig.IsEnabled() {
 		handler := api.NewAPI(cfg, db, queue).Handler()
 		app.admin = admin.NewAdmin(cfg.AdminConfig, handler)
@@ -115,13 +91,14 @@ func (app *Application) initialize() error {
 	return nil
 }
 
+// Start starts application
 func (app *Application) Start() error {
-	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-ctx.Done()
-		app.log.Infof("shutting down")
-		app.Stop()
-	}()
+	app.mux.Lock()
+	defer app.mux.Unlock()
+
+	if app.started {
+		return ErrApplicationStarted
+	}
 
 	if app.admin != nil {
 		app.admin.Start()
@@ -133,23 +110,31 @@ func (app *Application) Start() error {
 		app.worker.Start()
 	}
 
-	app.wait()
+	app.started = true
 
-	time.Sleep(time.Second)
 	return nil
 }
 
-func (app *Application) wait() {
-	<-app.stopChan
+func (app *Application) Wait() {
+	<-app.stop
 }
 
-func (app *Application) Stop() {
+// Stop sotps application
+func (app *Application) Stop() error {
+	app.mux.Lock()
+	defer app.mux.Unlock()
+
+	if !app.started {
+		return ErrApplicationStopped
+	}
+
+	app.log.Infof("shutting down")
+
 	defer func() {
 		app.log.Infof("stopped")
 	}()
 
-	app.cancel()
-
+	// TODO: timeout
 	if app.admin != nil {
 		app.admin.Stop()
 	}
@@ -160,5 +145,8 @@ func (app *Application) Stop() {
 		app.worker.Stop()
 	}
 
-	app.stopChan <- true
+	app.started = false
+	app.stop <- struct{}{}
+
+	return nil
 }

@@ -1,8 +1,6 @@
 .idea
 .vscode
-
 coverage.*
-
 webhookx
-
+*.log
 dist/

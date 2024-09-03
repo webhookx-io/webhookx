@@ -2,37 +2,32 @@ package admin
 
 import (
 	"github.com/go-resty/resty/v2"
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
-	"github.com/webhookx-io/webhookx/test"
+	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/test/helper"
-	"testing"
+	"github.com/webhookx-io/webhookx/utils"
 )
 
-type AdminListenSuite struct {
-	test.BasicSuite
+var _ = Describe("admin", Ordered, func() {
+	var app *app.Application
+	var adminClient *resty.Client
 
-	adminClient *resty.Client
-}
-
-func (s *AdminListenSuite) SetupSuite() {
-	s.BasicSuite.SetupSuite()
-	assert.Nil(s.T(), s.BasicSuite.ResetDatabase())
-	test.Start(map[string]string{
-		"WEBHOOKX_ADMIN_LISTEN": "0.0.0.0:8080",
+	BeforeAll(func() {
+		helper.InitDB(true, nil)
+		app = utils.Must(helper.Start(map[string]string{
+			"WEBHOOKX_ADMIN_LISTEN": "0.0.0.0:8080",
+		}))
+		adminClient = helper.AdminClient()
 	})
-	s.adminClient = helper.AdminClient()
-}
 
-func (s *AdminListenSuite) TearDownSuite() {
-}
+	AfterAll(func() {
+		app.Stop()
+	})
 
-func (s *AdminListenSuite) Test() {
-	resp, err := s.adminClient.R().Get("/")
-	assert.Nil(s.T(), err)
-	assert.Equal(s.T(), 200, resp.StatusCode())
-}
-
-func TestAdminListenSuite(t *testing.T) {
-	suite.Run(t, new(AdminListenSuite))
-}
+	It("proxy listen", func() {
+		resp, err := adminClient.R().Get("/")
+		assert.Nil(GinkgoT(), err)
+		assert.Equal(GinkgoT(), 200, resp.StatusCode())
+	})
+})

@@ -25,6 +25,7 @@ type Response struct {
 	Header       http.Header
 	ResponseBody []byte
 	Error        error
+	Latancy      time.Duration
 }
 
 func (r *Response) Is2xx() bool {
@@ -32,5 +33,5 @@ func (r *Response) Is2xx() bool {
 }
 
 func (r *Response) String() string {
-	return fmt.Sprintf("%s %s %d", r.Request.Method, r.Request.URL, r.StatusCode)
+	return fmt.Sprintf("%s %s %d %dms", r.Request.Method, r.Request.URL, r.StatusCode, r.Latancy.Milliseconds())
 }

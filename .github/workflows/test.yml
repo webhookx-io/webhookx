@@ -29,6 +29,13 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
+        flags: unit
+
+    services:
+      httpbin:
+        image: kennethreitz/httpbin
+        ports:
+          - 9999:80
 
   integration-tests:
     runs-on: ubuntu-latest
@@ -51,6 +58,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
+          flags: integration
 
     services:
       postgres:
@@ -67,6 +75,11 @@ jobs:
         image: redis:6
         ports:
           - 6379:6379
+
+      httpbin:
+        image: kennethreitz/httpbin
+        ports:
+          - 9999:80
 
   test-docker-compose:
     runs-on: ubuntu-latest

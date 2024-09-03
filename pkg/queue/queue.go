@@ -30,7 +30,7 @@ func (t *TaskMessage) UnmarshalData(v interface{}) error {
 }
 
 type TaskQueue interface {
-	Add(task *TaskMessage, delay time.Duration) error
+	Add(task *TaskMessage, scheduleAt time.Time) error
 	Get() (task *TaskMessage, err error)
 	Delete(task *TaskMessage) error
 }

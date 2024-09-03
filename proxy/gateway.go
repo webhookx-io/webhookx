@@ -8,8 +8,8 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
-	"github.com/webhookx-io/webhookx/model"
-	"github.com/webhookx-io/webhookx/pkg/queue"
+	"github.com/webhookx-io/webhookx/dispatcher"
+	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/proxy/router"
 	"github.com/webhookx-io/webhookx/utils"
@@ -20,7 +20,8 @@ import (
 )
 
 type Gateway struct {
-	ctx context.Context
+	ctx    context.Context
+	cancel context.CancelFunc
 
 	cfg *config.ProxyConfig
 
@@ -28,17 +29,17 @@ type Gateway struct {
 	s      *http.Server
 	router *router.Router // TODO: happens-before
 	db     *db.DB
-	queue  queue.TaskQueue
+
+	dispatcher dispatcher.Dispatcher
 }
 
-func NewGateway(cfg *config.ProxyConfig, db *db.DB, queue queue.TaskQueue) *Gateway {
+func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher dispatcher.Dispatcher) *Gateway {
 	gw := &Gateway{
-		ctx:    context.Background(),
-		cfg:    cfg,
-		log:    zap.S(),
-		router: router.NewRouter(nil),
-		db:     db,
-		queue:  queue,
+		cfg:        cfg,
+		log:        zap.S(),
+		router:     router.NewRouter(nil),
+		db:         db,
+		dispatcher: dispatcher,
 	}
 
 	r := mux.NewRouter()
@@ -56,11 +57,12 @@ func NewGateway(cfg *config.ProxyConfig, db *db.DB, queue queue.TaskQueue) *Gate
 	return gw
 }
 
-func (gw *Gateway) buildRouter() error {
+func (gw *Gateway) buildRouter() {
 	routes := make([]*router.Route, 0)
 	sources, err := gw.db.Sources.List(context.TODO(), &query.SourceQuery{})
 	if err != nil {
-		return err
+		gw.log.Warnf("[proxy] failed to build router: %v", err)
+		return
 	}
 	for _, source := range sources {
 		route := router.Route{
@@ -71,103 +73,6 @@ func (gw *Gateway) buildRouter() error {
 		routes = append(routes, &route)
 	}
 	gw.router = router.NewRouter(routes)
-	return nil
-}
-
-func (gw *Gateway) routerRebuildLoop() {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-gw.ctx.Done():
-			return
-		case <-ticker.C:
-			err := gw.buildRouter()
-			if err != nil {
-				gw.log.Warnf("[proxy] failed to build router: %v", err)
-			}
-		}
-	}
-}
-
-func (gw *Gateway) DispatchEvent(ctx context.Context, event *entities.Event) error {
-	endpoints, err := listSubscribedEndpoints(ctx, gw.db, event.EventType)
-	if err != nil {
-		return err
-	}
-
-	attempts := make([]*entities.Attempt, 0, len(endpoints))
-	tasks := make([]*queue.TaskMessage, 0, len(endpoints))
-
-	err = gw.db.TX(ctx, func(ctx context.Context) error {
-		err := gw.db.Events.Insert(ctx, event)
-		if err != nil {
-			return err
-		}
-
-		for _, endpoint := range endpoints {
-			attempt := &entities.Attempt{
-				ID:            utils.KSUID(),
-				EventId:       event.ID,
-				EndpointId:    endpoint.ID,
-				Status:        entities.AttemptStatusInit,
-				AttemptNumber: 1,
-			}
-			attempt.WorkspaceId = endpoint.WorkspaceId
-
-			task := &queue.TaskMessage{
-				ID: attempt.ID,
-				Data: &model.MessageData{
-					EventID:    event.ID,
-					EndpointId: endpoint.ID,
-					Delay:      endpoint.Retry.Config.Attempts[0],
-					Attempt:    1,
-				},
-			}
-			attempts = append(attempts, attempt)
-			tasks = append(tasks, task)
-		}
-
-		return gw.db.AttemptsWS.BatchInsert(ctx, attempts)
-	})
-	if err != nil {
-		return err
-	}
-
-	for _, task := range tasks {
-		err := gw.queue.Add(task, utils.DurationS(task.Data.(*model.MessageData).Delay))
-		if err != nil {
-			gw.log.Warnf("failed to add task to queue: %v", err)
-		}
-		err = gw.db.AttemptsWS.UpdateStatus(ctx, task.ID, entities.AttemptStatusQueued)
-		if err != nil {
-			gw.log.Warnf("failed to update attempt status: %v", err)
-		}
-	}
-
-	return nil
-}
-
-func listSubscribedEndpoints(ctx context.Context, db *db.DB, eventType string) (list []*entities.Endpoint, err error) {
-	var q query.EndpointQuery
-	endpoints, err := db.EndpointsWS.List(ctx, &q)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, endpoint := range endpoints {
-		if !endpoint.Enabled {
-			continue
-		}
-		for _, event := range endpoint.Events {
-			if eventType == event {
-				list = append(list, endpoint)
-			}
-		}
-	}
-
-	return
 }
 
 func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
@@ -207,7 +112,7 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	event.WorkspaceId = source.WorkspaceId
-	err := gw.DispatchEvent(r.Context(), &event)
+	err := gw.dispatcher.Dispatch(r.Context(), &event)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(500)
@@ -229,6 +134,8 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 
 // Start starts an HTTP server
 func (gw *Gateway) Start() {
+	gw.ctx, gw.cancel = context.WithCancel(context.Background())
+
 	go func() {
 		if err := gw.s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			zap.S().Errorf("Failed to start Gateway : %v", err)
@@ -236,13 +143,15 @@ func (gw *Gateway) Start() {
 		}
 	}()
 
-	go gw.routerRebuildLoop()
+	schedule.Schedule(gw.ctx, gw.buildRouter, time.Second)
 
 	gw.log.Info("[proxy] started")
 }
 
 // Stop stops the HTTP server
 func (gw *Gateway) Stop() error {
+	gw.cancel()
+
 	if err := gw.s.Shutdown(context.TODO()); err != nil {
 		// Error from closing listeners, or context timeout:
 		return err

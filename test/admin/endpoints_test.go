@@ -2,10 +2,8 @@ package admin
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/app"
@@ -14,7 +12,6 @@ import (
 	"github.com/webhookx-io/webhookx/test"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
-	"testing"
 )
 
 var _ = Describe("/endpoints", Ordered, func() {
@@ -79,7 +76,6 @@ var _ = Describe("/endpoints", Ordered, func() {
 					SetResult(entities.Endpoint{}).
 					Post("/workspaces/default/endpoints")
 				assert.Nil(GinkgoT(), err)
-				fmt.Println(string(resp.Body()))
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 			})
 
@@ -262,8 +258,3 @@ var _ = Describe("/endpoints", Ordered, func() {
 	})
 
 })
-
-func TestEndpointsAPI(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Endpoints Suite")
-}

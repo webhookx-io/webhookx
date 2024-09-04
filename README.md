@@ -11,7 +11,7 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 - **Admin API:** The admin API(:8080) provides a RESTful API for webhooks entities management.
 - **Retries:** WebhookX automatically retries unsuccessful deliveries at configurable delays.
 - **Fan out:** Events can be fan out to multiple destinations.
-- **Declarative configuration:**  Managing your configuration through declarative configuration file, and be DevOps compliant.
+- **Declarative configuration(WIP):**  Managing your configuration through declarative configuration file, and be DevOps compliant.
 - **Workspace:** Entities are isolated by workspace.
 
 ## Roadmap
@@ -21,12 +21,12 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 - [ ] Observability(o11y) including tracing and metrics
 - [ ] Declarative configuration management
 
-### Outbound
+#### Outbound
 
 - [ ] Authentication
 - [ ] Manually retry
 
-### Inbound
+#### Inbound
 
 - [ ] Middlewares/Plugins
 - [ ] Authentication
@@ -46,7 +46,7 @@ $ curl http://localhost:8080
 
 ## Getting started
 
-##### 1. Create an endpoint
+#### 1. Create an endpoint
 
 ```
 $ curl -X POST http://localhost:8080/workspaces/default/endpoints \
@@ -54,7 +54,10 @@ $ curl -X POST http://localhost:8080/workspaces/default/endpoints \
   --data '{
       "request": {
           "url": "https://httpbin.org/anything",
-          "method": "POST"
+          "method": "POST",
+          "headers": {
+              "api-key": "secret"
+          }
       },
       "events": [
           "charge.succeeded"
@@ -62,7 +65,7 @@ $ curl -X POST http://localhost:8080/workspaces/default/endpoints \
   }'
 ```
 
-##### 2. Create a source
+#### 2. Create a source
 
 ```
 $ curl -X POST http://localhost:8080/workspaces/default/sources \
@@ -91,41 +94,60 @@ $ curl -X POST http://localhost:8081 \
 
 ```
 $ curl http://localhost:8080/workspaces/default/attempts
+```
 
+<details>
+<summary>See response</summary>
+
+```
 {
   "total": 1,
   "data": [
     {
-      "id": "2l6HMc9FSJHsGqf8ouLdqTGx1GB",
-      "event_id": "2l6HMYvsWlK35Kz5RzIi1KV1jvl",
-      "endpoint_id": "2l6HLC2usWDFOj7H4e8dIgEaJO5",
+      "id": "2lbkquwRPXEs6WFJqb8gPoiumgS",
+      "event_id": "2lbkqvg8QBjyYuHO1V8f8TThLpv",
+      "endpoint_id": "2lbkpcHXI7hpDoP22CP0fZ85zJY",
       "status": "SUCCESSFUL",
       "attempt_number": 1,
-      "attempt_at": 1724493558,
+      "scheduled_at": 1725456357071,
+      "attempted_at": 1725456357583,
+      "error_code": null,
       "request": {
         "method": "POST",
         "url": "https://httpbin.org/anything",
-        "header": {},
+        "headers": {
+          "Api-Key": "secret",
+          "Content-Type": "application/json; charset=utf-8",
+          "User-Agent": "WebhookX/"
+        },
         "body": "{\"key\": \"value\"}"
       },
       "response": {
         "status": 200,
-        "header": {},
-        "body": "{\n  \"args\": {}, \n  \"data\": \"{\\\"key\\\": \\\"value\\\"}\", \n  \"files\": {}, \n  \"form\": {}, \n  \"headers\": {\n    \"Accept-Encoding\": \"gzip\", \n    \"Content-Length\": \"16\", \n    \"Content-Type\": \"application/json; charset=utf-8\", \n    \"Host\": \"httpbin.org\", \n    \"User-Agent\": \"WebhookX/dev\", \n    \"X-Amzn-Trace-Id\": \"Root=1-66c9aef9-214447eb1bcaad151f29744e\"\n  }, \n  \"json\": {\n    \"key\": \"value\"\n  }, \n  \"method\": \"POST\", \n  \"origin\": \"13.114.230.241\", \n  \"url\": \"https://httpbin.org/anything\"\n}\n"
+        "headers": {
+          "Access-Control-Allow-Credentials": "true",
+          "Access-Control-Allow-Origin": "*",
+          "Content-Length": "503",
+          "Content-Type": "application/json",
+          "Date": "Wed, 04 Sep 2024 13:26:02 GMT",
+          "Server": "gunicorn/19.9.0"
+        },
+        "body": "{\n  \"args\": {}, \n  \"data\": \"{\\\"key\\\": \\\"value\\\"}\", \n  \"files\": {}, \n  \"form\": {}, \n  \"headers\": {\n    \"Accept-Encoding\": \"gzip\", \n    \"Api-Key\": \"secret\", \n    \"Content-Length\": \"16\", \n    \"Content-Type\": \"application/json; charset=utf-8\", \n    \"Host\": \"httpbin.org\", \n    \"User-Agent\": \"WebhookX/\", \n    \"X-Amzn-Trace-Id\": \"Root=1-66d85fe7-618479242937ff9d43b29e47\"\n  }, \n  \"json\": {\n    \"key\": \"value\"\n  }, \n  \"method\": \"POST\", \n  \"origin\": \"155.254.60.32\", \n  \"url\": \"https://httpbin.org/anything\"\n}\n"
       },
-      "created_at": 1724493559,
-      "updated_at": 1724493559
+      "created_at": 1725456357071,
+      "updated_at": 1725456357071
     }
   ]
 }
 ```
+</details>
 
 ## Runtime dependencies
 
 The gateway requires the following runtime dependencies to work:
 
 - PostgreSQL(>=13): Lower versions of PostgreSQL may work, but have not been fully tested.
-- Redis(>=4): Caching, Lower versions of Redis may work, but have not been fully tested.
+- Redis(>=4): Lower versions of Redis may work, but have not been fully tested.
 
 ## Sponsoring
 

@@ -207,7 +207,7 @@ func DefaultEndpoint() *entities.Endpoint {
 		URL:    "http://localhost:9999/anything",
 		Method: "POST",
 	}
-	entity.Retry.Config.Attempts = []int64{0, 3, 5}
+	entity.Retry.Config.Attempts = []int64{0, 3, 3}
 	entity.Events = []string{"foo.bar"}
 
 	return &entity

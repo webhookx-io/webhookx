@@ -289,7 +289,7 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 			id = v.Interface().(string)
 		case "created_at": // ignore
 		case "updated_at":
-			builder = builder.Set(column, types.NewUnixTime(time.Now()))
+			builder = builder.Set(column, types.NewTime(time.Now()))
 		default:
 			builder = builder.Set(column, v.Interface())
 		}

@@ -128,6 +128,7 @@ var _ = Describe("delivery", Ordered, func() {
 			assert.NoError(GinkgoT(), err)
 			assert.EqualValues(GinkgoT(), 3, len(attempts))
 			for i, e := range attempts {
+				assert.NotNil(GinkgoT(), e.ErrorCode, "ErrorCode is not nil: %v", e.ErrorCode)
 				assert.Equal(GinkgoT(), "TIMEOUT", *e.ErrorCode)
 				assert.Equal(GinkgoT(), "FAILED", e.Status)
 				assert.Equal(GinkgoT(), i+1, e.AttemptNumber)

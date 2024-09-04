@@ -3,3 +3,6 @@ issues:
     - path: test/
       linters:
         - errcheck
+    - path: _test\.go
+      linters:
+        - errcheck

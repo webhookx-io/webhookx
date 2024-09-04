@@ -141,6 +141,8 @@ Thank you for your contribution to WebhookX!
 
 [![Contributors](https://contrib.rocks/image?repo=webhookx-io/webhookx)](https://github.com/webhookx-io/webhookx/graphs/contributors)
 
+[![Star History Chart](https://api.star-history.com/svg?repos=webhookx-io/webhookx&type=Date)](https://api.star-history.com/svg?repos=webhookx-io/webhookx&type=Date)
+
 ## License
 
 ```

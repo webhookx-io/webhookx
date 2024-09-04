@@ -45,14 +45,6 @@ func panicRecovery(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if e := recover(); e != nil {
-				//var e *Error
-				//if errors.As(err.(error), &e) {
-				//	w.Header().Set("Content-Type", ApplicationJsonType)
-				//	//w.Header()["Content-Type"] = []string{}
-				//	w.WriteHeader(http.StatusInternalServerError)
-				//	w.Write([]byte("{\"message\": \"internal error\"}"))
-				//	return
-				//}
 				var err error
 				switch v := e.(type) {
 				case error:

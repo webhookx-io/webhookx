@@ -95,6 +95,10 @@ func (app *Application) initialize() error {
 	return nil
 }
 
+func (app *Application) DB() *db.DB {
+	return app.db
+}
+
 // Start starts application
 func (app *Application) Start() error {
 	app.mux.Lock()

@@ -3,8 +3,8 @@ CREATE TABLE IF NOT EXISTS "workspaces" (
     "name"        TEXT UNIQUE,
     "description" TEXT,
 
-    "created_at"  TIMESTAMPTZ    DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC'),
-    "updated_at"  TIMESTAMPTZ    DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC')
+    "created_at"  TIMESTAMPTZ(3)    DEFAULT (CURRENT_TIMESTAMP(3) AT TIME ZONE 'UTC'),
+    "updated_at"  TIMESTAMPTZ(3)    DEFAULT (CURRENT_TIMESTAMP(3) AT TIME ZONE 'UTC')
 );
 
 CREATE TABLE IF NOT EXISTS "endpoints" (
@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS "endpoints" (
     "retry"       JSONB   NOT NULL DEFAULT '{}'::jsonb,
 
     "ws_id"       char(27),
-    "created_at"  TIMESTAMPTZ      DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC'),
-    "updated_at"  TIMESTAMPTZ      DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC')
+    "created_at"  TIMESTAMPTZ(3)      DEFAULT (CURRENT_TIMESTAMP(3) AT TIME ZONE 'UTC'),
+    "updated_at"  TIMESTAMPTZ(3)      DEFAULT (CURRENT_TIMESTAMP(3) AT TIME ZONE 'UTC')
 );
 
 CREATE INDEX idx_endpoints_ws_id ON endpoints (ws_id);
@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS "events" (
     "event_type" TEXT  NOT NULL,
 
     "ws_id"      char(27),
-    "created_at" TIMESTAMPTZ DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC'),
-    "updated_at" TIMESTAMPTZ DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC')
+    "created_at" TIMESTAMPTZ(3) DEFAULT (CURRENT_TIMESTAMP(3) AT TIME ZONE 'UTC'),
+    "updated_at" TIMESTAMPTZ(3) DEFAULT (CURRENT_TIMESTAMP(3) AT TIME ZONE 'UTC')
 );
 
 CREATE INDEX idx_events_ws_id ON events (ws_id);
@@ -44,16 +44,16 @@ CREATE TABLE IF NOT EXISTS "attempts" (
     "status"         varchar(20) not null,
 
     "attempt_number" SMALLINT    NOT NULL DEFAULT 1,
-    "scheduled_at"   TIMESTAMPTZ,
-    "attempted_at"   TIMESTAMPTZ,
+    "scheduled_at"   TIMESTAMPTZ(3),
+    "attempted_at"   TIMESTAMPTZ(3),
     "error_code"     VARCHAR(30),
 
     "request"        JSONB,
     "response"       JSONB,
 
     "ws_id"          char(27),
-    "created_at"     TIMESTAMPTZ          DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC'),
-    "updated_at"     TIMESTAMPTZ          DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC')
+    "created_at"     TIMESTAMPTZ(3)          DEFAULT (CURRENT_TIMESTAMP(3) AT TIME ZONE 'UTC'),
+    "updated_at"     TIMESTAMPTZ(3)          DEFAULT (CURRENT_TIMESTAMP(3) AT TIME ZONE 'UTC')
 );
 
 CREATE INDEX idx_attempts_event_id ON attempts (event_id);
@@ -71,8 +71,8 @@ CREATE TABLE IF NOT EXISTS "sources" (
     "response"    JSONB,
 
     "ws_id"       char(27),
-    "created_at"  TIMESTAMPTZ DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC'),
-    "updated_at"  TIMESTAMPTZ DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC')
+    "created_at"  TIMESTAMPTZ(3) DEFAULT (CURRENT_TIMESTAMP(3) AT TIME ZONE 'UTC'),
+    "updated_at"  TIMESTAMPTZ(3) DEFAULT (CURRENT_TIMESTAMP(3) AT TIME ZONE 'UTC')
 );
 
 CREATE INDEX idx_sources_ws_id ON sources (ws_id);

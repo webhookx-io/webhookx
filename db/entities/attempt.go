@@ -7,13 +7,13 @@ import (
 )
 
 type Attempt struct {
-	ID            string          `json:"id" db:"id"`
-	EventId       string          `json:"event_id" db:"event_id"`
-	EndpointId    string          `json:"endpoint_id" db:"endpoint_id"`
-	Status        AttemptStatus   `json:"status" db:"status"`
-	AttemptNumber int             `json:"attempt_number" db:"attempt_number"`
-	ScheduledAt   types.UnixTime  `json:"scheduled_at" db:"scheduled_at"`
-	AttemptedAt   *types.UnixTime `json:"attempted_at" db:"attempted_at"`
+	ID            string        `json:"id" db:"id"`
+	EventId       string        `json:"event_id" db:"event_id"`
+	EndpointId    string        `json:"endpoint_id" db:"endpoint_id"`
+	Status        AttemptStatus `json:"status" db:"status"`
+	AttemptNumber int           `json:"attempt_number" db:"attempt_number"`
+	ScheduledAt   types.Time    `json:"scheduled_at" db:"scheduled_at"`
+	AttemptedAt   *types.Time   `json:"attempted_at" db:"attempted_at"`
 
 	ErrorCode *AttemptErrorCode `json:"error_code" db:"error_code"`
 	Request   *AttemptRequest   `json:"request" db:"request"`

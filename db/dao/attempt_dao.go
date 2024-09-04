@@ -14,7 +14,7 @@ type attemptDao struct {
 type AttemptResult struct {
 	Request     *entities.AttemptRequest
 	Response    *entities.AttemptResponse
-	AttemptedAt types.UnixTime
+	AttemptedAt types.Time
 	Status      entities.AttemptStatus
 	ErrorCode   *entities.AttemptErrorCode
 }

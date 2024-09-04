@@ -186,7 +186,7 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 	}
 
 	result := &dao.AttemptResult{
-		AttemptedAt: types.NewUnixTime(time.Now()),
+		AttemptedAt: types.NewTime(time.Now()),
 	}
 
 	response := w.deliverer.Deliver(request)
@@ -244,7 +244,7 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		EndpointId:    endpoint.ID,
 		Status:        entities.AttemptStatusInit,
 		AttemptNumber: data.Attempt + 1,
-		ScheduledAt:   types.NewUnixTime(finishAt.Add(time.Second * time.Duration(delay))),
+		ScheduledAt:   types.NewTime(finishAt.Add(time.Second * time.Duration(delay))),
 	}
 	nextAttempt.WorkspaceId = endpoint.WorkspaceId
 

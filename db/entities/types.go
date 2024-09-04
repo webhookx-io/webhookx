@@ -17,7 +17,7 @@ func (m *Metadata) Value() (driver.Value, error) {
 }
 
 type BaseModel struct {
-	CreatedAt   types.UnixTime `db:"created_at" json:"created_at"`
-	UpdatedAt   types.UnixTime `db:"updated_at" json:"updated_at"`
-	WorkspaceId string         `db:"ws_id" json:"-"`
+	CreatedAt   types.Time `db:"created_at" json:"created_at"`
+	UpdatedAt   types.Time `db:"updated_at" json:"updated_at"`
+	WorkspaceId string     `db:"ws_id" json:"-"`
 }

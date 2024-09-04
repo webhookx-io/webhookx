@@ -63,8 +63,8 @@ var _ = Describe("/attempts", Ordered, func() {
 						EndpointId:    endpoint.ID,
 						Status:        entities.AttemptStatusSuccess,
 						AttemptNumber: 1,
-						ScheduledAt:   types.UnixTime{Time: time.Now()},
-						AttemptedAt:   &types.UnixTime{Time: time.Now()},
+						ScheduledAt:   types.Time{Time: time.Now()},
+						AttemptedAt:   &types.Time{Time: time.Now()},
 					}
 					attempt.WorkspaceId = ws.ID
 					assert.NoError(GinkgoT(), db.Attempts.Insert(context.TODO(), &attempt))
@@ -134,8 +134,8 @@ var _ = Describe("/attempts", Ordered, func() {
 					EndpointId:    entitiesConfig.Endpoints[0].ID,
 					Status:        entities.AttemptStatusSuccess,
 					AttemptNumber: 1,
-					ScheduledAt:   types.UnixTime{Time: time.Now()},
-					AttemptedAt:   &types.UnixTime{Time: time.Now()},
+					ScheduledAt:   types.Time{Time: time.Now()},
+					AttemptedAt:   &types.Time{Time: time.Now()},
 				}
 				entitiesConfig.Attempts = []*entities.Attempt{entity}
 

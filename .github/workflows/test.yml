@@ -89,7 +89,7 @@ jobs:
 
       - name: test docker compose
         run: |
-          docker build . -t webhookx-io/webhookx:latest
+          docker build . -t webhookx/webhookx:latest
           docker compose up -d
           sleep 10
           curl http://localhost:8080

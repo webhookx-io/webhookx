@@ -35,7 +35,6 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 ## Installation
 
 ```shell
-$ docker build . -t webhookx-io/webhookx:latest
 $ docker compose up
 ```
 

@@ -12,12 +12,11 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 - **Retries:** WebhookX automatically retries unsuccessful deliveries at configurable delays.
 - **Fan out:** Events can be fan out to multiple destinations.
 - **Declarative configuration:**  Managing your configuration through declarative configuration file, and be DevOps compliant.
+- **Workspace:** Entities are isolated by workspace.
 
 ## Roadmap
 
-- [x] Workspace
 - [ ] Data retention policy
-- [x] OpenAPI
 - [ ] Insight admin APIs
 - [ ] Observability(o11y) including tracing and metrics
 - [ ] Declarative configuration management
@@ -29,7 +28,6 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 
 ### Inbound
 
-- [x] Inbound Gateway
 - [ ] Middlewares/Plugins
 - [ ] Authentication
 - [ ] Event Transformer
@@ -126,8 +124,8 @@ $ curl http://localhost:8080/workspaces/default/attempts
 
 The gateway requires the following runtime dependencies to work:
 
-- PostgreSQL(>=13)
-- Redis(>=4)
+- PostgreSQL(>=13): Lower versions of PostgreSQL may work, but have not been fully tested.
+- Redis(>=4): Caching, Lower versions of Redis may work, but have not been fully tested.
 
 ## Sponsoring
 

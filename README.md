@@ -98,7 +98,7 @@ $ curl http://localhost:8080/workspaces/default/attempts
 <details>
 <summary>See response</summary>
 
-```
+```json
 {
   "total": 1,
   "data": [
@@ -140,6 +140,8 @@ $ curl http://localhost:8080/workspaces/default/attempts
 }
 ```
 </details>
+
+Explore more API at [openapi.yml](/openapi.yml).
 
 ## Runtime dependencies
 

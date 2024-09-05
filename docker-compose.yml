@@ -40,6 +40,15 @@ services:
       interval: 3s
       timeout: 5s
       retries: 3
+    volumes:
+      - "postgres_data:/var/lib/postgresql/data/"
 
   redis:
     image: redis:6
+    command: "--appendonly yes --appendfsync everysec"
+    volumes:
+      - "redis_data:/data"
+
+volumes:
+  postgres_data:
+  redis_data:

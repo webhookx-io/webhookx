@@ -8,7 +8,7 @@ info:
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
-  version: dev
+  version: 0.1.0
 
 servers:
   - url: http://localhost:8080
@@ -27,9 +27,14 @@ paths:
                 properties:
                   version:
                     type: string
+              example:
+                version: 1.0.0
 
   /workspaces:
     get:
+      parameters:
+        - $ref: '#/components/parameters/page_no'
+        - $ref: '#/components/parameters/page_size'
       summary: Page workspaces
       tags:
         - Workspace
@@ -123,6 +128,9 @@ paths:
       - $ref: '#/components/parameters/workspace_id'
 
     get:
+      parameters:
+        - $ref: '#/components/parameters/page_no'
+        - $ref: '#/components/parameters/page_size'
       summary: Page endpoints
       tags:
         - Endpoint
@@ -220,6 +228,9 @@ paths:
       - $ref: '#/components/parameters/workspace_id'
 
     get:
+      parameters:
+        - $ref: '#/components/parameters/page_no'
+        - $ref: '#/components/parameters/page_size'
       summary: Page webhook attempts
       tags:
         - Attempt
@@ -266,6 +277,9 @@ paths:
       - $ref: '#/components/parameters/workspace_id'
 
     get:
+      parameters:
+        - $ref: '#/components/parameters/page_no'
+        - $ref: '#/components/parameters/page_size'
       summary: Page events
       tags:
         - Event
@@ -330,6 +344,9 @@ paths:
       - $ref: '#/components/parameters/workspace_id'
 
     get:
+      parameters:
+        - $ref: '#/components/parameters/page_no'
+        - $ref: '#/components/parameters/page_size'
       summary: Page sources
       tags:
         - Source
@@ -432,6 +449,18 @@ components:
         type: string
         example: 'default'
       description: The workspace id
+    page_no:
+      in: query
+      name: page_no
+      schema:
+        type: integer
+        default: 1
+    page_size:
+      in: query
+      name: page_size
+      schema:
+        type: integer
+        default: 20
   responses:
     NotFound:
       description: The resource was not found
@@ -444,6 +473,7 @@ components:
       properties:
         total:
           type: integer
+          example: 1
 
     Workspace:
       type: object
@@ -458,6 +488,7 @@ components:
           type: integer
         updated_at:
           type: integer
+
 
     Endpoint:
       type: object
@@ -477,16 +508,11 @@ components:
               type: string
             method:
               type: string
-            headers: {}
-            timeout:
+              enum: [GET, POST,PUT,DELETE,PATCH]
+            headers:
               type: object
-              properties:
-                connect:
-                  type: number
-                read:
-                  type: number
-                write:
-                  type: number
+            timeout:
+              type: integer
           required:
             - url
             - method
@@ -495,13 +521,15 @@ components:
           properties:
             strategy:
               type: string
+              default: fixed
             config:
               type: object
               properties:
                 attempts:
                   type: array
                   items:
-                    type: number
+                    type: integer
+                  default: [0, 60, 3600]
               required:
                 - attempts
           required:
@@ -511,14 +539,13 @@ components:
           type: array
           items:
             type: string
+            example: foo.bar
         created_at:
           type: integer
         updated_at:
           type: integer
       required:
-        - id
         - request
-        - retry
         - events
 
     Attempt:
@@ -534,7 +561,9 @@ components:
           type: string
         attempt_number:
           type: integer
-        attempt_at:
+        scheduled_at:
+          type: integer
+        attempted_at:
           type: integer
         request:
           type: object

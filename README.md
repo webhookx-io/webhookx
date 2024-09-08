@@ -142,6 +142,11 @@ $ curl http://localhost:8080/workspaces/default/attempts
 
 Explore more API at [openapi.yml](/openapi.yml).
 
+## CLI
+
+[CLI Reference](https://webhookx.io/docs/cli)
+
+
 ## Runtime dependencies
 
 The gateway requires the following runtime dependencies to work:

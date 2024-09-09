@@ -1,6 +1,6 @@
 services:
   webhookx-migration:
-    image: "webhookx/webhookx:latest"
+    image: "webhookx/webhookx:0.1.0"
     container_name: webhookx-migration
     environment:
       WEBHOOKX_DATABASE_HOST: webhookx-database
@@ -10,7 +10,7 @@ services:
         condition: service_healthy
 
   webhookx:
-    image: "webhookx/webhookx:latest"
+    image: "webhookx/webhookx:0.1.0"
     container_name: webhookx
     environment:
       WEBHOOKX_DATABASE_HOST: webhookx-database

@@ -30,6 +30,9 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture: [ amd64, arm64 ]
     steps:
       - uses: actions/checkout@v4
 
@@ -52,6 +55,4 @@ jobs:
           context: .
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms:
-            - linux/amd64
-            - linux/arm64
+          platforms: linux/${{ matrix.architecture }}

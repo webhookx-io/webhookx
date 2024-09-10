@@ -164,9 +164,7 @@ The public API will strictly follow semantic versioning after `v1.0.0`.
 
 ## Contributing
 
-We ❤️ pull requests
-
-## Contributors
+We ❤️ pull requests, and we’re continually working hard to make it as easy as possible for developers to contribute.
 
 Thank you for your contribution to WebhookX!
 

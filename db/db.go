@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"fmt"
-
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/webhookx-io/webhookx/config"
@@ -27,6 +26,8 @@ type DB struct {
 	SourcesWS        dao.SourceDAO
 	AttemptDetails   dao.AttemptDetailDAO
 	AttemptDetailsWS dao.AttemptDetailDAO
+	Plugins          dao.PluginDAO
+	PluginsWS        dao.PluginDAO
 }
 
 func initSqlxDB(cfg *config.DatabaseConfig) (*sqlx.DB, error) {
@@ -61,6 +62,8 @@ func NewDB(cfg *config.DatabaseConfig) (*DB, error) {
 		SourcesWS:        dao.NewSourceDAO(sqlxDB, true),
 		AttemptDetails:   dao.NewAttemptDetailDao(sqlxDB, false),
 		AttemptDetailsWS: dao.NewAttemptDetailDao(sqlxDB, true),
+		Plugins:          dao.NewPluginDAO(sqlxDB, false),
+		PluginsWS:        dao.NewPluginDAO(sqlxDB, true),
 	}
 
 	return db, nil

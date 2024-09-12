@@ -134,5 +134,13 @@ func (api *API) Handler() http.Handler {
 		r.HandleFunc(prefix+"/attempts/{id}", api.GetAttempt).Methods("GET")
 	}
 
+	for _, prefix := range []string{"", "/workspaces/{workspace}"} {
+		r.HandleFunc(prefix+"/plugins", api.PagePlugin).Methods("GET")
+		r.HandleFunc(prefix+"/plugins", api.CreatePlugin).Methods("POST")
+		r.HandleFunc(prefix+"/plugins/{id}", api.GetPlugin).Methods("GET")
+		r.HandleFunc(prefix+"/plugins/{id}", api.UpdatePlugin).Methods("PUT")
+		r.HandleFunc(prefix+"/plugins/{id}", api.DeletePlugin).Methods("DELETE")
+	}
+
 	return r
 }

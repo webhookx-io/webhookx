@@ -49,3 +49,21 @@ type SourceQuery struct {
 func (q *SourceQuery) WhereMap() map[string]interface{} {
 	return map[string]interface{}{}
 }
+
+type PluginQuery struct {
+	Query
+
+	EndpointId *string
+	Enabled    *bool
+}
+
+func (q *PluginQuery) WhereMap() map[string]interface{} {
+	maps := make(map[string]interface{})
+	if q.EndpointId != nil {
+		maps["endpoint_id"] = *q.EndpointId
+	}
+	if q.Enabled != nil {
+		maps["enabled"] = *q.Enabled
+	}
+	return maps
+}

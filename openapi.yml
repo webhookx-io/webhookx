@@ -589,6 +589,9 @@ components:
           type: integer
         updated_at:
           type: integer
+        time_cost:
+          type: integer
+          description: Time cost of the attempt in microseconds
 
     Event:
       type: object

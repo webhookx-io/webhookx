@@ -65,6 +65,7 @@ var _ = Describe("/attempts", Ordered, func() {
 						AttemptNumber: 1,
 						ScheduledAt:   types.Time{Time: time.Now()},
 						AttemptedAt:   &types.Time{Time: time.Now()},
+						TimeCost:      time.Second, 
 					}
 					attempt.WorkspaceId = ws.ID
 					assert.NoError(GinkgoT(), db.Attempts.Insert(context.TODO(), &attempt))

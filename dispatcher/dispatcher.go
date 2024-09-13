@@ -59,6 +59,7 @@ func (d *DBDispatcher) Dispatch(ctx context.Context, event *entities.Event) erro
 				Status:        entities.AttemptStatusInit,
 				AttemptNumber: 1,
 				ScheduledAt:   types.NewTime(now.Add(time.Second * time.Duration(delay))),
+				TimeCost:      0, 
 			}
 			attempt.WorkspaceId = endpoint.WorkspaceId
 

@@ -5,6 +5,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"time"
 )
 
 type attemptDao struct {
@@ -17,6 +18,7 @@ type AttemptResult struct {
 	AttemptedAt types.Time
 	Status      entities.AttemptStatus
 	ErrorCode   *entities.AttemptErrorCode
+	TimeCost    time.Duration 
 }
 
 func NewAttemptDao(db *sqlx.DB, workspace bool) AttemptDAO {
@@ -32,6 +34,7 @@ func (dao *attemptDao) UpdateDelivery(ctx context.Context, id string, result *At
 		"attempted_at": result.AttemptedAt,
 		"status":       result.Status,
 		"error_code":   result.ErrorCode,
+		"time_cost":    result.TimeCost.Microseconds(),
 	})
 	return err
 }

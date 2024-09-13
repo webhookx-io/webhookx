@@ -189,7 +189,10 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		AttemptedAt: types.NewTime(time.Now()),
 	}
 
+	startTime := time.Now()
 	response := w.deliverer.Deliver(request)
+	result.TimeCost = time.Since(startTime)
+
 	if response.Error != nil {
 		if errors.Is(response.Error, context.DeadlineExceeded) {
 			result.ErrorCode = utils.Pointer(entities.AttemptErrorCodeTimeout)

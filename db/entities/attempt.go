@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"time"
 )
 
 type Attempt struct {
@@ -14,6 +15,7 @@ type Attempt struct {
 	AttemptNumber int           `json:"attempt_number" db:"attempt_number"`
 	ScheduledAt   types.Time    `json:"scheduled_at" db:"scheduled_at"`
 	AttemptedAt   *types.Time   `json:"attempted_at" db:"attempted_at"`
+	TimeCost      int64         `json:"time_cost" db:"time_cost"`
 
 	ErrorCode *AttemptErrorCode `json:"error_code" db:"error_code"`
 	Request   *AttemptRequest   `json:"request" db:"request"`

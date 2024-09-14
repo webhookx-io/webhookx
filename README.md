@@ -11,7 +11,12 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 - **Retries:** WebhookX automatically retries unsuccessful deliveries at configurable delays.
 - **Fan out:** Events can be fan out to multiple destinations.
 - **Declarative configuration(WIP):**  Managing your configuration through declarative configuration file, and be DevOps compliant.
-- **Workspace:** Entities are isolated by workspace.
+- **Multi-tenancy:** Multi-tenancy is supported with workspaces. Workspaces provide an isolation of configuration entites.
+- **Plugins:**
+  - `webhookx-signature`: signing requests with HMAC(SHA-256) by adding `Xebhookx-Signature` and `Webhookx-Timestamp` request headers.
+
+
+
 
 ## Roadmap
 
@@ -22,7 +27,6 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 
 #### Outbound
 
-- [ ] Authentication
 - [ ] Manually retry
 
 #### Inbound

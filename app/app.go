@@ -7,6 +7,7 @@ import (
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/dispatcher"
+	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/proxy"
@@ -32,6 +33,7 @@ type Application struct {
 	db         *db.DB
 	queue      queue.TaskQueue
 	dispatcher dispatcher.Dispatcher
+	cache      cache.Cache
 
 	admin   *admin.Admin
 	gateway *proxy.Gateway
@@ -69,10 +71,14 @@ func (app *Application) initialize() error {
 	}
 	app.db = db
 
-	// queue
 	client := cfg.RedisConfig.GetClient()
+
+	// queue
 	queue := queue.NewRedisQueue(client)
 	app.queue = queue
+
+	// cache
+	app.cache = cache.NewRedisCache(client)
 
 	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db)
 

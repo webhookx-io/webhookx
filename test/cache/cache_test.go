@@ -83,7 +83,7 @@ var _ = Describe("/attempts", Ordered, func() {
 
 		Context("errors", func() {
 			It("returns error if callback returns error", func() {
-				_, err := cache.Get(redisCache, context.TODO(), key, func(ctx context.Context) (*entities.Workspace, error) {
+				_, err := cache.Get(redisCache, context.TODO(), "not exist", func(ctx context.Context) (*entities.Workspace, error) {
 					return nil, errors.New("test error")
 				}, nil)
 				assert.NotNil(GinkgoT(), err)

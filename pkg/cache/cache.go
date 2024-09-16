@@ -13,7 +13,7 @@ type Cache interface {
 }
 
 type Options struct {
-	Timeout time.Duration
+	Expiration time.Duration
 }
 
 // Get gets value from the cache, load from callback function if cache value does not exist.
@@ -39,7 +39,7 @@ func Get[T any](cache Cache, ctx context.Context, key string, callback func(ctx 
 
 	timeout := time.Second * 10 // FIXME: hardcode value
 	if options != nil {
-		timeout = options.Timeout
+		timeout = options.Expiration
 	}
 
 	err = cache.Put(ctx, key, value, timeout)

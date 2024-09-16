@@ -5,14 +5,12 @@ import (
 	"errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/webhookx-io/webhookx/pkg/serializer"
-	"go.uber.org/zap"
 	"time"
 )
 
 type RedisCache struct {
-	log *zap.SugaredLogger
-	c   *redis.Client
-	s   serializer.Serializer
+	c *redis.Client
+	s serializer.Serializer
 }
 
 func NewRedisCache(client *redis.Client) Cache {
@@ -51,8 +49,4 @@ func (s *RedisCache) Remove(ctx context.Context, key string) error {
 func (s *RedisCache) Exist(ctx context.Context, key string) (bool, error) {
 	result, err := s.c.Exists(ctx, key).Result()
 	return result == 1, err
-}
-
-func (s *RedisCache) Exe(fn func(client *redis.Client)) {
-	fn(s.c)
 }

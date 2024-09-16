@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
@@ -80,6 +81,15 @@ var _ = Describe("/attempts", Ordered, func() {
 				string(utils.Must(json.Marshal(workspace))))
 		})
 
+		Context("errors", func() {
+			It("returns error if callback returns error", func() {
+				_, err := cache.Get(redisCache, context.TODO(), key, func(ctx context.Context) (*entities.Workspace, error) {
+					return nil, errors.New("test error")
+				}, nil)
+				assert.NotNil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), "test error", err.Error())
+			})
+		})
 	})
 
 })

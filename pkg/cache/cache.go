@@ -2,7 +2,6 @@ package cache
 
 import (
 	"context"
-	"github.com/webhookx-io/webhookx/config"
 	"time"
 )
 
@@ -13,15 +12,16 @@ type Cache interface {
 	Exist(ctx context.Context, key string) (bool, error)
 }
 
-func New(config config.RedisConfig) Cache {
-	client := config.GetClient()
-	return NewRedisCache(client)
-}
-
 type Options struct {
 	Timeout time.Duration
 }
 
+// Get gets value from the cache, load from callback function if cache value does not exist.
+// Example:
+//
+//	  cache.Get(cacheInstance, ctx, "workspaces:uid", func(ctx context.Context) (*entities.Workspace, error) {
+//		   return db.Workspace.Get(ctx, workspaceId)
+//	  }, nil)
 func Get[T any](cache Cache, ctx context.Context, key string, callback func(ctx context.Context) (*T, error), options *Options) (*T, error) {
 	value := new(T)
 	exist, err := cache.Get(ctx, key, value)
@@ -37,7 +37,7 @@ func Get[T any](cache Cache, ctx context.Context, key string, callback func(ctx 
 		return nil, err
 	}
 
-	timeout := time.Second * 10 // todo: default value
+	timeout := time.Second * 10 // FIXME: hardcode value
 	if options != nil {
 		timeout = options.Timeout
 	}

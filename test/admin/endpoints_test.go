@@ -87,7 +87,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"Request Validation","error":{"message":"request validation","fields":{"method":"required field missing","url":"required field missing"}}}`,
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"request":{"method":"required field missing","url":"required field missing"}}}}`,
 					string(resp.Body()))
 			})
 		})

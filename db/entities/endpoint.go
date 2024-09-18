@@ -71,5 +71,5 @@ func (m *Retry) Validate() error {
 }
 
 type FixedStrategyConfig struct {
-	Attempts []int64 `json:"attempts" default:"[0,60,3600]"`
+	Attempts []int64 `json:"attempts" default:"[0,60,3600]" validate:"min=1"`
 }

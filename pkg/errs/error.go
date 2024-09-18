@@ -16,15 +16,15 @@ func (e *Error) Error() string {
 
 type ValidateError struct {
 	err     error
-	Message string            `json:"message"`
-	Fields  map[string]string `json:"fields"`
+	Message string                 `json:"message"`
+	Fields  map[string]interface{} `json:"fields"`
 }
 
 func NewValidateError(err error) *ValidateError {
 	return &ValidateError{
 		err:     err,
 		Message: err.Error(),
-		Fields:  make(map[string]string),
+		Fields:  make(map[string]interface{}),
 	}
 }
 

@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS "attempts" (
     "id"             CHAR(27) PRIMARY KEY,
     "event_id"       CHAR(27) REFERENCES "events" ("id") ON DELETE CASCADE,
     "endpoint_id"    CHAR(27) REFERENCES "endpoints" ("id") ON DELETE CASCADE,
-    "status"         varCHAR(20) not null,
+    "status"         VARCHAR(20) not null,
 
     "attempt_number" SMALLINT    NOT NULL DEFAULT 1,
     "scheduled_at"   TIMESTAMPTZ(3),

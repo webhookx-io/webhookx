@@ -35,7 +35,8 @@ func TestValidate(t *testing.T) {
 		Age:  -1,
 		Pets: nil,
 	})
-	bytes, err := json.MarshalIndent(err, "", "   ")
+	bytes, e := json.MarshalIndent(err, "", "   ")
+	assert.NoError(t, e)
 	expected := `
 {
    "message": "request validation",

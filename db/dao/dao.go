@@ -6,7 +6,7 @@ import (
 	"errors"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
+	"github.com/webhookx-io/webhookx/db/errs"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/db/transaction"
 	"github.com/webhookx-io/webhookx/pkg/types"
@@ -210,13 +210,7 @@ func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 		MustSql()
 	dao.debugSQL(statement, args)
 	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
-	if err != nil {
-		var pgErr *pq.Error
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return ErrConstraintViolation // TODO attach the violated column
-		}
-	}
-	return err
+	return errs.ConvertError(err)
 }
 
 func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
@@ -300,5 +294,6 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 	}
 	statement, args := builder.Where(sq.Eq{"id": id}).Suffix("RETURNING *").MustSql()
 	dao.debugSQL(statement, args)
-	return dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
+	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
+	return errs.ConvertError(err)
 }

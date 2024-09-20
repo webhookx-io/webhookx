@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/db/errs"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"go.uber.org/zap"
 	"net/http"
@@ -53,10 +53,10 @@ func panicRecovery(h http.Handler) http.Handler {
 					err = errors.New(fmt.Sprint(e))
 				}
 
-				if errors.Is(err, dao.ErrConstraintViolation) {
+				if e, ok := err.(*errs.DBError); ok {
 					w.Header().Set("Content-Type", ApplicationJsonType)
 					w.WriteHeader(400)
-					bytes, _ := json.Marshal(ErrorResponse{Message: err.Error()})
+					bytes, _ := json.Marshal(ErrorResponse{Message: e.Error()})
 					_, _ = w.Write(bytes)
 					return
 				}

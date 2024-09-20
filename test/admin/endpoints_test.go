@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
@@ -89,6 +90,63 @@ var _ = Describe("/endpoints", Ordered, func() {
 				assert.Equal(GinkgoT(),
 					`{"message":"Request Validation","error":{"message":"request validation","fields":{"request":{"method":"required field missing","url":"required field missing"}}}}`,
 					string(resp.Body()))
+			})
+
+			It("return HTTP 400 for unique constraint violation", func() {
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"request": map[string]interface{}{
+							"url":    "https://example.com",
+							"method": "POST",
+						},
+						"name": "test",
+					}).
+					SetResult(entities.Endpoint{}).
+					Post("/workspaces/default/endpoints")
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 201, resp.StatusCode())
+
+				resp, err = adminClient.R().
+					SetBody(map[string]interface{}{
+						"request": map[string]interface{}{
+							"url":    "https://example.com",
+							"method": "POST",
+						},
+						"name": "test",
+					}).
+					SetResult(entities.Endpoint{}).
+					Post("/workspaces/default/endpoints")
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				expected := fmt.Sprintf(`{"message": "unique constraint violation: (ws_id, name)=(%s, test)"}`, ws.ID)
+				assert.JSONEq(GinkgoT(), expected, string(resp.Body()))
+
+				resp2, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"request": map[string]interface{}{
+							"url":    "https://example.com",
+							"method": "POST",
+						},
+						"name": "test2",
+					}).
+					SetResult(entities.Endpoint{}).
+					Post("/workspaces/default/endpoints")
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 201, resp2.StatusCode())
+
+				resp, err = adminClient.R().
+					SetBody(map[string]interface{}{
+						"request": map[string]interface{}{
+							"url":    "https://example.com",
+							"method": "POST",
+						},
+						"name": "test",
+					}).
+					SetResult(entities.Endpoint{}).
+					Put("/workspaces/default/endpoints/" + resp2.Result().(*entities.Endpoint).ID)
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.JSONEq(GinkgoT(), expected, string(resp.Body()))
 			})
 		})
 	})

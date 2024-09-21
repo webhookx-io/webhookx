@@ -9,6 +9,7 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -110,6 +111,41 @@ var _ = Describe("/events", Ordered, func() {
 					assert.Equal(GinkgoT(), "{\"message\":\"Not found\"}", string(resp.Body()))
 				})
 			})
+		})
+	})
+
+	Context("/{id}/retry", func() {
+		Context("manually retry", func() {
+			var endpointId, eventId string
+
+			BeforeAll(func() {
+				entitiesConfig := helper.EntitiesConfig{
+					Endpoints: []*entities.Endpoint{helper.DefaultEndpoint()},
+					Events:    []*entities.Event{helper.DefaultEvent()},
+				}
+				endpointId = entitiesConfig.Endpoints[0].ID
+				eventId = entitiesConfig.Events[0].ID
+
+				helper.InitDB(false, &entitiesConfig)
+			})
+
+			It("should persist an attempt", func() {
+				resp, err := adminClient.R().
+					Post("/workspaces/default/events/" + eventId + "/retry?endpoint_id=" + endpointId)
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 200, resp.StatusCode())
+
+				q := query.AttemptQuery{
+					EventId:    &eventId,
+					EndpointId: &endpointId,
+				}
+				attempts, err := db.Attempts.List(context.TODO(), &q)
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 1, len(attempts))
+				assert.Equal(GinkgoT(), entities.AttemptTriggerModeManual, attempts[0].TriggerMode)
+				assert.Equal(GinkgoT(), entities.AttemptStatusQueued, attempts[0].Status)
+			})
+
 		})
 	})
 

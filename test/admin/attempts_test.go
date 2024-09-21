@@ -175,6 +175,8 @@ var _ = Describe("/attempts", Ordered, func() {
 					AttemptNumber: 1,
 					ScheduledAt:   types.Time{Time: time.Now()},
 					AttemptedAt:   &types.Time{Time: time.Now()},
+					TriggerMode:   entities.AttemptTriggerModeInitial,
+					Exhausted:     false,
 				}
 				entitiesConfig.Attempts = []*entities.Attempt{entity}
 
@@ -192,6 +194,8 @@ var _ = Describe("/attempts", Ordered, func() {
 				assert.Equal(GinkgoT(), entity.EventId, result.EventId)
 				assert.Equal(GinkgoT(), entity.EndpointId, result.EndpointId)
 				assert.Equal(GinkgoT(), entities.AttemptStatusSuccess, result.Status)
+				assert.Equal(GinkgoT(), entities.AttemptTriggerModeInitial, result.TriggerMode)
+				assert.Equal(GinkgoT(), false, result.Exhausted)
 				assert.EqualValues(GinkgoT(), 1, result.AttemptNumber)
 			})
 

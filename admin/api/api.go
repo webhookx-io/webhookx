@@ -21,10 +21,10 @@ type API struct {
 	cfg        *config.Config
 	log        *zap.SugaredLogger
 	DB         *db.DB
-	dispatcher dispatcher.Dispatcher
+	dispatcher *dispatcher.Dispatcher
 }
 
-func NewAPI(cfg *config.Config, db *db.DB, dispatcher dispatcher.Dispatcher) *API {
+func NewAPI(cfg *config.Config, db *db.DB, dispatcher *dispatcher.Dispatcher) *API {
 	return &API{
 		cfg:        cfg,
 		log:        zap.S(),
@@ -47,11 +47,13 @@ func (api *API) json(code int, w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", ApplicationJsonType)
 	w.WriteHeader(code)
 
-	bytes, err := json.Marshal(data)
-	if err != nil {
-		panic(err)
+	if data != nil {
+		bytes, err := json.Marshal(data)
+		if err != nil {
+			panic(err)
+		}
+		_, _ = w.Write(bytes)
 	}
-	_, _ = w.Write(bytes)
 }
 
 func (api *API) bindQuery(r *http.Request, q *query.Query) {
@@ -124,6 +126,7 @@ func (api *API) Handler() http.Handler {
 		r.HandleFunc(prefix+"/events", api.PageEvent).Methods("GET")
 		r.HandleFunc(prefix+"/events", api.CreateEvent).Methods("POST")
 		r.HandleFunc(prefix+"/events/{id}", api.GetEvent).Methods("GET")
+		r.HandleFunc(prefix+"/events/{id}/retry", api.RetryEvent).Methods("POST")
 	}
 
 	for _, prefix := range []string{"", "/workspaces/{workspace}"} {

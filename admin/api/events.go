@@ -53,3 +53,26 @@ func (api *API) CreateEvent(w http.ResponseWriter, r *http.Request) {
 
 	api.json(201, w, event)
 }
+
+func (api *API) RetryEvent(w http.ResponseWriter, r *http.Request) {
+	id := api.param(r, "id")
+	event, err := api.DB.EventsWS.Get(r.Context(), id)
+	api.assert(err)
+	if event == nil {
+		api.json(404, w, ErrorResponse{Message: MsgNotFound})
+		return
+	}
+
+	endpointId := r.URL.Query().Get("endpoint_id")
+	endpoint, err := api.DB.EndpointsWS.Get(r.Context(), endpointId)
+	api.assert(err)
+	if endpoint == nil {
+		api.json(400, w, ErrorResponse{Message: "endpoint not found"})
+		return
+	}
+
+	err = api.dispatcher.DispatchEndpoint(r.Context(), id, []*entities.Endpoint{endpoint})
+	api.assert(err)
+
+	api.json(200, w, nil)
+}

@@ -223,6 +223,10 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		}
 	}
 
+	if data.Attempt >= len(endpoint.Retry.Config.Attempts) {
+		result.Exhausted = true
+	}
+
 	err = w.DB.Attempts.UpdateDelivery(ctx, task.ID, result)
 	if err != nil {
 		return err
@@ -232,7 +236,7 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		return nil
 	}
 
-	if data.Attempt >= len(endpoint.Retry.Config.Attempts) {
+	if result.Exhausted {
 		w.log.Debugf("[worker] webhook delivery exhausted : %s", task.ID)
 		return nil
 	}
@@ -245,10 +249,11 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		Status:        entities.AttemptStatusInit,
 		AttemptNumber: data.Attempt + 1,
 		ScheduledAt:   types.NewTime(finishAt.Add(time.Second * time.Duration(delay))),
+		TriggerMode:   entities.AttemptTriggerModeAutomatic,
 	}
 	nextAttempt.WorkspaceId = endpoint.WorkspaceId
 
-	err = w.DB.AttemptsWS.Insert(ctx, nextAttempt)
+	err = w.DB.Attempts.Insert(ctx, nextAttempt)
 	if err != nil {
 		return err
 	}

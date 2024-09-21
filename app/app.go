@@ -32,7 +32,7 @@ type Application struct {
 	log        *zap.SugaredLogger
 	db         *db.DB
 	queue      queue.TaskQueue
-	dispatcher dispatcher.Dispatcher
+	dispatcher *dispatcher.Dispatcher
 	cache      cache.Cache
 
 	admin   *admin.Admin

@@ -27,13 +27,17 @@ func (q *WorkspaceQuery) WhereMap() map[string]interface{} {
 type AttemptQuery struct {
 	Query
 
-	EventId *string
+	EventId    *string
+	EndpointId *string
 }
 
 func (q *AttemptQuery) WhereMap() map[string]interface{} {
 	maps := make(map[string]interface{})
 	if q.EventId != nil {
 		maps["event_id"] = *q.EventId
+	}
+	if q.EndpointId != nil {
+		maps["endpoint_id"] = *q.EndpointId
 	}
 	return maps
 }

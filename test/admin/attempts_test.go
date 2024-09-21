@@ -37,9 +37,13 @@ var _ = Describe("/attempts", Ordered, func() {
 
 	Context("GET", func() {
 		Context("with data", func() {
+
+			var endpoints []*entities.Endpoint
+			var events []*entities.Event
+
 			BeforeAll(func() {
 				assert.NoError(GinkgoT(), db.Truncate("attempts"))
-				endpoint := entities.Endpoint{
+				endpoint1 := entities.Endpoint{
 					ID:      utils.KSUID(),
 					Enabled: true,
 					Request: entities.RequestConfig{
@@ -47,20 +51,35 @@ var _ = Describe("/attempts", Ordered, func() {
 						Method: "POST",
 					},
 				}
-				endpoint.WorkspaceId = ws.ID
-				assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), &endpoint))
+				endpoint1.WorkspaceId = ws.ID
+				assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), &endpoint1))
+				endpoints = append(endpoints, &endpoint1)
+
+				endpoint2 := entities.Endpoint{
+					ID:      utils.KSUID(),
+					Enabled: true,
+					Request: entities.RequestConfig{
+						URL:    "https://example.com",
+						Method: "POST",
+					},
+				}
+				endpoint2.WorkspaceId = ws.ID
+				assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), &endpoint2))
+				endpoints = append(endpoints, &endpoint2)
+
 				for i := 1; i <= 21; i++ {
-					event := entities.Event{
+					event := &entities.Event{
 						ID:        utils.KSUID(),
 						EventType: "foo.bar",
 						Data:      []byte("{}"),
 					}
 					event.WorkspaceId = ws.ID
-					assert.NoError(GinkgoT(), db.Events.Insert(context.TODO(), &event))
+					assert.NoError(GinkgoT(), db.Events.Insert(context.TODO(), event))
+					events = append(events, event)
 					attempt := entities.Attempt{
 						ID:            utils.KSUID(),
 						EventId:       event.ID,
-						EndpointId:    endpoint.ID,
+						EndpointId:    endpoints[i%2].ID,
 						Status:        entities.AttemptStatusSuccess,
 						AttemptNumber: 1,
 						ScheduledAt:   types.Time{Time: time.Now()},
@@ -83,12 +102,32 @@ var _ = Describe("/attempts", Ordered, func() {
 
 			It("retrieves second page", func() {
 				resp, err := adminClient.R().
-					SetResult(api.Pagination[*entities.Endpoint]{}).
+					SetResult(api.Pagination[*entities.Attempt]{}).
 					Get("/workspaces/default/attempts?page_no=2")
 				assert.Nil(GinkgoT(), err)
-				result := resp.Result().(*api.Pagination[*entities.Endpoint])
+				result := resp.Result().(*api.Pagination[*entities.Attempt])
 				assert.EqualValues(GinkgoT(), 21, result.Total)
 				assert.EqualValues(GinkgoT(), 1, len(result.Data))
+			})
+
+			It("query by event_id", func() {
+				resp, err := adminClient.R().
+					SetResult(api.Pagination[*entities.Attempt]{}).
+					Get("/workspaces/default/attempts?event_id=" + events[0].ID)
+				assert.Nil(GinkgoT(), err)
+				result := resp.Result().(*api.Pagination[*entities.Attempt])
+				assert.EqualValues(GinkgoT(), 1, result.Total)
+				assert.EqualValues(GinkgoT(), 1, len(result.Data))
+			})
+
+			It("query by endpoint_id", func() {
+				resp, err := adminClient.R().
+					SetResult(api.Pagination[*entities.Attempt]{}).
+					Get("/workspaces/default/attempts?endpoint_id=" + endpoints[0].ID)
+				assert.Nil(GinkgoT(), err)
+				result := resp.Result().(*api.Pagination[*entities.Attempt])
+				assert.EqualValues(GinkgoT(), 10, result.Total)
+				assert.EqualValues(GinkgoT(), 10, len(result.Data))
 			})
 
 		})

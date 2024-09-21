@@ -13,6 +13,9 @@ func (api *API) PageAttempt(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("event_id") != "" {
 		q.EventId = utils.Pointer(r.URL.Query().Get("event_id"))
 	}
+	if r.URL.Query().Get("endpoint_id") != "" {
+		q.EndpointId = utils.Pointer(r.URL.Query().Get("endpoint_id"))
+	}
 	list, total, err := api.DB.AttemptsWS.Page(r.Context(), &q)
 	api.assert(err)
 

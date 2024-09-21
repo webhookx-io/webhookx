@@ -231,6 +231,15 @@ paths:
       parameters:
         - $ref: '#/components/parameters/page_no'
         - $ref: '#/components/parameters/page_size'
+        - in: query
+          name: event_id
+          schema:
+            type: string
+        - in: query
+          name: endpoint_id
+          schema:
+            type: string
+
       summary: Page webhook attempts
       tags:
         - Attempt

@@ -185,47 +185,19 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		Timeout: time.Duration(endpoint.Request.Timeout) * time.Millisecond,
 	}
 
-	result := &dao.AttemptResult{
-		AttemptedAt: types.NewTime(time.Now()),
-	}
-
+	// deliver the request
+	startAt := time.Now()
 	response := w.deliverer.Deliver(request)
-	if response.Error != nil {
-		if errors.Is(response.Error, context.DeadlineExceeded) {
-			result.ErrorCode = utils.Pointer(entities.AttemptErrorCodeTimeout)
-		} else {
-			result.ErrorCode = utils.Pointer(entities.AttemptErrorCodeUnknown)
-		}
-		w.log.Infof("[worker] failed to delivery event: %v", response.Error)
-	}
-
 	finishAt := time.Now()
 
+	if response.Error != nil {
+		w.log.Infof("[worker] failed to delivery event: %v", response.Error)
+	}
 	w.log.Debugf("[worker] delivery response: %v", response)
 
-	if response.Is2xx() {
-		result.Status = entities.AttemptStatusSuccess
-	} else {
-		result.Status = entities.AttemptStatusFailure
-	}
-
-	result.Request = &entities.AttemptRequest{
-		URL:     request.URL,
-		Method:  request.Method,
-		Headers: utils.HeaderMap(request.Request.Header),
-		Body:    utils.Pointer(string(request.Payload)),
-	}
-	if response.StatusCode != 0 {
-		result.Response = &entities.AttemptResponse{
-			Status:  response.StatusCode,
-			Headers: utils.HeaderMap(response.Header),
-			Body:    utils.Pointer(string(response.ResponseBody)),
-		}
-	}
-
-	if data.Attempt >= len(endpoint.Retry.Config.Attempts) {
-		result.Exhausted = true
-	}
+	result := buildAttemptResult(request, response)
+	result.AttemptedAt = types.NewTime(startAt)
+	result.Exhausted = data.Attempt >= len(endpoint.Retry.Config.Attempts)
 
 	err = w.DB.Attempts.UpdateDelivery(ctx, task.ID, result)
 	if err != nil {
@@ -276,4 +248,39 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		w.log.Warnf("[worker] failed to update attempt status: %v", err)
 	}
 	return nil
+}
+
+func buildAttemptResult(request *deliverer.Request, response *deliverer.Response) *dao.AttemptResult {
+	result := &dao.AttemptResult{
+		Request: &entities.AttemptRequest{
+			URL:     request.URL,
+			Method:  request.Method,
+			Headers: utils.HeaderMap(request.Request.Header),
+			Body:    utils.Pointer(string(request.Payload)),
+		},
+		Status: entities.AttemptStatusSuccess,
+	}
+
+	if response.Error != nil {
+		if errors.Is(response.Error, context.DeadlineExceeded) {
+			result.ErrorCode = utils.Pointer(entities.AttemptErrorCodeTimeout)
+		} else {
+			result.ErrorCode = utils.Pointer(entities.AttemptErrorCodeUnknown)
+		}
+	}
+
+	if !response.Is2xx() {
+		result.Status = entities.AttemptStatusFailure
+	}
+
+	if response.StatusCode != 0 {
+		result.Response = &entities.AttemptResponse{
+			Status:  response.StatusCode,
+			Latency: response.Latancy.Milliseconds(),
+			Headers: utils.HeaderMap(response.Header),
+			Body:    utils.Pointer(string(response.ResponseBody)),
+		}
+	}
+
+	return result
 }

@@ -33,9 +33,11 @@ func (api *API) GetAttempt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	attemptDetail, err := api.DB.AttemptDetailsWS.Get(r.Context(), attempt.ID)
-	api.assert(err)
-	attempt.Extend(attemptDetail)
+	if attempt.Delivered() {
+		attemptDetail, err := api.DB.AttemptDetailsWS.Get(r.Context(), attempt.ID)
+		api.assert(err)
+		attempt.Extend(attemptDetail)
+	}
 
 	api.json(200, w, attempt)
 }

@@ -68,6 +68,16 @@ var _ = Describe("delivery", Ordered, func() {
 				return attempt.Status == entities.AttemptStatusSuccess
 			}, time.Second*15, time.Second)
 
+			assert.True(GinkgoT(), attempt.Response.Latency > 0)
+			assert.Equal(GinkgoT(), entitiesConfig.Endpoints[0].ID, attempt.EndpointId)
+			assert.Equal(GinkgoT(), &entities.AttemptRequest{
+				Method: "POST",
+				URL:    "http://localhost:9999/anything",
+			}, attempt.Request)
+			assert.Equal(GinkgoT(), 200, attempt.Response.Status)
+			assert.Nil(GinkgoT(), attempt.Response.Headers)
+			assert.Nil(GinkgoT(), attempt.Response.Body)
+
 			var attemptDetail *entities.AttemptDetail
 			assert.Eventually(GinkgoT(), func() bool {
 				val, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
@@ -78,8 +88,6 @@ var _ = Describe("delivery", Ordered, func() {
 				return true
 			}, time.Second*5, time.Second)
 			attempt.Extend(attemptDetail)
-
-			assert.Equal(GinkgoT(), entitiesConfig.Endpoints[0].ID, attempt.EndpointId)
 			assert.Equal(GinkgoT(), &entities.AttemptRequest{
 				Method: "POST",
 				URL:    "http://localhost:9999/anything",
@@ -90,7 +98,8 @@ var _ = Describe("delivery", Ordered, func() {
 				Body: utils.Pointer(`{"key": "value"}`),
 			}, attempt.Request)
 			assert.Equal(GinkgoT(), 200, attempt.Response.Status)
-			assert.True(GinkgoT(), attempt.Response.Latency > 0)
+			assert.NotNil(GinkgoT(), attempt.Response.Headers)
+			assert.NotNil(GinkgoT(), attempt.Response.Body)
 		})
 	})
 
@@ -151,6 +160,8 @@ var _ = Describe("delivery", Ordered, func() {
 				} else {
 					assert.Equal(GinkgoT(), entities.AttemptTriggerModeAutomatic, e.TriggerMode)
 				}
+				assert.Nil(GinkgoT(), e.Response)
+
 				attemptDetail, err := db.AttemptDetails.Get(context.TODO(), e.ID)
 				assert.NoError(GinkgoT(), err)
 				e.Extend(attemptDetail)
@@ -214,6 +225,7 @@ var _ = Describe("delivery", Ordered, func() {
 			assert.Equal(GinkgoT(), "ENDPOINT_DISABLED", *attempt.ErrorCode)
 			assert.Equal(GinkgoT(), "CANCELED", attempt.Status)
 			assert.Equal(GinkgoT(), 1, attempt.AttemptNumber)
+			assert.Nil(GinkgoT(), attempt.Request)
 			assert.Nil(GinkgoT(), attempt.Response)
 
 			attemptDetail, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)

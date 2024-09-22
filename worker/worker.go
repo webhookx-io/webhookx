@@ -271,10 +271,8 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 func buildAttemptResult(request *deliverer.Request, response *deliverer.Response) *dao.AttemptResult {
 	result := &dao.AttemptResult{
 		Request: &entities.AttemptRequest{
-			URL:     request.URL,
-			Method:  request.Method,
-			Headers: utils.HeaderMap(request.Request.Header),
-			Body:    utils.Pointer(string(request.Payload)),
+			URL:    request.URL,
+			Method: request.Method,
 		},
 		Status: entities.AttemptStatusSuccess,
 	}
@@ -295,8 +293,6 @@ func buildAttemptResult(request *deliverer.Request, response *deliverer.Response
 		result.Response = &entities.AttemptResponse{
 			Status:  response.StatusCode,
 			Latency: response.Latancy.Milliseconds(),
-			Headers: utils.HeaderMap(response.Header),
-			Body:    utils.Pointer(string(response.ResponseBody)),
 		}
 	}
 

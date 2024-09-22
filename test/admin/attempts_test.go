@@ -149,6 +149,7 @@ var _ = Describe("/attempts", Ordered, func() {
 	Context("/{id}", func() {
 		Context("GET", func() {
 			var entity *entities.Attempt
+			var undeliveredAttempt *entities.Attempt
 			var detail *entities.AttemptDetail
 			BeforeAll(func() {
 				entitiesConfig := helper.EntitiesConfig{
@@ -188,7 +189,21 @@ var _ = Describe("/attempts", Ordered, func() {
 					TriggerMode: entities.AttemptTriggerModeInitial,
 					Exhausted:   false,
 				}
-				entitiesConfig.Attempts = []*entities.Attempt{entity}
+				undeliveredAttempt = &entities.Attempt{
+					ID:            utils.KSUID(),
+					EventId:       entitiesConfig.Events[0].ID,
+					EndpointId:    entitiesConfig.Endpoints[0].ID,
+					Status:        entities.AttemptStatusQueued,
+					AttemptNumber: 0,
+					ScheduledAt:   types.Time{Time: time.Now()},
+					AttemptedAt:   nil,
+					Request:       nil,
+					Response:      nil,
+					TriggerMode:   entities.AttemptTriggerModeInitial,
+					Exhausted:     false,
+				}
+
+				entitiesConfig.Attempts = []*entities.Attempt{entity, undeliveredAttempt}
 
 				detail = &entities.AttemptDetail{
 					ID: entity.ID,
@@ -225,6 +240,24 @@ var _ = Describe("/attempts", Ordered, func() {
 				assert.EqualValues(GinkgoT(), detail.ResponseHeaders, result.Response.Headers)
 				assert.EqualValues(GinkgoT(), detail.ResponseBody, result.Response.Body)
 				assert.EqualValues(GinkgoT(), 200, result.Response.Status)
+			})
+
+			It("retrieves by id not delivered", func() {
+				resp, err := adminClient.R().
+					SetResult(entities.Attempt{}).
+					Get("/workspaces/default/attempts/" + undeliveredAttempt.ID)
+
+				assert.NoError(GinkgoT(), err)
+				result := resp.Result().(*entities.Attempt)
+				assert.Equal(GinkgoT(), undeliveredAttempt.ID, result.ID)
+				assert.Equal(GinkgoT(), undeliveredAttempt.EventId, result.EventId)
+				assert.Equal(GinkgoT(), undeliveredAttempt.EndpointId, result.EndpointId)
+				assert.Equal(GinkgoT(), entities.AttemptStatusQueued, result.Status)
+				assert.Equal(GinkgoT(), entities.AttemptTriggerModeInitial, result.TriggerMode)
+				assert.Equal(GinkgoT(), false, result.Exhausted)
+				assert.EqualValues(GinkgoT(), 0, result.AttemptNumber)
+				assert.Nil(GinkgoT(), result.Request)
+				assert.Nil(GinkgoT(), result.Response)
 			})
 
 			Context("errors", func() {

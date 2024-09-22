@@ -202,7 +202,11 @@ func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 		case "created_at", "updated_at": // ignore
 		default:
 			columns = append(columns, column)
-			values = append(values, v.Interface())
+			value := v.Interface()
+			if column == "ws_id" && dao.workspace {
+				value = ucontext.GetWorkspaceID(ctx)
+			}
+			values = append(values, value)
 		}
 	})
 	statement, args := psql.Insert(dao.table).Columns(columns...).Values(values...).
@@ -236,7 +240,11 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 			case "created_at", "updated_at":
 				// ignore
 			default:
-				values = append(values, v.Interface())
+				value := v.Interface()
+				if column == "ws_id" && dao.workspace {
+					value = ucontext.GetWorkspaceID(ctx)
+				}
+				values = append(values, value)
 			}
 		})
 		builder = builder.Values(values...)

@@ -258,7 +258,6 @@ paths:
                         items:
                           $ref: "#/components/schemas/Attempt"
 
-
   /workspaces/{ws_id}/attempts/{id}:
     parameters:
       - $ref: '#/components/parameters/workspace_id'
@@ -324,7 +323,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Event'
 
-
   /workspaces/{ws_id}/events/{id}:
     parameters:
       - $ref: '#/components/parameters/workspace_id'
@@ -346,6 +344,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
+
+  /workspaces/{ws_id}/events/{id}/retry:
+    parameters:
+      - $ref: '#/components/parameters/workspace_id'
+
+    post:
+      summary: Manually retry an event
+      tags:
+        - Event
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: endpoint_id
+          required: true
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: OK
 
 
   /workspaces/{ws_id}/sources:

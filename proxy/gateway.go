@@ -30,10 +30,10 @@ type Gateway struct {
 	router *router.Router // TODO: happens-before
 	db     *db.DB
 
-	dispatcher dispatcher.Dispatcher
+	dispatcher *dispatcher.Dispatcher
 }
 
-func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher dispatcher.Dispatcher) *Gateway {
+func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher *dispatcher.Dispatcher) *Gateway {
 	gw := &Gateway{
 		cfg:        cfg,
 		log:        zap.S(),
@@ -111,7 +111,7 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	event.WorkspaceId = source.WorkspaceId
+
 	err := gw.dispatcher.Dispatch(r.Context(), &event)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")

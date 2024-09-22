@@ -132,6 +132,12 @@ var _ = Describe("delivery", Ordered, func() {
 				assert.Equal(GinkgoT(), "TIMEOUT", *e.ErrorCode)
 				assert.Equal(GinkgoT(), "FAILED", e.Status)
 				assert.Equal(GinkgoT(), i+1, e.AttemptNumber)
+				assert.Equal(GinkgoT(), i+1 == len(attempts), e.Exhausted) // exhausted should be true when it's the last attempt
+				if i == 0 {
+					assert.Equal(GinkgoT(), entities.AttemptTriggerModeInitial, e.TriggerMode)
+				} else {
+					assert.Equal(GinkgoT(), entities.AttemptTriggerModeAutomatic, e.TriggerMode)
+				}
 				assert.Nil(GinkgoT(), e.Response)
 			}
 		})

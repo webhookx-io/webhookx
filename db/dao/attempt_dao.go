@@ -17,6 +17,7 @@ type AttemptResult struct {
 	AttemptedAt types.Time
 	Status      entities.AttemptStatus
 	ErrorCode   *entities.AttemptErrorCode
+	Exhausted   bool
 }
 
 func NewAttemptDao(db *sqlx.DB, workspace bool) AttemptDAO {
@@ -32,6 +33,7 @@ func (dao *attemptDao) UpdateDelivery(ctx context.Context, id string, result *At
 		"attempted_at": result.AttemptedAt,
 		"status":       result.Status,
 		"error_code":   result.ErrorCode,
+		"exhausted":    result.Exhausted,
 	})
 	return err
 }

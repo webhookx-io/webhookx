@@ -68,6 +68,7 @@ func (m AttemptRequest) Value() (driver.Value, error) {
 
 type AttemptResponse struct {
 	Status  int               `json:"status"`
+	Latency int64             `json:"latency"`
 	Headers map[string]string `json:"headers"`
 	Body    *string           `json:"body"`
 }

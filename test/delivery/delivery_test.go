@@ -79,6 +79,7 @@ var _ = Describe("delivery", Ordered, func() {
 				Body: utils.Pointer(`{"key": "value"}`),
 			}, attempt.Request)
 			assert.Equal(GinkgoT(), 200, attempt.Response.Status)
+			assert.True(GinkgoT(), attempt.Response.Latency > 0)
 		})
 	})
 

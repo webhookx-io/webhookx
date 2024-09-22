@@ -612,6 +612,9 @@ components:
           properties:
             status:
               type: number
+            latency:
+              type: integer
+              description: "Latancy of response in milliseconds"
             header:
               type: object
             body:

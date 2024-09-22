@@ -87,8 +87,7 @@ var _ = Describe("delivery", Ordered, func() {
 				attemptDetail = val
 				return true
 			}, time.Second*5, time.Second)
-			attempt.Extend(attemptDetail)
-			assert.Equal(GinkgoT(), &entities.AttemptRequest{
+			attemptRequest := &entities.AttemptRequest{
 				Method: "POST",
 				URL:    "http://localhost:9999/anything",
 				Headers: map[string]string{
@@ -96,7 +95,12 @@ var _ = Describe("delivery", Ordered, func() {
 					"User-Agent":   "WebhookX/" + config.VERSION,
 				},
 				Body: utils.Pointer(`{"key": "value"}`),
-			}, attempt.Request)
+			}
+			assert.EqualValues(GinkgoT(), attemptRequest.Headers, attemptDetail.RequestHeaders)
+			assert.Equal(GinkgoT(), attemptRequest.Body, attemptDetail.RequestBody)
+
+			attempt.Extend(attemptDetail)
+			assert.Equal(GinkgoT(), attemptRequest, attempt.Request)
 			assert.Equal(GinkgoT(), 200, attempt.Response.Status)
 			assert.NotNil(GinkgoT(), attempt.Response.Headers)
 			assert.NotNil(GinkgoT(), attempt.Response.Body)

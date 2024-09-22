@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 )
@@ -39,4 +40,9 @@ type AttemptDAO interface {
 
 type SourceDAO interface {
 	BaseDAO[entities.Source]
+}
+
+type AttemptDetailDAO interface {
+	BaseDAO[entities.AttemptDetail]
+	Upsert(ctx context.Context, attemptDetail *entities.AttemptDetail) error
 }

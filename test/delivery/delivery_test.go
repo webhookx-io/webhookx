@@ -2,6 +2,9 @@ package delivery
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -13,12 +16,9 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
-	"testing"
-	"time"
 )
 
 var _ = Describe("delivery", Ordered, func() {
-
 	Context("sanity", func() {
 		var proxyClient *resty.Client
 
@@ -67,6 +67,17 @@ var _ = Describe("delivery", Ordered, func() {
 				attempt = list[0]
 				return attempt.Status == entities.AttemptStatusSuccess
 			}, time.Second*15, time.Second)
+
+			var attemptDetail *entities.AttemptDetail
+			assert.Eventually(GinkgoT(), func() bool {
+				val, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
+				if err != nil || val == nil {
+					return false
+				}
+				attemptDetail = val
+				return true
+			}, time.Second*5, time.Second)
+			attempt.Extend(attemptDetail)
 
 			assert.Equal(GinkgoT(), entitiesConfig.Endpoints[0].ID, attempt.EndpointId)
 			assert.Equal(GinkgoT(), &entities.AttemptRequest{
@@ -133,12 +144,16 @@ var _ = Describe("delivery", Ordered, func() {
 				assert.Equal(GinkgoT(), "TIMEOUT", *e.ErrorCode)
 				assert.Equal(GinkgoT(), "FAILED", e.Status)
 				assert.Equal(GinkgoT(), i+1, e.AttemptNumber)
+
 				assert.Equal(GinkgoT(), i+1 == len(attempts), e.Exhausted) // exhausted should be true when it's the last attempt
 				if i == 0 {
 					assert.Equal(GinkgoT(), entities.AttemptTriggerModeInitial, e.TriggerMode)
 				} else {
 					assert.Equal(GinkgoT(), entities.AttemptTriggerModeAutomatic, e.TriggerMode)
 				}
+				attemptDetail, err := db.AttemptDetails.Get(context.TODO(), e.ID)
+				assert.NoError(GinkgoT(), err)
+				e.Extend(attemptDetail)
 				assert.Nil(GinkgoT(), e.Response)
 			}
 		})
@@ -200,8 +215,14 @@ var _ = Describe("delivery", Ordered, func() {
 			assert.Equal(GinkgoT(), "CANCELED", attempt.Status)
 			assert.Equal(GinkgoT(), 1, attempt.AttemptNumber)
 			assert.Nil(GinkgoT(), attempt.Response)
+
+			attemptDetail, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
+			assert.NoError(GinkgoT(), err)
+			// Disable endpoint will not create request
+			assert.Nil(GinkgoT(), attemptDetail)
 		})
 	})
+
 })
 
 func TestProxy(t *testing.T) {

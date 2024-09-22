@@ -2,6 +2,9 @@ package admin
 
 import (
 	"context"
+
+	"time"
+
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
@@ -12,7 +15,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
-	"time"
 )
 
 var _ = Describe("/attempts", Ordered, func() {
@@ -147,6 +149,7 @@ var _ = Describe("/attempts", Ordered, func() {
 	Context("/{id}", func() {
 		Context("GET", func() {
 			var entity *entities.Attempt
+			var detail *entities.AttemptDetail
 			BeforeAll(func() {
 				entitiesConfig := helper.EntitiesConfig{
 					Endpoints: []*entities.Endpoint{
@@ -175,10 +178,29 @@ var _ = Describe("/attempts", Ordered, func() {
 					AttemptNumber: 1,
 					ScheduledAt:   types.Time{Time: time.Now()},
 					AttemptedAt:   &types.Time{Time: time.Now()},
-					TriggerMode:   entities.AttemptTriggerModeInitial,
-					Exhausted:     false,
+					Request: &entities.AttemptRequest{
+						URL:    "https://example.com",
+						Method: "POST",
+					},
+					Response: &entities.AttemptResponse{
+						Status: 200,
+					},
+					TriggerMode: entities.AttemptTriggerModeInitial,
+					Exhausted:   false,
 				}
 				entitiesConfig.Attempts = []*entities.Attempt{entity}
+
+				detail = &entities.AttemptDetail{
+					ID: entity.ID,
+					RequestHeaders: map[string]string{
+						"Content-Type": "application/json",
+					},
+					RequestBody: utils.Pointer(`{"key": "value"}`),
+					ResponseHeaders: map[string]string{
+						"Content-Type": "application/json",
+					},
+				}
+				entitiesConfig.AttemptDetails = []*entities.AttemptDetail{detail}
 
 				helper.InitDB(false, &entitiesConfig)
 			})
@@ -197,6 +219,12 @@ var _ = Describe("/attempts", Ordered, func() {
 				assert.Equal(GinkgoT(), entities.AttemptTriggerModeInitial, result.TriggerMode)
 				assert.Equal(GinkgoT(), false, result.Exhausted)
 				assert.EqualValues(GinkgoT(), 1, result.AttemptNumber)
+
+				assert.EqualValues(GinkgoT(), detail.RequestHeaders, result.Request.Headers)
+				assert.EqualValues(GinkgoT(), detail.RequestBody, result.Request.Body)
+				assert.EqualValues(GinkgoT(), detail.ResponseHeaders, result.Response.Headers)
+				assert.EqualValues(GinkgoT(), detail.ResponseBody, result.Response.Body)
+				assert.EqualValues(GinkgoT(), 200, result.Response.Status)
 			})
 
 			Context("errors", func() {

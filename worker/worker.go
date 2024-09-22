@@ -3,6 +3,8 @@ package worker
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/dao"
@@ -15,7 +17,6 @@ import (
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.uber.org/zap"
-	"time"
 )
 
 type Worker struct {
@@ -201,6 +202,24 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 
 	err = w.DB.Attempts.UpdateDelivery(ctx, task.ID, result)
 	if err != nil {
+		return err
+	}
+
+	attemptDetail := &entities.AttemptDetail{
+		ID:             task.ID,
+		RequestHeaders: utils.HeaderMap(request.Request.Header),
+		RequestBody:    utils.Pointer(string(request.Payload)),
+	}
+	if len(response.Header) > 0 {
+		attemptDetail.ResponseHeaders = utils.HeaderMap(response.Header)
+	}
+	if response.ResponseBody != nil {
+		attemptDetail.ResponseBody = utils.Pointer(string(response.ResponseBody))
+	}
+	attemptDetail.WorkspaceId = endpoint.WorkspaceId
+	err = w.DB.AttemptDetails.Upsert(ctx, attemptDetail)
+	if err != nil {
+		w.log.Warnf(`[worker] failed to save attempt detail: %v`, err)
 		return err
 	}
 

@@ -3,6 +3,7 @@ package entities
 import (
 	"database/sql/driver"
 	"encoding/json"
+
 	"github.com/webhookx-io/webhookx/pkg/types"
 )
 
@@ -18,10 +19,24 @@ type Attempt struct {
 	Exhausted     bool               `json:"exhausted" db:"exhausted"`
 
 	ErrorCode *AttemptErrorCode `json:"error_code" db:"error_code"`
-	Request   *AttemptRequest   `json:"request" db:"request"`
-	Response  *AttemptResponse  `json:"response" db:"response"`
+	Request   *AttemptRequest   `json:"request,omitempty" db:"request"`
+	Response  *AttemptResponse  `json:"response,omitempty" db:"response"`
 
 	BaseModel
+}
+
+func (m *Attempt) Extend(detail *AttemptDetail) {
+	if detail == nil {
+		return
+	}
+	if m.Request != nil {
+		m.Request.Headers = detail.RequestHeaders
+		m.Request.Body = detail.RequestBody
+	}
+	if m.Response != nil {
+		m.Response.Headers = detail.ResponseHeaders
+		m.Response.Body = detail.ResponseBody
+	}
 }
 
 type AttemptStatus = string
@@ -54,8 +69,8 @@ const (
 type AttemptRequest struct {
 	Method  string            `json:"method"`
 	URL     string            `json:"url"`
-	Headers map[string]string `json:"headers"`
-	Body    *string           `json:"body"`
+	Headers map[string]string `json:"headers,omitempty"`
+	Body    *string           `json:"body,omitempty"`
 }
 
 func (m *AttemptRequest) Scan(src interface{}) error {
@@ -69,8 +84,8 @@ func (m AttemptRequest) Value() (driver.Value, error) {
 type AttemptResponse struct {
 	Status  int               `json:"status"`
 	Latency int64             `json:"latency"`
-	Headers map[string]string `json:"headers"`
-	Body    *string           `json:"body"`
+	Headers map[string]string `json:"headers,omitempty"`
+	Body    *string           `json:"body,omitempty"`
 }
 
 func (m *AttemptResponse) Scan(src interface{}) error {

@@ -596,8 +596,9 @@ components:
           type: integer
         attempted_at:
           type: integer
-        trigger_mode :
+        trigger_mode:
           type : string
+          enum: [INITIAL, MANUAL, AUTOMATIC]
         exhausted :
           type: boolean
         request:

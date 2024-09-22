@@ -93,7 +93,7 @@ func (d *Dispatcher) dispatch(ctx context.Context, event *entities.Event, endpoi
 
 	err := d.db.TX(ctx, func(ctx context.Context) error {
 		now := time.Now()
-		err := d.db.Events.Insert(ctx, event)
+		err := d.db.EventsWS.Insert(ctx, event)
 		if err != nil {
 			return err
 		}

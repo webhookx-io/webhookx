@@ -111,7 +111,7 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	event.WorkspaceId = source.WorkspaceId
+
 	err := gw.dispatcher.Dispatch(r.Context(), &event)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")

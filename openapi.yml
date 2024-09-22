@@ -596,6 +596,10 @@ components:
           type: integer
         attempted_at:
           type: integer
+        trigger_mode :
+          type : string
+        exhausted :
+          type: boolean
         request:
           type: object
           properties:

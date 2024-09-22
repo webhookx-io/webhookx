@@ -599,7 +599,7 @@ components:
         trigger_mode:
           type : string
           enum: [INITIAL, MANUAL, AUTOMATIC]
-        exhausted :
+        exhausted:
           type: boolean
         request:
           type: object

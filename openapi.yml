@@ -590,40 +590,52 @@ components:
           type: string
         status:
           type: string
+          enum: [INIT, QUEUED, SUCCESSFUL, FAILED, CANCELED]
         attempt_number:
           type: integer
         scheduled_at:
           type: integer
         attempted_at:
           type: integer
+          nullable: true
         trigger_mode:
           type: string
           enum: [INITIAL, MANUAL, AUTOMATIC]
         exhausted:
           type: boolean
+        error_code:
+          type: string
+          nullable: true
+          enum: [TIMEOUT, UNKNOWN, ENDPOINT_DISABLED, ENDPOINT_NOT_FOUND]
         request:
           type: object
+          nullable: true
           properties:
             method:
               type: string
             url:
               type: string
-            header:
+            headers:
               type: object
+              nullable: true
             body:
               type: string
+              nullable: true
         response:
           type: object
+          nullable: true
           properties:
             status:
               type: number
             latency:
               type: integer
               description: "Latancy of response in milliseconds"
-            header:
+            headers:
               type: object
+              nullable: true
             body:
               type: string
+              nullable: true
         created_at:
           type: integer
         updated_at:

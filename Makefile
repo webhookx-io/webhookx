@@ -35,5 +35,5 @@ test-integration-coverage: clean
 goreleaser:
 	goreleaser release --snapshot --clean
 
-migrate-revision:
+migrate-create:
 	migrate create -ext sql -dir db/migrations -seq -digits 1 $(message)

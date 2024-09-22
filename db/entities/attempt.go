@@ -19,8 +19,8 @@ type Attempt struct {
 	Exhausted     bool               `json:"exhausted" db:"exhausted"`
 
 	ErrorCode *AttemptErrorCode `json:"error_code" db:"error_code"`
-	Request   *AttemptRequest   `json:"request,omitempty" db:"request"`
-	Response  *AttemptResponse  `json:"response,omitempty" db:"response"`
+	Request   *AttemptRequest   `json:"request" db:"request"`
+	Response  *AttemptResponse  `json:"response" db:"response"`
 
 	BaseModel
 }
@@ -69,8 +69,8 @@ const (
 type AttemptRequest struct {
 	Method  string            `json:"method"`
 	URL     string            `json:"url"`
-	Headers map[string]string `json:"headers,omitempty"`
-	Body    *string           `json:"body,omitempty"`
+	Headers map[string]string `json:"headers"`
+	Body    *string           `json:"body"`
 }
 
 func (m *AttemptRequest) Scan(src interface{}) error {
@@ -84,8 +84,8 @@ func (m AttemptRequest) Value() (driver.Value, error) {
 type AttemptResponse struct {
 	Status  int               `json:"status"`
 	Latency int64             `json:"latency"`
-	Headers map[string]string `json:"headers,omitempty"`
-	Body    *string           `json:"body,omitempty"`
+	Headers map[string]string `json:"headers"`
+	Body    *string           `json:"body"`
 }
 
 func (m *AttemptResponse) Scan(src interface{}) error {

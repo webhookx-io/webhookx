@@ -219,7 +219,6 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 	attemptDetail.WorkspaceId = endpoint.WorkspaceId
 	err = w.DB.AttemptDetails.Upsert(ctx, attemptDetail)
 	if err != nil {
-		w.log.Warnf(`[worker] failed to save attempt detail: %v`, err)
 		return err
 	}
 

@@ -13,7 +13,7 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 - **Declarative configuration(WIP):**  Managing your configuration through declarative configuration file, and be DevOps compliant.
 - **Multi-tenancy:** Multi-tenancy is supported with workspaces. Workspaces provide an isolation of configuration entites.
 - **Plugins:**
-  - `webhookx-signature`: signing requests with HMAC(SHA-256) by adding `Xebhookx-Signature` and `Webhookx-Timestamp` request headers.
+  - `webhookx-signature`: signing outbound requests with HMAC(SHA-256) by adding `Webhookx-Signature` and `Webhookx-Timestamp` to request header.
 
 
 
@@ -24,10 +24,6 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 - [ ] Insight admin APIs
 - [ ] Observability(o11y) including tracing and metrics
 - [ ] Declarative configuration management
-
-#### Outbound
-
-- [ ] Manually retry
 
 #### Inbound
 

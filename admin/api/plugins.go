@@ -7,7 +7,6 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
-	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/utils"
 	"net/http"
 )
@@ -70,7 +69,6 @@ func (api *API) CreatePlugin(w http.ResponseWriter, r *http.Request) {
 	}
 	model.Config = utils.Must(json.Marshal(config))
 
-	model.WorkspaceId = ucontext.GetWorkspaceID(r.Context())
 	err := api.DB.PluginsWS.Insert(r.Context(), &model)
 	api.assert(err)
 

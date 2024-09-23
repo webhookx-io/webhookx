@@ -33,7 +33,7 @@ func (api *API) GetAttempt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if attempt.Delivered() {
+	if attempt.AttemptedAt != nil {
 		attemptDetail, err := api.DB.AttemptDetailsWS.Get(r.Context(), attempt.ID)
 		api.assert(err)
 		attempt.Extend(attemptDetail)

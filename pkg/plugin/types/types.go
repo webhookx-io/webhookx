@@ -10,7 +10,6 @@ type PluginConfig interface {
 type Plugin interface {
 	Execute(req *Request, context *Context)
 	Config() PluginConfig
-	GetName() string
 }
 
 type Request struct {

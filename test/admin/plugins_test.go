@@ -195,6 +195,97 @@ var _ = Describe("/plugins", Ordered, func() {
 				})
 			})
 		})
+
+		Context("PUT", func() {
+			var endpoint *entities.Endpoint
+			var plugin *entities.Plugin
+			BeforeAll(func() {
+				endpoint = &entities.Endpoint{
+					ID:      utils.KSUID(),
+					Enabled: true,
+					Request: entities.RequestConfig{
+						URL:    "https://example.com",
+						Method: "POST",
+					},
+				}
+				endpoint.WorkspaceId = ws.ID
+				assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
+
+				plugin = &entities.Plugin{
+					ID:         utils.KSUID(),
+					Name:       "webhookx-signature",
+					Enabled:    true,
+					Config:     json.RawMessage("{}"),
+					EndpointId: endpoint.ID,
+				}
+				plugin.WorkspaceId = ws.ID
+				assert.Nil(GinkgoT(), db.Plugins.Insert(context.TODO(), plugin))
+			})
+
+			It("updates by id", func() {
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"config": map[string]interface{}{
+							"key": "foo",
+						},
+						"enabled": false,
+					}).
+					SetResult(entities.Plugin{}).
+					Put("/workspaces/default/plugins/" + plugin.ID)
+
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 200, resp.StatusCode())
+				result := resp.Result().(*entities.Plugin)
+
+				assert.Equal(GinkgoT(), plugin.ID, result.ID)
+				assert.Equal(GinkgoT(), endpoint.ID, result.EndpointId)
+				assert.Equal(GinkgoT(), "webhookx-signature", result.Name)
+				assert.Equal(GinkgoT(), false, result.Enabled)
+			})
+		})
+
+		Context("DELETE", func() {
+			var entity *entities.Plugin
+			BeforeAll(func() {
+				endpoint := &entities.Endpoint{
+					ID:      utils.KSUID(),
+					Enabled: true,
+					Request: entities.RequestConfig{
+						URL:    "https://example.com",
+						Method: "POST",
+					},
+				}
+				endpoint.WorkspaceId = ws.ID
+				assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
+
+				entity = &entities.Plugin{
+					ID:         utils.KSUID(),
+					Name:       "webhookx-signature",
+					Enabled:    true,
+					Config:     json.RawMessage("{}"),
+					EndpointId: endpoint.ID,
+				}
+				entity.WorkspaceId = ws.ID
+				assert.Nil(GinkgoT(), db.Plugins.Insert(context.TODO(), entity))
+			})
+
+			It("deletes by id", func() {
+				resp, err := adminClient.R().Delete("/workspaces/default/plugins/" + entity.ID)
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 204, resp.StatusCode())
+				e, err := db.Plugins.Get(context.TODO(), entity.ID)
+				assert.Nil(GinkgoT(), err)
+				assert.Nil(GinkgoT(), e)
+			})
+
+			Context("errors", func() {
+				It("return HTTP 204", func() {
+					resp, err := adminClient.R().Delete("/workspaces/default/plugins/notfound")
+					assert.Nil(GinkgoT(), err)
+					assert.Equal(GinkgoT(), 204, resp.StatusCode())
+				})
+			})
+		})
 	})
 
 })

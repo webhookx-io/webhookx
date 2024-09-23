@@ -369,7 +369,6 @@ paths:
         '200':
           description: OK
 
-
   /workspaces/{ws_id}/sources:
     parameters:
       - $ref: '#/components/parameters/workspace_id'
@@ -469,6 +468,104 @@ paths:
         '204':
           description: Deleted
 
+  /workspaces/{ws_id}/plugins:
+    parameters:
+      - $ref: '#/components/parameters/workspace_id'
+
+    get:
+      parameters:
+        - $ref: '#/components/parameters/page_no'
+        - $ref: '#/components/parameters/page_size'
+      summary: Page plugins
+      tags:
+        - Plugin
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Pagination"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Plugin"
+    post:
+      summary: Create a plugin
+      tags:
+        - Plugin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Plugin'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plugin'
+
+  /workspaces/{ws_id}/plugins/{id}:
+    parameters:
+      - $ref: '#/components/parameters/workspace_id'
+
+    get:
+      summary: Retrieve a plugin
+      tags:
+        - Plugin
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plugin'
+    put:
+      summary: Update a plugin
+      tags:
+        - Plugin
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Plugin'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plugin'
+    delete:
+      summary: Delete a plugin
+      tags:
+        - Plugin
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted
 
 components:
   parameters:
@@ -686,3 +783,27 @@ components:
       required:
         - path
         - methods
+
+    Plugin:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        enabled:
+          type: boolean
+        endpoint_id:
+          type: string
+        config:
+          type: object
+          properties:
+            key:
+              type: string
+        created_at:
+          type: integer
+        updated_at:
+          type: integer
+      required:
+        - name
+        - endpoint_id

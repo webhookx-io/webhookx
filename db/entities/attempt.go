@@ -39,10 +39,6 @@ func (m *Attempt) Extend(detail *AttemptDetail) {
 	}
 }
 
-func (m *Attempt) Delivered() bool {
-	return m.Status == AttemptStatusSuccess || m.Status == AttemptStatusFailure
-}
-
 type AttemptStatus = string
 
 const (

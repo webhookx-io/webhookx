@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
-	"strconv"
 )
 
 var _ = Describe("delivery", Ordered, func() {
@@ -78,12 +78,6 @@ var _ = Describe("delivery", Ordered, func() {
 
 			assert.True(GinkgoT(), attempt.Response.Latency > 0)
 			assert.Equal(GinkgoT(), entitiesConfig.Endpoints[0].ID, attempt.EndpointId)
-			signature := attempt.Request.Headers["Webhookx-Signature"]
-			timestamp := attempt.Request.Headers["Webhookx-Timestamp"]
-			delete(attempt.Request.Headers, "Webhookx-Signature")
-			delete(attempt.Request.Headers, "Webhookx-Timestamp")
-			assert.Regexp(GinkgoT(), "v1=[0-9a-f]{64}", signature)
-			assert.True(GinkgoT(), utils.Must(strconv.ParseInt(timestamp, 10, 0)) >= attempt.AttemptedAt.Unix())
 			assert.Equal(GinkgoT(), &entities.AttemptRequest{
 				Method: "POST",
 				URL:    "http://localhost:9999/anything",
@@ -118,6 +112,13 @@ var _ = Describe("delivery", Ordered, func() {
 			assert.Equal(GinkgoT(), 200, attempt.Response.Status)
 			assert.NotNil(GinkgoT(), attempt.Response.Headers)
 			assert.NotNil(GinkgoT(), attempt.Response.Body)
+
+			signature := attempt.Request.Headers["Webhookx-Signature"]
+			timestamp := attempt.Request.Headers["Webhookx-Timestamp"]
+			delete(attempt.Request.Headers, "Webhookx-Signature")
+			delete(attempt.Request.Headers, "Webhookx-Timestamp")
+			assert.Regexp(GinkgoT(), "v1=[0-9a-f]{64}", signature)
+			assert.True(GinkgoT(), utils.Must(strconv.ParseInt(timestamp, 10, 0)) >= attempt.AttemptedAt.Unix())
 		})
 	})
 

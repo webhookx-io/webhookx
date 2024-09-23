@@ -27,7 +27,3 @@ type Context struct {
 type BasePlugin struct {
 	Name string
 }
-
-func (p *BasePlugin) GetName() string {
-	return p.Name
-}

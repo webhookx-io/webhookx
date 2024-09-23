@@ -3,6 +3,9 @@ package helper
 import (
 	"bufio"
 	"context"
+	"os"
+	"time"
+
 	"github.com/creasty/defaults"
 	"github.com/go-resty/resty/v2"
 	"github.com/webhookx-io/webhookx/app"
@@ -11,8 +14,6 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/migrator"
 	"github.com/webhookx-io/webhookx/utils"
-	"os"
-	"time"
 )
 
 var cfg *config.Config
@@ -96,10 +97,11 @@ func DB() *db.DB {
 }
 
 type EntitiesConfig struct {
-	Endpoints []*entities.Endpoint
-	Sources   []*entities.Source
-	Events    []*entities.Event
-	Attempts  []*entities.Attempt
+	Endpoints      []*entities.Endpoint
+	Sources        []*entities.Source
+	Events         []*entities.Event
+	Attempts       []*entities.Attempt
+	AttemptDetails []*entities.AttemptDetail
 }
 
 func InitDB(truncated bool, entities *EntitiesConfig) *db.DB {
@@ -151,6 +153,14 @@ func InitDB(truncated bool, entities *EntitiesConfig) *db.DB {
 	for _, e := range entities.Attempts {
 		e.WorkspaceId = ws.ID
 		err = db.Attempts.Insert(context.TODO(), e)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	for _, e := range entities.AttemptDetails {
+		e.WorkspaceId = ws.ID
+		err = db.AttemptDetails.Insert(context.TODO(), e)
 		if err != nil {
 			panic(err)
 		}

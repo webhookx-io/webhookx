@@ -3,6 +3,8 @@ package worker
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/dao"
@@ -15,7 +17,6 @@ import (
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.uber.org/zap"
-	"time"
 )
 
 type Worker struct {
@@ -204,6 +205,23 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		return err
 	}
 
+	attemptDetail := &entities.AttemptDetail{
+		ID:             task.ID,
+		RequestHeaders: utils.HeaderMap(request.Request.Header),
+		RequestBody:    utils.Pointer(string(request.Payload)),
+	}
+	if len(response.Header) > 0 {
+		attemptDetail.ResponseHeaders = utils.HeaderMap(response.Header)
+	}
+	if response.ResponseBody != nil {
+		attemptDetail.ResponseBody = utils.Pointer(string(response.ResponseBody))
+	}
+	attemptDetail.WorkspaceId = endpoint.WorkspaceId
+	err = w.DB.AttemptDetails.Upsert(ctx, attemptDetail)
+	if err != nil {
+		return err
+	}
+
 	if result.Status == entities.AttemptStatusSuccess {
 		return nil
 	}
@@ -253,10 +271,8 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 func buildAttemptResult(request *deliverer.Request, response *deliverer.Response) *dao.AttemptResult {
 	result := &dao.AttemptResult{
 		Request: &entities.AttemptRequest{
-			URL:     request.URL,
-			Method:  request.Method,
-			Headers: utils.HeaderMap(request.Request.Header),
-			Body:    utils.Pointer(string(request.Payload)),
+			URL:    request.URL,
+			Method: request.Method,
 		},
 		Status: entities.AttemptStatusSuccess,
 	}
@@ -277,8 +293,6 @@ func buildAttemptResult(request *deliverer.Request, response *deliverer.Response
 		result.Response = &entities.AttemptResponse{
 			Status:  response.StatusCode,
 			Latency: response.Latancy.Milliseconds(),
-			Headers: utils.HeaderMap(response.Header),
-			Body:    utils.Pointer(string(response.ResponseBody)),
 		}
 	}
 

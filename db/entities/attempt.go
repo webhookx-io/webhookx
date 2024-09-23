@@ -3,6 +3,7 @@ package entities
 import (
 	"database/sql/driver"
 	"encoding/json"
+
 	"github.com/webhookx-io/webhookx/pkg/types"
 )
 
@@ -22,6 +23,24 @@ type Attempt struct {
 	Response  *AttemptResponse  `json:"response" db:"response"`
 
 	BaseModel
+}
+
+func (m *Attempt) Extend(detail *AttemptDetail) {
+	if detail == nil {
+		return
+	}
+	if m.Request != nil {
+		m.Request.Headers = detail.RequestHeaders
+		m.Request.Body = detail.RequestBody
+	}
+	if m.Response != nil {
+		m.Response.Headers = detail.ResponseHeaders
+		m.Response.Body = detail.ResponseBody
+	}
+}
+
+func (m *Attempt) Delivered() bool {
+	return m.Status == AttemptStatusSuccess || m.Status == AttemptStatusFailure
 }
 
 type AttemptStatus = string

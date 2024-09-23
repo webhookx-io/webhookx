@@ -2,6 +2,9 @@ package delivery
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -13,12 +16,9 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
-	"testing"
-	"time"
 )
 
 var _ = Describe("delivery", Ordered, func() {
-
 	Context("sanity", func() {
 		var proxyClient *resty.Client
 
@@ -68,8 +68,26 @@ var _ = Describe("delivery", Ordered, func() {
 				return attempt.Status == entities.AttemptStatusSuccess
 			}, time.Second*15, time.Second)
 
+			assert.True(GinkgoT(), attempt.Response.Latency > 0)
 			assert.Equal(GinkgoT(), entitiesConfig.Endpoints[0].ID, attempt.EndpointId)
 			assert.Equal(GinkgoT(), &entities.AttemptRequest{
+				Method: "POST",
+				URL:    "http://localhost:9999/anything",
+			}, attempt.Request)
+			assert.Equal(GinkgoT(), 200, attempt.Response.Status)
+			assert.Nil(GinkgoT(), attempt.Response.Headers)
+			assert.Nil(GinkgoT(), attempt.Response.Body)
+
+			var attemptDetail *entities.AttemptDetail
+			assert.Eventually(GinkgoT(), func() bool {
+				val, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
+				if err != nil || val == nil {
+					return false
+				}
+				attemptDetail = val
+				return true
+			}, time.Second*5, time.Second)
+			attemptRequest := &entities.AttemptRequest{
 				Method: "POST",
 				URL:    "http://localhost:9999/anything",
 				Headers: map[string]string{
@@ -77,9 +95,15 @@ var _ = Describe("delivery", Ordered, func() {
 					"User-Agent":   "WebhookX/" + config.VERSION,
 				},
 				Body: utils.Pointer(`{"key": "value"}`),
-			}, attempt.Request)
+			}
+			assert.EqualValues(GinkgoT(), attemptRequest.Headers, attemptDetail.RequestHeaders)
+			assert.Equal(GinkgoT(), attemptRequest.Body, attemptDetail.RequestBody)
+
+			attempt.Extend(attemptDetail)
+			assert.Equal(GinkgoT(), attemptRequest, attempt.Request)
 			assert.Equal(GinkgoT(), 200, attempt.Response.Status)
-			assert.True(GinkgoT(), attempt.Response.Latency > 0)
+			assert.NotNil(GinkgoT(), attempt.Response.Headers)
+			assert.NotNil(GinkgoT(), attempt.Response.Body)
 		})
 	})
 
@@ -133,12 +157,18 @@ var _ = Describe("delivery", Ordered, func() {
 				assert.Equal(GinkgoT(), "TIMEOUT", *e.ErrorCode)
 				assert.Equal(GinkgoT(), "FAILED", e.Status)
 				assert.Equal(GinkgoT(), i+1, e.AttemptNumber)
+
 				assert.Equal(GinkgoT(), i+1 == len(attempts), e.Exhausted) // exhausted should be true when it's the last attempt
 				if i == 0 {
 					assert.Equal(GinkgoT(), entities.AttemptTriggerModeInitial, e.TriggerMode)
 				} else {
 					assert.Equal(GinkgoT(), entities.AttemptTriggerModeAutomatic, e.TriggerMode)
 				}
+				assert.Nil(GinkgoT(), e.Response)
+
+				attemptDetail, err := db.AttemptDetails.Get(context.TODO(), e.ID)
+				assert.NoError(GinkgoT(), err)
+				e.Extend(attemptDetail)
 				assert.Nil(GinkgoT(), e.Response)
 			}
 		})
@@ -199,9 +229,16 @@ var _ = Describe("delivery", Ordered, func() {
 			assert.Equal(GinkgoT(), "ENDPOINT_DISABLED", *attempt.ErrorCode)
 			assert.Equal(GinkgoT(), "CANCELED", attempt.Status)
 			assert.Equal(GinkgoT(), 1, attempt.AttemptNumber)
+			assert.Nil(GinkgoT(), attempt.Request)
 			assert.Nil(GinkgoT(), attempt.Response)
+
+			attemptDetail, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
+			assert.NoError(GinkgoT(), err)
+			// Disable endpoint will not create request
+			assert.Nil(GinkgoT(), attemptDetail)
 		})
 	})
+
 })
 
 func TestProxy(t *testing.T) {

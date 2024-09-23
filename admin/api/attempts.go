@@ -1,9 +1,10 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/utils"
-	"net/http"
 )
 
 func (api *API) PageAttempt(w http.ResponseWriter, r *http.Request) {
@@ -30,6 +31,12 @@ func (api *API) GetAttempt(w http.ResponseWriter, r *http.Request) {
 	if attempt == nil {
 		api.json(404, w, ErrorResponse{Message: MsgNotFound})
 		return
+	}
+
+	if attempt.Delivered() {
+		attemptDetail, err := api.DB.AttemptDetailsWS.Get(r.Context(), attempt.ID)
+		api.assert(err)
+		attempt.Extend(attemptDetail)
 	}
 
 	api.json(200, w, attempt)

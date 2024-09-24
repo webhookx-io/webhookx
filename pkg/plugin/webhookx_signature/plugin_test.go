@@ -10,7 +10,7 @@ import (
 func TestExecute(t *testing.T) {
 	plugin := New()
 	plugin.(*SignaturePlugin).ts = time.Unix(1726285679, 0)
-	plugin.(*SignaturePlugin).cfg.Key = "QGvaZ0uPwA9nYi7jr31JtZn1EKK4pJpK"
+	plugin.(*SignaturePlugin).cfg.SigningSecret = "QGvaZ0uPwA9nYi7jr31JtZn1EKK4pJpK"
 
 	pluginReq := &types.Request{
 		URL:     "https://example.com",

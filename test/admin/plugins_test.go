@@ -116,7 +116,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			assert.Equal(GinkgoT(), true, result.Enabled)
 			data := make(map[string]string)
 			json.Unmarshal(result.Config, &data)
-			assert.Equal(GinkgoT(), 32, len(data["key"]))
+			assert.Equal(GinkgoT(), 32, len(data["signing_secret"]))
 
 			e, err := db.Plugins.Get(context.TODO(), result.ID)
 			assert.Nil(GinkgoT(), err)
@@ -129,7 +129,7 @@ var _ = Describe("/plugins", Ordered, func() {
 					"name":        "webhookx-signature",
 					"endpoint_id": endpoint.ID,
 					"config": map[string]string{
-						"key": "abcde",
+						"signing_secret": "abcde",
 					},
 				}).
 				SetResult(entities.Plugin{}).
@@ -145,7 +145,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			assert.Equal(GinkgoT(), true, result.Enabled)
 			data := make(map[string]string)
 			json.Unmarshal(result.Config, &data)
-			assert.Equal(GinkgoT(), "abcde", data["key"])
+			assert.Equal(GinkgoT(), "abcde", data["signing_secret"])
 
 			e, err := db.Plugins.Get(context.TODO(), result.ID)
 			assert.Nil(GinkgoT(), err)
@@ -165,7 +165,7 @@ var _ = Describe("/plugins", Ordered, func() {
 					EndpointId: entitiesConfig.Endpoints[0].ID,
 					Name:       "webhookx-signature",
 					Enabled:    true,
-					Config:     json.RawMessage(`{"key":"abcde"}`),
+					Config:     json.RawMessage(`{"signing_secret":"abcde"}`),
 				}
 				entitiesConfig.Plugins = []*entities.Plugin{entity}
 
@@ -183,7 +183,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Equal(GinkgoT(), entity.EndpointId, result.EndpointId)
 				assert.Equal(GinkgoT(), entity.Name, result.Name)
 				assert.Equal(GinkgoT(), entity.Enabled, result.Enabled)
-				assert.Equal(GinkgoT(), `{"key": "abcde"}`, string(entity.Config))
+				assert.Equal(GinkgoT(), `{"signing_secret": "abcde"}`, string(entity.Config))
 			})
 
 			Context("errors", func() {
@@ -226,7 +226,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
 						"config": map[string]interface{}{
-							"key": "foo",
+							"signing_secret": "foo",
 						},
 						"enabled": false,
 					}).

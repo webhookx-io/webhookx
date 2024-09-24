@@ -11,7 +11,7 @@ import (
 )
 
 type Config struct {
-	Key string `json:"key" validate:"required"`
+	SigningSecret string `json:"signing_secret" validate:"required"`
 }
 
 func (cfg *Config) Validate() error {
@@ -19,8 +19,8 @@ func (cfg *Config) Validate() error {
 }
 
 func (cfg *Config) ProcessDefault() {
-	if cfg.Key == "" {
-		cfg.Key = utils.RandomString(32)
+	if cfg.SigningSecret == "" {
+		cfg.SigningSecret = utils.RandomString(32)
 	}
 }
 
@@ -51,7 +51,7 @@ func (p *SignaturePlugin) Execute(req *types.Request, context *types.Context) {
 	if ts.IsZero() {
 		ts = time.Now()
 	}
-	signature := computeSignature(ts, req.Payload, p.cfg.Key)
+	signature := computeSignature(ts, req.Payload, p.cfg.SigningSecret)
 	req.Headers["webhookx-signature"] = "v1=" + hex.EncodeToString(signature)
 	req.Headers["webhookx-timestamp"] = strconv.FormatInt(ts.Unix(), 10)
 }

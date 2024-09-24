@@ -46,3 +46,8 @@ type AttemptDetailDAO interface {
 	BaseDAO[entities.AttemptDetail]
 	Upsert(ctx context.Context, attemptDetail *entities.AttemptDetail) error
 }
+
+type PluginDAO interface {
+	BaseDAO[entities.Plugin]
+	ListEndpointPlugin(ctx context.Context, endpointId string) (list []*entities.Plugin, err error)
+}

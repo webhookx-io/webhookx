@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -29,6 +30,13 @@ var _ = Describe("delivery", Ordered, func() {
 			Endpoints: []*entities.Endpoint{helper.DefaultEndpoint()},
 			Sources:   []*entities.Source{helper.DefaultSource()},
 		}
+		entitiesConfig.Plugins = []*entities.Plugin{{
+			ID:         utils.KSUID(),
+			EndpointId: entitiesConfig.Endpoints[0].ID,
+			Name:       "webhookx-signature",
+			Enabled:    true,
+			Config:     []byte(`{"key":"abcdefg"}`),
+		}}
 
 		BeforeAll(func() {
 			db = helper.InitDB(true, &entitiesConfig)
@@ -68,12 +76,16 @@ var _ = Describe("delivery", Ordered, func() {
 				return attempt.Status == entities.AttemptStatusSuccess
 			}, time.Second*15, time.Second)
 
-			assert.True(GinkgoT(), attempt.Response.Latency > 0)
 			assert.Equal(GinkgoT(), entitiesConfig.Endpoints[0].ID, attempt.EndpointId)
-			assert.Equal(GinkgoT(), &entities.AttemptRequest{
-				Method: "POST",
-				URL:    "http://localhost:9999/anything",
-			}, attempt.Request)
+
+			// attempt.request
+			assert.Equal(GinkgoT(), "POST", attempt.Request.Method)
+			assert.Equal(GinkgoT(), "http://localhost:9999/anything", attempt.Request.URL)
+			assert.Nil(GinkgoT(), attempt.Request.Headers)
+			assert.Nil(GinkgoT(), attempt.Request.Body)
+
+			// attempt.resposne
+			assert.True(GinkgoT(), attempt.Response.Latency > 0)
 			assert.Equal(GinkgoT(), 200, attempt.Response.Status)
 			assert.Nil(GinkgoT(), attempt.Response.Headers)
 			assert.Nil(GinkgoT(), attempt.Response.Body)
@@ -87,21 +99,17 @@ var _ = Describe("delivery", Ordered, func() {
 				attemptDetail = val
 				return true
 			}, time.Second*5, time.Second)
-			attemptRequest := &entities.AttemptRequest{
-				Method: "POST",
-				URL:    "http://localhost:9999/anything",
-				Headers: map[string]string{
-					"Content-Type": "application/json; charset=utf-8",
-					"User-Agent":   "WebhookX/" + config.VERSION,
-				},
-				Body: utils.Pointer(`{"key": "value"}`),
-			}
-			assert.EqualValues(GinkgoT(), attemptRequest.Headers, attemptDetail.RequestHeaders)
-			assert.Equal(GinkgoT(), attemptRequest.Body, attemptDetail.RequestBody)
 
+			// attemptDetail.request
+			assert.Equal(GinkgoT(), "application/json; charset=utf-8", attemptDetail.RequestHeaders["Content-Type"])
+			assert.Equal(GinkgoT(), "WebhookX/"+config.VERSION, attemptDetail.RequestHeaders["User-Agent"])
+			assert.Regexp(GinkgoT(), "v1=[0-9a-f]{64}", attemptDetail.RequestHeaders["Webhookx-Signature"])
+			timestamp := attemptDetail.RequestHeaders["Webhookx-Timestamp"]
+			assert.True(GinkgoT(), utils.Must(strconv.ParseInt(timestamp, 10, 0)) >= attempt.AttemptedAt.Unix())
+			assert.Equal(GinkgoT(), `{"key": "value"}`, *attemptDetail.RequestBody)
+
+			// attemptDetail.response
 			attempt.Extend(attemptDetail)
-			assert.Equal(GinkgoT(), attemptRequest, attempt.Request)
-			assert.Equal(GinkgoT(), 200, attempt.Response.Status)
 			assert.NotNil(GinkgoT(), attempt.Response.Headers)
 			assert.NotNil(GinkgoT(), attempt.Response.Body)
 		})

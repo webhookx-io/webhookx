@@ -10,6 +10,8 @@ import (
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/model"
+	"github.com/webhookx-io/webhookx/pkg/plugin"
+	plugintypes "github.com/webhookx-io/webhookx/pkg/plugin/types"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/safe"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
@@ -178,11 +180,41 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		return w.DB.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeUnknown)
 	}
 
-	request := &deliverer.Request{
+	plugins, err := w.DB.Plugins.ListEndpointPlugin(ctx, endpoint.ID)
+	if err != nil {
+		return err
+	}
+
+	workspace, err := w.DB.Workspaces.Get(ctx, endpoint.WorkspaceId)
+	if err != nil {
+		return err
+	}
+
+	pluginReq := plugintypes.Request{
 		URL:     endpoint.Request.URL,
 		Method:  endpoint.Request.Method,
-		Payload: event.Data,
 		Headers: endpoint.Request.Headers,
+		Payload: event.Data,
+	}
+	if pluginReq.Headers == nil {
+		pluginReq.Headers = make(map[string]string)
+	}
+	pluginCtx := &plugintypes.Context{
+		Workspace: workspace,
+	}
+	for _, p := range plugins {
+		err = plugin.ExecutePlugin(p, &pluginReq, pluginCtx)
+		if err != nil {
+			return err
+		}
+	}
+
+	request := &deliverer.Request{
+		Request: nil,
+		URL:     pluginReq.URL,
+		Method:  pluginReq.Method,
+		Payload: pluginReq.Payload,
+		Headers: pluginReq.Headers,
 		Timeout: time.Duration(endpoint.Request.Timeout) * time.Millisecond,
 	}
 

@@ -14,7 +14,7 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 - **Multi-tenancy:** Multi-tenancy is supported with workspaces. Workspaces provide an isolation of configuration entites.
 - **Plugins:**
   - `webhookx-signature`: signing outbound requests with HMAC(SHA-256) by adding `Webhookx-Signature` and `Webhookx-Timestamp` to request header.
-
+  - `transformer`(WIP): transform request before sending outbound requests.
 
 
 

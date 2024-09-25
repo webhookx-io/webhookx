@@ -14,7 +14,7 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 - **Multi-tenancy:** Multi-tenancy is supported with workspaces. Workspaces provide an isolation of configuration entites.
 - **Plugins:**
   - `webhookx-signature`: signing outbound requests with HMAC(SHA-256) by adding `Webhookx-Signature` and `Webhookx-Timestamp` to request header.
-
+  - `transformer`(WIP): transform request before sending outbound requests.
 
 
 
@@ -44,7 +44,9 @@ $ curl http://localhost:8080
 
 ## Getting started
 
-#### 1. Create an endpoint
+#### 1. Create an endpoint that subscribes to specific events
+
+> **Endpoint** represents the event's destination.
 
 ```
 $ curl -X POST http://localhost:8080/workspaces/default/endpoints \
@@ -63,7 +65,9 @@ $ curl -X POST http://localhost:8080/workspaces/default/endpoints \
   }'
 ```
 
-#### 2. Create a source
+#### 2. Create a source that is used on the Proxy for receiving events
+
+> **Source** represents the ingress of events
 
 ```
 $ curl -X POST http://localhost:8080/workspaces/default/sources \
@@ -75,7 +79,7 @@ $ curl -X POST http://localhost:8080/workspaces/default/sources \
   }'
 ```
 
-#### 3. Send an event to proxy
+#### 3. Send an event to the Proxy (port 8081)
 
 ```
 $ curl -X POST http://localhost:8081 \
@@ -88,7 +92,9 @@ $ curl -X POST http://localhost:8081 \
 }'
 ```
 
-#### 4. Retrieve delivery attempt
+#### 4. Retrieve delivery attempts
+
+> Attempt represents an event delivery attempt, and contains inspection information of a delivery. 
 
 ```
 $ curl http://localhost:8080/workspaces/default/attempts
@@ -102,38 +108,30 @@ $ curl http://localhost:8080/workspaces/default/attempts
   "total": 1,
   "data": [
     {
-      "id": "2lbkquwRPXEs6WFJqb8gPoiumgS",
-      "event_id": "2lbkqvg8QBjyYuHO1V8f8TThLpv",
-      "endpoint_id": "2lbkpcHXI7hpDoP22CP0fZ85zJY",
+      "id": "2mYwlR8U5FS6VfK3AHLrYZL75MD",
+      "event_id": "2mYwlQZgpNSHTuDr9ApNgvL95x3",
+      "endpoint_id": "2mYwjjwRGCwDhtdTtOrVQYETzVt",
       "status": "SUCCESSFUL",
       "attempt_number": 1,
-      "scheduled_at": 1725456357071,
-      "attempted_at": 1725456357583,
+      "scheduled_at": 1727266967962,
+      "attempted_at": 1727266968826,
+      "trigger_mode": "INITIAL",
+      "exhausted": false,
       "error_code": null,
       "request": {
         "method": "POST",
         "url": "https://httpbin.org/anything",
-        "headers": {
-          "Api-Key": "secret",
-          "Content-Type": "application/json; charset=utf-8",
-          "User-Agent": "WebhookX/"
-        },
-        "body": "{\"key\": \"value\"}"
+        "headers": null,
+        "body": null
       },
       "response": {
         "status": 200,
-        "headers": {
-          "Access-Control-Allow-Credentials": "true",
-          "Access-Control-Allow-Origin": "*",
-          "Content-Length": "503",
-          "Content-Type": "application/json",
-          "Date": "Wed, 04 Sep 2024 13:26:02 GMT",
-          "Server": "gunicorn/19.9.0"
-        },
-        "body": "{\n  \"args\": {}, \n  \"data\": \"{\\\"key\\\": \\\"value\\\"}\", \n  \"files\": {}, \n  \"form\": {}, \n  \"headers\": {\n    \"Accept-Encoding\": \"gzip\", \n    \"Api-Key\": \"secret\", \n    \"Content-Length\": \"16\", \n    \"Content-Type\": \"application/json; charset=utf-8\", \n    \"Host\": \"httpbin.org\", \n    \"User-Agent\": \"WebhookX/\", \n    \"X-Amzn-Trace-Id\": \"Root=1-66d85fe7-618479242937ff9d43b29e47\"\n  }, \n  \"json\": {\n    \"key\": \"value\"\n  }, \n  \"method\": \"POST\", \n  \"origin\": \"155.254.60.32\", \n  \"url\": \"https://httpbin.org/anything\"\n}\n"
+        "latency": 8573,
+        "headers": null,
+        "body": null
       },
-      "created_at": 1725456357071,
-      "updated_at": 1725456357071
+      "created_at": 1727238167962,
+      "updated_at": 1727238167962
     }
   ]
 }

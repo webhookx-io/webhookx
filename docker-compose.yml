@@ -4,6 +4,9 @@ services:
     container_name: webhookx-migration
     environment:
       WEBHOOKX_DATABASE_HOST: webhookx-database
+      WEBHOOKX_DATABASE_USERNAME: webhookx
+      WEBHOOKX_DATABASE_DATABASE: webhookx
+      WEBHOOKX_DATABASE_PORT: 5432
     command: webhookx migrations up
     depends_on:
       webhookx-database:
@@ -14,7 +17,11 @@ services:
     container_name: webhookx
     environment:
       WEBHOOKX_DATABASE_HOST: webhookx-database
+      WEBHOOKX_DATABASE_USERNAME: webhookx
+      WEBHOOKX_DATABASE_DATABASE: webhookx
+      WEBHOOKX_DATABASE_PORT: 5432
       WEBHOOKX_REDIS_HOST: redis
+      WEBHOOKX_REDIS_PORT: 6379
       WEBHOOKX_ADMIN_LISTEN: 0.0.0.0:8080
       WEBHOOKX_WORKER_ENABLED: true
       WEBHOOKX_PROXY_LISTEN: 0.0.0.0:8081

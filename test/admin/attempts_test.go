@@ -211,9 +211,10 @@ var _ = Describe("/attempts", Ordered, func() {
 						"Content-Type": "application/json",
 					},
 					RequestBody: utils.Pointer(`{"key": "value"}`),
-					ResponseHeaders: map[string]string{
+					ResponseHeaders: &entities.Headers{
 						"Content-Type": "application/json",
 					},
+					ResponseBody: utils.Pointer("the response body"),
 				}
 				entitiesConfig.AttemptDetails = []*entities.AttemptDetail{detail}
 
@@ -237,7 +238,7 @@ var _ = Describe("/attempts", Ordered, func() {
 
 				assert.EqualValues(GinkgoT(), detail.RequestHeaders, result.Request.Headers)
 				assert.EqualValues(GinkgoT(), detail.RequestBody, result.Request.Body)
-				assert.EqualValues(GinkgoT(), detail.ResponseHeaders, result.Response.Headers)
+				assert.EqualValues(GinkgoT(), detail.ResponseHeaders, &result.Response.Headers)
 				assert.EqualValues(GinkgoT(), detail.ResponseBody, result.Response.Body)
 				assert.EqualValues(GinkgoT(), 200, result.Response.Status)
 			})

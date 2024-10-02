@@ -25,20 +25,6 @@ type Attempt struct {
 	BaseModel
 }
 
-func (m *Attempt) Extend(detail *AttemptDetail) {
-	if detail == nil {
-		return
-	}
-	if m.Request != nil {
-		m.Request.Headers = detail.RequestHeaders
-		m.Request.Body = detail.RequestBody
-	}
-	if m.Response != nil {
-		m.Response.Headers = detail.ResponseHeaders
-		m.Response.Body = detail.ResponseBody
-	}
-}
-
 type AttemptStatus = string
 
 const (
@@ -67,10 +53,10 @@ const (
 )
 
 type AttemptRequest struct {
-	Method  string            `json:"method"`
-	URL     string            `json:"url"`
-	Headers map[string]string `json:"headers"`
-	Body    *string           `json:"body"`
+	Method  string  `json:"method"`
+	URL     string  `json:"url"`
+	Headers Headers `json:"headers"`
+	Body    *string `json:"body"`
 }
 
 func (m *AttemptRequest) Scan(src interface{}) error {
@@ -82,10 +68,10 @@ func (m AttemptRequest) Value() (driver.Value, error) {
 }
 
 type AttemptResponse struct {
-	Status  int               `json:"status"`
-	Latency int64             `json:"latency"`
-	Headers map[string]string `json:"headers"`
-	Body    *string           `json:"body"`
+	Status  int     `json:"status"`
+	Latency int64   `json:"latency"`
+	Headers Headers `json:"headers"`
+	Body    *string `json:"body"`
 }
 
 func (m *AttemptResponse) Scan(src interface{}) error {

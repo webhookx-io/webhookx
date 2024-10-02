@@ -19,17 +19,21 @@ func NewAttemptDetailDao(db *sqlx.DB, workspace bool) AttemptDetailDAO {
 }
 
 func (dao *attemptDetailDao) Upsert(ctx context.Context, attemptDetail *entities.AttemptDetail) error {
-	values := []interface{}{attemptDetail.ID, attemptDetail.RequestHeaders, attemptDetail.RequestBody, attemptDetail.ResponseHeaders, attemptDetail.ResponseBody, time.Now(), attemptDetail.WorkspaceId}
+	now := time.Now()
+	values := []interface{}{attemptDetail.ID, attemptDetail.RequestHeaders, attemptDetail.RequestBody, attemptDetail.ResponseHeaders, attemptDetail.ResponseBody, now, now, attemptDetail.WorkspaceId}
 
-	sql := `INSERT INTO attempt_details (id, request_headers, request_body, response_headers, response_body, updated_at, ws_id) VALUES ($1, $2, $3, $4, $5, $6, $7) 
+	sql := `INSERT INTO attempt_details (id, request_headers, request_body, response_headers, response_body, created_at, updated_at, ws_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
 		ON CONFLICT (id) DO UPDATE SET 
 		request_headers = EXCLUDED.request_headers, 
 		request_body = EXCLUDED.request_body, 
 		response_headers = EXCLUDED.response_headers, 
 		response_body = EXCLUDED.response_body, 
-		updated_at = EXCLUDED.updated_at 
-		RETURNING *`
+		updated_at = EXCLUDED.updated_at`
 
-	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, sql, values...).StructScan(attemptDetail)
+	result, err := dao.DB(ctx).ExecContext(ctx, sql, values...)
+	if err != nil {
+		return err
+	}
+	_, err = result.RowsAffected()
 	return err
 }

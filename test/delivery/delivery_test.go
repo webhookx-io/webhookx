@@ -107,11 +107,6 @@ var _ = Describe("delivery", Ordered, func() {
 			timestamp := attemptDetail.RequestHeaders["Webhookx-Timestamp"]
 			assert.True(GinkgoT(), utils.Must(strconv.ParseInt(timestamp, 10, 0)) >= attempt.AttemptedAt.Unix())
 			assert.Equal(GinkgoT(), `{"key": "value"}`, *attemptDetail.RequestBody)
-
-			// attemptDetail.response
-			attempt.Extend(attemptDetail)
-			assert.NotNil(GinkgoT(), attempt.Response.Headers)
-			assert.NotNil(GinkgoT(), attempt.Response.Body)
 		})
 	})
 
@@ -176,8 +171,8 @@ var _ = Describe("delivery", Ordered, func() {
 
 				attemptDetail, err := db.AttemptDetails.Get(context.TODO(), e.ID)
 				assert.NoError(GinkgoT(), err)
-				e.Extend(attemptDetail)
-				assert.Nil(GinkgoT(), e.Response)
+				assert.Nil(GinkgoT(), attemptDetail.ResponseHeaders)
+				assert.Nil(GinkgoT(), attemptDetail.ResponseBody)
 			}
 		})
 	})

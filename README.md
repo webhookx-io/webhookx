@@ -4,7 +4,6 @@
 
 WebhookX is an open-source webhooks gateway for message receiving, processing, and delivering.
 
-
 ## Features
 
 - **Admin API:** The admin API(:8080) provides a RESTful API for webhooks entities management.

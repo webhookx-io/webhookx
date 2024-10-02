@@ -214,6 +214,7 @@ var _ = Describe("/attempts", Ordered, func() {
 					ResponseHeaders: &entities.Headers{
 						"Content-Type": "application/json",
 					},
+					ResponseBody: utils.Pointer("the response body"),
 				}
 				entitiesConfig.AttemptDetails = []*entities.AttemptDetail{detail}
 

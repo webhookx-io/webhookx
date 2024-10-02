@@ -34,9 +34,22 @@ func (api *API) GetAttempt(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if attempt.AttemptedAt != nil {
-		attemptDetail, err := api.DB.AttemptDetailsWS.Get(r.Context(), attempt.ID)
+		detail, err := api.DB.AttemptDetailsWS.Get(r.Context(), attempt.ID)
 		api.assert(err)
-		attempt.Extend(attemptDetail)
+		if detail != nil {
+			if detail.RequestHeaders != nil {
+				attempt.Request.Headers = detail.RequestHeaders
+			}
+			if detail.RequestBody != nil {
+				attempt.Request.Body = detail.RequestBody
+			}
+			if detail.ResponseHeaders != nil {
+				attempt.Response.Headers = *detail.ResponseHeaders
+			}
+			if detail.ResponseBody != nil {
+				attempt.Response.Body = detail.ResponseBody
+			}
+		}
 	}
 
 	api.json(200, w, attempt)

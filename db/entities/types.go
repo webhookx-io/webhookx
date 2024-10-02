@@ -21,3 +21,13 @@ type BaseModel struct {
 	UpdatedAt   types.Time `db:"updated_at" json:"updated_at"`
 	WorkspaceId string     `db:"ws_id" json:"-"`
 }
+
+type Headers map[string]string
+
+func (m *Headers) Scan(src interface{}) error {
+	return json.Unmarshal(src.([]byte), m)
+}
+
+func (m Headers) Value() (driver.Value, error) {
+	return json.Marshal(m)
+}

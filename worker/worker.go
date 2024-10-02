@@ -243,7 +243,7 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		RequestBody:    utils.Pointer(string(request.Payload)),
 	}
 	if len(response.Header) > 0 {
-		attemptDetail.ResponseHeaders = utils.HeaderMap(response.Header)
+		attemptDetail.ResponseHeaders = utils.Pointer(entities.Headers(utils.HeaderMap(response.Header)))
 	}
 	if response.ResponseBody != nil {
 		attemptDetail.ResponseBody = utils.Pointer(string(response.ResponseBody))

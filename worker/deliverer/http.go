@@ -4,15 +4,11 @@ import (
 	"bytes"
 	"context"
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/constants"
 	"io"
 	"net/http"
 	"time"
 )
-
-var defaultHeaders = map[string]string{
-	"User-Agent":   "WebhookX/" + config.VERSION,
-	"Content-Type": "application/json; charset=utf-8",
-}
 
 // HTTPDeliverer delivers via HTTP
 type HTTPDeliverer struct {
@@ -56,7 +52,7 @@ func (d *HTTPDeliverer) Deliver(req *Request) (res *Response) {
 	}
 
 	req.Request = request
-	for name, value := range defaultHeaders {
+	for name, value := range constants.DefaultDelivererRequestHeaders {
 		request.Header.Add(name, value)
 	}
 	for name, value := range req.Headers {

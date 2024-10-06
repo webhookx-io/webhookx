@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/creasty/defaults"
@@ -215,6 +216,28 @@ func FileLine(filename string, n int) (string, error) {
 	}
 
 	return "", nil
+}
+
+func FileHasLine(filename string, regex string) (bool, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+
+	r, err := regexp.Compile(regex)
+	if err != nil {
+		return false, err
+	}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if r.MatchString(line) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func DefaultEndpoint() *entities.Endpoint {

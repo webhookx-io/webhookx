@@ -10,8 +10,10 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
+	"time"
 )
 
 var _ = Describe("/events", Ordered, func() {
@@ -43,9 +45,10 @@ var _ = Describe("/events", Ordered, func() {
 				assert.NoError(GinkgoT(), db.Truncate("events"))
 				for i := 1; i <= 21; i++ {
 					event := &entities.Event{
-						ID:        utils.KSUID(),
-						EventType: "foo.bar",
-						Data:      []byte("{}"),
+						ID:         utils.KSUID(),
+						EventType:  "foo.bar",
+						Data:       []byte("{}"),
+						IngestedAt: types.Time{Time: time.Now()},
 					}
 					event.WorkspaceId = ws.ID
 					assert.NoError(GinkgoT(), db.Events.Insert(context.TODO(), event))
@@ -82,9 +85,10 @@ var _ = Describe("/events", Ordered, func() {
 				entitiesConfig := helper.EntitiesConfig{
 					Events: []*entities.Event{
 						{
-							ID:        utils.KSUID(),
-							EventType: "foo.bar",
-							Data:      []byte("{}"),
+							ID:         utils.KSUID(),
+							EventType:  "foo.bar",
+							Data:       []byte("{}"),
+							IngestedAt: types.Time{Time: time.Now()},
 						},
 					},
 				}
@@ -101,6 +105,7 @@ var _ = Describe("/events", Ordered, func() {
 				result := resp.Result().(*entities.Event)
 				assert.Equal(GinkgoT(), entity.ID, result.ID)
 				assert.Equal(GinkgoT(), "foo.bar", result.EventType)
+				assert.Equal(GinkgoT(), entity.IngestedAt.UnixMilli(), result.IngestedAt.UnixMilli())
 			})
 
 			Context("errors", func() {

@@ -6,7 +6,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/model"
-	"github.com/webhookx-io/webhookx/pkg/queue"
+	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
@@ -16,11 +16,11 @@ import (
 // Dispatcher is Event Dispatcher
 type Dispatcher struct {
 	log   *zap.SugaredLogger
-	queue queue.TaskQueue
+	queue taskqueue.TaskQueue
 	db    *db.DB
 }
 
-func NewDispatcher(log *zap.SugaredLogger, queue queue.TaskQueue, db *db.DB) *Dispatcher {
+func NewDispatcher(log *zap.SugaredLogger, queue taskqueue.TaskQueue, db *db.DB) *Dispatcher {
 	dispatcher := &Dispatcher{
 		log:   log,
 		queue: queue,
@@ -40,7 +40,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event *entities.Event) error 
 
 func (d *Dispatcher) DispatchEndpoint(ctx context.Context, eventId string, endpoints []*entities.Endpoint) error {
 	attempts := make([]*entities.Attempt, 0, len(endpoints))
-	tasks := make([]*queue.TaskMessage, 0, len(endpoints))
+	tasks := make([]*taskqueue.TaskMessage, 0, len(endpoints))
 
 	now := time.Now()
 	for _, endpoint := range endpoints {
@@ -55,7 +55,7 @@ func (d *Dispatcher) DispatchEndpoint(ctx context.Context, eventId string, endpo
 			TriggerMode:   entities.AttemptTriggerModeManual,
 		}
 
-		task := &queue.TaskMessage{
+		task := &taskqueue.TaskMessage{
 			ID: attempt.ID,
 			Data: &model.MessageData{
 				EventID:    eventId,
@@ -89,7 +89,7 @@ func (d *Dispatcher) DispatchEndpoint(ctx context.Context, eventId string, endpo
 
 func (d *Dispatcher) dispatch(ctx context.Context, event *entities.Event, endpoints []*entities.Endpoint) error {
 	attempts := make([]*entities.Attempt, 0, len(endpoints))
-	tasks := make([]*queue.TaskMessage, 0, len(endpoints))
+	tasks := make([]*taskqueue.TaskMessage, 0, len(endpoints))
 
 	err := d.db.TX(ctx, func(ctx context.Context) error {
 		now := time.Now()
@@ -110,7 +110,7 @@ func (d *Dispatcher) dispatch(ctx context.Context, event *entities.Event, endpoi
 				TriggerMode:   entities.AttemptTriggerModeInitial,
 			}
 
-			task := &queue.TaskMessage{
+			task := &taskqueue.TaskMessage{
 				ID: attempt.ID,
 				Data: &model.MessageData{
 					EventID:    event.ID,

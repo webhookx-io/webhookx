@@ -9,7 +9,7 @@ import (
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
-	"github.com/webhookx-io/webhookx/pkg/queue"
+	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/proxy"
 	"github.com/webhookx-io/webhookx/worker"
 	"go.uber.org/zap"
@@ -31,7 +31,7 @@ type Application struct {
 
 	log        *zap.SugaredLogger
 	db         *db.DB
-	queue      queue.TaskQueue
+	queue      taskqueue.TaskQueue
 	dispatcher *dispatcher.Dispatcher
 	cache      cache.Cache
 
@@ -74,7 +74,7 @@ func (app *Application) initialize() error {
 	client := cfg.RedisConfig.GetClient()
 
 	// queue
-	queue := queue.NewRedisQueue(client)
+	queue := taskqueue.NewRedisQueue(client)
 	app.queue = queue
 
 	// cache

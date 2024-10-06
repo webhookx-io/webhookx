@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"errors"
+	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"time"
 
 	"github.com/webhookx-io/webhookx/config"
@@ -12,7 +13,6 @@ import (
 	"github.com/webhookx-io/webhookx/model"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	plugintypes "github.com/webhookx-io/webhookx/pkg/plugin/types"
-	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/safe"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/types"
@@ -28,12 +28,12 @@ type Worker struct {
 	stop chan struct{}
 	log  *zap.SugaredLogger
 
-	queue     queue.TaskQueue
+	queue     taskqueue.TaskQueue
 	deliverer deliverer.Deliverer
 	DB        *db.DB
 }
 
-func NewWorker(cfg *config.WorkerConfig, db *db.DB, queue queue.TaskQueue) *Worker {
+func NewWorker(cfg *config.WorkerConfig, db *db.DB, queue taskqueue.TaskQueue) *Worker {
 	worker := &Worker{
 		stop:      make(chan struct{}),
 		queue:     queue,
@@ -124,9 +124,9 @@ func (w *Worker) processUnqueued() {
 			break
 		}
 
-		tasks := make([]*queue.TaskMessage, 0, len(attempts))
+		tasks := make([]*taskqueue.TaskMessage, 0, len(attempts))
 		for _, attempt := range attempts {
-			task := &queue.TaskMessage{
+			task := &taskqueue.TaskMessage{
 				ID: attempt.ID,
 				Data: &model.MessageData{
 					EventID:    attempt.EventId,
@@ -156,7 +156,7 @@ func (w *Worker) processUnqueued() {
 
 }
 
-func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error {
+func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) error {
 	data := task.Data.(*model.MessageData)
 
 	// verify endpoint
@@ -280,7 +280,7 @@ func (w *Worker) handleTask(ctx context.Context, task *queue.TaskMessage) error 
 		return err
 	}
 
-	task = &queue.TaskMessage{
+	task = &taskqueue.TaskMessage{
 		ID: nextAttempt.ID,
 		Data: &model.MessageData{
 			EventID:    data.EventID,

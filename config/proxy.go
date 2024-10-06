@@ -1,6 +1,10 @@
 package config
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+	"slices"
+)
 
 type ProxyResponse struct {
 	Code        uint   `yaml:"code" default:"200"`
@@ -8,8 +12,28 @@ type ProxyResponse struct {
 	Body        string `yaml:"body" default:"{\"message\": \"OK\"}"`
 }
 
+type QueueType string
+
+const (
+	QueueTypeOff   QueueType = "off"
+	QueueTypeRedis QueueType = "redis"
+)
+
 type Queue struct {
+	Type  QueueType   `yaml:"type" default:"redis"`
 	Redis RedisConfig `yaml:"redis"`
+}
+
+func (cfg Queue) Validate() error {
+	if !slices.Contains([]QueueType{QueueTypeRedis, QueueTypeOff}, cfg.Type) {
+		return fmt.Errorf("unknown type: %s", cfg.Type)
+	}
+	if cfg.Type == QueueTypeRedis {
+		if err := cfg.Redis.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type ProxyConfig struct {
@@ -30,6 +54,9 @@ func (cfg ProxyConfig) Validate() error {
 	}
 	if cfg.TimeoutWrite < 0 {
 		return errors.New("timeout_write cannot be negative value")
+	}
+	if err := cfg.Queue.Validate(); err != nil {
+		return errors.New("invalid queue: " + err.Error())
 	}
 	return nil
 }

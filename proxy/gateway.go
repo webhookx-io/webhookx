@@ -3,20 +3,30 @@ package proxy
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
+	"github.com/webhookx-io/webhookx/pkg/queue"
+	"github.com/webhookx-io/webhookx/pkg/queue/redis"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
+	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/proxy/router"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
+)
+
+var (
+	ErrQueueDisabled = errors.New("queue is disabled")
 )
 
 type Gateway struct {
@@ -31,15 +41,26 @@ type Gateway struct {
 	db     *db.DB
 
 	dispatcher *dispatcher.Dispatcher
+
+	queue queue.Queue
 }
 
 func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher *dispatcher.Dispatcher) *Gateway {
+	var q queue.Queue
+	switch cfg.Queue.Type {
+	case "redis":
+		q, _ = redis.NewRedisQueue(redis.RedisQueueOptions{
+			Client: cfg.Queue.Redis.GetClient(),
+		}, zap.S())
+	}
+
 	gw := &Gateway{
 		cfg:        cfg,
 		log:        zap.S(),
 		router:     router.NewRouter(nil),
 		db:         db,
 		dispatcher: dispatcher,
+		queue:      q,
 	}
 
 	r := mux.NewRouter()
@@ -78,9 +99,7 @@ func (gw *Gateway) buildRouter() {
 func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 	source, _ := gw.router.Execute(r).(*entities.Source)
 	if source == nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(404)
-		w.Write([]byte(`{"message": "not found"}`))
+		exit(w, 404, `{"message": "not found"}`, nil)
 		return
 	}
 
@@ -90,7 +109,6 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 	r = r.WithContext(ctx)
 
 	var event entities.Event
-	event.ID = utils.KSUID()
 	r.Body = http.MaxBytesReader(w, r.Body, gw.cfg.MaxRequestBodySize)
 	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
 		if _, ok := err.(*http.MaxBytesError); ok {
@@ -104,6 +122,9 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	event.ID = utils.KSUID()
+	event.IngestedAt = types.Time{Time: time.Now()}
+	event.WorkspaceId = source.WorkspaceId
 	if err := event.Validate(); err != nil {
 		utils.JsonResponse(400, w, ErrorResponse{
 			Message: "Request Validation",
@@ -112,24 +133,42 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := gw.dispatcher.Dispatch(r.Context(), &event)
+	err := gw.ingestEvent(r.Context(), source.Async, &event)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		w.Write([]byte(`{"message": "internal error"}`))
+		gw.log.Errorf("[proxy] failed to ingest event: %v", err)
+		exit(w, 500, `{"message": "internal error"}`, nil)
 		return
 	}
 
 	if source.Response != nil {
-		w.Header().Set("Content-Type", source.Response.ContentType)
-		w.WriteHeader(source.Response.Code)
-		w.Write([]byte(source.Response.Body))
+		exit(w, source.Response.Code, source.Response.Body, headers{"Content-Type": source.Response.ContentType})
 		return
 	}
 
-	w.Header().Set("Content-Type", gw.cfg.Response.ContentType)
-	w.WriteHeader(int(gw.cfg.Response.Code))
-	w.Write([]byte(gw.cfg.Response.Body))
+	// default response
+	exit(w, int(gw.cfg.Response.Code), gw.cfg.Response.Body, headers{"Content-Type": gw.cfg.Response.ContentType})
+}
+
+func (gw *Gateway) ingestEvent(ctx context.Context, async bool, event *entities.Event) error {
+	if async {
+		if gw.queue == nil {
+			return ErrQueueDisabled
+		}
+
+		bytes, err := json.Marshal(event)
+		if err != nil {
+			return err
+		}
+
+		msg := queue.Message{
+			Data:        bytes,
+			Time:        time.Now(),
+			WorkspaceID: event.WorkspaceId,
+		}
+		return gw.queue.Enqueue(ctx, &msg)
+	}
+
+	return gw.dispatcher.Dispatch(ctx, event)
 }
 
 // Start starts an HTTP server
@@ -145,6 +184,14 @@ func (gw *Gateway) Start() {
 
 	schedule.Schedule(gw.ctx, gw.buildRouter, time.Second)
 
+	if gw.queue != nil {
+		listeners := runtime.GOMAXPROCS(0)
+		gw.log.Infof("[proxy] starting %d queue listener", listeners)
+		for i := 0; i < listeners; i++ {
+			go gw.listenQueue()
+		}
+	}
+
 	gw.log.Info("[proxy] started")
 }
 
@@ -157,4 +204,65 @@ func (gw *Gateway) Stop() error {
 		return err
 	}
 	return nil
+}
+
+func (gw *Gateway) listenQueue() {
+	opts := &queue.Options{
+		Count:   20,
+		Block:   true,
+		Timeout: time.Second,
+	}
+	for {
+		select {
+		case <-gw.ctx.Done():
+			return
+		default:
+			ctx := context.Background()
+			messages, err := gw.queue.Dequeue(ctx, opts)
+			if err != nil {
+				gw.log.Warnf("[proxy] [queue] failed to dequeue: %v", err)
+				time.Sleep(time.Second)
+				continue
+			}
+			if len(messages) == 0 {
+				continue
+			}
+
+			events := make([]*entities.Event, 0, len(messages))
+			for _, message := range messages {
+				var event entities.Event
+				err = json.Unmarshal(message.Data, &event)
+				if err != nil {
+					gw.log.Warnf("[proxy] [queue] faield to unmarshal message: %v", err)
+					continue
+				}
+				event.WorkspaceId = message.WorkspaceID
+				events = append(events, &event)
+			}
+
+			err = gw.dispatcher.DispatchBatch(ctx, events)
+			if err != nil {
+				gw.log.Warnf("[proxy] [queue] failed to dispatch event in batch: %v", err)
+				continue
+			}
+			_ = gw.queue.Delete(ctx, messages)
+		}
+	}
+}
+
+type headers map[string]string
+
+func exit(w http.ResponseWriter, status int, body string, headers headers) {
+	for header, value := range constants.DefaultResponseHeaders {
+		w.Header().Set(header, value)
+	}
+
+	if len(headers) > 0 {
+		for header, value := range headers {
+			w.Header().Set(header, value)
+		}
+	}
+
+	w.WriteHeader(status)
+	_, _ = w.Write([]byte(body))
 }

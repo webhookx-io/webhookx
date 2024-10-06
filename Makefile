@@ -15,6 +15,9 @@ build:
 install:
 	go install ${LDFLAGS}
 
+generate:
+	go generate ./...
+
 .PHONY: test
 test: clean
 	go test $$(go list ./... | grep -v /test/)

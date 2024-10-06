@@ -12,6 +12,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/proxy"
 	"github.com/webhookx-io/webhookx/worker"
+	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.uber.org/zap"
 	"sync"
 )
@@ -74,7 +75,9 @@ func (app *Application) initialize() error {
 	client := cfg.RedisConfig.GetClient()
 
 	// queue
-	queue := taskqueue.NewRedisQueue(client)
+	queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
+		Client: client,
+	}, app.log)
 	app.queue = queue
 
 	// cache
@@ -84,7 +87,9 @@ func (app *Application) initialize() error {
 
 	// worker
 	if cfg.WorkerConfig.Enabled {
-		app.worker = worker.NewWorker(&cfg.WorkerConfig, db, queue)
+		opts := worker.WorkerOptions{}
+		deliverer := deliverer.NewHTTPDeliverer(&cfg.WorkerConfig.Deliverer)
+		app.worker = worker.NewWorker(opts, db, deliverer, queue)
 	}
 
 	// admin

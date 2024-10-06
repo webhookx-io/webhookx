@@ -2,10 +2,16 @@ package query
 
 type EndpointQuery struct {
 	Query
+
+	WorkspaceId *string
 }
 
 func (q *EndpointQuery) WhereMap() map[string]interface{} {
-	return map[string]interface{}{}
+	maps := make(map[string]interface{})
+	if q.WorkspaceId != nil {
+		maps["ws_id"] = *q.WorkspaceId
+	}
+	return maps
 }
 
 type EventQuery struct {
@@ -29,6 +35,7 @@ type AttemptQuery struct {
 
 	EventId    *string
 	EndpointId *string
+	Status     *string
 }
 
 func (q *AttemptQuery) WhereMap() map[string]interface{} {
@@ -38,6 +45,9 @@ func (q *AttemptQuery) WhereMap() map[string]interface{} {
 	}
 	if q.EndpointId != nil {
 		maps["endpoint_id"] = *q.EndpointId
+	}
+	if q.Status != nil {
+		maps["status"] = *q.Status
 	}
 	return maps
 }

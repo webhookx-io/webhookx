@@ -90,6 +90,79 @@ func TestLogConfig(t *testing.T) {
 	}
 }
 
+func TestProxyConfig(t *testing.T) {
+	tests := []struct {
+		desc                string
+		cfg                 ProxyConfig
+		expectedValidateErr error
+	}{
+		{
+			desc: "sanity",
+			cfg: ProxyConfig{
+				Queue: Queue{
+					Type: "redis",
+				},
+			},
+			expectedValidateErr: nil,
+		},
+		{
+			desc: "max_request_body_size cannot be negative value",
+			cfg: ProxyConfig{
+				MaxRequestBodySize: -1,
+				Queue: Queue{
+					Type: "redis",
+				},
+			},
+			expectedValidateErr: errors.New("max_request_body_size cannot be negative value"),
+		},
+		{
+			desc: "timeout_read cannot be negative value",
+			cfg: ProxyConfig{
+				TimeoutRead: -1,
+				Queue: Queue{
+					Type: "redis",
+				},
+			},
+			expectedValidateErr: errors.New("timeout_read cannot be negative value"),
+		},
+		{
+			desc: "timeout_write cannot be negative value",
+			cfg: ProxyConfig{
+				TimeoutWrite: -1,
+				Queue: Queue{
+					Type: "redis",
+				},
+			},
+			expectedValidateErr: errors.New("timeout_write cannot be negative value"),
+		},
+		{
+			desc: "invalid type: unknown",
+			cfg: ProxyConfig{
+				Queue: Queue{
+					Type: "unknown",
+				},
+			},
+			expectedValidateErr: errors.New("invalid queue: unknown type: unknown"),
+		},
+		{
+			desc: "invalid queue",
+			cfg: ProxyConfig{
+				Queue: Queue{
+					Type: "redis",
+					Redis: RedisConfig{
+						Port: 65536,
+					},
+				},
+			},
+			expectedValidateErr: errors.New("invalid queue: port must be in the range [0, 65535]"),
+		},
+	}
+	for _, test := range tests {
+		actualValidateErr := test.cfg.Validate()
+		assert.Equal(t, test.expectedValidateErr, actualValidateErr, "expected %v got %v", test.expectedValidateErr, actualValidateErr)
+	}
+}
+
 func TestConfig(t *testing.T) {
 	cfg, err := Init()
 	assert.Nil(t, err)

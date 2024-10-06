@@ -54,6 +54,7 @@ var _ = Describe("delivery", Ordered, func() {
 		})
 
 		It("sanity", func() {
+			now := time.Now()
 			assert.Eventually(GinkgoT(), func() bool {
 				resp, err := proxyClient.R().
 					SetBody(`{
@@ -66,6 +67,17 @@ var _ = Describe("delivery", Ordered, func() {
 				return err == nil && resp.StatusCode() == 200
 			}, time.Second*5, time.Second)
 
+			var event *entities.Event
+			assert.Eventually(GinkgoT(), func() bool {
+				list, err := db.Events.List(context.TODO(), &query.EventQuery{})
+				if err != nil || len(list) != 1 {
+					return false
+				}
+				event = list[0]
+				return true
+			}, time.Second*5, time.Second)
+			assert.True(GinkgoT(), event.IngestedAt.UnixMilli() >= now.UnixMilli())
+
 			var attempt *entities.Attempt
 			assert.Eventually(GinkgoT(), func() bool {
 				list, err := db.Attempts.List(context.TODO(), &query.AttemptQuery{})
@@ -74,7 +86,7 @@ var _ = Describe("delivery", Ordered, func() {
 				}
 				attempt = list[0]
 				return attempt.Status == entities.AttemptStatusSuccess
-			}, time.Second*15, time.Second)
+			}, time.Second*5, time.Second)
 
 			assert.Equal(GinkgoT(), entitiesConfig.Endpoints[0].ID, attempt.EndpointId)
 

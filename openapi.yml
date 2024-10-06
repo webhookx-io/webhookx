@@ -747,6 +747,9 @@ components:
           type: string
         data:
           type: object
+        ingested_at:
+          type: integer
+          description: "The time the event was ingested"
         created_at:
           type: integer
         updated_at:
@@ -767,6 +770,9 @@ components:
           type: array
           items:
             type: string
+        async:
+          type: boolean
+          description: "Whether to ingest events asynchronously through the queue"
         response:
           type: object
           properties:

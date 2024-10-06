@@ -150,7 +150,7 @@ Explore more API at [openapi.yml](/openapi.yml).
 The gateway requires the following runtime dependencies to work:
 
 - PostgreSQL(>=13): Lower versions of PostgreSQL may work, but have not been fully tested.
-- Redis(>=4): Lower versions of Redis may work, but have not been fully tested.
+- Redis(>=6.2): Lower versions of Redis may work, but have not been fully tested.
 
 ## Status and Compatibility
 

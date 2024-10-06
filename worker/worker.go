@@ -3,17 +3,17 @@ package worker
 import (
 	"context"
 	"errors"
+	"github.com/webhookx-io/webhookx/constants"
+	"github.com/webhookx-io/webhookx/pkg/plugin"
+	plugintypes "github.com/webhookx-io/webhookx/pkg/plugin/types"
+	"github.com/webhookx-io/webhookx/pkg/safe"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"time"
 
-	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/model"
-	"github.com/webhookx-io/webhookx/pkg/plugin"
-	plugintypes "github.com/webhookx-io/webhookx/pkg/plugin/types"
-	"github.com/webhookx-io/webhookx/pkg/safe"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
@@ -25,6 +25,8 @@ type Worker struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
+	opts WorkerOptions
+
 	stop chan struct{}
 	log  *zap.SugaredLogger
 
@@ -33,12 +35,21 @@ type Worker struct {
 	DB        *db.DB
 }
 
-func NewWorker(cfg *config.WorkerConfig, db *db.DB, queue taskqueue.TaskQueue) *Worker {
+type WorkerOptions struct {
+	RequeueJobBatch    int
+	RequeueJobInterval time.Duration
+}
+
+func NewWorker(opts WorkerOptions, db *db.DB, deliverer deliverer.Deliverer, queue taskqueue.TaskQueue) *Worker {
+	opts.RequeueJobBatch = utils.DefaultIfZero(opts.RequeueJobBatch, constants.RequeueBatch)
+	opts.RequeueJobInterval = utils.DefaultIfZero(opts.RequeueJobInterval, constants.RequeueInterval)
+
 	worker := &Worker{
+		opts:      opts,
 		stop:      make(chan struct{}),
 		queue:     queue,
 		log:       zap.S(),
-		deliverer: deliverer.NewHTTPDeliverer(&cfg.Deliverer),
+		deliverer: deliverer,
 		DB:        db,
 	}
 
@@ -56,7 +67,7 @@ func (w *Worker) run() {
 			return
 		case <-ticker.C:
 			for {
-				task, err := w.queue.Get()
+				task, err := w.queue.Get(context.TODO())
 				if err != nil {
 					w.log.Errorf("[worker] failed to get task from queue: %v", err)
 					break
@@ -70,18 +81,18 @@ func (w *Worker) run() {
 					err = task.UnmarshalData(task.Data)
 					if err != nil {
 						w.log.Errorf("[worker] failed to unmarshal task: %v", err)
-						w.queue.Delete(task)
+						_ = w.queue.Delete(context.TODO(), task)
 						return
 					}
 
-					err = w.handleTask(context.Background(), task)
+					err = w.handleTask(context.TODO(), task)
 					if err != nil {
 						// TODO: delete task when causes error too many times (maxReceiveCount)
 						w.log.Errorf("[worker] failed to handle task: %v", err)
 						return
 					}
 
-					w.queue.Delete(task)
+					_ = w.queue.Delete(context.TODO(), task)
 				})
 			}
 		}
@@ -93,7 +104,7 @@ func (w *Worker) Start() error {
 	go w.run()
 
 	w.ctx, w.cancel = context.WithCancel(context.Background())
-	schedule.Schedule(w.ctx, w.processUnqueued, time.Second*60)
+	schedule.Schedule(w.ctx, w.processRequeue, w.opts.RequeueJobInterval)
 
 	w.log.Info("[worker] started")
 	return nil
@@ -111,11 +122,11 @@ func (w *Worker) Stop() error {
 	return nil
 }
 
-func (w *Worker) processUnqueued() {
-	batch := 100
+func (w *Worker) processRequeue() {
+	batch := w.opts.RequeueJobBatch
 	ctx := context.Background()
 	for {
-		attempts, err := w.DB.Attempts.ListUnqueued(ctx, int64(batch))
+		attempts, err := w.DB.Attempts.ListUnqueued(ctx, batch)
 		if err != nil {
 			w.log.Errorf("failed to query unqueued attempts: %v", err)
 			break
@@ -138,7 +149,7 @@ func (w *Worker) processUnqueued() {
 		}
 
 		for i, task := range tasks {
-			err := w.queue.Add(task, attempts[i].ScheduledAt.Time)
+			err := w.queue.Add(ctx, task, attempts[i].ScheduledAt.Time)
 			if err != nil {
 				w.log.Warnf("failed to add task to queue: %v", err)
 				continue
@@ -289,7 +300,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		},
 	}
 
-	err = w.queue.Add(task, nextAttempt.ScheduledAt.Time)
+	err = w.queue.Add(ctx, task, nextAttempt.ScheduledAt.Time)
 	if err != nil {
 		w.log.Warnf("[worker] failed to add task to queue: %v", err)
 	}

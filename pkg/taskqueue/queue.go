@@ -1,6 +1,7 @@
 package taskqueue
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/webhookx-io/webhookx/utils"
 	"time"
@@ -30,7 +31,7 @@ func (t *TaskMessage) UnmarshalData(v interface{}) error {
 }
 
 type TaskQueue interface {
-	Add(task *TaskMessage, scheduleAt time.Time) error
-	Get() (task *TaskMessage, err error)
-	Delete(task *TaskMessage) error
+	Add(ctx context.Context, task *TaskMessage, scheduleAt time.Time) error
+	Get(ctx context.Context) (task *TaskMessage, err error)
+	Delete(ctx context.Context, task *TaskMessage) error
 }

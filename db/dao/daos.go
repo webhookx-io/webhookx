@@ -14,6 +14,7 @@ type BaseDAO[T any] interface {
 	Delete(ctx context.Context, id string) (bool, error)
 	Page(ctx context.Context, q query.Queryer) ([]*T, int64, error)
 	List(ctx context.Context, q query.Queryer) ([]*T, error)
+	Count(ctx context.Context, conditions map[string]interface{}) (int64, error)
 	BatchInsert(ctx context.Context, entities []*T) error
 }
 
@@ -28,6 +29,7 @@ type EndpointDAO interface {
 
 type EventDAO interface {
 	BaseDAO[entities.Event]
+	BatchInsertIgnoreConflict(ctx context.Context, events []*entities.Event) ([]string, error)
 }
 
 type AttemptDAO interface {
@@ -35,7 +37,7 @@ type AttemptDAO interface {
 	UpdateStatus(ctx context.Context, id string, status entities.AttemptStatus) error
 	UpdateErrorCode(ctx context.Context, id string, status entities.AttemptStatus, code entities.AttemptErrorCode) error
 	UpdateDelivery(ctx context.Context, id string, result *AttemptResult) error
-	ListUnqueued(ctx context.Context, limit int64) (list []*entities.Attempt, err error)
+	ListUnqueued(ctx context.Context, limit int) (list []*entities.Attempt, err error)
 }
 
 type SourceDAO interface {

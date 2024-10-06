@@ -30,122 +30,122 @@ func NewDispatcher(log *zap.SugaredLogger, queue taskqueue.TaskQueue, db *db.DB)
 }
 
 func (d *Dispatcher) Dispatch(ctx context.Context, event *entities.Event) error {
-	endpoints, err := listSubscribedEndpoints(ctx, d.db, event.EventType)
+	endpoints, err := d.listSubscribedEndpoint(ctx, event.WorkspaceId, event.EventType)
 	if err != nil {
 		return err
 	}
 
-	return d.dispatch(ctx, event, endpoints)
-}
-
-func (d *Dispatcher) DispatchEndpoint(ctx context.Context, eventId string, endpoints []*entities.Endpoint) error {
-	attempts := make([]*entities.Attempt, 0, len(endpoints))
-	tasks := make([]*taskqueue.TaskMessage, 0, len(endpoints))
-
-	now := time.Now()
-	for _, endpoint := range endpoints {
-		delay := endpoint.Retry.Config.Attempts[0]
-		attempt := &entities.Attempt{
-			ID:            utils.KSUID(),
-			EventId:       eventId,
-			EndpointId:    endpoint.ID,
-			Status:        entities.AttemptStatusInit,
-			AttemptNumber: 1,
-			ScheduledAt:   types.NewTime(now.Add(time.Second * time.Duration(delay))),
-			TriggerMode:   entities.AttemptTriggerModeManual,
-		}
-
-		task := &taskqueue.TaskMessage{
-			ID: attempt.ID,
-			Data: &model.MessageData{
-				EventID:    eventId,
-				EndpointId: endpoint.ID,
-				Attempt:    1,
-			},
-		}
-		attempts = append(attempts, attempt)
-		tasks = append(tasks, task)
+	attempts := fanout(event, endpoints, entities.AttemptTriggerModeInitial)
+	if len(attempts) == 0 {
+		return d.db.Events.Insert(ctx, event)
 	}
 
-	err := d.db.AttemptsWS.BatchInsert(ctx, attempts)
-	if err != nil {
-		return err
-	}
-
-	for i, task := range tasks {
-		err := d.queue.Add(task, attempts[i].ScheduledAt.Time)
-		if err != nil {
-			d.log.Warnf("failed to add task to queue: %v", err)
-			continue
-		}
-		err = d.db.AttemptsWS.UpdateStatus(ctx, task.ID, entities.AttemptStatusQueued)
-		if err != nil {
-			d.log.Warnf("failed to update attempt status: %v", err)
-		}
-	}
-
-	return nil
-}
-
-func (d *Dispatcher) dispatch(ctx context.Context, event *entities.Event, endpoints []*entities.Endpoint) error {
-	attempts := make([]*entities.Attempt, 0, len(endpoints))
-	tasks := make([]*taskqueue.TaskMessage, 0, len(endpoints))
-
-	err := d.db.TX(ctx, func(ctx context.Context) error {
-		now := time.Now()
-		err := d.db.EventsWS.Insert(ctx, event)
+	err = d.db.TX(ctx, func(ctx context.Context) error {
+		err := d.db.Events.Insert(ctx, event)
 		if err != nil {
 			return err
 		}
-
-		for _, endpoint := range endpoints {
-			delay := endpoint.Retry.Config.Attempts[0]
-			attempt := &entities.Attempt{
-				ID:            utils.KSUID(),
-				EventId:       event.ID,
-				EndpointId:    endpoint.ID,
-				Status:        entities.AttemptStatusInit,
-				AttemptNumber: 1,
-				ScheduledAt:   types.NewTime(now.Add(time.Second * time.Duration(delay))),
-				TriggerMode:   entities.AttemptTriggerModeInitial,
-			}
-
-			task := &taskqueue.TaskMessage{
-				ID: attempt.ID,
-				Data: &model.MessageData{
-					EventID:    event.ID,
-					EndpointId: endpoint.ID,
-					Attempt:    1,
-				},
-			}
-			attempts = append(attempts, attempt)
-			tasks = append(tasks, task)
-		}
-
-		return d.db.AttemptsWS.BatchInsert(ctx, attempts)
+		return d.db.Attempts.BatchInsert(ctx, attempts)
 	})
 	if err != nil {
 		return err
 	}
 
-	for i, task := range tasks {
-		err := d.queue.Add(task, attempts[i].ScheduledAt.Time)
-		if err != nil {
-			d.log.Warnf("failed to add task to queue: %v", err)
-			continue
-		}
-		err = d.db.AttemptsWS.UpdateStatus(ctx, task.ID, entities.AttemptStatusQueued)
-		if err != nil {
-			d.log.Warnf("failed to update attempt status: %v", err)
-		}
-	}
+	go d.sendToQueue(context.TODO(), attempts)
 
 	return nil
 }
 
-func listSubscribedEndpoints(ctx context.Context, db *db.DB, eventType string) (list []*entities.Endpoint, err error) {
+func (d *Dispatcher) DispatchBatch(ctx context.Context, events []*entities.Event) error {
+	if len(events) == 0 {
+		return nil
+	}
+
+	eventAttempts := make(map[string][]*entities.Attempt)
+	for _, event := range events {
+		endpoints, err := d.listSubscribedEndpoint(ctx, event.WorkspaceId, event.EventType)
+		if err != nil {
+			return err
+		}
+		eventAttempts[event.ID] = fanout(event, endpoints, entities.AttemptTriggerModeInitial)
+	}
+
+	attempts := make([]*entities.Attempt, 0)
+	err := d.db.TX(ctx, func(ctx context.Context) error {
+		ids, err := d.db.Events.BatchInsertIgnoreConflict(ctx, events)
+		if err != nil {
+			return err
+		}
+		for _, id := range ids {
+			attempts = append(attempts, eventAttempts[id]...)
+		}
+		return d.db.Attempts.BatchInsert(ctx, attempts)
+	})
+
+	go d.sendToQueue(context.TODO(), attempts)
+
+	return err
+}
+
+func fanout(event *entities.Event, endpoints []*entities.Endpoint, mode entities.AttemptTriggerMode) []*entities.Attempt {
+	attempts := make([]*entities.Attempt, 0, len(endpoints))
+	now := time.Now()
+	for _, endpoint := range endpoints {
+		delay := endpoint.Retry.Config.Attempts[0]
+		attempt := &entities.Attempt{
+			ID:            utils.KSUID(),
+			EventId:       event.ID,
+			EndpointId:    endpoint.ID,
+			Status:        entities.AttemptStatusInit,
+			AttemptNumber: 1,
+			ScheduledAt:   types.NewTime(now.Add(time.Second * time.Duration(delay))),
+			TriggerMode:   mode,
+		}
+		attempt.WorkspaceId = event.WorkspaceId
+		attempts = append(attempts, attempt)
+	}
+	return attempts
+}
+
+func (d *Dispatcher) DispatchEndpoint(ctx context.Context, event *entities.Event, endpoints []*entities.Endpoint) error {
+	attempts := fanout(event, endpoints, entities.AttemptTriggerModeManual)
+
+	err := d.db.Attempts.BatchInsert(ctx, attempts)
+	if err != nil {
+		return err
+	}
+
+	d.sendToQueue(context.TODO(), attempts)
+
+	return nil
+}
+
+func (d *Dispatcher) sendToQueue(ctx context.Context, attempts []*entities.Attempt) {
+	for _, attempt := range attempts {
+		task := &taskqueue.TaskMessage{
+			ID: attempt.ID,
+			Data: &model.MessageData{
+				EventID:    attempt.EventId,
+				EndpointId: attempt.EndpointId,
+				Attempt:    attempt.AttemptNumber,
+			},
+		}
+		err := d.queue.Add(ctx, task, attempt.ScheduledAt.Time)
+		if err != nil {
+			d.log.Warnf("failed to add task to queue: %v", err)
+			continue
+		}
+		err = d.db.Attempts.UpdateStatus(ctx, task.ID, entities.AttemptStatusQueued)
+		if err != nil {
+			d.log.Warnf("failed to update attempt status: %v", err)
+		}
+	}
+}
+
+func (d *Dispatcher) listSubscribedEndpoint(ctx context.Context, wid, eventType string) (list []*entities.Endpoint, err error) {
 	var q query.EndpointQuery
-	endpoints, err := db.EndpointsWS.List(ctx, &q)
+	q.WorkspaceId = &wid
+	endpoints, err := d.db.Endpoints.List(ctx, &q)
 	if err != nil {
 		return nil, err
 	}

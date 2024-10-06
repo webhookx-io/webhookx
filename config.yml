@@ -52,8 +52,9 @@ proxy:
     body: '{"message": "OK"}'
 
   queue:
+    type: redis                     # supported values are redis, off
     redis:
-      host: 127.0.0.1
+      host: localhost
       port: 6379
       password:
       database: 0

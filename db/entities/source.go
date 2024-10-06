@@ -22,13 +22,12 @@ func (m CustomResponse) Value() (driver.Value, error) {
 }
 
 type Source struct {
-	ID   string  `json:"id" db:"id"`
-	Name *string `json:"name" db:"name"`
-
-	Enabled bool           `json:"enabled" db:"enabled"`
-	Path    string         `json:"path" db:"path"`
-	Methods pq.StringArray `json:"methods" db:"methods"`
-
+	ID       string          `json:"id" db:"id"`
+	Name     *string         `json:"name" db:"name"`
+	Enabled  bool            `json:"enabled" db:"enabled"`
+	Path     string          `json:"path" db:"path"`
+	Methods  pq.StringArray  `json:"methods" db:"methods"`
+	Async    bool            `json:"async" db:"async"`
 	Response *CustomResponse `json:"response" db:"response"`
 
 	BaseModel

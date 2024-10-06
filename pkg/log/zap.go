@@ -22,10 +22,11 @@ func NewZapLogger(cfg *config.LogConfig) (*zap.Logger, error) {
 	}
 	zap.NewProductionConfig()
 	zapConfig := zap.Config{
-		Level:         zap.NewAtomicLevelAt(level),
-		Development:   false,
-		Encoding:      encodingMap[string(cfg.Format)],
-		EncoderConfig: encoderMap[string(cfg.Format)],
+		Level:             zap.NewAtomicLevelAt(level),
+		Development:       false,
+		Encoding:          encodingMap[string(cfg.Format)],
+		EncoderConfig:     encoderMap[string(cfg.Format)],
+		DisableStacktrace: true,
 	}
 	if len(cfg.File) > 0 {
 		zapConfig.OutputPaths = []string{cfg.File}

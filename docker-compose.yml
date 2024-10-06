@@ -51,7 +51,7 @@ services:
       - "postgres_data:/var/lib/postgresql/data/"
 
   redis:
-    image: redis:6
+    image: redis:6.2
     command: "--appendonly yes --appendfsync everysec"
     volumes:
       - "redis_data:/data"

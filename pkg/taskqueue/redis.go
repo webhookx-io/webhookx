@@ -5,15 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"github.com/webhookx-io/webhookx/constants"
+	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 	"time"
-)
-
-const (
-	DefaultQueueName   = "webhookx:queue"
-	InvisibleQueueName = "webhookx:queue_invisible"
-	QueueDataHashName  = "webhookx:queue_data"
-	VisibilityTimeout  = 60
 )
 
 var (
@@ -51,7 +46,7 @@ var (
 		return 1
 	`)
 
-	reenqueueScript = redis.NewScript(`
+	requeueScript = redis.NewScript(`
 		redis.replicate_commands()
 		local now = redis.call('TIME')[1]
 		local tasks = redis.call('ZRANGEBYSCORE', KEYS[1], 0, now)
@@ -69,22 +64,39 @@ var (
 
 // RedisTaskQueue use redis as queue implementation
 type RedisTaskQueue struct {
-	queue string
-	c     *redis.Client
+	queue             string
+	invisibleQueue    string
+	queueData         string
+	visibilityTimeout time.Duration
+
+	c   *redis.Client
+	log *zap.SugaredLogger
 }
 
-func NewRedisQueue(client *redis.Client) *RedisTaskQueue {
+type RedisTaskQueueOptions struct {
+	QueueName          string
+	InvisibleQueueName string
+	QueueDataName      string
+	VisibilityTimeout  time.Duration
+	Client             *redis.Client
+}
+
+func NewRedisQueue(opts RedisTaskQueueOptions, logger *zap.SugaredLogger) *RedisTaskQueue {
 	q := &RedisTaskQueue{
-		c:     client,
-		queue: "webhookx:queue",
+		queue:             utils.DefaultIfZero(opts.QueueName, constants.TaskQueueName),
+		invisibleQueue:    utils.DefaultIfZero(opts.InvisibleQueueName, constants.TaskQueueInvisibleQueueName),
+		visibilityTimeout: utils.DefaultIfZero(opts.VisibilityTimeout, constants.TaskQueueVisibilityTimeout),
+		queueData:         utils.DefaultIfZero(opts.QueueDataName, constants.TaskQueueDataName),
+		c:                 opts.Client,
+		log:               logger,
 	}
 	q.process()
 	return q
 }
 
-func (q *RedisTaskQueue) Add(task *TaskMessage, scheduleAt time.Time) error {
-	zap.S().Debugf("[redis-queue]: add task %s schedule at: %s", task.ID, scheduleAt.Format("2006-01-02T15:04:05.000"))
-	keys := []string{DefaultQueueName, QueueDataHashName}
+func (q *RedisTaskQueue) Add(ctx context.Context, task *TaskMessage, scheduleAt time.Time) error {
+	q.log.Debugf("[redis-queue]: add task %s schedule at: %s", task.ID, scheduleAt.Format("2006-01-02T15:04:05.000"))
+	keys := []string{q.queue, q.queueData}
 	data, err := json.Marshal(task.Data)
 	if err != nil {
 		return err
@@ -94,7 +106,7 @@ func (q *RedisTaskQueue) Add(task *TaskMessage, scheduleAt time.Time) error {
 		task.ID,
 		data,
 	}
-	res, err := addScript.Run(context.Background(), q.c, keys, argv...).Result()
+	res, err := addScript.Run(ctx, q.c, keys, argv...).Result()
 	if err != nil {
 		return err
 	}
@@ -104,12 +116,12 @@ func (q *RedisTaskQueue) Add(task *TaskMessage, scheduleAt time.Time) error {
 	return nil
 }
 
-func (q *RedisTaskQueue) Get() (*TaskMessage, error) {
-	keys := []string{DefaultQueueName, QueueDataHashName, InvisibleQueueName}
+func (q *RedisTaskQueue) Get(ctx context.Context) (*TaskMessage, error) {
+	keys := []string{q.queue, q.queueData, q.invisibleQueue}
 	argv := []interface{}{
-		VisibilityTimeout,
+		q.visibilityTimeout.Milliseconds() / 1000,
 	}
-	res, err := getScript.Run(context.Background(), q.c, keys, argv...).Result()
+	res, err := getScript.Run(ctx, q.c, keys, argv...).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -128,13 +140,13 @@ func (q *RedisTaskQueue) Get() (*TaskMessage, error) {
 	}
 }
 
-func (q *RedisTaskQueue) Delete(task *TaskMessage) error {
-	zap.S().Debugf("[redis-queue]: delete task %s", task.ID)
-	keys := []string{InvisibleQueueName, DefaultQueueName, QueueDataHashName}
+func (q *RedisTaskQueue) Delete(ctx context.Context, task *TaskMessage) error {
+	q.log.Debugf("[redis-queue]: delete task %s", task.ID)
+	keys := []string{q.invisibleQueue, q.queue, q.queueData}
 	argv := []interface{}{
 		task.ID,
 	}
-	res, err := deleteScript.Run(context.Background(), q.c, keys, argv...).Result()
+	res, err := deleteScript.Run(ctx, q.c, keys, argv...).Result()
 	if err != nil {
 		return err
 	}
@@ -152,14 +164,14 @@ func (q *RedisTaskQueue) process() {
 		for {
 			select {
 			case <-ticker.C:
-				keys := []string{InvisibleQueueName, DefaultQueueName}
-				res, err := reenqueueScript.Run(context.Background(), q.c, keys).Result()
+				keys := []string{q.invisibleQueue, q.queue}
+				res, err := requeueScript.Run(context.Background(), q.c, keys).Result()
 				if err != nil {
-					zap.S().Errorf("failed to : %s", err)
+					q.log.Errorf("failed to run requeue script: %s", err)
 					continue
 				}
 				if ids, ok := res.([]interface{}); ok && len(ids) > 0 {
-					zap.S().Debugf("enqueued invisible tasks: %v", ids)
+					q.log.Debugf("enqueued invisible tasks: %v", ids)
 				}
 			}
 		}

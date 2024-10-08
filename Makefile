@@ -15,6 +15,7 @@ build:
 install:
 	go install ${LDFLAGS}
 
+.PHONY: generate
 generate:
 	go generate ./...
 

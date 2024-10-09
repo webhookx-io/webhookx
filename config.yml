@@ -37,6 +37,9 @@ worker:
   enabled: false
   deliverer:
     timeout: 60000
+  pool:
+    size: 10000                     # pool size, default to 10000.
+    concurrency: 0                  # pool concurrency, default to 100 * CPUs
 
 #------------------------------------------------------------------------------
 # PROXY

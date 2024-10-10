@@ -27,11 +27,16 @@ func (t *Time) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	t.Time = time.UnixMilli(timestamp)
+	if timestamp != 0 {
+		t.Time = time.UnixMilli(timestamp)
+	}
 	return nil
 }
 
 func (t Time) MarshalJSON() ([]byte, error) {
+	if t.IsZero() {
+		return []byte("0"), nil
+	}
 	return []byte(fmt.Sprintf("%d", t.UnixMilli())), nil
 }
 

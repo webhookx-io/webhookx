@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/types"
@@ -42,6 +43,12 @@ func (dao *attemptDao) UpdateStatus(ctx context.Context, id string, status entit
 	_, err := dao.update(ctx, id, map[string]interface{}{
 		"status": status,
 	})
+	return err
+}
+
+func (dao *attemptDao) UpdateStatusBatch(ctx context.Context, status entities.AttemptStatus, ids []string) error {
+	sql, args := psql.Update("attempts").Set("status", status).Where(sq.Eq{"id": ids}).MustSql()
+	_, err := dao.DB(ctx).ExecContext(ctx, sql, args...)
 	return err
 }
 

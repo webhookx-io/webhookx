@@ -2,7 +2,6 @@ package taskqueue
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"github.com/webhookx-io/webhookx/constants"
@@ -12,38 +11,27 @@ import (
 )
 
 var (
-	addScript = redis.NewScript(`
-		local score = ARGV[1]
-		local task_id = ARGV[2]
-		local queue_data = ARGV[3]
-		redis.call('ZADD', KEYS[1], score, task_id)
-		redis.call('HSET', KEYS[2], task_id, queue_data)
-		return 1
-	`)
-
-	getScript = redis.NewScript(`
+	getMultiScript = redis.NewScript(`
 		redis.replicate_commands()
 		local time = redis.call('TIME')
 		local now = time[1] * 1000 + math.floor(time[2] / 1000)
-		local keys = redis.call('ZRANGEBYSCORE', KEYS[1], 0, now, 'LIMIT', 0, 1)
-		local task_id = keys and keys[1]
-		local invisible_timeout = ARGV[1]
-		if task_id then
-			redis.call("ZREM", KEYS[1], task_id)
-			redis.call('ZADD', KEYS[3], now + invisible_timeout, task_id)
-			local queue_data = redis.call('HGET', KEYS[2], task_id)
-			return { task_id, queue_data }
+		local task_ids = redis.call('ZRANGEBYSCORE', KEYS[1], 0, now, 'LIMIT', 0, ARGV[1])
+		local list = {}
+		if task_ids and task_ids[1] then
+			for i, task_id in ipairs(task_ids) do
+				local data = redis.call('HGET', KEYS[2], task_id)
+				if not data then
+					redis.call("ZREM", KEYS[1], task_id)
+					redis.call("ZREM", KEYS[3], task_id)
+				else
+					redis.call("ZREM", KEYS[1], task_id)
+					redis.call('ZADD', KEYS[3], now + ARGV[2], task_id)
+					list[i] = { task_id, data }
+				end
+			end
 		end
-		return {}
-	`)
-
-	deleteScript = redis.NewScript(`
-		redis.replicate_commands()
-		local task_id = ARGV[1]
-		redis.call("ZREM", KEYS[1], task_id)
-		redis.call("ZREM", KEYS[2], task_id)
-		redis.call("HDEL", KEYS[3], task_id)
-		return 1
+		
+		return list
 	`)
 
 	requeueScript = redis.NewScript(`
@@ -94,47 +82,52 @@ func NewRedisQueue(opts RedisTaskQueueOptions, logger *zap.SugaredLogger) *Redis
 	return q
 }
 
-func (q *RedisTaskQueue) Add(ctx context.Context, task *TaskMessage, scheduleAt time.Time) error {
-	q.log.Debugf("[redis-queue]: add task %s schedule at: %s", task.ID, scheduleAt.Format("2006-01-02T15:04:05.000"))
-	keys := []string{q.queue, q.queueData}
-	data, err := json.Marshal(task.Data)
-	if err != nil {
-		return err
+func (q *RedisTaskQueue) Add(ctx context.Context, tasks []*TaskMessage) error {
+	members := make([]redis.Z, 0, len(tasks))
+	strs := make([]interface{}, 0, len(tasks)*2)
+	for _, task := range tasks {
+		members = append(members, redis.Z{
+			Score:  float64(task.ScheduledAt.UnixMilli()),
+			Member: task.ID,
+		})
+		data, err := task.MarshalData()
+		if err != nil {
+			return err
+		}
+		strs = append(strs, task.ID, data)
 	}
-	argv := []interface{}{
-		scheduleAt.UnixMilli(),
-		task.ID,
-		data,
-	}
-	res, err := addScript.Run(ctx, q.c, keys, argv...).Result()
-	if err != nil {
-		return err
-	}
-	if v, ok := res.(int64); !ok || v != 1 {
-		return fmt.Errorf("[redis-queue] unexpected return value: expect 1, got %v", v)
-	}
-	return nil
+
+	pipeline := q.c.Pipeline()
+	pipeline.HSet(ctx, q.queueData, strs...)
+	pipeline.ZAdd(ctx, q.queue, members...)
+	_, err := pipeline.Exec(ctx)
+	return err
 }
 
-func (q *RedisTaskQueue) Get(ctx context.Context) (*TaskMessage, error) {
+func (q *RedisTaskQueue) Get(ctx context.Context, opts *GetOptions) ([]*TaskMessage, error) {
 	keys := []string{q.queue, q.queueData, q.invisibleQueue}
 	argv := []interface{}{
+		opts.Count,
 		q.visibilityTimeout.Milliseconds() / 1000,
 	}
-	res, err := getScript.Run(ctx, q.c, keys, argv...).Result()
+	res, err := getMultiScript.Run(ctx, q.c, keys, argv...).Result()
 	if err != nil {
 		return nil, err
 	}
-	switch v := res.(type) {
+	switch list := res.(type) {
 	case []interface{}:
-		if len(v) == 0 {
+		if len(list) == 0 {
 			return nil, nil
 		}
-
-		var task TaskMessage
-		task.ID = v[0].(string)
-		task.data = []byte((v[1].(string)))
-		return &task, nil
+		tasks := make([]*TaskMessage, 0, len(list))
+		for _, e := range list {
+			task := e.([]interface{})
+			tasks = append(tasks, &TaskMessage{
+				ID:   task[0].(string),
+				data: []byte((task[1].(string))),
+			})
+		}
+		return tasks, nil
 	default:
 		return nil, fmt.Errorf("[redis-queue] unexpected return value: expect array, got %s", res)
 	}
@@ -142,18 +135,16 @@ func (q *RedisTaskQueue) Get(ctx context.Context) (*TaskMessage, error) {
 
 func (q *RedisTaskQueue) Delete(ctx context.Context, task *TaskMessage) error {
 	q.log.Debugf("[redis-queue]: delete task %s", task.ID)
-	keys := []string{q.invisibleQueue, q.queue, q.queueData}
-	argv := []interface{}{
-		task.ID,
-	}
-	res, err := deleteScript.Run(ctx, q.c, keys, argv...).Result()
-	if err != nil {
-		return err
-	}
-	if v, ok := res.(int64); !ok || v != 1 {
-		return fmt.Errorf("[redis-queue] unexpected return value: expect 1, got %v", v)
-	}
-	return nil
+	pipeline := q.c.Pipeline()
+	pipeline.HDel(ctx, q.queueData, task.ID)
+	pipeline.ZRem(ctx, q.invisibleQueue, task.ID)
+	pipeline.ZRem(ctx, q.queue, task.ID)
+	_, err := pipeline.Exec(ctx)
+	return err
+}
+
+func (q *RedisTaskQueue) Size(ctx context.Context) (int64, error) {
+	return q.c.ZCard(ctx, q.queue).Result()
 }
 
 // process re-enqueue invisible tasks that reach the visibility timeout

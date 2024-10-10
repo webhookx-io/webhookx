@@ -64,44 +64,59 @@ func (w *Worker) run() {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
+	options := &taskqueue.GetOptions{
+		Count: 20,
+	}
 	for {
 		select {
 		case <-w.ctx.Done():
 			return
 		case <-ticker.C:
 			for {
-				task, err := w.queue.Get(context.TODO())
+				ctx := w.ctx
+				tasks, err := w.queue.Get(ctx, options)
 				if err != nil {
-					w.log.Errorf("[worker] failed to get task from queue: %v", err)
+					w.log.Errorf("[worker] failed to get tasks from queue: %v", err)
 					break
 				}
-				if task == nil {
+				if len(tasks) == 0 {
 					break
 				}
-				w.log.Debugf("[worker] receive task: %v", task)
-				err = w.pool.SubmitFn(time.Second*10, func() {
-					task.Data = &model.MessageData{}
-					err = task.UnmarshalData(task.Data)
-					if err != nil {
-						w.log.Errorf("[worker] failed to unmarshal task: %v", err)
-						_ = w.queue.Delete(context.TODO(), task)
-						return
-					}
 
-					err = w.handleTask(context.TODO(), task)
-					if err != nil {
-						// TODO: delete task when causes error too many times (maxReceiveCount)
-						w.log.Errorf("[worker] failed to handle task: %v", err)
-						return
-					}
+				w.log.Debugf("[worker] receive tasks: %d", len(tasks))
+				var errs []error
+				for _, v := range tasks {
+					task := v
+					err = w.pool.SubmitFn(time.Second*5, func() {
+						// w.metrics.TaskQueueConsumeTotal.Add(1)
+						task.Data = &model.MessageData{}
+						err = task.UnmarshalData(task.Data)
+						if err != nil {
+							w.log.Errorf("[worker] failed to unmarshal task: %v", err)
+							_ = w.queue.Delete(ctx, task)
+							return
+						}
 
-					_ = w.queue.Delete(context.TODO(), task)
-				})
-				if err != nil {
-					if errors.Is(err, pool.ErrPoolTernimated) {
-						return // worker is shutting down
+						err = w.handleTask(ctx, task)
+						if err != nil {
+							// TODO: delete task when causes error too many times (maxReceiveCount)
+							w.log.Errorf("[worker] failed to handle task: %v", err)
+							return
+						}
+
+						_ = w.queue.Delete(ctx, task)
+					})
+					if err != nil {
+						if errors.Is(err, pool.ErrPoolTernimated) {
+							return // worker is shutting down
+						}
+						errs = append(errs, err)
 					}
-					w.log.Warnf("[worker] failed to submit a task: %v", err) // consider tuning pool configuration
+				}
+				if len(errs) > 0 {
+					// FIXME: optmize log
+					w.log.Warnf("[worker] failed to submit task to pool: %v", errs) // consider tuning pool configuration
+					break
 				}
 			}
 		}
@@ -145,7 +160,8 @@ func (w *Worker) processRequeue() {
 		tasks := make([]*taskqueue.TaskMessage, 0, len(attempts))
 		for _, attempt := range attempts {
 			task := &taskqueue.TaskMessage{
-				ID: attempt.ID,
+				ID:          attempt.ID,
+				ScheduledAt: attempt.ScheduledAt.Time,
 				Data: &model.MessageData{
 					EventID:    attempt.EventId,
 					EndpointId: attempt.EndpointId,
@@ -155,8 +171,8 @@ func (w *Worker) processRequeue() {
 			tasks = append(tasks, task)
 		}
 
-		for i, task := range tasks {
-			err := w.queue.Add(ctx, task, attempts[i].ScheduledAt.Time)
+		for _, task := range tasks {
+			err := w.queue.Add(ctx, []*taskqueue.TaskMessage{task})
 			if err != nil {
 				w.log.Warnf("failed to add task to queue: %v", err)
 				continue
@@ -299,7 +315,8 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	}
 
 	task = &taskqueue.TaskMessage{
-		ID: nextAttempt.ID,
+		ID:          nextAttempt.ID,
+		ScheduledAt: nextAttempt.ScheduledAt.Time,
 		Data: &model.MessageData{
 			EventID:    data.EventID,
 			EndpointId: data.EndpointId,
@@ -307,7 +324,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		},
 	}
 
-	err = w.queue.Add(ctx, task, nextAttempt.ScheduledAt.Time)
+	err = w.queue.Add(ctx, []*taskqueue.TaskMessage{task})
 	if err != nil {
 		w.log.Warnf("[worker] failed to add task to queue: %v", err)
 	}

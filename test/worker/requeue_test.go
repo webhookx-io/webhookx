@@ -33,9 +33,9 @@ var _ = Describe("processRequeue", Ordered, func() {
 		// setup MockTaskQueue
 		ctrl = gomock.NewController(GinkgoT())
 		queue = mocks.NewMockTaskQueue(ctrl)
-		queue.EXPECT().Get(gomock.Any()).AnyTimes()
+		queue.EXPECT().Get(gomock.Any(), gomock.Any()).AnyTimes()
 		queue.EXPECT().Delete(gomock.Any(), gomock.Any()).AnyTimes()
-		queue.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).Times(10)
+		queue.EXPECT().Add(gomock.Any(), gomock.Any()).Times(10)
 
 		w = worker.NewWorker(worker.WorkerOptions{
 			RequeueJobInterval: time.Second,

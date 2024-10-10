@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"github.com/jmoiron/sqlx"
+	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
 )
 
@@ -11,8 +12,15 @@ type eventDao struct {
 }
 
 func NewEventDao(db *sqlx.DB, workspace bool) EventDAO {
+	opts := Options{
+		Table:          "events",
+		EntityName:     "Event",
+		Workspace:      workspace,
+		CachePropagate: false,
+		CacheKey:       constants.EventCacheKey,
+	}
 	return &eventDao{
-		DAO: NewDAO[entities.Event]("events", db, workspace),
+		DAO: NewDAO[entities.Event](db, opts),
 	}
 }
 
@@ -21,7 +29,7 @@ func (dao *eventDao) BatchInsertIgnoreConflict(ctx context.Context, events []*en
 		return
 	}
 
-	builder := psql.Insert(dao.table).Columns("id", "data", "event_type", "ingested_at", "ws_id")
+	builder := psql.Insert(dao.opts.Table).Columns("id", "data", "event_type", "ingested_at", "ws_id")
 	for _, event := range events {
 		builder = builder.Values(event.ID, event.Data, event.EventType, event.IngestedAt, event.WorkspaceId)
 	}

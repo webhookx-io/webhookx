@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"github.com/webhookx-io/webhookx/constants"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -13,8 +14,15 @@ type attemptDetailDao struct {
 }
 
 func NewAttemptDetailDao(db *sqlx.DB, workspace bool) AttemptDetailDAO {
+	opts := Options{
+		Table:          "attempt_details",
+		EntityName:     "AttemptDetail",
+		Workspace:      workspace,
+		CachePropagate: false,
+		CacheKey:       constants.AttemptDetailCacheKey,
+	}
 	return &attemptDetailDao{
-		DAO: NewDAO[entities.AttemptDetail]("attempt_details", db, workspace),
+		DAO: NewDAO[entities.AttemptDetail](db, opts),
 	}
 }
 

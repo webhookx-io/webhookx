@@ -87,7 +87,10 @@ func (app *Application) initialize() error {
 
 	// worker
 	if cfg.WorkerConfig.Enabled {
-		opts := worker.WorkerOptions{}
+		opts := worker.WorkerOptions{
+			PoolSize:        int(cfg.WorkerConfig.Pool.Size),
+			PoolConcurrency: int(cfg.WorkerConfig.Pool.Concurrency),
+		}
 		deliverer := deliverer.NewHTTPDeliverer(&cfg.WorkerConfig.Deliverer)
 		app.worker = worker.NewWorker(opts, db, deliverer, queue)
 	}

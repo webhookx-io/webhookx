@@ -7,6 +7,7 @@ import (
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/dispatcher"
+	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
@@ -65,14 +66,18 @@ func (app *Application) initialize() error {
 	zap.ReplaceGlobals(log)
 	app.log = zap.S()
 
+	// cache
+	client := cfg.RedisConfig.GetClient()
+	app.cache = cache.NewRedisCache(client)
+
+	mcache.Set(mcache.NewMCache(app.cache))
+
 	// db
 	db, err := db.NewDB(&cfg.DatabaseConfig)
 	if err != nil {
 		return err
 	}
 	app.db = db
-
-	client := cfg.RedisConfig.GetClient()
 
 	// queue
 	queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{

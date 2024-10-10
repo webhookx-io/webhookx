@@ -9,6 +9,7 @@ require (
 	github.com/go-resty/resty/v2 v2.15.3
 	github.com/golang-migrate/migrate/v4 v4.18.1
 	github.com/gorilla/mux v1.8.1
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
 	github.com/onsi/ginkgo/v2 v2.20.2

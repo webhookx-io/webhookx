@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-var _ = Describe("/attempts", Ordered, func() {
+var _ = Describe("cache", Ordered, func() {
 
 	var redisCache cache.Cache
 

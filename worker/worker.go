@@ -88,7 +88,6 @@ func (w *Worker) run() {
 				for _, v := range tasks {
 					task := v
 					err = w.pool.SubmitFn(time.Second*5, func() {
-						// w.metrics.TaskQueueConsumeTotal.Add(1)
 						task.Data = &model.MessageData{}
 						err = task.UnmarshalData(task.Data)
 						if err != nil {

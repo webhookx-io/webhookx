@@ -73,7 +73,7 @@ func (w *Worker) run() {
 			return
 		case <-ticker.C:
 			for {
-				ctx := w.ctx
+				ctx := context.TODO()
 				tasks, err := w.queue.Get(ctx, options)
 				if err != nil {
 					w.log.Errorf("[worker] failed to get tasks from queue: %v", err)
@@ -85,8 +85,7 @@ func (w *Worker) run() {
 
 				w.log.Debugf("[worker] receive tasks: %d", len(tasks))
 				var errs []error
-				for _, v := range tasks {
-					task := v
+				for _, task := range tasks {
 					err = w.pool.SubmitFn(time.Second*5, func() {
 						task.Data = &model.MessageData{}
 						err = task.UnmarshalData(task.Data)
@@ -112,9 +111,8 @@ func (w *Worker) run() {
 						errs = append(errs, err)
 					}
 				}
-				if len(errs) > 0 {
-					// FIXME: optmize log
-					w.log.Warnf("[worker] failed to submit task to pool: %v", errs) // consider tuning pool configuration
+				if len(errs) > 0 { // pool.ErrTimeout
+					w.log.Warnf("[worker] failed to submit tasks to pool: %v", errs) // consider tuning pool configuration
 					break
 				}
 			}

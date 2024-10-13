@@ -1,12 +1,16 @@
 package app
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/dispatcher"
+	"github.com/webhookx-io/webhookx/eventbus"
+	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
@@ -15,6 +19,7 @@ import (
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.uber.org/zap"
 	"sync"
+	"time"
 )
 
 var (
@@ -35,6 +40,7 @@ type Application struct {
 	queue      taskqueue.TaskQueue
 	dispatcher *dispatcher.Dispatcher
 	cache      cache.Cache
+	bus        eventbus.Bus
 
 	admin   *admin.Admin
 	gateway *proxy.Gateway
@@ -65,6 +71,27 @@ func (app *Application) initialize() error {
 	zap.ReplaceGlobals(log)
 	app.log = zap.S()
 
+	// cache
+	client := cfg.RedisConfig.GetClient()
+	app.cache = cache.NewRedisCache(client)
+
+	mcache.Set(mcache.NewMCache(&mcache.Options{
+		L1Size: 1000,
+		L1TTL:  time.Second * 10,
+		L2:     app.cache,
+	}))
+
+	app.bus = eventbus.NewDatabaseEventBus(cfg.DatabaseConfig.GetDSN(), app.log)
+	app.bus.Subscribe(eventbus.EventInvalidation, func(data []byte) {
+		maps := make(map[string]interface{})
+		if err := json.Unmarshal(data, &maps); err != nil {
+			return
+		}
+		if cacheKey, ok := maps["cache_key"]; ok {
+			mcache.Invalidate(context.TODO(), cacheKey.(string))
+		}
+	})
+
 	// db
 	db, err := db.NewDB(&cfg.DatabaseConfig)
 	if err != nil {
@@ -72,18 +99,19 @@ func (app *Application) initialize() error {
 	}
 	app.db = db
 
-	client := cfg.RedisConfig.GetClient()
+	metrics, err := metrics.New(cfg.MetricsConfig)
+	if err != nil {
+		return err
+	}
+	app.metrics = metrics
 
 	// queue
 	queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
 		Client: client,
-	}, app.log)
+	}, app.log, metrics)
 	app.queue = queue
 
-	// cache
-	app.cache = cache.NewRedisCache(client)
-
-	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db)
+	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db, metrics)
 
 	// worker
 	if cfg.WorkerConfig.Enabled {
@@ -92,7 +120,7 @@ func (app *Application) initialize() error {
 			PoolConcurrency: int(cfg.WorkerConfig.Pool.Concurrency),
 		}
 		deliverer := deliverer.NewHTTPDeliverer(&cfg.WorkerConfig.Deliverer)
-		app.worker = worker.NewWorker(opts, db, deliverer, queue)
+		app.worker = worker.NewWorker(opts, db, deliverer, queue, app.metrics)
 	}
 
 	// admin
@@ -103,7 +131,7 @@ func (app *Application) initialize() error {
 
 	// gateway
 	if cfg.ProxyConfig.IsEnabled() {
-		app.gateway = proxy.NewGateway(&cfg.ProxyConfig, db, app.dispatcher)
+		app.gateway = proxy.NewGateway(&cfg.ProxyConfig, db, app.dispatcher, app.metrics)
 	}
 
 	return nil
@@ -120,6 +148,10 @@ func (app *Application) Start() error {
 
 	if app.started {
 		return ErrApplicationStarted
+	}
+
+	if err := app.bus.Start(); err != nil {
+		return err
 	}
 
 	if app.admin != nil {
@@ -165,6 +197,10 @@ func (app *Application) Stop() error {
 	}
 	if app.worker != nil {
 		app.worker.Stop()
+	}
+
+	if app.metrics != nil {
+		app.metrics.Stop()
 	}
 
 	app.started = false

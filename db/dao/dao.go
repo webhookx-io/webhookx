@@ -3,7 +3,13 @@ package dao
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/constants"
+	"github.com/webhookx-io/webhookx/eventbus"
+	"github.com/webhookx-io/webhookx/mcache"
 	"reflect"
 	"strings"
 	"time"
@@ -23,6 +29,7 @@ var (
 	ErrNoRows              = sql.ErrNoRows
 	ErrConstraintViolation = errors.New("constraint violation")
 )
+
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 // Queryable is an interface to be used interchangeably for sqlx.Db and sqlx.Tx
@@ -33,24 +40,33 @@ type Queryable interface {
 }
 
 type DAO[T any] struct {
-	log       *zap.SugaredLogger
-	db        *sqlx.DB
-	table     string
+	log *zap.SugaredLogger
+	db  *sqlx.DB
+
 	workspace bool
+	opts      Options
 }
 
-func NewDAO[T any](table string, db *sqlx.DB, workspace bool) *DAO[T] {
+type Options struct {
+	Table          string
+	EntityName     string
+	Workspace      bool
+	CachePropagate bool
+	CacheKey       constants.CacheKey
+}
+
+func NewDAO[T any](db *sqlx.DB, opts Options) *DAO[T] {
 	dao := DAO[T]{
 		log:       zap.S(),
 		db:        db,
-		table:     table,
-		workspace: workspace,
+		workspace: opts.Workspace,
+		opts:      opts,
 	}
 	return &dao
 }
 
 func (dao *DAO[T]) debugSQL(sql string, args []interface{}) {
-	dao.log.Debugf("[dao] execute: %s", sql)
+	// dao.log.Debugf("[dao] execute: %s", sql)
 }
 
 func (dao *DAO[T]) DB(ctx context.Context) Queryable {
@@ -76,7 +92,7 @@ func (dao *DAO[T]) UnsafeDB(ctx context.Context) Queryable {
 }
 
 func (dao *DAO[T]) Get(ctx context.Context, id string) (entity *T, err error) {
-	builder := psql.Select("*").From(dao.table).Where(sq.Eq{"id": id})
+	builder := psql.Select("*").From(dao.opts.Table).Where(sq.Eq{"id": id})
 	if dao.workspace {
 		wid := ucontext.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
@@ -92,7 +108,7 @@ func (dao *DAO[T]) Get(ctx context.Context, id string) (entity *T, err error) {
 }
 
 func (dao *DAO[T]) selectByField(ctx context.Context, field string, value string) (entity *T, err error) {
-	builder := psql.Select("*").From(dao.table).Where(sq.Eq{field: value})
+	builder := psql.Select("*").From(dao.opts.Table).Where(sq.Eq{field: value})
 	if dao.workspace {
 		wid := ucontext.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
@@ -108,7 +124,7 @@ func (dao *DAO[T]) selectByField(ctx context.Context, field string, value string
 }
 
 func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
-	builder := psql.Delete(dao.table).Where(sq.Eq{"id": id})
+	builder := psql.Delete(dao.opts.Table).Where(sq.Eq{"id": id})
 	if dao.workspace {
 		wid := ucontext.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
@@ -123,6 +139,15 @@ func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	if dao.opts.CachePropagate && rows > 0 {
+		key := dao.opts.CacheKey.Build(id)
+		if e := mcache.Invalidate(ctx, key); e != nil {
+			dao.log.Warnf("failed to invalidate mcache: key=%s, %v", key, err)
+		}
+		dao.publishEvent(eventbus.EventInvalidation, map[string]interface{}{
+			"cache_key": key,
+		})
+	}
 	return rows > 0, nil
 }
 
@@ -136,7 +161,7 @@ func (dao *DAO[T]) Page(ctx context.Context, q query.Queryer) (list []*T, total 
 }
 
 func (dao *DAO[T]) Count(ctx context.Context, where map[string]interface{}) (total int64, err error) {
-	builder := psql.Select("COUNT(*)").From(dao.table)
+	builder := psql.Select("COUNT(*)").From(dao.opts.Table)
 	if len(where) > 0 {
 		builder = builder.Where(where)
 	}
@@ -151,7 +176,7 @@ func (dao *DAO[T]) Count(ctx context.Context, where map[string]interface{}) (tot
 }
 
 func (dao *DAO[T]) List(ctx context.Context, q query.Queryer) (list []*T, err error) {
-	builder := psql.Select("*").From(dao.table)
+	builder := psql.Select("*").From(dao.opts.Table)
 	where := q.WhereMap()
 	if len(where) > 0 {
 		builder = builder.Where(where)
@@ -210,7 +235,7 @@ func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 			values = append(values, value)
 		}
 	})
-	statement, args := psql.Insert(dao.table).Columns(columns...).Values(values...).
+	statement, args := psql.Insert(dao.opts.Table).Columns(columns...).Values(values...).
 		Suffix("RETURNING *").
 		MustSql()
 	dao.debugSQL(statement, args)
@@ -223,7 +248,7 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 		return nil
 	}
 
-	builder := psql.Insert(dao.table)
+	builder := psql.Insert(dao.opts.Table)
 	travel(entities[0], func(f reflect.StructField, v reflect.Value) {
 		column := utils.DefaultIfZero(f.Tag.Get("db"), strings.ToLower(f.Name))
 		switch column {
@@ -268,7 +293,7 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 }
 
 func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interface{}) (int64, error) {
-	builder := psql.Update(dao.table).SetMap(maps).Where(sq.Eq{"id": id})
+	builder := psql.Update(dao.opts.Table).SetMap(maps).Where(sq.Eq{"id": id})
 	if dao.workspace {
 		wid := ucontext.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
@@ -279,12 +304,22 @@ func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interf
 	if err != nil {
 		return 0, err
 	}
-	return result.RowsAffected()
+	rows, err := result.RowsAffected()
+	if dao.opts.CachePropagate && rows == 1 {
+		key := dao.opts.CacheKey.Build(id)
+		if e := mcache.Invalidate(ctx, key); e != nil {
+			dao.log.Warnf("failed to invalidate mcache: key=%s, %v", key, err)
+		}
+		dao.publishEvent(eventbus.EventInvalidation, map[string]interface{}{
+			"cache_key": key,
+		})
+	}
+	return rows, err
 }
 
 func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 	var id string
-	builder := psql.Update(dao.table)
+	builder := psql.Update(dao.opts.Table)
 	travel(entity, func(f reflect.StructField, v reflect.Value) {
 		column := utils.DefaultIfZero(f.Tag.Get("db"), strings.ToLower(f.Name))
 		switch column {
@@ -304,5 +339,40 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 	statement, args := builder.Where(sq.Eq{"id": id}).Suffix("RETURNING *").MustSql()
 	dao.debugSQL(statement, args)
 	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
+	if dao.opts.CachePropagate && err == nil {
+		key := dao.opts.CacheKey.Build(id)
+		if e := mcache.Invalidate(ctx, key); e != nil {
+			dao.log.Warnf("failed to invalidate mcache: key=%s, %v", key, err)
+		}
+		dao.publishEvent(eventbus.EventInvalidation, map[string]interface{}{
+			"cache_key": key,
+		})
+	}
 	return errs.ConvertError(err)
+}
+
+func (dao *DAO[T]) publishEvent(event string, data interface{}) {
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		dao.log.Warnf("failed to marshal data: %v", err)
+		return
+	}
+	payload := eventbus.EventPayload{
+		Event: event,
+		Data:  bytes,
+		Time:  time.Now().UnixMilli(),
+		Node:  config.NODE,
+	}
+	bytes, err = json.Marshal(payload)
+	if err != nil {
+		dao.log.Warnf("failed to marshal payload: %v", err)
+		return
+	}
+
+	dao.log.Debugf("broadcasting event: %s", string(bytes))
+	statement := fmt.Sprintf("NOTIFY %s, '%s'", "webhookx", string(bytes))
+	_, err = dao.DB(context.TODO()).ExecContext(context.TODO(), statement)
+	if err != nil {
+		dao.log.Warnf("failed to publish event: %v", err)
+	}
 }

@@ -13,7 +13,7 @@ type RedisCache struct {
 	s serializer.Serializer
 }
 
-func NewRedisCache(client *redis.Client) Cache {
+func NewRedisCache(client *redis.Client) *RedisCache {
 	return &RedisCache{
 		c: client,
 		s: serializer.Gob,

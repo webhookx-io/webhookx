@@ -24,6 +24,16 @@ func (cfg DatabaseConfig) GetDB() (*sql.DB, error) {
 	return sql.Open("postgres", dsn)
 }
 
+func (cfg DatabaseConfig) GetDSN() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		cfg.Username,
+		cfg.Password,
+		cfg.Host,
+		cfg.Port,
+		cfg.Database,
+	)
+}
+
 func (cfg DatabaseConfig) Validate() error {
 	if cfg.Port > 65535 {
 		return fmt.Errorf("port must be in the range [0, 65535]")

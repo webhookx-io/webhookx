@@ -12,7 +12,6 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
-	time "time"
 
 	taskqueue "github.com/webhookx-io/webhookx/pkg/taskqueue"
 	gomock "go.uber.org/mock/gomock"
@@ -42,17 +41,17 @@ func (m *MockTaskQueue) EXPECT() *MockTaskQueueMockRecorder {
 }
 
 // Add mocks base method.
-func (m *MockTaskQueue) Add(ctx context.Context, task *taskqueue.TaskMessage, scheduleAt time.Time) error {
+func (m *MockTaskQueue) Add(ctx context.Context, tasks []*taskqueue.TaskMessage) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Add", ctx, task, scheduleAt)
+	ret := m.ctrl.Call(m, "Add", ctx, tasks)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Add indicates an expected call of Add.
-func (mr *MockTaskQueueMockRecorder) Add(ctx, task, scheduleAt any) *gomock.Call {
+func (mr *MockTaskQueueMockRecorder) Add(ctx, tasks any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockTaskQueue)(nil).Add), ctx, task, scheduleAt)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockTaskQueue)(nil).Add), ctx, tasks)
 }
 
 // Delete mocks base method.
@@ -70,16 +69,31 @@ func (mr *MockTaskQueueMockRecorder) Delete(ctx, task any) *gomock.Call {
 }
 
 // Get mocks base method.
-func (m *MockTaskQueue) Get(ctx context.Context) (*taskqueue.TaskMessage, error) {
+func (m *MockTaskQueue) Get(ctx context.Context, opts *taskqueue.GetOptions) ([]*taskqueue.TaskMessage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", ctx)
-	ret0, _ := ret[0].(*taskqueue.TaskMessage)
+	ret := m.ctrl.Call(m, "Get", ctx, opts)
+	ret0, _ := ret[0].([]*taskqueue.TaskMessage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockTaskQueueMockRecorder) Get(ctx any) *gomock.Call {
+func (mr *MockTaskQueueMockRecorder) Get(ctx, opts any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTaskQueue)(nil).Get), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTaskQueue)(nil).Get), ctx, opts)
+}
+
+// Size mocks base method.
+func (m *MockTaskQueue) Size(ctx context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Size", ctx)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Size indicates an expected call of Size.
+func (mr *MockTaskQueueMockRecorder) Size(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Size", reflect.TypeOf((*MockTaskQueue)(nil).Size), ctx)
 }

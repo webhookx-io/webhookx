@@ -3,23 +3,14 @@ package taskqueue
 import (
 	"context"
 	"encoding/json"
-	"github.com/webhookx-io/webhookx/utils"
 	"time"
 )
 
 type TaskMessage struct {
-	ID string
-
-	data []byte
-	Data interface{}
-}
-
-func NewTaskMessage(data interface{}) *TaskMessage {
-	task := &TaskMessage{
-		ID:   utils.UUID(),
-		Data: data,
-	}
-	return task
+	ID          string
+	ScheduledAt time.Time
+	Data        interface{}
+	data        []byte
 }
 
 func (t *TaskMessage) String() string {
@@ -30,8 +21,16 @@ func (t *TaskMessage) UnmarshalData(v interface{}) error {
 	return json.Unmarshal(t.data, v)
 }
 
+func (t *TaskMessage) MarshalData() ([]byte, error) {
+	return json.Marshal(t.Data)
+}
+
+type GetOptions struct {
+	Count int64
+}
+
 type TaskQueue interface {
-	Add(ctx context.Context, task *TaskMessage, scheduleAt time.Time) error
-	Get(ctx context.Context) (task *TaskMessage, err error)
+	Add(ctx context.Context, tasks []*TaskMessage) error
+	Get(ctx context.Context, opts *GetOptions) (tasks []*TaskMessage, err error)
 	Delete(ctx context.Context, task *TaskMessage) error
 }

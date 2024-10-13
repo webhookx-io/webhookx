@@ -121,24 +121,29 @@ func (d *Dispatcher) DispatchEndpoint(ctx context.Context, event *entities.Event
 }
 
 func (d *Dispatcher) sendToQueue(ctx context.Context, attempts []*entities.Attempt) {
+	tasks := make([]*taskqueue.TaskMessage, 0, len(attempts))
+	ids := make([]string, 0, len(attempts))
 	for _, attempt := range attempts {
-		task := &taskqueue.TaskMessage{
-			ID: attempt.ID,
+		tasks = append(tasks, &taskqueue.TaskMessage{
+			ID:          attempt.ID,
+			ScheduledAt: attempt.ScheduledAt.Time,
 			Data: &model.MessageData{
 				EventID:    attempt.EventId,
 				EndpointId: attempt.EndpointId,
 				Attempt:    attempt.AttemptNumber,
 			},
-		}
-		err := d.queue.Add(ctx, task, attempt.ScheduledAt.Time)
-		if err != nil {
-			d.log.Warnf("failed to add task to queue: %v", err)
-			continue
-		}
-		err = d.db.Attempts.UpdateStatus(ctx, task.ID, entities.AttemptStatusQueued)
-		if err != nil {
-			d.log.Warnf("failed to update attempt status: %v", err)
-		}
+		})
+		ids = append(ids, attempt.ID)
+	}
+
+	err := d.queue.Add(ctx, tasks)
+	if err != nil {
+		d.log.Warnf("failed to add tasks to queue: %v", err)
+		return
+	}
+	err = d.db.Attempts.UpdateStatusBatch(ctx, entities.AttemptStatusQueued, ids)
+	if err != nil {
+		d.log.Warnf("failed to update attempts status: %v", err)
 	}
 }
 

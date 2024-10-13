@@ -6,15 +6,16 @@ import (
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	plugintypes "github.com/webhookx-io/webhookx/pkg/plugin/types"
-	"github.com/webhookx-io/webhookx/pkg/safe"
+	"github.com/webhookx-io/webhookx/pkg/pool"
+	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
+	"runtime"
 	"time"
 
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/model"
-	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
@@ -27,30 +28,33 @@ type Worker struct {
 
 	opts WorkerOptions
 
-	stop chan struct{}
-	log  *zap.SugaredLogger
+	log *zap.SugaredLogger
 
 	queue     taskqueue.TaskQueue
 	deliverer deliverer.Deliverer
 	DB        *db.DB
+	pool      *pool.Pool
 }
 
 type WorkerOptions struct {
 	RequeueJobBatch    int
 	RequeueJobInterval time.Duration
+	PoolSize           int
+	PoolConcurrency    int
 }
 
 func NewWorker(opts WorkerOptions, db *db.DB, deliverer deliverer.Deliverer, queue taskqueue.TaskQueue) *Worker {
 	opts.RequeueJobBatch = utils.DefaultIfZero(opts.RequeueJobBatch, constants.RequeueBatch)
 	opts.RequeueJobInterval = utils.DefaultIfZero(opts.RequeueJobInterval, constants.RequeueInterval)
-
+	opts.PoolSize = utils.DefaultIfZero(opts.PoolSize, 10000)
+	opts.PoolConcurrency = utils.DefaultIfZero(opts.PoolConcurrency, runtime.NumCPU()*100)
 	worker := &Worker{
 		opts:      opts,
-		stop:      make(chan struct{}),
 		queue:     queue,
 		log:       zap.S(),
 		deliverer: deliverer,
 		DB:        db,
+		pool:      pool.NewPool(opts.PoolSize, opts.PoolConcurrency),
 	}
 
 	return worker
@@ -62,8 +66,7 @@ func (w *Worker) run() {
 
 	for {
 		select {
-		case <-w.stop:
-			w.log.Info("[worker] receive stop signal")
+		case <-w.ctx.Done():
 			return
 		case <-ticker.C:
 			for {
@@ -76,7 +79,7 @@ func (w *Worker) run() {
 					break
 				}
 				w.log.Debugf("[worker] receive task: %v", task)
-				safe.Go(func() {
+				err = w.pool.SubmitFn(time.Second*10, func() {
 					task.Data = &model.MessageData{}
 					err = task.UnmarshalData(task.Data)
 					if err != nil {
@@ -94,6 +97,12 @@ func (w *Worker) run() {
 
 					_ = w.queue.Delete(context.TODO(), task)
 				})
+				if err != nil {
+					if errors.Is(err, pool.ErrPoolTernimated) {
+						return // worker is shutting down
+					}
+					w.log.Warnf("[worker] failed to submit a task: %v", err) // consider tuning pool configuration
+				}
 			}
 		}
 	}
@@ -105,18 +114,16 @@ func (w *Worker) Start() error {
 
 	w.ctx, w.cancel = context.WithCancel(context.Background())
 	schedule.Schedule(w.ctx, w.processRequeue, w.opts.RequeueJobInterval)
-
+	w.log.Infof("[worker] created pool(size=%d, concurrency=%d)", w.opts.PoolSize, w.opts.PoolConcurrency)
 	w.log.Info("[worker] started")
 	return nil
 }
 
 // Stop stops worker
 func (w *Worker) Stop() error {
-	// TODO: wait for all go routines finished
-
 	w.cancel()
-
-	w.stop <- struct{}{}
+	w.log.Info("[worker] goroutine pool is shutting down")
+	w.pool.Shutdown()
 	w.log.Info("[worker] stopped")
 
 	return nil

@@ -143,9 +143,6 @@ func (q *RedisTaskQueue) Delete(ctx context.Context, task *TaskMessage) error {
 	return err
 }
 
-func (q *RedisTaskQueue) Size(ctx context.Context) (int64, error) {
-	return q.c.ZCard(ctx, q.queue).Result()
-}
 
 // process re-enqueue invisible tasks that reach the visibility timeout
 func (q *RedisTaskQueue) process() {

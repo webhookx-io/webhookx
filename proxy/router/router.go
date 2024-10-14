@@ -16,7 +16,7 @@ func NewRouter(routes []*Route) *Router {
 	return router
 }
 
-func (r *Router) Execute(req *http.Request) interface{} {
+func (r *Router) Execute(req *http.Request) (source interface{}) {
 	path := req.URL.Path
 	method := req.Method
 	for _, route := range r.routes {

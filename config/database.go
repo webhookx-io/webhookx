@@ -3,6 +3,8 @@ package config
 import (
 	"database/sql"
 	"fmt"
+
+	"github.com/XSAM/otelsql"
 )
 
 type DatabaseConfig struct {
@@ -21,7 +23,12 @@ func (cfg DatabaseConfig) GetDB() (*sql.DB, error) {
 		cfg.Port,
 		cfg.Database,
 	)
-	return sql.Open("postgres", dsn)
+
+	driverName, err := otelsql.Register("postgres")
+	if err != nil {
+		return nil, err
+	}
+	return sql.Open(driverName, dsn)
 }
 
 func (cfg DatabaseConfig) Validate() error {

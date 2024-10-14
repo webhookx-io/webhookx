@@ -2,15 +2,18 @@ package dispatcher
 
 import (
 	"context"
+	"time"
+
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/model"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"time"
 )
 
 // Dispatcher is Event Dispatcher
@@ -30,6 +33,11 @@ func NewDispatcher(log *zap.SugaredLogger, queue taskqueue.TaskQueue, db *db.DB)
 }
 
 func (d *Dispatcher) Dispatch(ctx context.Context, event *entities.Event) error {
+	if tracer := tracing.TracerFromContext(ctx); tracer != nil {
+		tracingCtx, span := tracer.Start(ctx, "dispatcher", trace.WithSpanKind(trace.SpanKindServer))
+		defer span.End()
+		ctx = tracingCtx
+	}
 	endpoints, err := d.listSubscribedEndpoint(ctx, event.WorkspaceId, event.EventType)
 	if err != nil {
 		return err

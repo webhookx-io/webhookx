@@ -3,11 +3,13 @@ package deliverer
 import (
 	"bytes"
 	"context"
-	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/constants"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/pkg/observability"
 )
 
 // HTTPDeliverer delivers via HTTP
@@ -17,8 +19,9 @@ type HTTPDeliverer struct {
 }
 
 func NewHTTPDeliverer(cfg *config.WorkerDeliverer) *HTTPDeliverer {
-	client := &http.Client{}
-
+	client := &http.Client{
+		Transport: observability.NewObservabilityRoundTripper("worker.delivery", http.DefaultTransport),
+	}
 	return &HTTPDeliverer{
 		defaultTimeout: time.Duration(cfg.Timeout) * time.Millisecond,
 		client:         client,
@@ -32,13 +35,13 @@ func timing(fn func()) time.Duration {
 	return time.Duration(stop.UnixNano() - start.UnixNano())
 }
 
-func (d *HTTPDeliverer) Deliver(req *Request) (res *Response) {
+func (d *HTTPDeliverer) Deliver(ctx context.Context, req *Request) (res *Response) {
 	timeout := req.Timeout
 	if timeout == 0 {
 		timeout = d.defaultTimeout
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	res = &Response{

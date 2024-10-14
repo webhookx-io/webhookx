@@ -27,7 +27,7 @@ redis:
 #------------------------------------------------------------------------------
 
 admin:
-  #listen: 127.0.0.1:8080
+  # listen: 127.0.0.1:8080
 
 #------------------------------------------------------------------------------
 # WORKER
@@ -61,3 +61,27 @@ proxy:
       port: 6379
       password:
       database: 0
+
+tracing:
+#  enabled: false // do we need this?
+  service_name: WebhookX
+  global_attributes:
+    foo: bar
+    baz: buz
+  captured_request_headers:
+  captured_response_headers:
+  safe_query_params:
+  add_internals: true
+  sampling_rate: 1
+  opentelemetry:
+    http:
+      endpoint: http://jaeger:4318/v1/traces
+      headers:
+        foo: bar
+        baz: buz
+#    grpc:
+#      endpoint: localhost:4317
+#      headers:
+#        foo: bar
+#        baz: buz
+#      insecure: true

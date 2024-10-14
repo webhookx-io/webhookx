@@ -2,8 +2,9 @@ package config
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRedisConfig(t *testing.T) {
@@ -155,6 +156,44 @@ func TestProxyConfig(t *testing.T) {
 				},
 			},
 			expectedValidateErr: errors.New("invalid queue: port must be in the range [0, 65535]"),
+		},
+	}
+	for _, test := range tests {
+		actualValidateErr := test.cfg.Validate()
+		assert.Equal(t, test.expectedValidateErr, actualValidateErr, "expected %v got %v", test.expectedValidateErr, actualValidateErr)
+	}
+}
+
+func TestTracingConfig(t *testing.T) {
+	tests := []struct {
+		desc                string
+		cfg                 TracingConfig
+		expectedValidateErr error
+	}{
+		{
+			desc: "sanity",
+			cfg: TracingConfig{
+				ServiceName:             "WebhookX",
+				GlobalAttributes:        map[string]string{},
+				CapturedRequestHeaders:  []string{},
+				CapturedResponseHeaders: []string{},
+				SafeQueryParams:         []string{},
+				SamplingRate:            1,
+				AddInternals:            false,
+				Opentelemetry: &OpenTelemetryConfig{
+					HTTP: &OtelHTTP{
+						Endpoint: "http://localhost:4318/v1/traces",
+						Headers:  map[string]string{},
+						TLS:      nil,
+					},
+					GRPC: &OtelGPRC{
+						Endpoint: "localhost:4317",
+						Headers:  map[string]string{},
+						Insecure: false,
+					},
+				},
+			},
+			expectedValidateErr: nil,
 		},
 	}
 	for _, test := range tests {

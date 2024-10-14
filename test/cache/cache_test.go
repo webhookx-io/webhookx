@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"testing"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
@@ -12,8 +15,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
-	"testing"
-	"time"
 )
 
 var _ = Describe("/attempts", Ordered, func() {
@@ -23,7 +24,8 @@ var _ = Describe("/attempts", Ordered, func() {
 	BeforeAll(func() {
 		cfg, err := config.Init()
 		assert.NoError(GinkgoT(), err)
-		redisCache = cache.NewRedisCache(cfg.RedisConfig.GetClient())
+		client := cfg.RedisConfig.GetClient()
+		redisCache = cache.NewRedisCache(client)
 	})
 
 	It("sanity", func() {

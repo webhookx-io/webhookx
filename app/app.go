@@ -2,6 +2,8 @@ package app
 
 import (
 	"errors"
+	"sync"
+
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
@@ -9,12 +11,12 @@ import (
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
+	"github.com/webhookx-io/webhookx/pkg/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/proxy"
 	"github.com/webhookx-io/webhookx/worker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.uber.org/zap"
-	"sync"
 )
 
 var (
@@ -36,9 +38,10 @@ type Application struct {
 	dispatcher *dispatcher.Dispatcher
 	cache      cache.Cache
 
-	admin   *admin.Admin
-	gateway *proxy.Gateway
-	worker  *worker.Worker
+	admin                *admin.Admin
+	gateway              *proxy.Gateway
+	worker               *worker.Worker
+	observabilityManager *middlewares.ObservabilityManager
 }
 
 func NewApplication(cfg *config.Config) (*Application, error) {
@@ -72,18 +75,23 @@ func (app *Application) initialize() error {
 	}
 	app.db = db
 
-	client := cfg.RedisConfig.GetClient()
-
+	redisClient := cfg.RedisConfig.GetClient()
 	// queue
 	queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
-		Client: client,
+		Client: redisClient,
 	}, app.log)
 	app.queue = queue
 
 	// cache
-	app.cache = cache.NewRedisCache(client)
+	app.cache = cache.NewRedisCache(redisClient)
 
 	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db)
+
+	observabilityManager, err := middlewares.NewObservabilityManager(&cfg.TracingConfig)
+	if err != nil {
+		return err
+	}
+	app.observabilityManager = observabilityManager
 
 	// worker
 	if cfg.WorkerConfig.Enabled {
@@ -92,18 +100,19 @@ func (app *Application) initialize() error {
 			PoolConcurrency: int(cfg.WorkerConfig.Pool.Concurrency),
 		}
 		deliverer := deliverer.NewHTTPDeliverer(&cfg.WorkerConfig.Deliverer)
-		app.worker = worker.NewWorker(opts, db, deliverer, queue)
+		tracer := app.observabilityManager.Tracer()
+		app.worker = worker.NewWorker(opts, db, deliverer, queue, tracer)
 	}
 
 	// admin
 	if cfg.AdminConfig.IsEnabled() {
 		handler := api.NewAPI(cfg, db, app.dispatcher).Handler()
-		app.admin = admin.NewAdmin(cfg.AdminConfig, handler)
+		app.admin = admin.NewAdmin(cfg.AdminConfig, handler, app.observabilityManager)
 	}
 
 	// gateway
 	if cfg.ProxyConfig.IsEnabled() {
-		app.gateway = proxy.NewGateway(&cfg.ProxyConfig, db, app.dispatcher)
+		app.gateway = proxy.NewGateway(&cfg.ProxyConfig, db, app.dispatcher, app.observabilityManager)
 	}
 
 	return nil
@@ -165,6 +174,13 @@ func (app *Application) Stop() error {
 	}
 	if app.worker != nil {
 		app.worker.Stop()
+	}
+
+	if app.observabilityManager != nil {
+		err := app.observabilityManager.Close()
+		if err != nil {
+			app.log.Infof("failed to call observability close: %v", err)
+		}
 	}
 
 	app.started = false

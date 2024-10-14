@@ -1,11 +1,11 @@
 package config
 
 import (
-	"database/sql"
 	"fmt"
 )
 
 type DatabaseConfig struct {
+	DSN      string
 	Host     string `yaml:"host" default:"localhost"`
 	Port     uint32 `yaml:"port" default:"5432"`
 	Username string `yaml:"username" default:"webhookx"`
@@ -13,25 +13,18 @@ type DatabaseConfig struct {
 	Database string `yaml:"database" default:"webhookx"`
 }
 
-func (cfg DatabaseConfig) GetDB() (*sql.DB, error) {
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
-		cfg.Username,
-		cfg.Password,
-		cfg.Host,
-		cfg.Port,
-		cfg.Database,
-	)
-	return sql.Open("postgres", dsn)
-}
-
 func (cfg DatabaseConfig) GetDSN() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
-		cfg.Username,
-		cfg.Password,
-		cfg.Host,
-		cfg.Port,
-		cfg.Database,
-	)
+	dsn := cfg.DSN
+	if dsn == "" {
+		dsn = fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
+			cfg.Username,
+			cfg.Password,
+			cfg.Host,
+			cfg.Port,
+			cfg.Database,
+		)
+	}
+	return dsn
 }
 
 func (cfg DatabaseConfig) Validate() error {

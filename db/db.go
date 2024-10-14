@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -31,7 +32,7 @@ type DB struct {
 }
 
 func initSqlxDB(cfg *config.DatabaseConfig) (*sqlx.DB, error) {
-	db, err := cfg.GetDB()
+	db, err := sql.Open("postgres", cfg.GetDSN())
 	// db.SetMaxOpenConns(100)
 	// db.SetMaxIdleConns(100)
 	// db.SetConnMaxLifetime(time.Hour)

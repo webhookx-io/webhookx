@@ -88,7 +88,10 @@ func (app *Application) initialize() error {
 			return
 		}
 		if cacheKey, ok := maps["cache_key"]; ok {
-			mcache.Invalidate(context.TODO(), cacheKey.(string))
+			err := mcache.Invalidate(context.TODO(), cacheKey.(string))
+			if err != nil {
+				app.log.Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
+			}
 		}
 	})
 
@@ -99,19 +102,13 @@ func (app *Application) initialize() error {
 	}
 	app.db = db
 
-	metrics, err := metrics.New(cfg.MetricsConfig)
-	if err != nil {
-		return err
-	}
-	app.metrics = metrics
-
 	// queue
 	queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
 		Client: client,
-	}, app.log, metrics)
+	}, app.log)
 	app.queue = queue
 
-	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db, metrics)
+	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db)
 
 	// worker
 	if cfg.WorkerConfig.Enabled {
@@ -120,7 +117,7 @@ func (app *Application) initialize() error {
 			PoolConcurrency: int(cfg.WorkerConfig.Pool.Concurrency),
 		}
 		deliverer := deliverer.NewHTTPDeliverer(&cfg.WorkerConfig.Deliverer)
-		app.worker = worker.NewWorker(opts, db, deliverer, queue, app.metrics)
+		app.worker = worker.NewWorker(opts, db, deliverer, queue)
 	}
 
 	// admin
@@ -131,7 +128,7 @@ func (app *Application) initialize() error {
 
 	// gateway
 	if cfg.ProxyConfig.IsEnabled() {
-		app.gateway = proxy.NewGateway(&cfg.ProxyConfig, db, app.dispatcher, app.metrics)
+		app.gateway = proxy.NewGateway(&cfg.ProxyConfig, db, app.dispatcher)
 	}
 
 	return nil
@@ -153,7 +150,6 @@ func (app *Application) Start() error {
 	if err := app.bus.Start(); err != nil {
 		return err
 	}
-
 	if app.admin != nil {
 		app.admin.Start()
 	}
@@ -188,6 +184,7 @@ func (app *Application) Stop() error {
 		app.log.Infof("stopped")
 	}()
 
+	_ = app.bus.Stop()
 	// TODO: timeout
 	if app.admin != nil {
 		app.admin.Stop()
@@ -197,10 +194,6 @@ func (app *Application) Stop() error {
 	}
 	if app.worker != nil {
 		app.worker.Stop()
-	}
-
-	if app.metrics != nil {
-		app.metrics.Stop()
 	}
 
 	app.started = false

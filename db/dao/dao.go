@@ -140,13 +140,7 @@ func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
 		return false, err
 	}
 	if dao.opts.CachePropagate && rows > 0 {
-		key := dao.opts.CacheKey.Build(id)
-		if e := mcache.Invalidate(ctx, key); e != nil {
-			dao.log.Warnf("failed to invalidate mcache: key=%s, %v", key, err)
-		}
-		dao.publishEvent(eventbus.EventInvalidation, map[string]interface{}{
-			"cache_key": key,
-		})
+		go dao.handleCachePropagate(id)
 	}
 	return rows > 0, nil
 }
@@ -306,13 +300,7 @@ func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interf
 	}
 	rows, err := result.RowsAffected()
 	if dao.opts.CachePropagate && rows == 1 {
-		key := dao.opts.CacheKey.Build(id)
-		if e := mcache.Invalidate(ctx, key); e != nil {
-			dao.log.Warnf("failed to invalidate mcache: key=%s, %v", key, err)
-		}
-		dao.publishEvent(eventbus.EventInvalidation, map[string]interface{}{
-			"cache_key": key,
-		})
+		go dao.handleCachePropagate(id)
 	}
 	return rows, err
 }
@@ -340,15 +328,19 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 	dao.debugSQL(statement, args)
 	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
 	if dao.opts.CachePropagate && err == nil {
-		key := dao.opts.CacheKey.Build(id)
-		if e := mcache.Invalidate(ctx, key); e != nil {
-			dao.log.Warnf("failed to invalidate mcache: key=%s, %v", key, err)
-		}
-		dao.publishEvent(eventbus.EventInvalidation, map[string]interface{}{
-			"cache_key": key,
-		})
+		go dao.handleCachePropagate(id)
 	}
 	return errs.ConvertError(err)
+}
+
+func (dao *DAO[T]) handleCachePropagate(id string) {
+	key := dao.opts.CacheKey.Build(id)
+	if e := mcache.Invalidate(context.TODO(), key); e != nil {
+		dao.log.Warnf("failed to invalidate mcache: key=%s, %v", key, e)
+	}
+	dao.publishEvent(eventbus.EventInvalidation, map[string]interface{}{
+		"cache_key": key,
+	})
 }
 
 func (dao *DAO[T]) publishEvent(event string, data interface{}) {

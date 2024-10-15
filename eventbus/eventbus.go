@@ -4,34 +4,29 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/lib/pq"
-	"github.com/webhookx-io/webhookx/config"
 	"go.uber.org/zap"
 	"sync"
 	"time"
 )
 
-type Bus interface {
-	Subscribe(channel string, fn func(data []byte))
-	Start() error
-	Stop() error
-}
-
 const channelName = "webhookx"
 
-type DatabaseEventBus struct {
+type EventBus struct {
 	ctx      context.Context
 	cancel   context.CancelFunc
+	nodeID   string
 	dsn      string
 	log      *zap.SugaredLogger
 	mux      sync.Mutex
 	handlers map[string][]func(data []byte)
 }
 
-func NewDatabaseEventBus(dsn string, log *zap.SugaredLogger) *DatabaseEventBus {
+func NewEventBus(nodeID string, dsn string, log *zap.SugaredLogger) *EventBus {
 	ctx, cancel := context.WithCancel(context.Background())
-	bus := DatabaseEventBus{
+	bus := EventBus{
 		ctx:      ctx,
 		cancel:   cancel,
+		nodeID:   nodeID,
 		dsn:      dsn,
 		mux:      sync.Mutex{},
 		handlers: make(map[string][]func(data []byte)),
@@ -41,7 +36,7 @@ func NewDatabaseEventBus(dsn string, log *zap.SugaredLogger) *DatabaseEventBus {
 	return &bus
 }
 
-func (bus *DatabaseEventBus) Start() error {
+func (bus *EventBus) Start() error {
 	listener := pq.NewListener(bus.dsn, 10*time.Second, time.Minute, nil)
 	err := listener.Listen(channelName)
 	if err != nil {
@@ -51,12 +46,12 @@ func (bus *DatabaseEventBus) Start() error {
 	return nil
 }
 
-func (bus *DatabaseEventBus) Stop() error {
+func (bus *EventBus) Stop() error {
 	bus.cancel()
 	return nil
 }
 
-func (bus *DatabaseEventBus) listenLoop(listener *pq.Listener) {
+func (bus *EventBus) listenLoop(listener *pq.Listener) {
 	defer listener.Close()
 
 	bus.log.Infof("[eventbus] listening on channel: %s", channelName)
@@ -70,7 +65,7 @@ func (bus *DatabaseEventBus) listenLoop(listener *pq.Listener) {
 				bus.log.Errorf("[eventbus] failed to unmarshal payload: %s", err)
 				continue
 			}
-			if payload.Node == config.NODE {
+			if payload.Node == bus.nodeID {
 				continue
 			}
 			bus.log.Debugf("[eventbus] received event: channel=%s, payload=%s", n.Channel, n.Extra)
@@ -88,7 +83,7 @@ func (bus *DatabaseEventBus) listenLoop(listener *pq.Listener) {
 	}
 }
 
-func (bus *DatabaseEventBus) Subscribe(channel string, fn func(data []byte)) {
+func (bus *EventBus) Subscribe(channel string, fn func(data []byte)) {
 	bus.mux.Lock()
 	defer bus.mux.Unlock()
 

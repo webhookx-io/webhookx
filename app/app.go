@@ -40,7 +40,7 @@ type Application struct {
 	queue      taskqueue.TaskQueue
 	dispatcher *dispatcher.Dispatcher
 	cache      cache.Cache
-	bus        eventbus.Bus
+	bus        *eventbus.EventBus
 
 	admin   *admin.Admin
 	gateway *proxy.Gateway
@@ -81,19 +81,11 @@ func (app *Application) initialize() error {
 		L2:     app.cache,
 	}))
 
-	app.bus = eventbus.NewDatabaseEventBus(cfg.DatabaseConfig.GetDSN(), app.log)
-	app.bus.Subscribe(eventbus.EventInvalidation, func(data []byte) {
-		maps := make(map[string]interface{})
-		if err := json.Unmarshal(data, &maps); err != nil {
-			return
-		}
-		if cacheKey, ok := maps["cache_key"]; ok {
-			err := mcache.Invalidate(context.TODO(), cacheKey.(string))
-			if err != nil {
-				app.log.Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
-			}
-		}
-	})
+	app.bus = eventbus.NewEventBus(
+		app.NodeID(),
+		cfg.DatabaseConfig.GetDSN(),
+		app.log)
+	registerEventHandler(app.bus)
 
 	// db
 	db, err := db.NewDB(&cfg.DatabaseConfig)
@@ -134,8 +126,27 @@ func (app *Application) initialize() error {
 	return nil
 }
 
+func registerEventHandler(bus *eventbus.EventBus) {
+	bus.Subscribe(eventbus.EventInvalidation, func(data []byte) {
+		maps := make(map[string]interface{})
+		if err := json.Unmarshal(data, &maps); err != nil {
+			return
+		}
+		if cacheKey, ok := maps["cache_key"]; ok {
+			err := mcache.Invalidate(context.TODO(), cacheKey.(string))
+			if err != nil {
+				zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
+			}
+		}
+	})
+}
+
 func (app *Application) DB() *db.DB {
 	return app.db
+}
+
+func (app *Application) NodeID() string {
+	return config.NODE
 }
 
 // Start starts application

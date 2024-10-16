@@ -24,6 +24,7 @@ type Config struct {
 	AdminConfig    AdminConfig    `yaml:"admin" envconfig:"ADMIN"`
 	ProxyConfig    ProxyConfig    `yaml:"proxy" envconfig:"PROXY"`
 	WorkerConfig   WorkerConfig   `yaml:"worker" envconfig:"WORKER"`
+	MetricsConfig  MetricsConfig  `yaml:"metrics" envconfig:"METRICS"`
 }
 
 func (cfg Config) String() string {

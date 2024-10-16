@@ -6,6 +6,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/model"
+	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
@@ -15,16 +16,19 @@ import (
 
 // Dispatcher is Event Dispatcher
 type Dispatcher struct {
-	log   *zap.SugaredLogger
-	queue taskqueue.TaskQueue
-	db    *db.DB
+	log     *zap.SugaredLogger
+	queue   taskqueue.TaskQueue
+	db      *db.DB
+	metrics *metrics.Metrics
+	list    []*entities.Endpoint
 }
 
-func NewDispatcher(log *zap.SugaredLogger, queue taskqueue.TaskQueue, db *db.DB) *Dispatcher {
+func NewDispatcher(log *zap.SugaredLogger, queue taskqueue.TaskQueue, db *db.DB, metrics *metrics.Metrics) *Dispatcher {
 	dispatcher := &Dispatcher{
-		log:   log,
-		queue: queue,
-		db:    db,
+		log:     log,
+		queue:   queue,
+		db:      db,
+		metrics: metrics,
 	}
 	return dispatcher
 }
@@ -37,6 +41,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event *entities.Event) error 
 
 	attempts := fanout(event, endpoints, entities.AttemptTriggerModeInitial)
 	if len(attempts) == 0 {
+		d.metrics.EventPersistCount.Add(1)
 		return d.db.Events.Insert(ctx, event)
 	}
 
@@ -50,6 +55,8 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event *entities.Event) error 
 	if err != nil {
 		return err
 	}
+
+	d.metrics.EventPersistCount.Add(1)
 
 	go d.sendToQueue(context.TODO(), attempts)
 
@@ -81,6 +88,8 @@ func (d *Dispatcher) DispatchBatch(ctx context.Context, events []*entities.Event
 		}
 		return d.db.Attempts.BatchInsert(ctx, attempts)
 	})
+	// 到底有多少个事件已经被入库了
+	d.metrics.EventPersistCount.Add(float64(len(events))) // 这里可能不太准确，应该取 ids
 
 	go d.sendToQueue(context.TODO(), attempts)
 
@@ -148,6 +157,9 @@ func (d *Dispatcher) sendToQueue(ctx context.Context, attempts []*entities.Attem
 }
 
 func (d *Dispatcher) listSubscribedEndpoint(ctx context.Context, wid, eventType string) (list []*entities.Endpoint, err error) {
+	if d.list != nil {
+		return d.list, nil
+	}
 	var q query.EndpointQuery
 	q.WorkspaceId = &wid
 	endpoints, err := d.db.Endpoints.List(ctx, &q)
@@ -165,6 +177,7 @@ func (d *Dispatcher) listSubscribedEndpoint(ctx context.Context, wid, eventType 
 			}
 		}
 	}
+	d.list = list
 
 	return
 }

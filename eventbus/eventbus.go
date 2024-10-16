@@ -55,7 +55,10 @@ func (bus *EventBus) listenLoop(listener *pq.Listener) {
 	defer listener.Close()
 
 	bus.log.Infof("[eventbus] listening on channel: %s", channelName)
+	timeoutDuration := 90 * time.Second
+	timeout := time.NewTimer(timeoutDuration)
 	for {
+		timeout.Reset(timeoutDuration)
 		select {
 		case <-bus.ctx.Done():
 			return
@@ -74,7 +77,7 @@ func (bus *EventBus) listenLoop(listener *pq.Listener) {
 					handler(payload.Data)
 				}
 			}
-		case <-time.After(90 * time.Second):
+		case <-timeout.C:
 			err := listener.Ping()
 			if err != nil {
 				bus.log.Errorf("[eventbus] ping error: %v", err)

@@ -54,6 +54,10 @@ func (cfg Config) Validate() error {
 		return err
 	}
 
+	if err := cfg.TracingConfig.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

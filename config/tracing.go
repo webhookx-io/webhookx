@@ -7,33 +7,32 @@ import (
 )
 
 type TracingConfig struct {
-	ServiceName             string            `yaml:"service_name" default:"WebhookX"`
-	GlobalAttributes        map[string]string `yaml:"global_attributes"`
-	CapturedRequestHeaders  []string          `yaml:"captured_request_headers"`
-	CapturedResponseHeaders []string          `yaml:"captured_response_headers"`
-	SafeQueryParams         []string          `yaml:"safe_query_params"`
-	SamplingRate            float64           `yaml:"sampling_rate" default:"1"`
-	AddInternals            bool              `yaml:"add_internals" default:"false"`
-
-	Opentelemetry *OpenTelemetryConfig `yaml:"opentelemetry"`
+	GlobalAttributes        map[string]string    `yaml:"global_attributes"`
+	Opentelemetry           *OpenTelemetryConfig `yaml:"opentelemetry"`
+	ServiceName             string               `yaml:"service_name" default:"WebhookX"`
+	CapturedRequestHeaders  []string             `yaml:"captured_request_headers"`
+	CapturedResponseHeaders []string             `yaml:"captured_response_headers"`
+	SafeQueryParams         []string             `yaml:"safe_query_params"`
+	SamplingRate            float64              `yaml:"sampling_rate" default:"1"`
+	AddInternals            bool                 `yaml:"add_internals" default:"false"`
 }
 
 type OpenTelemetryConfig struct {
-	HTTP *OtelHTTP `yaml:"http"`
-	GRPC *OtelGPRC `yaml:"grpc"`
+	HTTP *OtelHTTP `yaml:"http,omitempty"`
+	GRPC *OtelGPRC `yaml:"grpc,omitempty"`
 }
 
 type OtelHTTP struct {
-	Endpoint string            `yaml:"endpoint" default:"http://localhost:4318/v1/traces"`
-	Headers  map[string]string `yaml:"headers"`
-	TLS      *types.ClientTLS  `yaml:"tls"`
+	Headers  map[string]string `yaml:"headers,omitempty"`
+	TLS      *types.ClientTLS  `yaml:"tls,omitempty"`
+	Endpoint string            `yaml:"endpoint"`
 }
 
 type OtelGPRC struct {
+	Headers  map[string]string `yaml:"headers,omitempty"`
+	TLS      *types.ClientTLS  `yaml:"tls,omitempty"`
 	Endpoint string            `yaml:"endpoint" default:"localhost:4317"`
-	Headers  map[string]string `yaml:"headers"`
-	Insecure bool              `yaml:"insecure" default:"false"`
-	TLS      *types.ClientTLS  `yaml:"tls"`
+	Insecure bool              `yaml:"insecure" default:"true"`
 }
 
 func (cfg TracingConfig) Validate() error {

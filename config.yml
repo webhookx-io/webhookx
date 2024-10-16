@@ -61,3 +61,19 @@ proxy:
       port: 6379
       password:
       database: 0
+
+metrics:
+  datadog:
+    address: udp://127.0.0.1:8124
+    prefix: webhookx
+    interval: 10
+  otlp:
+    interval: 1
+    http:
+      endpoint: http://localhost:4318/v1/metrics
+    grpc:
+      endpoint: http://localhost:4317
+      headers:
+        key: value
+      insecure: true
+      # todo ca

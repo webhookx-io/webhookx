@@ -10,6 +10,7 @@ type Message struct {
 	Data        []byte
 	Time        time.Time
 	WorkspaceID string
+	Object      interface{}
 }
 
 type Options struct {
@@ -22,4 +23,5 @@ type Queue interface {
 	Enqueue(ctx context.Context, message *Message) error
 	Dequeue(ctx context.Context, opts *Options) ([]*Message, error)
 	Delete(ctx context.Context, message []*Message) error
+	Size(ctx context.Context) (int64, error)
 }

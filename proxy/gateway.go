@@ -11,11 +11,14 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
+	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/queue/redis"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
+	"github.com/webhookx-io/webhookx/pkg/serializer"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
+	"github.com/webhookx-io/webhookx/proxy/middlewares"
 	"github.com/webhookx-io/webhookx/proxy/router"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
@@ -45,13 +48,13 @@ type Gateway struct {
 	queue queue.Queue
 }
 
-func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher *dispatcher.Dispatcher) *Gateway {
+func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher *dispatcher.Dispatcher, metrics *metrics.Metrics) *Gateway {
 	var q queue.Queue
 	switch cfg.Queue.Type {
 	case "redis":
 		q, _ = redis.NewRedisQueue(redis.RedisQueueOptions{
 			Client: cfg.Queue.Redis.GetClient(),
-		}, zap.S())
+		}, zap.S(), metrics)
 	}
 
 	gw := &Gateway{
@@ -65,6 +68,7 @@ func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher *dispatcher.Dispa
 
 	r := mux.NewRouter()
 	r.Use(panicRecovery)
+	r.Use(middlewares.NewMetricsMiddleware(metrics).Handle)
 	r.PathPrefix("/").HandlerFunc(gw.Handle)
 
 	gw.s = &http.Server{

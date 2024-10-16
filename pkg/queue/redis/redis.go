@@ -5,6 +5,8 @@ import (
 	"errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/webhookx-io/webhookx/constants"
+	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
@@ -19,8 +21,9 @@ type RedisQueue struct {
 	consumer          string
 	visibilityTimeout time.Duration
 
-	c   *redis.Client
-	log *zap.SugaredLogger
+	c       *redis.Client
+	log     *zap.SugaredLogger
+	metrics *metrics.Metrics
 }
 
 type RedisQueueOptions struct {
@@ -32,7 +35,7 @@ type RedisQueueOptions struct {
 	Client *redis.Client
 }
 
-func NewRedisQueue(opts RedisQueueOptions, logger *zap.SugaredLogger) (queue.Queue, error) {
+func NewRedisQueue(opts RedisQueueOptions, logger *zap.SugaredLogger, metrics *metrics.Metrics) (queue.Queue, error) {
 	q := &RedisQueue{
 		stream:            utils.DefaultIfZero(opts.StreamName, constants.QueueRedisQueueName),
 		group:             utils.DefaultIfZero(opts.GroupName, constants.QueueRedisGroupName),
@@ -40,9 +43,12 @@ func NewRedisQueue(opts RedisQueueOptions, logger *zap.SugaredLogger) (queue.Que
 		visibilityTimeout: utils.DefaultIfZero(opts.VisibilityTimeout, constants.QueueRedisVisibilityTimeout),
 		c:                 opts.Client,
 		log:               logger,
+		metrics:           metrics,
 	}
 
 	go q.process()
+	go q.monitoring()
+
 	return q, nil
 }
 
@@ -50,11 +56,7 @@ func (q *RedisQueue) Enqueue(ctx context.Context, message *queue.Message) error 
 	args := &redis.XAddArgs{
 		Stream: q.stream,
 		ID:     "*",
-		Values: map[string]interface{}{
-			"data":  message.Data,
-			"time":  message.Time.UnixMilli(),
-			"ws_id": message.WorkspaceID,
-		},
+		Values: []interface{}{"data", message.Data, "time", message.Time.UnixMilli(), "ws_id", message.WorkspaceID},
 	}
 	res := q.c.XAdd(ctx, args)
 	if res.Err() != nil {
@@ -132,11 +134,20 @@ func (q *RedisQueue) Delete(ctx context.Context, messages []*queue.Message) erro
 	pipeline := q.c.Pipeline()
 	pipeline.XAck(ctx, q.stream, q.group, ids...)
 	pipeline.XDel(ctx, q.stream, ids...)
+	for _, message := range messages {
+		if message.Object != nil {
+			pipeline.Set(ctx, "webhookx:events:"+message.Object.(*entities.Event).ID, message.Data, time.Second*30)
+		}
+	}
 	_, err := pipeline.Exec(ctx)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (q *RedisQueue) Size(ctx context.Context) (int64, error) {
+	return q.c.XLen(ctx, q.stream).Result()
 }
 
 func (q *RedisQueue) createConsumerGroup() {
@@ -192,4 +203,17 @@ func (q *RedisQueue) process() {
 		}
 
 	}()
+}
+
+func (q *RedisQueue) monitoring() {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for range ticker.C {
+		size, err := q.Size(context.TODO())
+		if err != nil {
+			q.log.Errorf("failed to get queue length: %v", err)
+			continue
+		}
+		q.metrics.ProxyQueueSize.Set(float64(size))
+	}
 }

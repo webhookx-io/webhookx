@@ -13,6 +13,7 @@ import (
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
+	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/proxy"
 	"github.com/webhookx-io/webhookx/worker"
@@ -41,6 +42,7 @@ type Application struct {
 	dispatcher *dispatcher.Dispatcher
 	cache      cache.Cache
 	bus        *eventbus.EventBus
+	metrics    *metrics.Metrics
 
 	admin   *admin.Admin
 	gateway *proxy.Gateway
@@ -94,13 +96,19 @@ func (app *Application) initialize() error {
 	}
 	app.db = db
 
+	metrics, err := metrics.New(cfg.MetricsConfig)
+	if err != nil {
+		return err
+	}
+	app.metrics = metrics
+
 	// queue
 	queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
 		Client: client,
-	}, app.log)
+	}, app.log, metrics)
 	app.queue = queue
 
-	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db)
+	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db, metrics)
 
 	// worker
 	if cfg.WorkerConfig.Enabled {
@@ -109,7 +117,7 @@ func (app *Application) initialize() error {
 			PoolConcurrency: int(cfg.WorkerConfig.Pool.Concurrency),
 		}
 		deliverer := deliverer.NewHTTPDeliverer(&cfg.WorkerConfig.Deliverer)
-		app.worker = worker.NewWorker(opts, db, deliverer, queue)
+		app.worker = worker.NewWorker(opts, db, deliverer, queue, metrics)
 	}
 
 	// admin
@@ -120,7 +128,7 @@ func (app *Application) initialize() error {
 
 	// gateway
 	if cfg.ProxyConfig.IsEnabled() {
-		app.gateway = proxy.NewGateway(&cfg.ProxyConfig, db, app.dispatcher)
+		app.gateway = proxy.NewGateway(&cfg.ProxyConfig, db, app.dispatcher, metrics)
 	}
 
 	return nil

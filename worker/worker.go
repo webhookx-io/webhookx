@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/mcache"
+	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	plugintypes "github.com/webhookx-io/webhookx/pkg/plugin/types"
 	"github.com/webhookx-io/webhookx/pkg/pool"
@@ -35,6 +36,7 @@ type Worker struct {
 	deliverer deliverer.Deliverer
 	DB        *db.DB
 	pool      *pool.Pool
+	metrics   *metrics.Metrics
 }
 
 type WorkerOptions struct {
@@ -44,18 +46,29 @@ type WorkerOptions struct {
 	PoolConcurrency    int
 }
 
-func NewWorker(opts WorkerOptions, db *db.DB, deliverer deliverer.Deliverer, queue taskqueue.TaskQueue) *Worker {
+func NewWorker(
+	opts WorkerOptions,
+	db *db.DB,
+	deliverer deliverer.Deliverer,
+	queue taskqueue.TaskQueue,
+	metrics *metrics.Metrics) *Worker {
+
 	opts.RequeueJobBatch = utils.DefaultIfZero(opts.RequeueJobBatch, constants.RequeueBatch)
 	opts.RequeueJobInterval = utils.DefaultIfZero(opts.RequeueJobInterval, constants.RequeueInterval)
 	opts.PoolSize = utils.DefaultIfZero(opts.PoolSize, 10000)
 	opts.PoolConcurrency = utils.DefaultIfZero(opts.PoolConcurrency, runtime.NumCPU()*100)
+
+	ctx, cancel := context.WithCancel(context.Background())
 	worker := &Worker{
+		ctx:       ctx,
+		cancel:    cancel,
 		opts:      opts,
 		queue:     queue,
 		log:       zap.S(),
 		deliverer: deliverer,
 		DB:        db,
 		pool:      pool.NewPool(opts.PoolSize, opts.PoolConcurrency),
+		metrics:   metrics,
 	}
 
 	return worker
@@ -88,6 +101,7 @@ func (w *Worker) run() {
 				var errs []error
 				for _, task := range tasks {
 					err = w.pool.SubmitFn(time.Second*5, func() {
+						// w.metrics.TaskQueueConsumeTotal.Add(1)
 						task.Data = &model.MessageData{}
 						err = task.UnmarshalData(task.Data)
 						if err != nil {
@@ -125,7 +139,6 @@ func (w *Worker) run() {
 func (w *Worker) Start() error {
 	go w.run()
 
-	w.ctx, w.cancel = context.WithCancel(context.Background())
 	schedule.Schedule(w.ctx, w.processRequeue, w.opts.RequeueJobInterval)
 	w.log.Infof("[worker] created pool(size=%d, concurrency=%d)", w.opts.PoolSize, w.opts.PoolConcurrency)
 	w.log.Info("[worker] started")
@@ -258,6 +271,8 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	startAt := time.Now()
 	response := w.deliverer.Deliver(request)
 	finishAt := time.Now()
+
+	w.metrics.AttemptsTotal.Add(1)
 
 	if response.Error != nil {
 		w.log.Infof("[worker] failed to delivery event: %v", response.Error)

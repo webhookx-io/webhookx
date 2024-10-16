@@ -5,7 +5,6 @@ import (
 )
 
 type DatabaseConfig struct {
-	DSN      string
 	Host     string `yaml:"host" default:"localhost"`
 	Port     uint32 `yaml:"port" default:"5432"`
 	Username string `yaml:"username" default:"webhookx"`
@@ -14,17 +13,13 @@ type DatabaseConfig struct {
 }
 
 func (cfg DatabaseConfig) GetDSN() string {
-	dsn := cfg.DSN
-	if dsn == "" {
-		dsn = fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
-			cfg.Username,
-			cfg.Password,
-			cfg.Host,
-			cfg.Port,
-			cfg.Database,
-		)
-	}
-	return dsn
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		cfg.Username,
+		cfg.Password,
+		cfg.Host,
+		cfg.Port,
+		cfg.Database,
+	)
 }
 
 func (cfg DatabaseConfig) Validate() error {

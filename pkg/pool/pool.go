@@ -60,10 +60,12 @@ func (p *Pool) Submit(timeout time.Duration, task Task) error {
 		return ErrPoolTernimated
 	}
 
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
 	select {
 	case p.tasks <- task:
 		return nil
-	case <-time.After(timeout):
+	case <-timer.C:
 		return ErrTimeout
 	}
 }

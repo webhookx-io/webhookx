@@ -1,6 +1,7 @@
 package migrator
 
 import (
+	"database/sql"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
@@ -22,7 +23,7 @@ func New(cfg *config.DatabaseConfig) *Migrator {
 }
 
 func (m *Migrator) init() (*migrate.Migrate, error) {
-	db, err := m.cfg.GetDB()
+	db, err := sql.Open("postgres", m.cfg.GetDSN())
 	if err != nil {
 		return nil, err
 	}

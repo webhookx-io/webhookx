@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/webhookx-io/webhookx/constants"
+	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	plugintypes "github.com/webhookx-io/webhookx/pkg/plugin/types"
 	"github.com/webhookx-io/webhookx/pkg/pool"
@@ -191,7 +192,8 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	data := task.Data.(*model.MessageData)
 
 	// verify endpoint
-	endpoint, err := w.DB.Endpoints.Get(ctx, data.EndpointId)
+	cacheKey := constants.EndpointCacheKey.Build(data.EndpointId)
+	endpoint, err := mcache.Load(ctx, cacheKey, nil, w.DB.Endpoints.Get, data.EndpointId)
 	if err != nil {
 		return err
 	}
@@ -203,7 +205,9 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	}
 
 	// verify event
-	event, err := w.DB.Events.Get(ctx, data.EventID)
+	cacheKey = constants.EventCacheKey.Build(data.EventID)
+	opts := &mcache.LoadOptions{DisableLRU: true}
+	event, err := mcache.Load(ctx, cacheKey, opts, w.DB.Events.Get, data.EventID)
 	if err != nil {
 		return err
 	}
@@ -216,7 +220,8 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		return err
 	}
 
-	workspace, err := w.DB.Workspaces.Get(ctx, endpoint.WorkspaceId)
+	cacheKey = constants.WorkspaceCacheKey.Build(endpoint.WorkspaceId)
+	workspace, err := mcache.Load(ctx, cacheKey, nil, w.DB.Workspaces.Get, endpoint.WorkspaceId)
 	if err != nil {
 		return err
 	}

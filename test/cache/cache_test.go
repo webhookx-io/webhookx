@@ -2,21 +2,16 @@ package cache
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/config"
-	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/cache"
-	"github.com/webhookx-io/webhookx/pkg/types"
-	"github.com/webhookx-io/webhookx/utils"
 	"testing"
 	"time"
 )
 
-var _ = Describe("/attempts", Ordered, func() {
+var _ = Describe("cache", Ordered, func() {
 
 	var redisCache cache.Cache
 
@@ -45,53 +40,6 @@ var _ = Describe("/attempts", Ordered, func() {
 		assert.NoError(GinkgoT(), err)
 		assert.False(GinkgoT(), exist)
 	})
-
-	Context("cache.Get", func() {
-		counter := 0
-		mockWorkspace := &entities.Workspace{
-			ID:          utils.KSUID(),
-			Name:        utils.Pointer("mock workpsace"),
-			Description: utils.Pointer("mock workpsace"),
-			CreatedAt:   types.NewTime(time.Now()),
-			UpdatedAt:   types.NewTime(time.Now()),
-		}
-		key := "workspaces:" + mockWorkspace.ID
-
-		It("sanity", func() {
-			_, err := cache.Get(redisCache, context.TODO(), key, func(ctx context.Context) (*entities.Workspace, error) {
-				counter++
-				return mockWorkspace, nil
-			}, nil)
-			assert.NoError(GinkgoT(), err)
-			assert.Equal(GinkgoT(), 1, counter)
-
-			exist, err := redisCache.Exist(context.TODO(), key)
-			assert.NoError(GinkgoT(), err)
-			assert.True(GinkgoT(), exist)
-
-			workspace, err := cache.Get(redisCache, context.TODO(), key, func(ctx context.Context) (*entities.Workspace, error) {
-				counter++
-				return mockWorkspace, nil
-			}, nil)
-			assert.NoError(GinkgoT(), err)
-			assert.Equal(GinkgoT(), 1, counter)
-
-			assert.JSONEq(GinkgoT(),
-				string(utils.Must(json.Marshal(mockWorkspace))),
-				string(utils.Must(json.Marshal(workspace))))
-		})
-
-		Context("errors", func() {
-			It("returns error if callback returns error", func() {
-				_, err := cache.Get(redisCache, context.TODO(), "not exist", func(ctx context.Context) (*entities.Workspace, error) {
-					return nil, errors.New("test error")
-				}, nil)
-				assert.NotNil(GinkgoT(), err)
-				assert.Equal(GinkgoT(), "test error", err.Error())
-			})
-		})
-	})
-
 })
 
 func TestCache(t *testing.T) {

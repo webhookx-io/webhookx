@@ -13,6 +13,7 @@ import (
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
+	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/proxy"
 	"github.com/webhookx-io/webhookx/worker"
@@ -72,7 +73,7 @@ func (app *Application) initialize() error {
 	app.log = zap.S()
 
 	// cache
-	client := cfg.RedisConfig.GetClient()
+	client := cfg.Redis.GetClient()
 	app.cache = cache.NewRedisCache(client)
 
 	mcache.Set(mcache.NewMCache(&mcache.Options{
@@ -83,44 +84,49 @@ func (app *Application) initialize() error {
 
 	app.bus = eventbus.NewEventBus(
 		app.NodeID(),
-		cfg.DatabaseConfig.GetDSN(),
+		cfg.Database.GetDSN(),
 		app.log)
 	registerEventHandler(app.bus)
 
 	// db
-	db, err := db.NewDB(&cfg.DatabaseConfig)
+	db, err := db.NewDB(&cfg.Database)
 	if err != nil {
 		return err
 	}
 	app.db = db
 
+	metrics, err := metrics.New(cfg.Metrics)
+	if err != nil {
+		return err
+	}
+
 	// queue
 	queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
 		Client: client,
-	}, app.log)
+	}, app.log, metrics)
 	app.queue = queue
 
-	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db)
+	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db, metrics)
 
 	// worker
-	if cfg.WorkerConfig.Enabled {
+	if cfg.Worker.Enabled {
 		opts := worker.WorkerOptions{
-			PoolSize:        int(cfg.WorkerConfig.Pool.Size),
-			PoolConcurrency: int(cfg.WorkerConfig.Pool.Concurrency),
+			PoolSize:        int(cfg.Worker.Pool.Size),
+			PoolConcurrency: int(cfg.Worker.Pool.Concurrency),
 		}
-		deliverer := deliverer.NewHTTPDeliverer(&cfg.WorkerConfig.Deliverer)
-		app.worker = worker.NewWorker(opts, db, deliverer, queue)
+		deliverer := deliverer.NewHTTPDeliverer(&cfg.Worker.Deliverer)
+		app.worker = worker.NewWorker(opts, db, deliverer, queue, metrics)
 	}
 
 	// admin
-	if cfg.AdminConfig.IsEnabled() {
+	if cfg.Admin.IsEnabled() {
 		handler := api.NewAPI(cfg, db, app.dispatcher).Handler()
-		app.admin = admin.NewAdmin(cfg.AdminConfig, handler)
+		app.admin = admin.NewAdmin(cfg.Admin, handler)
 	}
 
 	// gateway
-	if cfg.ProxyConfig.IsEnabled() {
-		app.gateway = proxy.NewGateway(&cfg.ProxyConfig, db, app.dispatcher)
+	if cfg.Proxy.IsEnabled() {
+		app.gateway = proxy.NewGateway(&cfg.Proxy, db, app.dispatcher, metrics)
 	}
 
 	return nil

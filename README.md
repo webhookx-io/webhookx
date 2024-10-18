@@ -22,7 +22,6 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 
 - [ ] Data retention policy
 - [ ] Insight admin APIs
-- [ ] Observability(o11y) including tracing and metrics
 - [ ] Declarative configuration management
 
 #### Inbound

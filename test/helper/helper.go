@@ -90,7 +90,7 @@ func DB() *db.DB {
 	if err != nil {
 		return nil
 	}
-	db, err := db.NewDB(&cfg.DatabaseConfig)
+	db, err := db.NewDB(&cfg.Database)
 	if err != nil {
 		return nil
 	}
@@ -114,7 +114,7 @@ func InitDB(truncated bool, entities *EntitiesConfig) *db.DB {
 		}
 	}
 
-	db, err := db.NewDB(&cfg.DatabaseConfig)
+	db, err := db.NewDB(&cfg.Database)
 	if err != nil {
 		panic(err)
 	}
@@ -185,7 +185,7 @@ func ResetDB() error {
 		return err
 	}
 
-	migrator := migrator.New(&cfg.DatabaseConfig)
+	migrator := migrator.New(&cfg.Database)
 	err = migrator.Reset()
 	if err != nil {
 		return err

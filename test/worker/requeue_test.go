@@ -9,6 +9,7 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/mocks"
 	"github.com/webhookx-io/webhookx/utils"
@@ -37,9 +38,11 @@ var _ = Describe("processRequeue", Ordered, func() {
 		queue.EXPECT().Delete(gomock.Any(), gomock.Any()).AnyTimes()
 		queue.EXPECT().Add(gomock.Any(), gomock.Any()).Times(10)
 
+		metrics, err := metrics.New(config.MetricsConfig{})
+		assert.NoError(GinkgoT(), err)
 		w = worker.NewWorker(worker.WorkerOptions{
 			RequeueJobInterval: time.Second,
-		}, db, deliverer.NewHTTPDeliverer(&config.WorkerDeliverer{}), queue)
+		}, db, deliverer.NewHTTPDeliverer(&config.WorkerDeliverer{}), queue, metrics)
 
 		// data
 		ws := utils.Must(db.Workspaces.GetDefault(context.TODO()))

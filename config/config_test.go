@@ -2,8 +2,9 @@ package config
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRedisConfig(t *testing.T) {
@@ -155,6 +156,51 @@ func TestProxyConfig(t *testing.T) {
 				},
 			},
 			expectedValidateErr: errors.New("invalid queue: port must be in the range [0, 65535]"),
+		},
+	}
+	for _, test := range tests {
+		actualValidateErr := test.cfg.Validate()
+		assert.Equal(t, test.expectedValidateErr, actualValidateErr, "expected %v got %v", test.expectedValidateErr, actualValidateErr)
+	}
+}
+
+func TestTracingConfig(t *testing.T) {
+	tests := []struct {
+		desc                string
+		cfg                 TracingConfig
+		expectedValidateErr error
+	}{
+		{
+			desc: "sanity",
+			cfg: TracingConfig{
+				ServiceName:  "WebhookX",
+				SamplingRate: 0,
+				Opentelemetry: &OpenTelemetryConfig{
+					HTTP: OtelEndpoint{
+						Endpoint: "http://localhost:4318/v1/traces",
+						Headers:  map[string]string{},
+					},
+					GRPC: OtelEndpoint{
+						Endpoint: "localhost:4317",
+						Headers:  map[string]string{},
+					},
+				},
+			},
+			expectedValidateErr: nil,
+		},
+		{
+			desc: "invalid sampling rate",
+			cfg: TracingConfig{
+				ServiceName:  "WebhookX",
+				SamplingRate: 1.1,
+				Opentelemetry: &OpenTelemetryConfig{
+					HTTP: OtelEndpoint{
+						Endpoint: "http://localhost:4318/v1/traces",
+						Headers:  map[string]string{},
+					},
+				},
+			},
+			expectedValidateErr: errors.New("invalid sampling rate, must be [0,1]"),
 		},
 	}
 	for _, test := range tests {

@@ -3,22 +3,25 @@ package worker
 import (
 	"context"
 	"errors"
+	"runtime"
+	"time"
+
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	plugintypes "github.com/webhookx-io/webhookx/pkg/plugin/types"
 	"github.com/webhookx-io/webhookx/pkg/pool"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
-	"runtime"
-	"time"
 
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/model"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -33,6 +36,7 @@ type Worker struct {
 	queue     taskqueue.TaskQueue
 	deliverer deliverer.Deliverer
 	DB        *db.DB
+	tracer    *tracing.Tracer
 	pool      *pool.Pool
 }
 
@@ -43,7 +47,7 @@ type WorkerOptions struct {
 	PoolConcurrency    int
 }
 
-func NewWorker(opts WorkerOptions, db *db.DB, deliverer deliverer.Deliverer, queue taskqueue.TaskQueue) *Worker {
+func NewWorker(opts WorkerOptions, db *db.DB, deliverer deliverer.Deliverer, queue taskqueue.TaskQueue, tracer *tracing.Tracer) *Worker {
 	opts.RequeueJobBatch = utils.DefaultIfZero(opts.RequeueJobBatch, constants.RequeueBatch)
 	opts.RequeueJobInterval = utils.DefaultIfZero(opts.RequeueJobInterval, constants.RequeueInterval)
 	opts.PoolSize = utils.DefaultIfZero(opts.PoolSize, 10000)
@@ -55,6 +59,7 @@ func NewWorker(opts WorkerOptions, db *db.DB, deliverer deliverer.Deliverer, que
 		deliverer: deliverer,
 		DB:        db,
 		pool:      pool.NewPool(opts.PoolSize, opts.PoolConcurrency),
+		tracer:    tracer,
 	}
 
 	return worker
@@ -73,7 +78,14 @@ func (w *Worker) run() {
 			return
 		case <-ticker.C:
 			for {
-				ctx := context.TODO()
+				// TODO: start trace with task context
+				ctx := context.Background()
+				if w.tracer != nil {
+					start := time.Now()
+					tracingCtx, span := w.tracer.Start(context.Background(), "worker.fetch", trace.WithSpanKind(trace.SpanKindConsumer), trace.WithTimestamp(start))
+					defer span.End()
+					ctx = tracingCtx
+				}
 				tasks, err := w.queue.Get(ctx, options)
 				if err != nil {
 					w.log.Errorf("[worker] failed to get tasks from queue: %v", err)
@@ -87,6 +99,13 @@ func (w *Worker) run() {
 				var errs []error
 				for _, task := range tasks {
 					err = w.pool.SubmitFn(time.Second*5, func() {
+						// TODO: start trace with task Context
+						if w.tracer != nil {
+							start := time.Now()
+							tracingCtx, span := w.tracer.Start(context.Background(), "worker.handle", trace.WithSpanKind(trace.SpanKindClient), trace.WithTimestamp(start))
+							defer span.End()
+							ctx = tracingCtx
+						}
 						task.Data = &model.MessageData{}
 						err = task.UnmarshalData(task.Data)
 						if err != nil {
@@ -251,7 +270,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 
 	// deliver the request
 	startAt := time.Now()
-	response := w.deliverer.Deliver(request)
+	response := w.deliverer.Deliver(ctx, request)
 	finishAt := time.Now()
 
 	if response.Error != nil {

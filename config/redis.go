@@ -2,7 +2,10 @@ package config
 
 import (
 	"fmt"
+
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 type RedisConfig struct {
@@ -19,7 +22,11 @@ func (cfg RedisConfig) GetClient() *redis.Client {
 		Password: cfg.Password,
 		DB:       int(cfg.Database),
 	}
-	return redis.NewClient(options)
+	rdb := redis.NewClient(options)
+	if err := redisotel.InstrumentTracing(rdb); err != nil {
+		zap.S().Errorf(`failed to instrument redis otel tracing %v`, err)
+	}
+	return rdb
 }
 
 func (cfg RedisConfig) Validate() error {

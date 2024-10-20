@@ -2,10 +2,11 @@ package config
 
 import (
 	"encoding/json"
+	"os"
+
 	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/pkg/envconfig"
 	"gopkg.in/yaml.v3"
-	"os"
 )
 
 var (
@@ -22,6 +23,7 @@ type Config struct {
 	AdminConfig    AdminConfig    `yaml:"admin" envconfig:"ADMIN"`
 	ProxyConfig    ProxyConfig    `yaml:"proxy" envconfig:"PROXY"`
 	WorkerConfig   WorkerConfig   `yaml:"worker" envconfig:"WORKER"`
+	TracingConfig  TracingConfig  `yaml:"tracing" envconfig:"TRACING"`
 }
 
 func (cfg Config) String() string {
@@ -49,6 +51,10 @@ func (cfg Config) Validate() error {
 		return err
 	}
 	if err := cfg.WorkerConfig.Validate(); err != nil {
+		return err
+	}
+
+	if err := cfg.TracingConfig.Validate(); err != nil {
 		return err
 	}
 

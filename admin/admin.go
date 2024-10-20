@@ -2,11 +2,13 @@ package admin
 
 import (
 	"context"
-	"github.com/webhookx-io/webhookx/config"
-	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/pkg/middlewares"
+	"go.uber.org/zap"
 )
 
 // Admin is an HTTP Server
@@ -14,14 +16,18 @@ type Admin struct {
 	s *http.Server
 }
 
-func NewAdmin(cfg config.AdminConfig, handler http.Handler) *Admin {
+func NewAdmin(cfg config.AdminConfig, handler http.Handler, observabilityManager *middlewares.ObservabilityManager) *Admin {
+	if observabilityManager.IsTracingEnable() {
+		chain := observabilityManager.BuildChain(context.Background(), "admin")
+		handler = chain.Then(handler)
+	}
+
 	s := &http.Server{
 		Handler: handler,
 		Addr:    cfg.Listen,
 
 		WriteTimeout: 60 * time.Second,
 		ReadTimeout:  60 * time.Second,
-
 		// TODO: expose more to be configurable
 	}
 

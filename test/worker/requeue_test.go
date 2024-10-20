@@ -2,6 +2,9 @@ package worker
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
@@ -9,14 +12,13 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/mocks"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.uber.org/mock/gomock"
-	"testing"
-	"time"
 )
 
 var _ = Describe("processRequeue", Ordered, func() {
@@ -25,6 +27,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 	var w *worker.Worker
 	var ctrl *gomock.Controller
 	var queue *mocks.MockTaskQueue
+	var tracer *tracing.Tracer
 	endpoint := helper.DefaultEndpoint()
 
 	BeforeAll(func() {
@@ -39,7 +42,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 
 		w = worker.NewWorker(worker.WorkerOptions{
 			RequeueJobInterval: time.Second,
-		}, db, deliverer.NewHTTPDeliverer(&config.WorkerDeliverer{}), queue)
+		}, db, deliverer.NewHTTPDeliverer(&config.WorkerDeliverer{}), queue, tracer)
 
 		// data
 		ws := utils.Must(db.Workspaces.GetDefault(context.TODO()))

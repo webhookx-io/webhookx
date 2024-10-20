@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/webhookx-io/webhookx/config"
-	"github.com/webhookx-io/webhookx/pkg/observability"
 )
 
 // HTTPDeliverer delivers via HTTP
@@ -19,9 +18,7 @@ type HTTPDeliverer struct {
 }
 
 func NewHTTPDeliverer(cfg *config.WorkerDeliverer) *HTTPDeliverer {
-	client := &http.Client{
-		Transport: observability.NewObservabilityRoundTripper("worker.delivery", http.DefaultTransport),
-	}
+	client := &http.Client{}
 	return &HTTPDeliverer{
 		defaultTimeout: time.Duration(cfg.Timeout) * time.Millisecond,
 		client:         client,

@@ -173,27 +173,34 @@ func TestTracingConfig(t *testing.T) {
 		{
 			desc: "sanity",
 			cfg: TracingConfig{
-				ServiceName:             "WebhookX",
-				GlobalAttributes:        map[string]string{},
-				CapturedRequestHeaders:  []string{},
-				CapturedResponseHeaders: []string{},
-				SafeQueryParams:         []string{},
-				SamplingRate:            1,
-				AddInternals:            false,
+				ServiceName:  "WebhookX",
+				SamplingRate: 0,
 				Opentelemetry: &OpenTelemetryConfig{
-					HTTP: &OtelHTTP{
+					HTTP: OtelEndpoint{
 						Endpoint: "http://localhost:4318/v1/traces",
 						Headers:  map[string]string{},
-						TLS:      nil,
 					},
-					GRPC: &OtelGPRC{
+					GRPC: OtelEndpoint{
 						Endpoint: "localhost:4317",
 						Headers:  map[string]string{},
-						Insecure: false,
 					},
 				},
 			},
 			expectedValidateErr: nil,
+		},
+		{
+			desc: "invalid sampling rate",
+			cfg: TracingConfig{
+				ServiceName:  "WebhookX",
+				SamplingRate: 1.1,
+				Opentelemetry: &OpenTelemetryConfig{
+					HTTP: OtelEndpoint{
+						Endpoint: "http://localhost:4318/v1/traces",
+						Headers:  map[string]string{},
+					},
+				},
+			},
+			expectedValidateErr: errors.New("invalid sampling rate, must be [0,1]"),
 		},
 	}
 	for _, test := range tests {

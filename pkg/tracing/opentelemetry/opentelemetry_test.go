@@ -37,6 +37,16 @@ func TestTracing(t *testing.T) {
 			},
 		},
 		{
+			desc: "entrypoint and scope name",
+			assertFn: func(t *testing.T, trace string) {
+				t.Helper()
+
+				assert.Regexp(t, `({"key":"entrypoint","value":{"stringValue":"test"}})`, trace)
+				assert.Regexp(t, `("scope":{"name":"github.com/webhookx-io/webhookx"})`, trace)
+			},
+		},
+
+		{
 			desc:        "TraceContext propagation",
 			propagators: "tracecontext",
 			headers: map[string]string{
@@ -258,7 +268,7 @@ func TestTracing(t *testing.T) {
 
 		traceCh <- string(marshalledReq)
 	}))
-	
+
 	t.Cleanup(collector.Close)
 
 	for _, test := range tests {
@@ -283,7 +293,7 @@ func TestTracing(t *testing.T) {
 				ServiceName:  "WebhookX",
 				SamplingRate: 1.0,
 				Opentelemetry: &config.OpenTelemetryConfig{
-					HTTP: &config.OtelHTTP{
+					HTTP: config.OtelEndpoint{
 						Endpoint: collector.URL,
 					},
 				},

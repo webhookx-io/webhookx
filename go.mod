@@ -35,9 +35,15 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/redis/go-redis/extra/redisotel/v9 v9.0.5
+require (
+	github.com/redis/go-redis/extra/redisotel/v9 v9.0.5
+	go.opencensus.io v0.24.0
+)
 
-require github.com/redis/go-redis/extra/rediscmd/v9 v9.0.5 // indirect
+require (
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/redis/go-redis/extra/rediscmd/v9 v9.0.5 // indirect
+)
 
 require (
 	github.com/XSAM/otelsql v0.34.0

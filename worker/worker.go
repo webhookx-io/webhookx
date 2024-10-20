@@ -79,9 +79,13 @@ func (w *Worker) run() {
 		case <-ticker.C:
 			for {
 				// TODO: start trace with task context
-				start := time.Now()
-				ctx, span := w.tracer.Start(context.Background(), "worker.fetch", trace.WithSpanKind(trace.SpanKindConsumer), trace.WithTimestamp(start))
-				defer span.End()
+				ctx := context.Background()
+				if w.tracer != nil {
+					start := time.Now()
+					tracingCtx, span := w.tracer.Start(context.Background(), "worker.fetch", trace.WithSpanKind(trace.SpanKindConsumer), trace.WithTimestamp(start))
+					defer span.End()
+					ctx = tracingCtx
+				}
 				tasks, err := w.queue.Get(ctx, options)
 				if err != nil {
 					w.log.Errorf("[worker] failed to get tasks from queue: %v", err)
@@ -95,11 +99,13 @@ func (w *Worker) run() {
 				var errs []error
 				for _, task := range tasks {
 					err = w.pool.SubmitFn(time.Second*5, func() {
-						// TODO: start trace with task context
-						start := time.Now()
-						ctx, span := w.tracer.Start(context.Background(), "worker.handle", trace.WithSpanKind(trace.SpanKindClient), trace.WithTimestamp(start))
-						defer span.End()
-
+						// TODO: start trace with task Context
+						if w.tracer != nil {
+							start := time.Now()
+							tracingCtx, span := w.tracer.Start(context.Background(), "worker.handle", trace.WithSpanKind(trace.SpanKindClient), trace.WithTimestamp(start))
+							defer span.End()
+							ctx = tracingCtx
+						}
 						task.Data = &model.MessageData{}
 						err = task.UnmarshalData(task.Data)
 						if err != nil {

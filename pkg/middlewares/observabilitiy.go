@@ -29,6 +29,10 @@ func NewObservabilityManager(cfg *config.TracingConfig) (*ObservabilityManager, 
 	}, nil
 }
 
+func (o *ObservabilityManager) IsTracingEnable() bool {
+	return o.config != nil && o.tracer != nil
+}
+
 func (o *ObservabilityManager) BuildChain(ctx context.Context, entryPointName string) alice.Chain {
 	chain := alice.New()
 

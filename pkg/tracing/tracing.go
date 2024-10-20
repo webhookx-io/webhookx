@@ -44,6 +44,9 @@ type Backend interface {
 
 // NewTracing Creates a Tracing.
 func NewTracing(conf *config.TracingConfig) (*Tracer, io.Closer, error) {
+	if !conf.IsEnable() {
+		return nil, nil, nil
+	}
 	var backend Backend
 
 	if conf.Opentelemetry != nil {

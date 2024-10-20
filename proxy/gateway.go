@@ -76,8 +76,11 @@ func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher *dispatcher.Dispa
 	r.Use(panicRecovery)
 	r.PathPrefix("/").HandlerFunc(gw.Handle)
 
-	chain := gw.observabilityManager.BuildChain(context.Background(), "proxy")
-	handler := chain.Then(r)
+	var handler http.Handler = r
+	if observabilityManager.IsTracingEnable() {
+		chain := gw.observabilityManager.BuildChain(context.Background(), "proxy")
+		handler = chain.Then(r)
+	}
 	gw.s = &http.Server{
 		Handler: handler,
 		Addr:    cfg.Listen,

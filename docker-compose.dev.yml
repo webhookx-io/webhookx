@@ -25,6 +25,9 @@ services:
       WEBHOOKX_ADMIN_LISTEN: 0.0.0.0:8080
       WEBHOOKX_WORKER_ENABLED: true
       WEBHOOKX_PROXY_LISTEN: 0.0.0.0:8081
+      WEBHOOKX_PROXY_QUEUE_REDIS_HOST: redis
+      WEBHOOKX_TRACING_SERVICE_NAME: WebhookX
+      WEBHOOKX_TRACING_OPENTELEMETRY_HTTP_ENDPOINT: http://jaeger:4318/v1/traces
     ports:
       - "8080:8080"
       - "8081:8081"
@@ -60,6 +63,10 @@ services:
       - "redis_data:/data"
     ports:
       - "6379:6379"
+  httpbin:
+    image: kennethreitz/httpbin
+    ports:
+      - 9999:80
 
   jaeger:
     image: jaegertracing/all-in-one:latest
@@ -74,7 +81,3 @@ services:
 volumes:
   postgres_data:
   redis_data:
-
-networks:
-  host:
-    external: true

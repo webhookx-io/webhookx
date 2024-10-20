@@ -7,11 +7,9 @@ import (
 	"io"
 	"net"
 	"net/url"
-	"reflect"
 	"time"
 
 	"github.com/webhookx-io/webhookx/config"
-	"github.com/webhookx-io/webhookx/pkg/types"
 	"go.opentelemetry.io/contrib/propagators/autoprop"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -22,7 +20,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
-	"google.golang.org/grpc/credentials"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/encoding/gzip"
 )
 
@@ -34,12 +32,14 @@ func (o *OpentelemetryConfig) Setup(serviceName string, samplingRate float64, gl
 	var err error
 	var exporter *otlptrace.Exporter
 
-	if o.HTTP != nil && o.HTTP.Endpoint != "" {
+	zap.S().Infof("Setting up OpenTelemetry exporter %w", o.GRPC)
+	if o.HTTP.Endpoint != "" {
 		exporter, err = setupHTTPExporter(o.HTTP)
-	} else if o.GRPC != nil {
+	} else if o.GRPC.Endpoint != "" {
 		exporter, err = setupGRPCExporter(o.GRPC)
 	} else {
-		return nil, nil, errors.New("exporter endpoint is not set")
+		zap.S().Info("No exporter configured, skipping setup")
+		return nil, nil, errors.New("exporter is not configured, failed to setup")
 	}
 
 	if err != nil {
@@ -57,14 +57,13 @@ func (o *OpentelemetryConfig) Setup(serviceName string, samplingRate float64, gl
 
 	res, err := resource.New(
 		context.Background(),
-		resource.WithAttributes(attr...), // Add custom reso
-		// TODO
-		resource.WithFromEnv(),      // Discover and provide attributes from OTEL_RESOURCE_ATTRIBUTES and OTEL_SERVICE_NAME environment variables.
-		resource.WithTelemetrySDK(), // Discover and provide information about the OpenTelemetry SDK used.
-		resource.WithProcess(),      // Discover and provide process information.
-		resource.WithOS(),           // Discover and provide OS information.
-		resource.WithContainer(),    // Discover and provide container information.
-		resource.WithHost(),         // Discover and provide host information.
+		resource.WithAttributes(attr...), // Add custom attributes
+		resource.WithFromEnv(),           // Discover and provide attributes from OTEL_RESOURCE_ATTRIBUTES and OTEL_SERVICE_NAME environment variables.
+		resource.WithTelemetrySDK(),      // Discover and provide information about the OpenTelemetry SDK used.
+		resource.WithProcess(),           // Discover and provide process information.
+		resource.WithOS(),                // Discover and provide OS information.
+		resource.WithContainer(),         // Discover and provide container information.
+		resource.WithHost(),              // Discover and provide host information.
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to build resource: %w", err)
@@ -81,7 +80,7 @@ func (o *OpentelemetryConfig) Setup(serviceName string, samplingRate float64, gl
 	return tracerProvider.Tracer(TracerName), &tpCloser{provider: tracerProvider}, err
 }
 
-func setupHTTPExporter(c *config.OtelHTTP) (*otlptrace.Exporter, error) {
+func setupHTTPExporter(c config.OtelEndpoint) (*otlptrace.Exporter, error) {
 	endpoint, err := url.Parse(c.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid collector endpoint %q: %w", c.Endpoint, err)
@@ -100,19 +99,11 @@ func setupHTTPExporter(c *config.OtelHTTP) (*otlptrace.Exporter, error) {
 	if endpoint.Path != "" {
 		opts = append(opts, otlptracehttp.WithURLPath(endpoint.Path))
 	}
-	if c.TLS != nil && !reflect.DeepEqual(*c.TLS, types.ClientTLS{}) {
-		tlsConfig, err := c.TLS.CreateTLSConfig(context.Background())
-		if err != nil {
-			return nil, fmt.Errorf("creating TLS client config: %w", err)
-		}
-
-		opts = append(opts, otlptracehttp.WithTLSClientConfig(tlsConfig))
-	}
 
 	return otlptrace.New(context.Background(), otlptracehttp.NewClient(opts...))
 }
 
-func setupGRPCExporter(cfg *config.OtelGPRC) (*otlptrace.Exporter, error) {
+func setupGRPCExporter(cfg config.OtelEndpoint) (*otlptrace.Exporter, error) {
 	host, port, err := net.SplitHostPort(cfg.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid collector endpoint %q: %w", cfg.Endpoint, err)
@@ -122,19 +113,6 @@ func setupGRPCExporter(cfg *config.OtelGPRC) (*otlptrace.Exporter, error) {
 		otlptracegrpc.WithEndpoint(fmt.Sprintf("%s:%s", host, port)),
 		otlptracegrpc.WithHeaders(cfg.Headers),
 		otlptracegrpc.WithCompressor(gzip.Name),
-	}
-
-	if cfg.Insecure {
-		opts = append(opts, otlptracegrpc.WithInsecure())
-	}
-
-	if cfg.TLS != nil && !reflect.DeepEqual(*cfg.TLS, types.ClientTLS{}) {
-		tlsConfig, err := cfg.TLS.CreateTLSConfig(context.Background())
-		if err != nil {
-			return nil, fmt.Errorf("creating TLS client config: %w", err)
-		}
-
-		opts = append(opts, otlptracegrpc.WithTLSCredentials(credentials.NewTLS(tlsConfig)))
 	}
 
 	return otlptrace.New(context.Background(), otlptracegrpc.NewClient(opts...))

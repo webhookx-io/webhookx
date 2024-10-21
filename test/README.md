@@ -1,14 +1,14 @@
 # Integration Tests
 
 
-1. starts httpbin
+1. starts dependencies
 
-```
-docker run -p 9999:80 kennethreitz/httpbin
+```shell
+make deps
 ```
 
 2. runs integration tests
 
-```
+```shell
 make test-integration
 ```

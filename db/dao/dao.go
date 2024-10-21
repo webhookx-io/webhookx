@@ -66,7 +66,7 @@ func NewDAO[T any](db *sqlx.DB, opts Options) *DAO[T] {
 }
 
 func (dao *DAO[T]) debugSQL(sql string, args []interface{}) {
-	// dao.log.Debugf("[dao] execute: %s", sql)
+	dao.log.Debugf("[dao] execute: %s", sql)
 }
 
 func (dao *DAO[T]) DB(ctx context.Context) Queryable {

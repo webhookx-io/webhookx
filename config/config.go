@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"github.com/creasty/defaults"
+	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/pkg/envconfig"
 	"gopkg.in/yaml.v3"
 	"os"
@@ -11,6 +12,7 @@ import (
 var (
 	VERSION = "dev"
 	COMMIT  = "unknown"
+	NODE    = uuid.NewV4().String()
 )
 
 var cfg Config

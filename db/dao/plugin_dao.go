@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"github.com/jmoiron/sqlx"
+	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/utils"
@@ -13,8 +14,15 @@ type pluginDAO struct {
 }
 
 func NewPluginDAO(db *sqlx.DB, workspace bool) PluginDAO {
+	opts := Options{
+		Table:          "plugins",
+		EntityName:     "Plugin",
+		Workspace:      workspace,
+		CachePropagate: false,
+		CacheKey:       constants.PluginCacheKey,
+	}
 	return &pluginDAO{
-		DAO: NewDAO[entities.Plugin]("plugins", db, workspace),
+		DAO: NewDAO[entities.Plugin](db, opts),
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
+	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/types"
 )
@@ -22,8 +23,15 @@ type AttemptResult struct {
 }
 
 func NewAttemptDao(db *sqlx.DB, workspace bool) AttemptDAO {
+	opts := Options{
+		Table:          "attempts",
+		EntityName:     "Attempt",
+		Workspace:      workspace,
+		CachePropagate: false,
+		CacheKey:       constants.AttemptCacheKey,
+	}
 	return &attemptDao{
-		DAO: NewDAO[entities.Attempt]("attempts", db, workspace),
+		DAO: NewDAO[entities.Attempt](db, opts),
 	}
 }
 

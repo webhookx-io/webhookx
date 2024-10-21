@@ -1,12 +1,16 @@
 package app
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/dispatcher"
+	"github.com/webhookx-io/webhookx/eventbus"
+	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
@@ -15,6 +19,7 @@ import (
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.uber.org/zap"
 	"sync"
+	"time"
 )
 
 var (
@@ -35,6 +40,7 @@ type Application struct {
 	queue      taskqueue.TaskQueue
 	dispatcher *dispatcher.Dispatcher
 	cache      cache.Cache
+	bus        *eventbus.EventBus
 
 	admin   *admin.Admin
 	gateway *proxy.Gateway
@@ -65,6 +71,22 @@ func (app *Application) initialize() error {
 	zap.ReplaceGlobals(log)
 	app.log = zap.S()
 
+	// cache
+	client := cfg.RedisConfig.GetClient()
+	app.cache = cache.NewRedisCache(client)
+
+	mcache.Set(mcache.NewMCache(&mcache.Options{
+		L1Size: 1000,
+		L1TTL:  time.Second * 10,
+		L2:     app.cache,
+	}))
+
+	app.bus = eventbus.NewEventBus(
+		app.NodeID(),
+		cfg.DatabaseConfig.GetDSN(),
+		app.log)
+	registerEventHandler(app.bus)
+
 	// db
 	db, err := db.NewDB(&cfg.DatabaseConfig)
 	if err != nil {
@@ -72,16 +94,11 @@ func (app *Application) initialize() error {
 	}
 	app.db = db
 
-	client := cfg.RedisConfig.GetClient()
-
 	// queue
 	queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
 		Client: client,
 	}, app.log)
 	app.queue = queue
-
-	// cache
-	app.cache = cache.NewRedisCache(client)
 
 	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db)
 
@@ -109,8 +126,27 @@ func (app *Application) initialize() error {
 	return nil
 }
 
+func registerEventHandler(bus *eventbus.EventBus) {
+	bus.Subscribe(eventbus.EventInvalidation, func(data []byte) {
+		maps := make(map[string]interface{})
+		if err := json.Unmarshal(data, &maps); err != nil {
+			return
+		}
+		if cacheKey, ok := maps["cache_key"]; ok {
+			err := mcache.Invalidate(context.TODO(), cacheKey.(string))
+			if err != nil {
+				zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
+			}
+		}
+	})
+}
+
 func (app *Application) DB() *db.DB {
 	return app.db
+}
+
+func (app *Application) NodeID() string {
+	return config.NODE
 }
 
 // Start starts application
@@ -122,6 +158,9 @@ func (app *Application) Start() error {
 		return ErrApplicationStarted
 	}
 
+	if err := app.bus.Start(); err != nil {
+		return err
+	}
 	if app.admin != nil {
 		app.admin.Start()
 	}
@@ -156,6 +195,7 @@ func (app *Application) Stop() error {
 		app.log.Infof("stopped")
 	}()
 
+	_ = app.bus.Stop()
 	// TODO: timeout
 	if app.admin != nil {
 		app.admin.Stop()

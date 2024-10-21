@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"os"
+	"path"
 	"regexp"
 	"time"
 
@@ -19,11 +20,19 @@ import (
 
 var cfg *config.Config
 
+var (
+	OtelCollectorMetricsFile = "/tmp/otel/metrics.json"
+)
+
 func init() {
 	var err error
 	cfg, err = config.Init()
 	if err != nil {
 		panic(err)
+	}
+
+	if v := os.Getenv("WEBHOOKX_TEST_OTEL_COLLECTOR_OUTPUT_PATH"); v != "" {
+		OtelCollectorMetricsFile = path.Join(v, "metrics.json")
 	}
 }
 
@@ -90,7 +99,7 @@ func DB() *db.DB {
 	if err != nil {
 		return nil
 	}
-	db, err := db.NewDB(&cfg.DatabaseConfig)
+	db, err := db.NewDB(&cfg.Database)
 	if err != nil {
 		return nil
 	}
@@ -114,7 +123,7 @@ func InitDB(truncated bool, entities *EntitiesConfig) *db.DB {
 		}
 	}
 
-	db, err := db.NewDB(&cfg.DatabaseConfig)
+	db, err := db.NewDB(&cfg.Database)
 	if err != nil {
 		panic(err)
 	}
@@ -185,7 +194,7 @@ func ResetDB() error {
 		return err
 	}
 
-	migrator := migrator.New(&cfg.DatabaseConfig)
+	migrator := migrator.New(&cfg.Database)
 	err = migrator.Reset()
 	if err != nil {
 		return err
@@ -216,6 +225,21 @@ func FileLine(filename string, n int) (string, error) {
 	}
 
 	return "", nil
+}
+
+func FileCountLine(filename string) (int, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	n := 0
+	for scanner.Scan() {
+		scanner.Text()
+		n++
+	}
+	return n, nil
 }
 
 func FileHasLine(filename string, regex string) (bool, error) {

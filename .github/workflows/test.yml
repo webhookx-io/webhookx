@@ -47,6 +47,14 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: start dependencies
+        run: |
+          mkdir -p test/output/otel
+          sudo chmod 777 -R test/output/otel
+          make deps
+          sleep 3
+          docker compose -f test/docker-compose.yml logs
+
       - name: install
         run: make install
 
@@ -59,27 +67,6 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
           flags: integration
-
-    services:
-      postgres:
-        image: postgres:13
-        env:
-          POSTGRES_USER: webhookx
-          POSTGRES_DB: webhookx
-          POSTGRES_HOST_AUTH_METHOD: trust
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 3s --health-timeout 5s --health-retries 3
-
-      redis:
-        image: redis:6
-        ports:
-          - 6379:6379
-
-      httpbin:
-        image: kennethreitz/httpbin
-        ports:
-          - 9999:80
 
   test-docker-compose:
     runs-on: ubuntu-latest

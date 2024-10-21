@@ -163,6 +163,68 @@ func TestProxyConfig(t *testing.T) {
 	}
 }
 
+func TestMetricsConfig(t *testing.T) {
+	tests := []struct {
+		desc                string
+		cfg                 MetricsConfig
+		expectedValidateErr error
+	}{
+		{
+			desc: "sanity",
+			cfg: MetricsConfig{
+				Attributes: nil,
+				Exports:    nil,
+				OpenTelemetry: Opentelemetry{
+					PushInterval: 1,
+					Protocol:     "http/protobuf",
+				},
+			},
+			expectedValidateErr: nil,
+		},
+		{
+			desc: "invalid export",
+			cfg: MetricsConfig{
+				Attributes: nil,
+				Exports:    []Export{"unknown"},
+				OpenTelemetry: Opentelemetry{
+					PushInterval: 1,
+					Protocol:     "http/protobuf",
+				},
+			},
+			expectedValidateErr: errors.New("invalid export: unknown"),
+		},
+		{
+			desc: "invalid export",
+			cfg: MetricsConfig{
+				Attributes: nil,
+				Exports:    nil,
+				OpenTelemetry: Opentelemetry{
+					PushInterval: 1,
+					Protocol:     "unknown",
+				},
+			},
+			expectedValidateErr: errors.New("invalid protocol: unknown"),
+		},
+		{
+			desc: "invalid PushInterval",
+			cfg: MetricsConfig{
+				Attributes: nil,
+				Exports:    nil,
+				OpenTelemetry: Opentelemetry{
+					PushInterval: 61,
+					Protocol:     "http/protobuf",
+				},
+			},
+			expectedValidateErr: errors.New("interval must be in the range [1, 60]"),
+		},
+	}
+
+	for _, test := range tests {
+		actualValidateErr := test.cfg.Validate()
+		assert.Equal(t, test.expectedValidateErr, actualValidateErr, "expected %v got %v", test.expectedValidateErr, actualValidateErr)
+	}
+}
+
 func TestConfig(t *testing.T) {
 	cfg, err := Init()
 	assert.Nil(t, err)

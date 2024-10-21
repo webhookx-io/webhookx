@@ -15,14 +15,13 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 - **Plugins:**
   - `webhookx-signature`: signing outbound requests with HMAC(SHA-256) by adding `Webhookx-Signature` and `Webhookx-Timestamp` to request header.
   - `transformer`(WIP): transform request before sending outbound requests.
-
+- **Observability:** Metrics and Tracing(WIP).
 
 
 ## Roadmap
 
 - [ ] Data retention policy
 - [ ] Insight admin APIs
-- [ ] Observability(o11y) including tracing and metrics
 - [ ] Declarative configuration management
 
 #### Inbound

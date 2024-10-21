@@ -20,7 +20,7 @@ func newMigrationsResetCmd() *cobra.Command {
 					return errors.New("canceled")
 				}
 			}
-			m := migrator.New(&cfg.DatabaseConfig)
+			m := migrator.New(&cfg.Database)
 			fmt.Println("resetting database...")
 			if err := m.Reset(); err != nil {
 				return err
@@ -48,7 +48,7 @@ func newMigrationsCmd() *cobra.Command {
 		Short: "Print the migration status",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			m := migrator.New(&cfg.DatabaseConfig)
+			m := migrator.New(&cfg.Database)
 			version, dirty, err := m.Status()
 			if err != nil {
 				return err
@@ -68,7 +68,7 @@ func newMigrationsCmd() *cobra.Command {
 		Short: "Run any new migrations",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			m := migrator.New(&cfg.DatabaseConfig)
+			m := migrator.New(&cfg.Database)
 			if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 				return err
 			}

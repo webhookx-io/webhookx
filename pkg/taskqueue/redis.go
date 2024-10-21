@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"github.com/webhookx-io/webhookx/constants"
+	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 	"time"
@@ -57,8 +58,9 @@ type RedisTaskQueue struct {
 	queueData         string
 	visibilityTimeout time.Duration
 
-	c   *redis.Client
-	log *zap.SugaredLogger
+	c       *redis.Client
+	log     *zap.SugaredLogger
+	metrics *metrics.Metrics
 }
 
 type RedisTaskQueueOptions struct {
@@ -69,7 +71,7 @@ type RedisTaskQueueOptions struct {
 	Client             *redis.Client
 }
 
-func NewRedisQueue(opts RedisTaskQueueOptions, logger *zap.SugaredLogger) *RedisTaskQueue {
+func NewRedisQueue(opts RedisTaskQueueOptions, logger *zap.SugaredLogger, metrics *metrics.Metrics) *RedisTaskQueue {
 	q := &RedisTaskQueue{
 		queue:             utils.DefaultIfZero(opts.QueueName, constants.TaskQueueName),
 		invisibleQueue:    utils.DefaultIfZero(opts.InvisibleQueueName, constants.TaskQueueInvisibleQueueName),
@@ -77,8 +79,14 @@ func NewRedisQueue(opts RedisTaskQueueOptions, logger *zap.SugaredLogger) *Redis
 		queueData:         utils.DefaultIfZero(opts.QueueDataName, constants.TaskQueueDataName),
 		c:                 opts.Client,
 		log:               logger,
+		metrics:           metrics,
 	}
 	q.process()
+
+	if metrics.Enabled {
+		go q.monitoring()
+	}
+
 	return q
 }
 
@@ -143,6 +151,9 @@ func (q *RedisTaskQueue) Delete(ctx context.Context, task *TaskMessage) error {
 	return err
 }
 
+func (q *RedisTaskQueue) Size(ctx context.Context) (int64, error) {
+	return q.c.ZCard(ctx, q.queue).Result()
+}
 
 // process re-enqueue invisible tasks that reach the visibility timeout
 func (q *RedisTaskQueue) process() {
@@ -164,4 +175,17 @@ func (q *RedisTaskQueue) process() {
 			}
 		}
 	}()
+}
+
+func (q *RedisTaskQueue) monitoring() {
+	ticker := time.NewTicker(q.metrics.Interval)
+	defer ticker.Stop()
+	for range ticker.C {
+		size, err := q.Size(context.TODO())
+		if err != nil {
+			q.log.Errorf("failed to get task queue size: %v", err)
+			continue
+		}
+		q.metrics.AttemptPendingGauge.Set(float64(size))
+	}
 }

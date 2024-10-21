@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: webhookx
+      POSTGRES_USER: webhookx
+      POSTGRES_HOST_AUTH_METHOD: trust
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 3s
+      timeout: 5s
+      retries: 3
+    ports:
+      - 5432:5432
+
+  redis:
+    image: redis:6.2
+    command: "--appendonly yes --appendfsync everysec"
+    ports:
+      - 6379:6379
+
+  httpbin:
+    image: kennethreitz/httpbin
+    ports:
+      - 9999:80
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib
+    volumes:
+      - ./otel-collector-config.yml:/etc/otelcol-contrib/config.yaml
+      - ./output/otel:/tmp/otel
+    ports:
+      - 4317:4317
+      - 4318:4318

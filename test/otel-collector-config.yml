@@ -1,0 +1,38 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+
+exporters:
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+  file/metrics:
+    path: /tmp/otel/metrics.json
+  file/traces:
+    path: /tmp/otel/traces.json
+
+extensions:
+  health_check:
+  pprof:
+  zpages:
+    endpoint: "0.0.0.0:55679"
+
+service:
+  extensions: [pprof, zpages, health_check]
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug, file/metrics]
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug, file/traces]

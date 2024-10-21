@@ -66,9 +66,9 @@ proxy:
 # METRICS
 #------------------------------------------------------------------------------
 metrics:
-  attributes:                                   # global attributes for every metric
+  attributes:                                   # global attributes for each metric
     env: prod
-  #exports: [ opentelemetry ]                   # list of enbled vendor exports. supported value are opentelemetry
+  #exports: [ opentelemetry ]                   # list of enabled vendor exports. supported value are opentelemetry
   opentelemetry:
     push_interval: 10                           # interval(in seconds) at which metrics are sent to the OpenTelemetry Collector
     protocol: http/protobuf                     # supported value are http/protobuf, grpc

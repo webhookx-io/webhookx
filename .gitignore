@@ -4,3 +4,4 @@ coverage.*
 webhookx
 *.log
 dist/
+test/output

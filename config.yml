@@ -61,3 +61,15 @@ proxy:
       port: 6379
       password:
       database: 0
+
+#------------------------------------------------------------------------------
+# METRICS
+#------------------------------------------------------------------------------
+metrics:
+  attributes:                                   # global attributes for each metric
+    env: prod
+  #exports: [ opentelemetry ]                   # list of enabled vendor exports. supported value are opentelemetry
+  opentelemetry:
+    push_interval: 10                           # interval(in seconds) at which metrics are sent to the OpenTelemetry Collector
+    protocol: http/protobuf                     # supported value are http/protobuf, grpc
+    endpoint: http://localhost:4318/v1/metrics  # http/protobuf(http://localhost:4318/v1/metrics), grpc(localhost:4317)

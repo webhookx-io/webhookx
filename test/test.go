@@ -22,7 +22,7 @@ func (s *BasicSuite) ResetDatabase() error {
 		return err
 	}
 
-	migrator := migrator.New(&cfg.DatabaseConfig)
+	migrator := migrator.New(&cfg.Database)
 	err = migrator.Reset()
 	if err != nil {
 		return err

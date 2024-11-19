@@ -10,6 +10,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/transaction"
 	"go.uber.org/zap"
+	"time"
 )
 
 type DB struct {
@@ -33,10 +34,9 @@ type DB struct {
 
 func initSqlxDB(cfg *config.DatabaseConfig) (*sqlx.DB, error) {
 	db, err := sql.Open("postgres", cfg.GetDSN())
-	// db.SetMaxOpenConns(100)
-	// db.SetMaxIdleConns(100)
-	// db.SetConnMaxLifetime(time.Hour)
-	// db.SetConnMaxIdleTime(time.Hour)
+	db.SetMaxOpenConns(int(cfg.MaxPoolSize))
+	db.SetMaxIdleConns(int(cfg.MaxPoolSize))
+	db.SetConnMaxLifetime(time.Second * time.Duration(cfg.MaxLifetime))
 	if err != nil {
 		return nil, err
 	}

@@ -156,6 +156,10 @@ func (app *Application) NodeID() string {
 	return config.NODE
 }
 
+func (app *Application) Config() *config.Config {
+	return app.cfg
+}
+
 // Start starts application
 func (app *Application) Start() error {
 	app.mux.Lock()

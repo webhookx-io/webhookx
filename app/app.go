@@ -15,6 +15,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/proxy"
 	"github.com/webhookx-io/webhookx/worker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
@@ -47,6 +48,7 @@ type Application struct {
 	admin   *admin.Admin
 	gateway *proxy.Gateway
 	worker  *worker.Worker
+	tracer  *tracing.Tracer
 }
 
 func NewApplication(cfg *config.Config) (*Application, error) {
@@ -89,6 +91,14 @@ func (app *Application) initialize() error {
 		app.log)
 	registerEventHandler(app.bus)
 
+	// tracing
+	tracer, err := tracing.New(&cfg.Tracing)
+	if err != nil {
+		return err
+	}
+
+	app.tracer = tracer
+
 	// db
 	db, err := db.NewDB(&cfg.Database)
 	if err != nil {
@@ -116,18 +126,18 @@ func (app *Application) initialize() error {
 			PoolConcurrency: int(cfg.Worker.Pool.Concurrency),
 		}
 		deliverer := deliverer.NewHTTPDeliverer(&cfg.Worker.Deliverer)
-		app.worker = worker.NewWorker(opts, db, deliverer, queue, app.metrics)
+		app.worker = worker.NewWorker(opts, db, deliverer, queue, app.metrics, tracer)
 	}
 
 	// admin
 	if cfg.Admin.IsEnabled() {
-		handler := api.NewAPI(cfg, db, app.dispatcher).Handler()
+		handler := api.NewAPI(cfg, db, app.dispatcher, app.tracer).Handler()
 		app.admin = admin.NewAdmin(cfg.Admin, handler)
 	}
 
 	// gateway
 	if cfg.Proxy.IsEnabled() {
-		app.gateway = proxy.NewGateway(&cfg.Proxy, db, app.dispatcher, app.metrics)
+		app.gateway = proxy.NewGateway(&cfg.Proxy, db, app.dispatcher, app.metrics, app.tracer)
 	}
 
 	return nil
@@ -219,6 +229,10 @@ func (app *Application) Stop() error {
 	}
 	if app.worker != nil {
 		_ = app.worker.Stop()
+	}
+
+	if app.tracer != nil {
+		_ = app.tracer.Stop()
 	}
 
 	app.started = false

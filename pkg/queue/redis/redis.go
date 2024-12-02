@@ -7,7 +7,9 @@ import (
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/queue"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/utils"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"strconv"
 	"strings"
@@ -54,6 +56,11 @@ func NewRedisQueue(opts RedisQueueOptions, logger *zap.SugaredLogger, metrics *m
 }
 
 func (q *RedisQueue) Enqueue(ctx context.Context, message *queue.Message) error {
+	if tracer := tracing.TracerFromContext(ctx); tracer != nil {
+		tracingCtx, span := tracer.Start(ctx, "redis.queue.enqueue", trace.WithSpanKind(trace.SpanKindServer))
+		defer span.End()
+		ctx = tracingCtx
+	}
 	args := &redis.XAddArgs{
 		Stream: q.stream,
 		ID:     "*",
@@ -87,6 +94,12 @@ func toMessage(values map[string]interface{}) *queue.Message {
 }
 
 func (q *RedisQueue) Dequeue(ctx context.Context, opt *queue.Options) ([]*queue.Message, error) {
+	if tracer := tracing.TracerFromContext(ctx); tracer != nil {
+		tracingCtx, span := tracer.Start(ctx, "redis.queue.dequeue", trace.WithSpanKind(trace.SpanKindServer))
+		defer span.End()
+		ctx = tracingCtx
+	}
+
 	var count int64 = 1
 	if opt != nil && opt.Count != 0 {
 		count = opt.Count
@@ -128,6 +141,12 @@ func (q *RedisQueue) Dequeue(ctx context.Context, opt *queue.Options) ([]*queue.
 }
 
 func (q *RedisQueue) Delete(ctx context.Context, messages []*queue.Message) error {
+	if tracer := tracing.TracerFromContext(ctx); tracer != nil {
+		tracingCtx, span := tracer.Start(ctx, "redis.queue.delete", trace.WithSpanKind(trace.SpanKindServer))
+		defer span.End()
+		ctx = tracingCtx
+	}
+
 	ids := make([]string, 0, len(messages))
 	for _, message := range messages {
 		ids = append(ids, message.ID)

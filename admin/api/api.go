@@ -8,6 +8,8 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/pkg/errs"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 	"net/http"
 	"strconv"
@@ -22,14 +24,16 @@ type API struct {
 	log        *zap.SugaredLogger
 	DB         *db.DB
 	dispatcher *dispatcher.Dispatcher
+	tracer     *tracing.Tracer
 }
 
-func NewAPI(cfg *config.Config, db *db.DB, dispatcher *dispatcher.Dispatcher) *API {
+func NewAPI(cfg *config.Config, db *db.DB, dispatcher *dispatcher.Dispatcher, tracer *tracing.Tracer) *API {
 	return &API{
 		cfg:        cfg,
 		log:        zap.S(),
 		DB:         db,
 		dispatcher: dispatcher,
+		tracer:     tracer,
 	}
 }
 
@@ -94,7 +98,9 @@ func (api *API) assert(err error) {
 // Handler returns a http.Handler
 func (api *API) Handler() http.Handler {
 	r := mux.NewRouter()
-
+	if api.tracer != nil {
+		r.Use(otelhttp.NewMiddleware("api.admin"))
+	}
 	r.Use(panicRecovery)
 	r.Use(api.contextMiddleware)
 

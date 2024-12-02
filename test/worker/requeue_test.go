@@ -10,6 +10,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/mocks"
 	"github.com/webhookx-io/webhookx/utils"
@@ -26,6 +27,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 	var w *worker.Worker
 	var ctrl *gomock.Controller
 	var queue *mocks.MockTaskQueue
+	var tracer *tracing.Tracer
 	endpoint := helper.DefaultEndpoint()
 
 	BeforeAll(func() {
@@ -42,7 +44,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 		assert.NoError(GinkgoT(), err)
 		w = worker.NewWorker(worker.WorkerOptions{
 			RequeueJobInterval: time.Second,
-		}, db, deliverer.NewHTTPDeliverer(&config.WorkerDeliverer{}), queue, metrics)
+		}, db, deliverer.NewHTTPDeliverer(&config.WorkerDeliverer{}), queue, metrics, tracer)
 
 		// data
 		ws := utils.Must(db.Workspaces.GetDefault(context.TODO()))

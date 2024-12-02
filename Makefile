@@ -7,7 +7,7 @@ LDFLAGS = --ldflags "\
 		-X github.com/webhookx-io/webhookx/config.VERSION=`git tag -l --points-at HEAD | head -n 1`"
 
 .PHONY: clean build install generate test test-coverage test-integration \
-	test-integration-coverage goreleaser migrate-create deps
+	test-integration-coverage goreleaser migrate-create test-deps
 
 clean:
 	go clean
@@ -22,7 +22,7 @@ install:
 generate:
 	go generate ./...
 
-deps:
+test-deps:
 	mkdir -p test/output/otel
 	docker compose -f test/docker-compose.yml up -d
 
@@ -43,3 +43,4 @@ goreleaser:
 
 migrate-create:
 	migrate create -ext sql -dir db/migrations -seq -digits 1 $(message)
+	

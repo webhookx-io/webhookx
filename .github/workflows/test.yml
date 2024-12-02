@@ -51,7 +51,7 @@ jobs:
         run: |
           mkdir -p test/output/otel
           sudo chmod 777 -R test/output/otel
-          make deps
+          make test-deps
           sleep 3
           docker compose -f test/docker-compose.yml logs
 

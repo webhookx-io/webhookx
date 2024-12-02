@@ -225,6 +225,45 @@ func TestMetricsConfig(t *testing.T) {
 	}
 }
 
+func TestTracingConfig(t *testing.T) {
+	tests := []struct {
+		desc                string
+		cfg                 TracingConfig
+		expectedValidateErr error
+	}{
+		{
+			desc: "sanity",
+			cfg: TracingConfig{
+				Enabled:      true,
+				ServiceName:  "WebhookX",
+				SamplingRate: 0,
+				Opentelemetry: Opentelemetry{
+					Protocol: "http/protobuf",
+					Endpoint: "http://localhost:4318/v1/traces",
+				},
+			},
+			expectedValidateErr: nil,
+		},
+		{
+			desc: "invalid sampling rate",
+			cfg: TracingConfig{
+				Enabled:      true,
+				ServiceName:  "WebhookX",
+				SamplingRate: 1.1,
+				Opentelemetry: Opentelemetry{
+					Protocol: "http/protobuf",
+					Endpoint: "http://localhost:4318/v1/traces",
+				},
+			},
+			expectedValidateErr: errors.New("sampling_rate must be in the range [0, 1]"),
+		},
+	}
+	for _, test := range tests {
+		actualValidateErr := test.cfg.Validate()
+		assert.Equal(t, test.expectedValidateErr, actualValidateErr, "expected %v got %v", test.expectedValidateErr, actualValidateErr)
+	}
+}
+
 func TestConfig(t *testing.T) {
 	cfg, err := Init()
 	assert.Nil(t, err)

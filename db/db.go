@@ -2,15 +2,15 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/transaction"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"time"
 )
 
 type DB struct {
@@ -32,22 +32,12 @@ type DB struct {
 	PluginsWS        dao.PluginDAO
 }
 
-func initSqlxDB(cfg *config.DatabaseConfig) (*sqlx.DB, error) {
-	db, err := sql.Open("postgres", cfg.GetDSN())
-	db.SetMaxOpenConns(int(cfg.MaxPoolSize))
-	db.SetMaxIdleConns(int(cfg.MaxPoolSize))
-	db.SetConnMaxLifetime(time.Second * time.Duration(cfg.MaxLifetime))
-	if err != nil {
-		return nil, err
-	}
-	return sqlx.NewDb(db, "postgres"), nil
-}
-
 func NewDB(cfg *config.DatabaseConfig) (*DB, error) {
-	sqlxDB, err := initSqlxDB(cfg)
+	sqlDB, err := cfg.InitSqlDB()
 	if err != nil {
 		return nil, err
 	}
+	sqlxDB := sqlx.NewDb(sqlDB, "postgres")
 
 	db := &DB{
 		DB:               sqlxDB,
@@ -75,6 +65,12 @@ func (db *DB) Ping() error {
 }
 
 func (db *DB) TX(ctx context.Context, fn func(ctx context.Context) error) error {
+	if tracer := tracing.TracerFromContext(ctx); tracer != nil {
+		tracingCtx, span := tracer.Start(ctx, "db.transaction", trace.WithSpanKind(trace.SpanKindServer))
+		defer span.End()
+		ctx = tracingCtx
+	}
+
 	tx, err := db.DB.Beginx()
 	if err != nil {
 		return err

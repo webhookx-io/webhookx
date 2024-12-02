@@ -2,11 +2,14 @@ package dao
 
 import (
 	"context"
-	sq "github.com/Masterminds/squirrel"
+	"fmt"
 	"github.com/jmoiron/sqlx"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type attemptDao struct {
@@ -61,6 +64,11 @@ func (dao *attemptDao) UpdateStatusBatch(ctx context.Context, status entities.At
 }
 
 func (dao *attemptDao) UpdateErrorCode(ctx context.Context, id string, status entities.AttemptStatus, code entities.AttemptErrorCode) error {
+	if tracer := tracing.TracerFromContext(ctx); tracer != nil {
+		tracingCtx, span := tracer.Start(ctx, fmt.Sprintf("dao.%s.updateErrorCode", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+		defer span.End()
+		ctx = tracingCtx
+	}
 	_, err := dao.update(ctx, id, map[string]interface{}{
 		"status":     status,
 		"error_code": code,

@@ -26,7 +26,7 @@ func Test(t *testing.T) {
 			},
 		}
 
-		res := deliverer.Deliver(req)
+		res := deliverer.Deliver(context.Background(), req)
 		assert.NoError(t, res.Error)
 		assert.Equal(t, res.StatusCode, 200)
 		data := make(map[string]interface{})
@@ -49,7 +49,7 @@ func Test(t *testing.T) {
 			Timeout: time.Microsecond * 1,
 		}
 
-		res := deliverer.Deliver(req)
+		res := deliverer.Deliver(context.Background(), req)
 		assert.NotNil(t, res.Error)
 		assert.True(t, errors.Is(res.Error, context.DeadlineExceeded))
 	})

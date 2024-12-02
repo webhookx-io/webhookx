@@ -62,19 +62,22 @@ func TestShutdown(t *testing.T) {
 }
 
 func TestGracefulShutdown(t *testing.T) {
-	var counter int64
-	atomic.StoreInt64(&counter, 0)
+	var counter atomic.Int64
 
 	pool := NewPool(100, 100)
 
+	wait := sync.WaitGroup{}
+	wait.Add(100)
 	for i := 0; i < 100; i++ {
 		err := pool.SubmitFn(time.Second, func() {
+			wait.Done()
 			time.Sleep(time.Second)
-			atomic.AddInt64(&counter, 1)
+			counter.Add(1)
 		})
 		assert.NoError(t, err)
 	}
+	wait.Wait() // wait for all tasks to be scheduled
 
 	pool.Shutdown()
-	assert.EqualValues(t, 100, counter) // all submitted and scheduled tasks should be executed successfully
+	assert.EqualValues(t, 100, counter.Load()) // all submitted and scheduled tasks should be executed successfully
 }

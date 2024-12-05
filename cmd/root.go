@@ -6,8 +6,13 @@ import (
 	"os"
 )
 
+const (
+	defaultAdminURL = "http://localhost:8080"
+)
+
 var (
 	configurationFile string
+	verbose           bool
 	cfg               *config.Config
 
 	cmd = &cobra.Command{
@@ -19,11 +24,14 @@ var (
 )
 
 func init() {
+	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "", false, "Verbose logging.")
+
 	cobra.OnInitialize(initConfig)
 
 	cmd.AddCommand(newVersionCmd())
 	cmd.AddCommand(newMigrationsCmd())
 	cmd.AddCommand(newStartCmd())
+	cmd.AddCommand(newAdminCmd())
 }
 
 func initConfig() {

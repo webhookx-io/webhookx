@@ -2,10 +2,10 @@ package dao
 
 import (
 	"context"
-	"github.com/webhookx-io/webhookx/constants"
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
 )
 
@@ -26,7 +26,7 @@ func NewAttemptDetailDao(db *sqlx.DB, workspace bool) AttemptDetailDAO {
 	}
 }
 
-func (dao *attemptDetailDao) Upsert(ctx context.Context, attemptDetail *entities.AttemptDetail) error {
+func (dao *attemptDetailDao) Insert(ctx context.Context, attemptDetail *entities.AttemptDetail) error {
 	now := time.Now()
 	values := []interface{}{attemptDetail.ID, attemptDetail.RequestHeaders, attemptDetail.RequestBody, attemptDetail.ResponseHeaders, attemptDetail.ResponseBody, now, now, attemptDetail.WorkspaceId}
 

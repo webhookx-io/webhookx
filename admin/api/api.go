@@ -7,6 +7,7 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
+	"github.com/webhookx-io/webhookx/pkg/declarative"
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"go.uber.org/zap"
 	"net/http"
@@ -18,18 +19,20 @@ const (
 )
 
 type API struct {
-	cfg        *config.Config
-	log        *zap.SugaredLogger
-	DB         *db.DB
-	dispatcher *dispatcher.Dispatcher
+	cfg         *config.Config
+	log         *zap.SugaredLogger
+	DB          *db.DB
+	dispatcher  *dispatcher.Dispatcher
+	declarative *declarative.Declarative
 }
 
 func NewAPI(cfg *config.Config, db *db.DB, dispatcher *dispatcher.Dispatcher) *API {
 	return &API{
-		cfg:        cfg,
-		log:        zap.S(),
-		DB:         db,
-		dispatcher: dispatcher,
+		cfg:         cfg,
+		log:         zap.S(),
+		DB:          db,
+		dispatcher:  dispatcher,
+		declarative: declarative.NewDeclarative(db),
 	}
 }
 
@@ -47,13 +50,21 @@ func (api *API) json(code int, w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", ApplicationJsonType)
 	w.WriteHeader(code)
 
-	if data != nil {
-		bytes, err := json.Marshal(data)
-		if err != nil {
-			panic(err)
-		}
-		_, _ = w.Write(bytes)
+	if data == nil {
+		return
 	}
+
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+	_, _ = w.Write(bytes)
+}
+
+func (api *API) text(code int, w http.ResponseWriter, bytes []byte) {
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(code)
+	_, _ = w.Write(bytes)
 }
 
 func (api *API) bindQuery(r *http.Request, q *query.Query) {
@@ -99,6 +110,9 @@ func (api *API) Handler() http.Handler {
 	r.Use(api.contextMiddleware)
 
 	r.HandleFunc("/", api.Index).Methods("GET")
+
+	r.HandleFunc("/workspaces/{workspace}/sync", api.Sync).Methods("POST")
+	r.HandleFunc("/workspaces/{workspace}/dump", api.Dump).Methods("POST")
 
 	r.HandleFunc("/workspaces", api.PageWorkspace).Methods("GET")
 	r.HandleFunc("/workspaces", api.CreateWorkspace).Methods("POST")

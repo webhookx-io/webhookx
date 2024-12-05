@@ -1,0 +1,26 @@
+endpoints:
+  - name: default-endpoint
+    request:
+      timeout: 10000
+      url: https://httpbin.org/anything
+      method: POST
+      headers:
+        x-apikey: secret
+    retry:
+      strategy: fixed
+      config:
+        attempts: [0, 3600, 3600]
+    events: [ "charge.succeeded" ]
+    plugins:
+      - name: webhookx-signature
+        config:
+          signing_secret: foo
+
+sources:
+  - name: default-source
+    path: /
+    methods: [ "POST" ]
+    response:
+      code: 200
+      content_type: application/json
+      body: '{"message": "OK"}'

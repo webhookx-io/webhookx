@@ -11,6 +11,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/test/helper"
+	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/test/mocks"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker"
@@ -26,7 +27,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 	var w *worker.Worker
 	var ctrl *gomock.Controller
 	var queue *mocks.MockTaskQueue
-	endpoint := helper.DefaultEndpoint()
+	endpoint := factory.Endpoint()
 
 	BeforeAll(func() {
 		db = helper.InitDB(true, nil)
@@ -47,12 +48,11 @@ var _ = Describe("processRequeue", Ordered, func() {
 		// data
 		ws := utils.Must(db.Workspaces.GetDefault(context.TODO()))
 		endpoint.WorkspaceId = ws.ID
-		assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
+		assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), &endpoint))
 
 		for i := 1; i <= 10; i++ {
-			event := helper.DefaultEvent()
-			event.WorkspaceId = ws.ID
-			assert.NoError(GinkgoT(), db.Events.Insert(context.TODO(), event))
+			event := factory.EventWS(ws.ID)
+			assert.NoError(GinkgoT(), db.Events.Insert(context.TODO(), &event))
 
 			attempt := entities.Attempt{
 				ID:            utils.KSUID(),

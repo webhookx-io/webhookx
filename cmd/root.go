@@ -52,3 +52,7 @@ func Execute() {
 		os.Exit(1)
 	}
 }
+
+func Command() *cobra.Command {
+	return cmd
+}

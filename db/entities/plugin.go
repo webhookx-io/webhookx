@@ -2,6 +2,7 @@ package entities
 
 import (
 	"encoding/json"
+	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -17,6 +18,15 @@ type Plugin struct {
 
 func (m *Plugin) Validate() error {
 	return utils.Validate(m)
+}
+
+func (m *Plugin) UnmarshalJSON(data []byte) error {
+	err := defaults.Set(m)
+	if err != nil {
+		return err
+	}
+	type alias Plugin
+	return json.Unmarshal(data, (*alias)(m))
 }
 
 func (m *Plugin) Init() {

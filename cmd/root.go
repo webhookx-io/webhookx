@@ -6,25 +6,15 @@ import (
 	"os"
 )
 
-var (
-	configurationFile string
-	cfg               *config.Config
-
-	cmd = &cobra.Command{
-		Use:          "webhookx",
-		Short:        "",
-		Long:         ``,
-		SilenceUsage: true,
-	}
+const (
+	defaultAdminURL = "http://localhost:8080"
 )
 
-func init() {
-	cobra.OnInitialize(initConfig)
-
-	cmd.AddCommand(newVersionCmd())
-	cmd.AddCommand(newMigrationsCmd())
-	cmd.AddCommand(newStartCmd())
-}
+var (
+	configurationFile string
+	verbose           bool
+	cfg               *config.Config
+)
 
 func initConfig() {
 	var err error
@@ -39,8 +29,28 @@ func initConfig() {
 	cobra.CheckErr(err)
 }
 
+func NewRootCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "webhookx",
+		Short:        "",
+		Long:         ``,
+		SilenceUsage: true,
+	}
+	cobra.OnInitialize(initConfig)
+
+	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "", false, "Verbose logging.")
+
+	cmd.AddCommand(newVersionCmd())
+	cmd.AddCommand(newMigrationsCmd())
+	cmd.AddCommand(newStartCmd())
+	cmd.AddCommand(newAdminCmd())
+
+	return cmd
+}
+
 func Execute() {
-	if err := cmd.Execute(); err != nil {
+	rootCmd := NewRootCmd()
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }

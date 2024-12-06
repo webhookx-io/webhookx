@@ -9,8 +9,10 @@ import (
 
 type BaseDAO[T any] interface {
 	Get(ctx context.Context, id string) (*T, error)
+	Select(ctx context.Context, field string, id string) (*T, error)
 	Insert(ctx context.Context, entity *T) error
 	Update(ctx context.Context, entity *T) error
+	Upsert(ctx context.Context, fields []string, entity *T) error
 	Delete(ctx context.Context, id string) (bool, error)
 	Page(ctx context.Context, q query.Queryer) ([]*T, int64, error)
 	List(ctx context.Context, q query.Queryer) ([]*T, error)
@@ -47,7 +49,7 @@ type SourceDAO interface {
 
 type AttemptDetailDAO interface {
 	BaseDAO[entities.AttemptDetail]
-	Upsert(ctx context.Context, attemptDetail *entities.AttemptDetail) error
+	Insert(ctx context.Context, attemptDetail *entities.AttemptDetail) error
 }
 
 type PluginDAO interface {

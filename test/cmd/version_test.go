@@ -8,7 +8,7 @@ import (
 
 var _ = Describe("version", Ordered, func() {
 	It("outputs version", func() {
-		output, err := executeCommand(cmd.Command(), "version")
+		output, err := executeCommand(cmd.NewRootCmd(), "version")
 		assert.Nil(GinkgoT(), err)
 		assert.Equal(GinkgoT(), "WebhookX dev (unknown)\n", output)
 	})

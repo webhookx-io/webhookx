@@ -58,7 +58,25 @@ var _ = Describe("admin", Ordered, func() {
 				assert.Equal(GinkgoT(), "", output)
 			})
 
+			Context("errors", func() {
+				It("missing filename", func() {
+					output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync")
+					assert.NotNil(GinkgoT(), err)
+					assert.Equal(GinkgoT(), "Error: accepts 1 arg(s), received 0\n", output)
+				})
+				It("invalid filename", func() {
+					output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "unknown.yaml")
+					assert.NotNil(GinkgoT(), err)
+					assert.Equal(GinkgoT(), "Error: open unknown.yaml: no such file or directory\n", output)
+				})
+				It("invalid yaml", func() {
+					output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/invalid_webhookx.yaml")
+					assert.NotNil(GinkgoT(), err)
+					assert.Equal(GinkgoT(), "Error: invalid status code: 400 {\"message\":\"malformed yaml content: yaml: unmarshal errors:\\n  line 1: cannot unmarshal !!str `webhook...` into map[string]interface {}\"}\n", output)
+				})
+			})
 		})
+
 		Context("flags", Ordered, func() {
 			It("--timeout", func() {
 				server := startHTTP(func(writer http.ResponseWriter, r *http.Request) {
@@ -93,19 +111,6 @@ var _ = Describe("admin", Ordered, func() {
 				assert.Equal(GinkgoT(), "", output)
 				assert.Equal(GinkgoT(), "http://localhost:8888/workspaces/default/sync", url)
 				assert.Nil(GinkgoT(), server.Shutdown(context.TODO()))
-			})
-		})
-
-		Context("errors", func() {
-			It("missing filename", func() {
-				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync")
-				assert.NotNil(GinkgoT(), err)
-				assert.Equal(GinkgoT(), "Error: accepts 1 arg(s), received 0\n", output)
-			})
-			It("invalid filename", func() {
-				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "unknown.yaml")
-				assert.NotNil(GinkgoT(), err)
-				assert.Equal(GinkgoT(), "Error: open unknown.yaml: no such file or directory\n", output)
 			})
 		})
 	})

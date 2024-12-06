@@ -18,7 +18,7 @@ func executeCommand(root *cobra.Command, args ...string) (output string, err err
 }
 
 func TestCMD(t *testing.T) {
-	output, err := executeCommand(cmd, "")
+	output, err := executeCommand(NewRootCmd(), "")
 	assert.Nil(t, err)
 	assert.NotNil(t, output)
 }

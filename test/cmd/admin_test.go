@@ -43,9 +43,10 @@ var _ = Describe("admin", Ordered, func() {
 	Context("sync", func() {
 		Context("sanity", func() {
 			var app *app.Application
+			var db *db.DB
 
 			BeforeAll(func() {
-				helper.InitDB(true, nil)
+				db = helper.InitDB(true, nil)
 				app = utils.Must(helper.Start(map[string]string{
 					"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
 					"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
@@ -61,6 +62,77 @@ var _ = Describe("admin", Ordered, func() {
 				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), "", output)
+
+				endpoint, err := db.Endpoints.Select(context.TODO(), "name", "default-endpoint")
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), "default-endpoint", *endpoint.Name)
+				assert.Equal(GinkgoT(), true, endpoint.Enabled)
+				assert.Equal(GinkgoT(), []string{"charge.succeeded"}, []string(endpoint.Events))
+				assert.EqualValues(GinkgoT(), 10000, endpoint.Request.Timeout)
+				assert.Equal(GinkgoT(), "https://httpbin.org/anything", endpoint.Request.URL)
+				assert.Equal(GinkgoT(), "POST", endpoint.Request.Method)
+				assert.Equal(GinkgoT(), "secret", endpoint.Request.Headers["x-apikey"])
+				assert.EqualValues(GinkgoT(), "fixed", endpoint.Retry.Strategy)
+				assert.EqualValues(GinkgoT(), []int64{0, 3600, 3600}, endpoint.Retry.Config.Attempts)
+
+				source, err := db.Sources.Select(context.TODO(), "name", "default-source")
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), "default-source", *source.Name)
+				assert.Equal(GinkgoT(), true, source.Enabled)
+				assert.Equal(GinkgoT(), "/", source.Path)
+				assert.Equal(GinkgoT(), []string{"POST"}, []string(source.Methods))
+				assert.Equal(GinkgoT(), 200, source.Response.Code)
+				assert.Equal(GinkgoT(), "application/json", source.Response.ContentType)
+				assert.Equal(GinkgoT(), `{"message": "OK"}`, source.Response.Body)
+
+				plugins, err := db.Plugins.ListEndpointPlugin(context.TODO(), endpoint.ID)
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 1, len(plugins))
+				assert.Equal(GinkgoT(), "webhookx-signature", plugins[0].Name)
+				assert.Equal(GinkgoT(), true, plugins[0].Enabled)
+				assert.Equal(GinkgoT(), `{"signing_secret": "foo"}`, string(plugins[0].Config))
+			})
+
+			It("entities not defined in the declarative configuration should be deleted", func() {
+				ws, err := db.Workspaces.GetDefault(context.TODO())
+				assert.NoError(GinkgoT(), err)
+
+				endpoint := factory.EndpointWS(ws.ID)
+				err = db.Endpoints.Insert(context.TODO(), &endpoint)
+				assert.NoError(GinkgoT(), err)
+
+				source := factory.SourceWS(ws.ID)
+				err = db.Sources.Insert(context.TODO(), &source)
+				assert.NoError(GinkgoT(), err)
+
+				_, err = executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml")
+				assert.Nil(GinkgoT(), err)
+
+				dbEndpoint, err := db.Endpoints.Get(context.TODO(), endpoint.ID)
+				assert.NoError(GinkgoT(), err)
+				assert.Nil(GinkgoT(), dbEndpoint)
+
+				dbSource, err := db.Sources.Get(context.TODO(), source.ID)
+				assert.NoError(GinkgoT(), err)
+				assert.Nil(GinkgoT(), dbSource)
+			})
+
+			It("entities id should not be changed after multiple syncs", func() {
+				_, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml")
+				assert.Nil(GinkgoT(), err)
+
+				endpoint1, err := db.Endpoints.Select(context.TODO(), "name", "default-endpoint")
+				assert.NoError(GinkgoT(), err)
+				assert.NotNil(GinkgoT(), endpoint1)
+
+				_, err = executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml")
+				assert.Nil(GinkgoT(), err)
+
+				endpoint2, err := db.Endpoints.Select(context.TODO(), "name", "default-endpoint")
+				assert.NoError(GinkgoT(), err)
+				assert.NotNil(GinkgoT(), endpoint2)
+
+				assert.Equal(GinkgoT(), endpoint1.ID, endpoint2.ID)
 			})
 
 			Context("errors", func() {

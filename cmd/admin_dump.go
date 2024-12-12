@@ -16,7 +16,7 @@ func newAdminDumpCmd() *cobra.Command {
 
 	dump := &cobra.Command{
 		Use:   "dump",
-		Short: "Dump WebhookX entities to a declarative configuration",
+		Short: "Dump entities to declarative configuration",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			url := fmt.Sprintf("%s/workspaces/%s/dump", addr, workspace)

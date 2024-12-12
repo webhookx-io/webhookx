@@ -161,7 +161,7 @@ var _ = Describe("admin", Ordered, func() {
 				}, ":8080")
 				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml", "--timeout", "1")
 				assert.NotNil(GinkgoT(), err)
-				assert.Equal(GinkgoT(), "Error: Post \"http://localhost:8080/workspaces/default/sync\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)\n", output)
+				assert.Equal(GinkgoT(), "Error: Post \"http://localhost:8080/workspaces/default/config/sync\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)\n", output)
 				assert.Nil(GinkgoT(), server.Shutdown(context.TODO()))
 			})
 
@@ -173,7 +173,7 @@ var _ = Describe("admin", Ordered, func() {
 				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml", "--workspace", "foo")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), "", output)
-				assert.Equal(GinkgoT(), "http://localhost:8080/workspaces/foo/sync", url)
+				assert.Equal(GinkgoT(), "http://localhost:8080/workspaces/foo/config/sync", url)
 				assert.Nil(GinkgoT(), server.Shutdown(context.TODO()))
 			})
 
@@ -186,7 +186,7 @@ var _ = Describe("admin", Ordered, func() {
 				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml", "--addr", "http://localhost:8888")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), "", output)
-				assert.Equal(GinkgoT(), "http://localhost:8888/workspaces/default/sync", url)
+				assert.Equal(GinkgoT(), "http://localhost:8888/workspaces/default/config/sync", url)
 				assert.Nil(GinkgoT(), server.Shutdown(context.TODO()))
 			})
 		})
@@ -234,7 +234,7 @@ var _ = Describe("admin", Ordered, func() {
 
 				output, err := executeCommand(cmd.NewRootCmd(), "admin", "dump")
 				assert.Nil(GinkgoT(), err)
-				expected, err := os.ReadFile("testdata/dump.yml")
+				expected, err := os.ReadFile("testdata/config/dump.yml")
 				require.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), string(expected), output)
 			})

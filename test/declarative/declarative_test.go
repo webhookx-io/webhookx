@@ -55,7 +55,7 @@ var _ = Describe("Declarative", Ordered, func() {
 
 			resp, err := adminClient.R().
 				SetBody(string(yaml)).
-				Post("/workspaces/default/sync")
+				Post("/workspaces/default/config/sync")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
 		})
@@ -64,21 +64,21 @@ var _ = Describe("Declarative", Ordered, func() {
 			It("should return 400 for malformed yaml", func() {
 				resp, err := adminClient.R().
 					SetBody(malformedYAML).
-					Post("/workspaces/default/sync")
+					Post("/workspaces/default/config/sync")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 			})
 			It("should return 400 for invalid yaml", func() {
 				resp, err := adminClient.R().
 					SetBody(invalidYAML).
-					Post("/workspaces/default/sync")
+					Post("/workspaces/default/config/sync")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 			})
 			It("should return 400 for unknown plugin", func() {
 				resp, err := adminClient.R().
 					SetBody(unknownPluginYAML).
-					Post("/workspaces/default/sync")
+					Post("/workspaces/default/config/sync")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(), `{"message":"invalid configuration: unknown plugin: foo"}`, string(resp.Body()))

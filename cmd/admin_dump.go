@@ -19,7 +19,7 @@ func newAdminDumpCmd() *cobra.Command {
 		Short: "Dump entities to declarative configuration",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			url := fmt.Sprintf("%s/workspaces/%s/dump", addr, workspace)
+			url := fmt.Sprintf("%s/workspaces/%s/config/dump", addr, workspace)
 			r, err := http.NewRequest("POST", url, nil)
 			if err != nil {
 				return err

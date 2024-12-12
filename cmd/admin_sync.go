@@ -28,7 +28,7 @@ func newAdminSyncCmd() *cobra.Command {
 				return err
 			}
 
-			url := fmt.Sprintf("%s/workspaces/%s/sync", addr, workspace)
+			url := fmt.Sprintf("%s/workspaces/%s/config/sync", addr, workspace)
 			r, err := http.NewRequest("POST", url, bytes.NewBuffer(b))
 			if err != nil {
 				return err

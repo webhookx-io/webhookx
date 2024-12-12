@@ -117,8 +117,8 @@ func (api *API) Handler() http.Handler {
 
 	r.HandleFunc("/", api.Index).Methods("GET")
 
-	r.HandleFunc("/workspaces/{workspace}/sync", api.Sync).Methods("POST")
-	r.HandleFunc("/workspaces/{workspace}/dump", api.Dump).Methods("POST")
+	r.HandleFunc("/workspaces/{workspace}/config/sync", api.Sync).Methods("POST")
+	r.HandleFunc("/workspaces/{workspace}/config/dump", api.Dump).Methods("POST")
 
 	r.HandleFunc("/workspaces", api.PageWorkspace).Methods("GET")
 	r.HandleFunc("/workspaces", api.CreateWorkspace).Methods("POST")

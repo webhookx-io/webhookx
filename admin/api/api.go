@@ -65,10 +65,10 @@ func (api *API) json(code int, w http.ResponseWriter, data interface{}) {
 	_, _ = w.Write(bytes)
 }
 
-func (api *API) text(code int, w http.ResponseWriter, bytes []byte) {
+func (api *API) text(code int, w http.ResponseWriter, body string) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(code)
-	_, _ = w.Write(bytes)
+	_, _ = w.Write([]byte(body))
 }
 
 func (api *API) bindQuery(r *http.Request, q *query.Query) {

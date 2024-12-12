@@ -61,7 +61,7 @@ var _ = Describe("admin", Ordered, func() {
 			It("sanity", func() {
 				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml")
 				assert.Nil(GinkgoT(), err)
-				assert.Equal(GinkgoT(), "", output)
+				assert.Equal(GinkgoT(), "sync successfully\n", output)
 
 				endpoint, err := db.Endpoints.Select(context.TODO(), "name", "default-endpoint")
 				assert.NoError(GinkgoT(), err)
@@ -172,7 +172,7 @@ var _ = Describe("admin", Ordered, func() {
 				}, "127.0.0.1:8080")
 				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml", "--workspace", "foo")
 				assert.Nil(GinkgoT(), err)
-				assert.Equal(GinkgoT(), "", output)
+				assert.Equal(GinkgoT(), "sync successfully\n", output)
 				assert.Equal(GinkgoT(), "http://localhost:8080/workspaces/foo/config/sync", url)
 				assert.Nil(GinkgoT(), server.Shutdown(context.TODO()))
 			})
@@ -185,7 +185,7 @@ var _ = Describe("admin", Ordered, func() {
 				}, "127.0.0.1:8888")
 				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml", "--addr", "http://localhost:8888")
 				assert.Nil(GinkgoT(), err)
-				assert.Equal(GinkgoT(), "", output)
+				assert.Equal(GinkgoT(), "sync successfully\n", output)
 				assert.Equal(GinkgoT(), "http://localhost:8888/workspaces/default/config/sync", url)
 				assert.Nil(GinkgoT(), server.Shutdown(context.TODO()))
 			})

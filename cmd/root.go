@@ -38,6 +38,7 @@ func NewRootCmd() *cobra.Command {
 	}
 	cobra.OnInitialize(initConfig)
 
+	cmd.SetOut(os.Stdout)
 	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "", false, "Verbose logging.")
 
 	cmd.AddCommand(newVersionCmd())

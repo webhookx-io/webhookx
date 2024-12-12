@@ -3,7 +3,10 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/webhookx-io/webhookx/config"
+	"io"
 	"net/http"
+	"net/http/httputil"
 	"time"
 )
 
@@ -24,13 +27,44 @@ func newAdminDumpCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			r.Header.Set("User-Agent", "WebhookX/"+config.VERSION)
 
-			content, err := sendHTTPRequest(r, time.Duration(timeout)*time.Second)
+			if verbose {
+				requestDump, err := httputil.DumpRequestOut(r, true)
+				if err != nil {
+					return err
+				}
+				cmd.Println(string(requestDump))
+			}
+
+			client := http.Client{
+				Timeout: time.Duration(timeout) * time.Second,
+			}
+			resp, err := client.Do(r)
+			if err != nil {
+				return err
+			}
+			defer resp.Body.Close()
+
+			if verbose {
+				responseDump, err := httputil.DumpResponse(resp, true)
+				if err != nil {
+					return err
+				}
+				cmd.Println(string(responseDump))
+			}
+
+			b, err := io.ReadAll(resp.Body)
 			if err != nil {
 				return err
 			}
 
-			cmd.Print(content)
+			if resp.StatusCode != http.StatusOK {
+				return fmt.Errorf("invalid status code: %d %s", resp.StatusCode, string(b))
+			}
+
+			cmd.Print(string(b))
+
 			return nil
 		},
 	}

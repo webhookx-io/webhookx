@@ -234,7 +234,7 @@ var _ = Describe("admin", Ordered, func() {
 
 				output, err := executeCommand(cmd.NewRootCmd(), "admin", "dump")
 				assert.Nil(GinkgoT(), err)
-				expected, err := os.ReadFile("testdata/config/dump.yml")
+				expected, err := os.ReadFile("testdata/dump.yml")
 				require.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), string(expected), output)
 			})

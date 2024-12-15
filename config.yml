@@ -83,7 +83,6 @@ metrics:
 #------------------------------------------------------------------------------
 tracing:
   enabled: false
-  service_name: WebhookX
   attributes:                   # global attributes for each trace
     env: prod
   sampling_rate: 1.0

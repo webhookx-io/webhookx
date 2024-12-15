@@ -35,8 +35,7 @@ var _ = Describe("tracing worker", Ordered, func() {
 				envs := map[string]string{
 					"WEBHOOKX_PROXY_LISTEN":                   "0.0.0.0:8081",
 					"WEBHOOKX_TRACING_ENABLED":                "true",
-					"WEBHOOKX_WORKER_ENABLED":                 "true",     // env splite by _
-					"WEBHOOKX_TRACING_SERVICE_NAME":           "WebhookX", // env splite by _
+					"WEBHOOKX_WORKER_ENABLED":                 "true", // env splite by _
 					"WEBHOOKX_TRACING_SAMPLING_RATE":          "1.0",
 					"WEBHOOKX_TRACING_OPENTELEMETRY_PROTOCOL": protocol,
 					"WEBHOOKX_TRACING_OPENTELEMETRY_ENDPOINT": address,

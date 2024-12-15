@@ -36,7 +36,6 @@ var _ = Describe("tracing proxy", Ordered, func() {
 
 				envs := map[string]string{
 					"WEBHOOKX_PROXY_LISTEN":                   "0.0.0.0:8081",
-					"WEBHOOKX_TRACING_SERVICE_NAME":           "WebhookX", // env splite by _
 					"WEBHOOKX_TRACING_ENABLED":                "true",
 					"WEBHOOKX_TRACING_SAMPLING_RATE":          "1.0",
 					"WEBHOOKX_TRACING_ATTRIBUTES":             `{"env":"test"}`,
@@ -79,9 +78,9 @@ var _ = Describe("tracing proxy", Ordered, func() {
 					"net.sock.peer.port":           "*",
 				}
 				router := map[string]string{
-					"router.id":          "*",
-					"router.name":        "*",
-					"router.workspaceId": "*",
+					"source.id":          "*",
+					"source.name":        "*",
+					"source.workspaceId": "*",
 					"http.route":         "/",
 				}
 				expectedScopeSpans := map[string]map[string]string{
@@ -203,7 +202,6 @@ var _ = Describe("tracing proxy", Ordered, func() {
 
 			app, err = helper.Start(map[string]string{
 				"WEBHOOKX_PROXY_LISTEN":                   "0.0.0.0:8081",
-				"WEBHOOKX_TRACING_SERVICE_NAME":           "WebhookX", // env splite by _
 				"WEBHOOKX_TRACING_SAMPLING_RATE":          "1",
 				"WEBHOOKX_TRACING_ATTRIBUTES":             `{"env":"test"}`,
 				"WEBHOOKX_TRACING_OPENTELEMETRY_PROTOCOL": string(config.OtlpProtocolHTTP),

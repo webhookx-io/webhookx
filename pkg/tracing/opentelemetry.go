@@ -38,7 +38,7 @@ func SetupOTEL(o *config.TracingConfig) (trace.TracerProvider, io.Closer, error)
 	}
 
 	attr := []attribute.KeyValue{
-		semconv.ServiceNameKey.String(o.ServiceName),
+		semconv.ServiceNameKey.String("webhookx"),
 		semconv.ServiceVersionKey.String(config.VERSION),
 	}
 

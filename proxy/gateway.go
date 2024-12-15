@@ -59,14 +59,9 @@ func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher *dispatcher.Dispa
 	var q queue.Queue
 	switch cfg.Queue.Type {
 	case "redis":
-		rq, err := redis.NewRedisQueue(redis.RedisQueueOptions{
+		q, _ = redis.NewRedisQueue(redis.RedisQueueOptions{
 			Client: cfg.Queue.Redis.GetClient(),
 		}, zap.S(), metrics)
-		if err != nil {
-			zap.S().Warnf("[proxy] failed to create redis queue: %v", err)
-		} else {
-			q = rq
-		}
 	}
 
 	gw := &Gateway{
@@ -120,9 +115,7 @@ func (gw *Gateway) buildRouter() {
 }
 
 func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
-	var source *entities.Source
-
-	source, _ = gw.router.Execute(r).(*entities.Source)
+	source := gw.router.Execute(r).(*entities.Source)
 	if source == nil {
 		exit(w, 404, `{"message": "not found"}`, nil)
 		return
@@ -131,17 +124,16 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 	ctx := ucontext.WithContext(r.Context(), &ucontext.UContext{
 		WorkspaceID: source.WorkspaceId,
 	})
-	r = r.WithContext(ctx)
 
 	if gw.tracer != nil {
-		tracingCtx, span := gw.tracer.Start(r.Context(), "proxy.handle", trace.WithSpanKind(trace.SpanKindServer))
-		span.SetAttributes(attribute.String("router.id", source.ID))
-		span.SetAttributes(attribute.String("router.name", utils.PointerValue(source.Name)))
-		span.SetAttributes(attribute.String("router.workspaceId", source.WorkspaceId))
-		span.SetAttributes(attribute.String("router.async", fmt.Sprint(source.Async)))
+		tracingCtx, span := gw.tracer.Start(ctx, "proxy.handle", trace.WithSpanKind(trace.SpanKindServer))
+		span.SetAttributes(attribute.String("source.id", source.ID))
+		span.SetAttributes(attribute.String("source.name", utils.PointerValue(source.Name)))
+		span.SetAttributes(attribute.String("source.workspaceId", source.WorkspaceId))
+		span.SetAttributes(attribute.String("source.async", fmt.Sprint(source.Async)))
 		span.SetAttributes(semconv.HTTPRoute(source.Path))
 		defer span.End()
-		r = r.WithContext(tracingCtx)
+		ctx = tracingCtx
 	}
 
 	var event entities.Event
@@ -169,7 +161,7 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := gw.ingestEvent(r.Context(), source.Async, &event)
+	err := gw.ingestEvent(ctx, source.Async, &event)
 	if err != nil {
 		gw.log.Errorf("[proxy] failed to ingest event: %v", err)
 		exit(w, 500, `{"message": "internal error"}`, nil)

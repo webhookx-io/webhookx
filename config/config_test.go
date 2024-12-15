@@ -235,7 +235,6 @@ func TestTracingConfig(t *testing.T) {
 			desc: "sanity",
 			cfg: TracingConfig{
 				Enabled:      true,
-				ServiceName:  "WebhookX",
 				SamplingRate: 0,
 				Opentelemetry: Opentelemetry{
 					Protocol: "http/protobuf",
@@ -248,7 +247,6 @@ func TestTracingConfig(t *testing.T) {
 			desc: "invalid sampling rate",
 			cfg: TracingConfig{
 				Enabled:      true,
-				ServiceName:  "WebhookX",
 				SamplingRate: 1.1,
 				Opentelemetry: Opentelemetry{
 					Protocol: "http/protobuf",

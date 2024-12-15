@@ -13,9 +13,6 @@ type TracingConfig struct {
 }
 
 func (cfg TracingConfig) Validate() error {
-	if !cfg.Enabled {
-		return nil
-	}
 	if cfg.SamplingRate > 1 || cfg.SamplingRate < 0 {
 		return errors.New("sampling_rate must be in the range [0, 1]")
 	}

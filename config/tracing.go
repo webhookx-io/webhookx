@@ -8,7 +8,6 @@ type TracingConfig struct {
 	Enabled       bool          `yaml:"enabled" default:"false"`
 	Attributes    Map           `yaml:"attributes"`
 	Opentelemetry Opentelemetry `yaml:"opentelemetry"`
-	ServiceName   string        `yaml:"service_name" default:"WebhookX" envconfig:"SERVICE_NAME"`
 	SamplingRate  float64       `yaml:"sampling_rate" default:"1.0" envconfig:"SAMPLING_RATE"`
 }
 

@@ -115,7 +115,7 @@ func (gw *Gateway) buildRouter() {
 }
 
 func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
-	source := gw.router.Execute(r).(*entities.Source)
+	source, _ := gw.router.Execute(r).(*entities.Source)
 	if source == nil {
 		exit(w, 404, `{"message": "not found"}`, nil)
 		return

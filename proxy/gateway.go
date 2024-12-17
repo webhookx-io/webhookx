@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/constants"
@@ -129,8 +128,8 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 		tracingCtx, span := gw.tracer.Start(ctx, "proxy.handle", trace.WithSpanKind(trace.SpanKindServer))
 		span.SetAttributes(attribute.String("source.id", source.ID))
 		span.SetAttributes(attribute.String("source.name", utils.PointerValue(source.Name)))
-		span.SetAttributes(attribute.String("source.workspaceId", source.WorkspaceId))
-		span.SetAttributes(attribute.String("source.async", fmt.Sprint(source.Async)))
+		span.SetAttributes(attribute.String("source.workspace_id", source.WorkspaceId))
+		span.SetAttributes(attribute.Bool("source.async", source.Async))
 		span.SetAttributes(semconv.HTTPRoute(source.Path))
 		defer span.End()
 		ctx = tracingCtx

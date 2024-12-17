@@ -54,7 +54,7 @@ var _ = Describe("tracing worker", Ordered, func() {
 					"github.com/webhookx-io/webhookx",
 				}
 				expectedScopeSpans := map[string]map[string]string{
-					"taskqueue.redis.get":        {},
+					"worker.submit":              {},
 					"worker.handle":              {},
 					"dao.endpoints.get":          {},
 					"dao.plugins.list":           {},

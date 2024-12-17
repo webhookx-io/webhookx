@@ -11,6 +11,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
+	"reflect"
 	"time"
 )
 
@@ -78,10 +79,11 @@ var _ = Describe("tracing proxy", Ordered, func() {
 					"net.sock.peer.port":           "*",
 				}
 				router := map[string]string{
-					"source.id":          "*",
-					"source.name":        "*",
-					"source.workspaceId": "*",
-					"http.route":         "/",
+					"source.id":           "*",
+					"source.name":         "*",
+					"source.workspace_id": "*",
+					"source.async":        "false",
+					"http.route":          "/",
 				}
 				expectedScopeSpans := map[string]map[string]string{
 					"api.proxy":                 entrypoint,
@@ -169,7 +171,7 @@ var _ = Describe("tracing proxy", Ordered, func() {
 									fmt.Println("")
 									return false
 								}
-								valMatch := (v == "*" || gotAttributes[k] == v)
+								valMatch := (v == "*" || reflect.DeepEqual(gotAttributes[k], v))
 								if !valMatch {
 									fmt.Printf("expected span %s attribute %s value not match: %s", spanName, k, v)
 									fmt.Println("")

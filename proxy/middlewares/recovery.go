@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/webhookx-io/webhookx/db/dao"
-	"github.com/webhookx-io/webhookx/db/errs"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"go.uber.org/zap"
 	"net/http"
@@ -29,14 +28,6 @@ func PanicRecovery(h http.Handler) http.Handler {
 					w.WriteHeader(400)
 					bytes, _ := json.Marshal(types.ErrorResponse{Message: err.Error()})
 					w.Write(bytes)
-					return
-				}
-
-				if e, ok := err.(*errs.DBError); ok {
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(400)
-					bytes, _ := json.Marshal(types.ErrorResponse{Message: e.Error()})
-					_, _ = w.Write(bytes)
 					return
 				}
 

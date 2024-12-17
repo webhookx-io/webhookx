@@ -28,6 +28,7 @@ type ExportedTrace struct {
 				Attributes []struct {
 					Key   string `json:"key"`
 					Value struct {
+						BoolValue   *bool   `json:"boolValue,omitempty"`
 						IntValue    *string `json:"intValue,omitempty"`
 						StringValue *string `json:"stringValue,omitempty"`
 						ArrayValue  *struct {
@@ -69,6 +70,8 @@ func (t *ExportedTrace) filterSpansByTraceID(traceID string) (scopeNames map[str
 						attributes[attr.Key] = *attr.Value.StringValue
 					} else if attr.Value.IntValue != nil {
 						attributes[attr.Key] = *attr.Value.IntValue
+					} else if attr.Value.BoolValue != nil {
+						attributes[attr.Key] = fmt.Sprint(*attr.Value.BoolValue)
 					} else if attr.Value.ArrayValue != nil {
 						if len(attr.Value.ArrayValue.Values) == 1 {
 							attributes[attr.Key] = attr.Value.ArrayValue.Values[0].StringValue

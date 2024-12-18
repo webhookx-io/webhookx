@@ -1,0 +1,35 @@
+endpoints:
+  - id: 2q6ItdkHcFz8jQaXxrGp35xsShS
+    name: null
+    description: null
+    enabled: true
+    request:
+      url: http://localhost:9999/anything
+      method: POST
+      headers: {}
+      timeout: 0
+    retry:
+      strategy: fixed
+      config:
+        attempts:
+          - 0
+          - 3
+          - 3
+    events:
+      - foo.bar
+    plugins:
+      - id: 2q6ItZRVNB0EyVr6j8Pxa7VTohU
+        name: webhookx-signature
+        enabled: true
+        endpoint_id: 2q6ItdkHcFz8jQaXxrGp35xsShS
+        config:
+          signing_secret: test
+sources:
+  - id: 2q6ItgNdNEIvoJ2wffn5G5j8HYC
+    name: null
+    enabled: true
+    path: /
+    methods:
+      - POST
+    async: false
+    response: null

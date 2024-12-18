@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"bytes"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -17,8 +18,7 @@ func executeCommand(root *cobra.Command, args ...string) (output string, err err
 	return buf.String(), err
 }
 
-func TestCMD(t *testing.T) {
-	output, err := executeCommand(NewRootCmd(), "")
-	assert.Nil(t, err)
-	assert.NotNil(t, output)
+func TestCommand(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "CMD Suite")
 }

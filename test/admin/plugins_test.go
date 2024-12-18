@@ -11,6 +11,7 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/test/helper"
+	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -40,15 +41,14 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.NoError(GinkgoT(), db.Truncate("endpoints"))
 				assert.NoError(GinkgoT(), db.Truncate("plugins"))
 				for i := 1; i <= 21; i++ {
-					endpoint := helper.DefaultEndpoint()
-					endpoint.WorkspaceId = ws.ID
-					assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
+					endpoint := factory.EndpointWS(ws.ID)
+					assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), &endpoint))
 					plugin := entities.Plugin{
 						ID:         utils.KSUID(),
 						EndpointId: endpoint.ID,
 						Name:       "webhookx-signature",
 						Enabled:    true,
-						Config:     json.RawMessage("{}"),
+						Config:     entities.PluginConfiguration("{}"),
 					}
 					plugin.WorkspaceId = ws.ID
 					assert.NoError(GinkgoT(), db.Plugins.Insert(context.TODO(), &plugin))
@@ -93,7 +93,7 @@ var _ = Describe("/plugins", Ordered, func() {
 		var endpoint *entities.Endpoint
 
 		BeforeEach(func() {
-			endpoint = helper.DefaultEndpoint()
+			endpoint = factory.EndpointP()
 			assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 		})
 
@@ -158,14 +158,14 @@ var _ = Describe("/plugins", Ordered, func() {
 			var entity *entities.Plugin
 			BeforeAll(func() {
 				entitiesConfig := helper.EntitiesConfig{
-					Endpoints: []*entities.Endpoint{helper.DefaultEndpoint()},
+					Endpoints: []*entities.Endpoint{factory.EndpointP()},
 				}
 				entity = &entities.Plugin{
 					ID:         utils.KSUID(),
 					EndpointId: entitiesConfig.Endpoints[0].ID,
 					Name:       "webhookx-signature",
 					Enabled:    true,
-					Config:     json.RawMessage(`{"signing_secret":"abcde"}`),
+					Config:     entities.PluginConfiguration(`{"signing_secret":"abcde"}`),
 				}
 				entitiesConfig.Plugins = []*entities.Plugin{entity}
 
@@ -215,7 +215,7 @@ var _ = Describe("/plugins", Ordered, func() {
 					ID:         utils.KSUID(),
 					Name:       "webhookx-signature",
 					Enabled:    true,
-					Config:     json.RawMessage("{}"),
+					Config:     entities.PluginConfiguration("{}"),
 					EndpointId: endpoint.ID,
 				}
 				plugin.WorkspaceId = ws.ID
@@ -262,7 +262,7 @@ var _ = Describe("/plugins", Ordered, func() {
 					ID:         utils.KSUID(),
 					Name:       "webhookx-signature",
 					Enabled:    true,
-					Config:     json.RawMessage("{}"),
+					Config:     entities.PluginConfiguration("{}"),
 					EndpointId: endpoint.ID,
 				}
 				entity.WorkspaceId = ws.ID

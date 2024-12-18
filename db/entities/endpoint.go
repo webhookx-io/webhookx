@@ -16,7 +16,7 @@ type Endpoint struct {
 	Retry       Retry          `json:"retry" db:"retry"`
 	Events      pq.StringArray `json:"events" db:"events"`
 
-	BaseModel
+	BaseModel `yaml:"-"`
 }
 
 func (m *Endpoint) Init() {

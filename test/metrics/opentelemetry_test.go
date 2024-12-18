@@ -33,6 +33,7 @@ var _ = Describe("opentelemetry", Ordered, func() {
 				entitiesConfig.Endpoints[1].Request.Timeout = 1
 				entitiesConfig.Sources[0].Async = true
 				helper.InitDB(true, &entitiesConfig)
+				helper.InitOtelOutput()
 				proxyClient = helper.ProxyClient()
 				var err error
 				app, err = helper.Start(map[string]string{
@@ -122,6 +123,7 @@ var _ = Describe("opentelemetry", Ordered, func() {
 
 		BeforeAll(func() {
 			var err error
+			helper.InitOtelOutput()
 			app, err = helper.Start(map[string]string{
 				"WEBHOOKX_METRICS_ATTRIBUTES":                 `{"env": "prod"}`,
 				"WEBHOOKX_METRICS_EXPORTS":                    "opentelemetry",

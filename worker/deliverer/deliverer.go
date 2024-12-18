@@ -1,13 +1,14 @@
 package deliverer
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 )
 
 type Deliverer interface {
-	Deliver(req *Request) (res *Response)
+	Deliver(ctx context.Context, req *Request) (res *Response)
 }
 
 type Request struct {

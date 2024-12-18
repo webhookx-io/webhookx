@@ -11,21 +11,24 @@ builds:
       - linux
       - windows
       - darwin
+    goarch:
+      - amd64
+      - arm64
     ldflags:
       - -X github.com/webhookx-io/webhookx/config.COMMIT={{ .ShortCommit }}
       - -X github.com/webhookx-io/webhookx/config.VERSION={{ .Tag }}
 
-archives:
-  - format: tar.gz
-    # this name template makes the OS and Arch compatible with the results of `uname`.
-    name_template: >-
-      {{ .ProjectName }}_
-      {{- title .Os }}_
-      {{- if eq .Arch "amd64" }}x86_64
-      {{- else if eq .Arch "386" }}i386
-      {{- else }}{{ .Arch }}{{ end }}
-      {{- if .Arm }}v{{ .Arm }}{{ end }}
-    # use zip for windows archives
-    format_overrides:
-      - goos: windows
-        format: zip
+checksum:
+  name_template: 'checksums.txt'
+
+brews:
+  - repository:
+      owner: webhookx-io
+      name: homebrew-webhookx
+    commit_author:
+      name: "WebhookX"
+      email: "webhookx@gmail.com"
+    homepage: "https://github.com/webhookx-io/webhookx"
+    description: "an open-source webhooks gateway for message receiving, processing, and delivering."
+    test: |
+      system "#{bin}/webhookx", "version"

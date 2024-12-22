@@ -50,7 +50,6 @@ var _ = Describe("tracing worker", Ordered, func() {
 
 			It("sanity", func() {
 				expectedScopeNames := []string{
-					"github.com/XSAM/otelsql",
 					"github.com/webhookx-io/webhookx",
 				}
 				expectedScopeSpans := map[string]map[string]string{
@@ -62,12 +61,6 @@ var _ = Describe("tracing worker", Ordered, func() {
 					"worker.deliver":             {},
 					"dao.attempt_details.upsert": {},
 					"taskqueue.redis.delete":     {},
-					"sql.conn.query": {
-						"db.statement": "SELECT * FROM plugins WHERE enabled = $1 AND endpoint_id = $2",
-					},
-					"sql.conn.exec": {
-						"db.statement": "INSERT INTO attempt_details (id, request_headers, request_body, response_headers, response_body, created_at, updated_at, ws_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) \n\t\tON CONFLICT (id) DO UPDATE SET \n\t\trequest_headers = EXCLUDED.request_headers, \n\t\trequest_body = EXCLUDED.request_body, \n\t\tresponse_headers = EXCLUDED.response_headers, \n\t\tresponse_body = EXCLUDED.response_body, \n\t\tupdated_at = EXCLUDED.updated_at",
-					},
 				}
 
 				n, err := helper.FileCountLine(helper.OtelCollectorTracesFile)

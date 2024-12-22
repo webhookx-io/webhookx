@@ -15,15 +15,13 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/encoding/gzip"
-	"io"
 	"net"
 	"net/url"
-	"time"
 )
 
 const instrumentationName = "github.com/webhookx-io/webhookx"
 
-func SetupOTEL(o *config.TracingConfig) (trace.TracerProvider, io.Closer, error) {
+func SetupOTEL(o *config.TracingConfig) (trace.TracerProvider, error) {
 	var err error
 	var exporter *otlptrace.Exporter
 
@@ -34,7 +32,7 @@ func SetupOTEL(o *config.TracingConfig) (trace.TracerProvider, io.Closer, error)
 	}
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to setup exporter: %w", err)
+		return nil, fmt.Errorf("failed to setup exporter: %w", err)
 	}
 
 	attr := []attribute.KeyValue{
@@ -52,7 +50,7 @@ func SetupOTEL(o *config.TracingConfig) (trace.TracerProvider, io.Closer, error)
 		resource.WithFromEnv(),
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to build resource: %w", err)
+		return nil, fmt.Errorf("failed to build resource: %w", err)
 	}
 
 	tracerProvider := sdktrace.NewTracerProvider(
@@ -63,7 +61,7 @@ func SetupOTEL(o *config.TracingConfig) (trace.TracerProvider, io.Closer, error)
 	otel.SetTracerProvider(tracerProvider)
 
 	otel.SetTextMapPropagator(autoprop.NewTextMapPropagator())
-	return tracerProvider, &tpCloser{provider: tracerProvider}, err
+	return tracerProvider, err
 }
 
 func setupHTTPExporter(c config.Opentelemetry) (*otlptrace.Exporter, error) {
@@ -101,22 +99,4 @@ func setupGRPCExporter(c config.Opentelemetry) (*otlptrace.Exporter, error) {
 	}
 
 	return otlptrace.New(context.Background(), otlptracegrpc.NewClient(opts...))
-}
-
-type tpCloser struct {
-	provider trace.TracerProvider
-}
-
-func (t *tpCloser) Close() error {
-	if t == nil {
-		return nil
-	}
-
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
-	defer cancel()
-
-	if pr, ok := t.provider.(*sdktrace.TracerProvider); ok {
-		return pr.Shutdown(ctx)
-	}
-	return nil
 }

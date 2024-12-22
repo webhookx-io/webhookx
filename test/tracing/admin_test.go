@@ -59,7 +59,6 @@ var _ = Describe("tracing admin", Ordered, func() {
 			It("sanity", func() {
 				traceID := helper.GenerateTraceID()
 				expectedScopeNames := []string{
-					"github.com/XSAM/otelsql",
 					"github.com/webhookx-io/webhookx",
 					"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
 				}
@@ -78,10 +77,7 @@ var _ = Describe("tracing admin", Ordered, func() {
 				}
 
 				expectedScopeSpans := map[string]map[string]string{
-					"api.admin": entrypoint,
-					"sql.conn.query": {
-						"db.statement": "SELECT * FROM attempts WHERE ws_id = $1 ORDER BY id DESC LIMIT 20 OFFSET 0",
-					},
+					"api.admin":          entrypoint,
 					"dao.attempts.page":  {},
 					"dao.attempts.count": {},
 					"dao.attempts.list":  {},

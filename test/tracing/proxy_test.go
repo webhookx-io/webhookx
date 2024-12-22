@@ -59,7 +59,6 @@ var _ = Describe("tracing proxy", Ordered, func() {
 				fmt.Println("start line " + fmt.Sprint(n))
 
 				expectedScopeNames := []string{
-					"github.com/XSAM/otelsql",
 					"github.com/webhookx-io/webhookx",
 					"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
 				}
@@ -93,12 +92,6 @@ var _ = Describe("tracing proxy", Ordered, func() {
 					"db.transaction":            {},
 					"dao.attempts.batch_insert": {},
 					"taskqueue.redis.add":       {},
-					"sql.conn.exec": {
-						"db.statement": "UPDATE attempts SET status = $1 WHERE id IN ($2)",
-					},
-					"sql.conn.query": {
-						"db.statement": "INSERT INTO attempts (id,event_id,endpoint_id,status,attempt_number,scheduled_at,attempted_at,trigger_mode,exhausted,error_code,request,response,ws_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *",
-					},
 				}
 
 				// wait for export

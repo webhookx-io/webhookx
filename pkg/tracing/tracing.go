@@ -3,103 +3,70 @@ package tracing
 import (
 	"context"
 	"github.com/webhookx-io/webhookx/config"
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
-	"io"
+	"time"
 )
-
-var internalTracer *Tracer
 
 func New(conf *config.TracingConfig) (*Tracer, error) {
 	if !conf.Enabled {
 		return nil, nil
 	}
 
-	tr, closer, err := SetupOTEL(conf)
+	tr, err := SetupOTEL(conf)
 	if err != nil {
 		return nil, err
 	}
 
-	internalTracer = NewTracer(tr, closer)
-	return internalTracer, nil
+	return NewTracer(tr), nil
 }
 
-func TracerFromContext(ctx context.Context) *Tracer {
+func TracerFromContext(ctx context.Context) trace.Tracer {
+	var tp trace.TracerProvider
 	if !trace.SpanContextFromContext(ctx).IsValid() {
-		return nil
+		tp = otel.GetTracerProvider()
+	} else {
+		tp = trace.SpanFromContext(ctx).TracerProvider()
 	}
 
-	span := trace.SpanFromContext(ctx)
-	if span != nil && span.TracerProvider() != nil {
-		tracerProvider := span.TracerProvider()
-		tracer := tracerProvider.Tracer(instrumentationName)
-		tr, ok := tracer.(*Tracer)
-		if ok {
-			return tr
-		} else {
-			if internalTracer == nil {
-				internalTracer = NewTracer(tracerProvider, &tpCloser{tracerProvider})
-			}
-			return internalTracer
-		}
-	}
-
-	return nil
-}
-
-type Span struct {
-	trace.Span
-
-	tracerProvider *TracerProvider
-}
-
-func (s Span) TracerProvider() trace.TracerProvider {
-	return s.tracerProvider
-}
-
-type TracerProvider struct {
-	trace.TracerProvider
-
-	tracer *Tracer
-}
-
-func (t TracerProvider) Tracer(name string, options ...trace.TracerOption) trace.Tracer {
-	if name == instrumentationName {
-		return t.tracer
-	}
-
-	return t.TracerProvider.Tracer(name, options...)
+	return tp.Tracer(instrumentationName)
 }
 
 type Tracer struct {
-	trace.Tracer
-	io.Closer
+	trace.TracerProvider
 }
 
-func NewTracer(tracerProvider trace.TracerProvider, closer io.Closer) *Tracer {
+func NewTracer(tracerProvider trace.TracerProvider) *Tracer {
 	return &Tracer{
-		Tracer: tracerProvider.Tracer(instrumentationName),
-		Closer: closer,
+		TracerProvider: tracerProvider,
 	}
+
 }
 
 func (t *Tracer) Start(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
 	if t == nil {
-		return ctx, nil
+		return ctx, trace.SpanFromContext(ctx)
 	}
-
-	spanCtx, span := t.Tracer.Start(ctx, spanName, opts...)
-
-	wrappedSpan := &Span{Span: span, tracerProvider: &TracerProvider{tracer: t}}
-
-	return trace.ContextWithSpan(spanCtx, wrappedSpan), wrappedSpan
+	tracer := t.Tracer(instrumentationName)
+	spanCtx, span := tracer.Start(ctx, spanName, opts...)
+	return spanCtx, span
 }
 
 func (t *Tracer) Stop() error {
 	if t == nil {
 		return nil
 	}
-	if t.Closer != nil {
-		return t.Closer.Close()
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
+	defer cancel()
+
+	if pr, ok := t.TracerProvider.(*sdktrace.TracerProvider); ok {
+		return pr.Shutdown(ctx)
 	}
 	return nil
+}
+
+func Start(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+	tracer := TracerFromContext(ctx)
+	return tracer.Start(ctx, spanName, opts...)
 }

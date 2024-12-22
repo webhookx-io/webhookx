@@ -75,7 +75,6 @@ func Init() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg.injectTracingEnabled()
 	return &cfg, nil
 }
 
@@ -99,10 +98,5 @@ func InitWithFile(filename string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg.injectTracingEnabled()
 	return &cfg, nil
-}
-
-func (cfg *Config) injectTracingEnabled() {
-	cfg.Database.SetTracingEnabled(cfg.Tracing.Enabled)
 }

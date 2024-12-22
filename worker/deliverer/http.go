@@ -34,11 +34,9 @@ func timing(fn func()) time.Duration {
 }
 
 func (d *HTTPDeliverer) Deliver(ctx context.Context, req *Request) (res *Response) {
-	if tracer := tracing.TracerFromContext(ctx); tracer != nil {
-		tracingCtx, span := tracer.Start(ctx, "worker.deliver", trace.WithSpanKind(trace.SpanKindClient))
-		defer span.End()
-		ctx = tracingCtx
-	}
+	tracingCtx, span := tracing.Start(ctx, "worker.deliver", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+	ctx = tracingCtx
 	timeout := req.Timeout
 	if timeout == 0 {
 		timeout = d.defaultTimeout

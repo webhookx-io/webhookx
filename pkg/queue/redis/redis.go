@@ -56,8 +56,9 @@ func NewRedisQueue(opts RedisQueueOptions, logger *zap.SugaredLogger, metrics *m
 }
 
 func (q *RedisQueue) Enqueue(ctx context.Context, message *queue.Message) error {
-	ctx, span := tracing.Start(ctx, "redis.queue.enqueue", trace.WithSpanKind(trace.SpanKindServer))
+	tracingCtx, span := tracing.Start(ctx, "redis.queue.enqueue", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
+	ctx = tracingCtx
 
 	args := &redis.XAddArgs{
 		Stream: q.stream,
@@ -92,8 +93,9 @@ func toMessage(values map[string]interface{}) *queue.Message {
 }
 
 func (q *RedisQueue) Dequeue(ctx context.Context, opt *queue.Options) ([]*queue.Message, error) {
-	ctx, span := tracing.Start(ctx, "redis.queue.dequeue", trace.WithSpanKind(trace.SpanKindServer))
+	tracingCtx, span := tracing.Start(ctx, "redis.queue.dequeue", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
+	ctx = tracingCtx
 
 	var count int64 = 1
 	if opt != nil && opt.Count != 0 {
@@ -136,8 +138,9 @@ func (q *RedisQueue) Dequeue(ctx context.Context, opt *queue.Options) ([]*queue.
 }
 
 func (q *RedisQueue) Delete(ctx context.Context, messages []*queue.Message) error {
-	ctx, span := tracing.Start(ctx, "redis.queue.delete", trace.WithSpanKind(trace.SpanKindServer))
+	tracingCtx, span := tracing.Start(ctx, "redis.queue.delete", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
+	ctx = tracingCtx
 
 	ids := make([]string, 0, len(messages))
 	for _, message := range messages {

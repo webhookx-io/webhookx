@@ -8,8 +8,10 @@ import (
 	"github.com/webhookx-io/webhookx/model"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"time"
 )
@@ -45,6 +47,10 @@ func (d *Dispatcher) DispatchBatch(ctx context.Context, events []*entities.Event
 }
 
 func (d *Dispatcher) dispatchBatch(ctx context.Context, events []*entities.Event) (int, error) {
+	tracingCtx, span := tracing.Start(ctx, "dispatcher.dispatch", trace.WithSpanKind(trace.SpanKindServer))
+	defer span.End()
+	ctx = tracingCtx
+
 	if len(events) == 0 {
 		return 0, nil
 	}
@@ -79,7 +85,7 @@ func (d *Dispatcher) dispatchBatch(ctx context.Context, events []*entities.Event
 		return d.db.Attempts.BatchInsert(ctx, attempts)
 	})
 	if err == nil {
-		go d.sendToQueue(context.TODO(), attempts)
+		go d.sendToQueue(context.WithoutCancel(ctx), attempts)
 	}
 	return n, err
 }
@@ -112,7 +118,7 @@ func (d *Dispatcher) DispatchEndpoint(ctx context.Context, event *entities.Event
 		return err
 	}
 
-	d.sendToQueue(context.TODO(), attempts)
+	d.sendToQueue(ctx, attempts)
 
 	return nil
 }

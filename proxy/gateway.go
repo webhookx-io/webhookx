@@ -15,11 +15,16 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/queue/redis"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/proxy/middlewares"
 	"github.com/webhookx-io/webhookx/proxy/router"
 	"github.com/webhookx-io/webhookx/utils"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/attribute"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"net/http"
 	"os"
@@ -46,9 +51,10 @@ type Gateway struct {
 
 	queue   queue.Queue
 	metrics *metrics.Metrics
+	tracer  *tracing.Tracer
 }
 
-func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher *dispatcher.Dispatcher, metrics *metrics.Metrics) *Gateway {
+func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher *dispatcher.Dispatcher, metrics *metrics.Metrics, tracer *tracing.Tracer) *Gateway {
 	var q queue.Queue
 	switch cfg.Queue.Type {
 	case "redis":
@@ -65,12 +71,16 @@ func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher *dispatcher.Dispa
 		dispatcher: dispatcher,
 		queue:      q,
 		metrics:    metrics,
+		tracer:     tracer,
 	}
 
 	r := mux.NewRouter()
 	r.Use(middlewares.PanicRecovery)
 	if metrics.Enabled {
 		r.Use(middlewares.NewMetricsMiddleware(metrics).Handle)
+	}
+	if gw.tracer != nil {
+		r.Use(otelhttp.NewMiddleware("api.proxy"))
 	}
 	r.PathPrefix("/").HandlerFunc(gw.Handle)
 
@@ -113,7 +123,17 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 	ctx := ucontext.WithContext(r.Context(), &ucontext.UContext{
 		WorkspaceID: source.WorkspaceId,
 	})
-	r = r.WithContext(ctx)
+
+	if gw.tracer != nil {
+		tracingCtx, span := gw.tracer.Start(ctx, "proxy.handle", trace.WithSpanKind(trace.SpanKindServer))
+		span.SetAttributes(attribute.String("source.id", source.ID))
+		span.SetAttributes(attribute.String("source.name", utils.PointerValue(source.Name)))
+		span.SetAttributes(attribute.String("source.workspace_id", source.WorkspaceId))
+		span.SetAttributes(attribute.Bool("source.async", source.Async))
+		span.SetAttributes(semconv.HTTPRoute(source.Path))
+		defer span.End()
+		ctx = tracingCtx
+	}
 
 	var event entities.Event
 	r.Body = http.MaxBytesReader(w, r.Body, gw.cfg.MaxRequestBodySize)
@@ -140,7 +160,7 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := gw.ingestEvent(r.Context(), source.Async, &event)
+	err := gw.ingestEvent(ctx, source.Async, &event)
 	if err != nil {
 		gw.log.Errorf("[proxy] failed to ingest event: %v", err)
 		exit(w, 500, `{"message": "internal error"}`, nil)

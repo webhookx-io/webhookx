@@ -25,6 +25,7 @@ type Config struct {
 	Proxy    ProxyConfig    `yaml:"proxy" envconfig:"PROXY"`
 	Worker   WorkerConfig   `yaml:"worker" envconfig:"WORKER"`
 	Metrics  MetricsConfig  `yaml:"metrics" envconfig:"METRICS"`
+	Tracing  TracingConfig  `yaml:"tracing" envconfig:"TRACING"`
 }
 
 func (cfg Config) String() string {
@@ -58,6 +59,10 @@ func (cfg Config) Validate() error {
 		return err
 	}
 
+	if err := cfg.Tracing.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -70,7 +75,6 @@ func Init() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &cfg, nil
 }
 
@@ -94,6 +98,5 @@ func InitWithFile(filename string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &cfg, nil
 }

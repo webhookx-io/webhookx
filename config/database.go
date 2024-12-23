@@ -1,7 +1,9 @@
 package config
 
 import (
+	"database/sql"
 	"fmt"
+	"time"
 )
 
 type DatabaseConfig struct {
@@ -34,4 +36,16 @@ func (cfg DatabaseConfig) Validate() error {
 		return fmt.Errorf("port must be in the range [0, 65535]")
 	}
 	return nil
+}
+
+func (cfg *DatabaseConfig) InitSqlDB() (*sql.DB, error) {
+	var driverName = "postgres"
+	db, err := sql.Open(driverName, cfg.GetDSN())
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(int(cfg.MaxPoolSize))
+	db.SetMaxIdleConns(int(cfg.MaxPoolSize))
+	db.SetConnMaxLifetime(time.Second * time.Duration(cfg.MaxLifetime))
+	return db, nil
 }

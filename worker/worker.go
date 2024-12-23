@@ -212,7 +212,7 @@ func (w *Worker) processRequeue() {
 
 func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) error {
 	if w.tracer != nil {
-		tracingCtx, span := w.tracer.Start(ctx, "worker.handle", trace.WithSpanKind(trace.SpanKindServer))
+		tracingCtx, span := w.tracer.Start(ctx, "worker.handle_task", trace.WithSpanKind(trace.SpanKindServer))
 		defer span.End()
 		ctx = tracingCtx
 	}

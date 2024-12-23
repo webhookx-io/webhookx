@@ -3,8 +3,8 @@ package dao
 import (
 	"context"
 	"fmt"
-	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
@@ -64,8 +64,9 @@ func (dao *attemptDao) UpdateStatusBatch(ctx context.Context, status entities.At
 }
 
 func (dao *attemptDao) UpdateErrorCode(ctx context.Context, id string, status entities.AttemptStatus, code entities.AttemptErrorCode) error {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.updateErrorCode", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	tracingCtx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.updateErrorCode", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
+	ctx = tracingCtx
 
 	_, err := dao.update(ctx, id, map[string]interface{}{
 		"status":     status,

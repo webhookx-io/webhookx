@@ -47,8 +47,9 @@ func (d *Dispatcher) DispatchBatch(ctx context.Context, events []*entities.Event
 }
 
 func (d *Dispatcher) dispatchBatch(ctx context.Context, events []*entities.Event) (int, error) {
-	ctx, span := tracing.Start(ctx, "dispatcher.dispatch", trace.WithSpanKind(trace.SpanKindServer))
+	tracingCtx, span := tracing.Start(ctx, "dispatcher.dispatch", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
+	ctx = tracingCtx
 
 	if len(events) == 0 {
 		return 0, nil

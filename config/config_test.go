@@ -172,11 +172,11 @@ func TestMetricsConfig(t *testing.T) {
 		{
 			desc: "sanity",
 			cfg: MetricsConfig{
-				Attributes:   nil,
-				Exports:      nil,
-				PushInterval: 1,
-				Opentelemetry: Opentelemetry{
-					Protocol: "http/protobuf",
+				Attributes: nil,
+				Exports:    nil,
+				OpenTelemetry: Opentelemetry{
+					PushInterval: 1,
+					Protocol:     "http/protobuf",
 				},
 			},
 			expectedValidateErr: nil,
@@ -184,11 +184,11 @@ func TestMetricsConfig(t *testing.T) {
 		{
 			desc: "invalid export",
 			cfg: MetricsConfig{
-				Attributes:   nil,
-				Exports:      []Export{"unknown"},
-				PushInterval: 1,
-				Opentelemetry: Opentelemetry{
-					Protocol: "http/protobuf",
+				Attributes: nil,
+				Exports:    []Export{"unknown"},
+				OpenTelemetry: Opentelemetry{
+					PushInterval: 1,
+					Protocol:     "http/protobuf",
 				},
 			},
 			expectedValidateErr: errors.New("invalid export: unknown"),
@@ -196,11 +196,11 @@ func TestMetricsConfig(t *testing.T) {
 		{
 			desc: "invalid export",
 			cfg: MetricsConfig{
-				Attributes:   nil,
-				Exports:      nil,
-				PushInterval: 1,
-				Opentelemetry: Opentelemetry{
-					Protocol: "unknown",
+				Attributes: nil,
+				Exports:    nil,
+				OpenTelemetry: Opentelemetry{
+					PushInterval: 1,
+					Protocol:     "unknown",
 				},
 			},
 			expectedValidateErr: errors.New("invalid protocol: unknown"),
@@ -208,11 +208,11 @@ func TestMetricsConfig(t *testing.T) {
 		{
 			desc: "invalid PushInterval",
 			cfg: MetricsConfig{
-				Attributes:   nil,
-				Exports:      nil,
-				PushInterval: 61,
-				Opentelemetry: Opentelemetry{
-					Protocol: "http/protobuf",
+				Attributes: nil,
+				Exports:    nil,
+				OpenTelemetry: Opentelemetry{
+					PushInterval: 61,
+					Protocol:     "http/protobuf",
 				},
 			},
 			expectedValidateErr: errors.New("interval must be in the range [1, 60]"),

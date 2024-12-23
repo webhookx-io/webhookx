@@ -55,7 +55,7 @@ var _ = Describe("tracing worker", Ordered, func() {
 				}
 				expectedScopeSpans := map[string]map[string]string{
 					"worker.submit":              {},
-					"worker.handle":              {},
+					"worker.handle_task":         {},
 					"dao.endpoints.get":          {},
 					"dao.plugins.list":           {},
 					"dao.events.get":             {},
@@ -108,7 +108,7 @@ var _ = Describe("tracing worker", Ordered, func() {
 					}
 
 					// make sure worker handle full trace
-					traceID := trace.getTraceIDBySpanName("worker.handle")
+					traceID := trace.getTraceIDBySpanName("worker.handle_task")
 					if traceID == "" {
 						fmt.Printf("trace id not exist")
 						return false

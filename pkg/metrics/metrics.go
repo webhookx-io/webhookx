@@ -60,8 +60,8 @@ func New(cfg config.MetricsConfig) (*Metrics, error) {
 	}
 
 	if len(cfg.Exports) > 0 {
-		m.Interval = time.Second * time.Duration(cfg.OpenTelemetry.PushInterval)
-		err := SetupOpentelemetry(m.ctx, cfg.Attributes, cfg.OpenTelemetry, m)
+		m.Interval = time.Second * time.Duration(cfg.PushInterval)
+		err := SetupOpentelemetry(m.ctx, cfg.Attributes, cfg.Opentelemetry, m)
 		if err != nil {
 			return nil, err
 		}

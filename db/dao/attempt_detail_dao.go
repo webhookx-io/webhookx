@@ -30,9 +30,9 @@ func NewAttemptDetailDao(db *sqlx.DB, workspace bool) AttemptDetailDAO {
 }
 
 func (dao *attemptDetailDao) Insert(ctx context.Context, attemptDetail *entities.AttemptDetail) error {
-	tracingCtx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.upsert", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.upsert", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
-	ctx = tracingCtx
+
 	now := time.Now()
 	values := []interface{}{attemptDetail.ID, attemptDetail.RequestHeaders, attemptDetail.RequestBody, attemptDetail.ResponseHeaders, attemptDetail.ResponseBody, now, now, attemptDetail.WorkspaceId}
 

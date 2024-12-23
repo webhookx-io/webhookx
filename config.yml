@@ -73,8 +73,8 @@ metrics:
   attributes:                                   # global attributes for each metric
     env: prod
   #exports: [ opentelemetry ]                   # list of enabled vendor exports. supported value are opentelemetry
+  push_interval: 10                             # interval(in seconds) at which metrics are sent to the OpenTelemetry Collector
   opentelemetry:
-    push_interval: 10                           # interval(in seconds) at which metrics are sent to the OpenTelemetry Collector
     protocol: http/protobuf                     # supported value are http/protobuf, grpc
     endpoint: http://localhost:4318/v1/metrics  # http/protobuf(http://localhost:4318/v1/metrics), grpc(localhost:4317)
 
@@ -83,10 +83,9 @@ metrics:
 #------------------------------------------------------------------------------
 tracing:
   enabled: false
-  attributes:                   # global attributes for each trace
+  attributes:                                   # global attributes for each trace
     env: prod
   sampling_rate: 1.0
   opentelemetry:
-    protocol: http/protobuf     # supported value are http/protobuf, grpc
-    endpoint: http://localhost:4318/v1/traces # http/protobuf(http://localhost:4318/v1/traces), grpc(localhost:4317)
-    
+    protocol: http/protobuf                     # supported value are http/protobuf, grpc
+    endpoint: http://localhost:4318/v1/traces   # http/protobuf(http://localhost:4318/v1/traces), grpc(localhost:4317)

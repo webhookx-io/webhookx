@@ -9,6 +9,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/test/helper"
+	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.opentelemetry.io/otel/trace"
 	"testing"
@@ -20,8 +21,8 @@ var _ = Describe("tracing disabled", Ordered, func() {
 			var app *app.Application
 
 			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{helper.DefaultEndpoint()},
-				Sources:   []*entities.Source{helper.DefaultSource()},
+				Endpoints: []*entities.Endpoint{factory.EndpointP()},
+				Sources:   []*entities.Source{factory.SourceP()},
 			}
 
 			BeforeAll(func() {

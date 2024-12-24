@@ -194,7 +194,7 @@ func TestMetricsConfig(t *testing.T) {
 			expectedValidateErr: errors.New("invalid export: unknown"),
 		},
 		{
-			desc: "invalid export",
+			desc: "invalid protocol",
 			cfg: MetricsConfig{
 				Attributes:   nil,
 				Exports:      nil,
@@ -254,6 +254,15 @@ func TestTracingConfig(t *testing.T) {
 				},
 			},
 			expectedValidateErr: errors.New("sampling_rate must be in the range [0, 1]"),
+		},
+		{
+			desc: "invalid protocol",
+			cfg: TracingConfig{
+				Opentelemetry: Opentelemetry{
+					Protocol: "unknown",
+				},
+			},
+			expectedValidateErr: errors.New("invalid protocol: unknown"),
 		},
 	}
 	for _, test := range tests {

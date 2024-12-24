@@ -91,7 +91,7 @@ func (w *Worker) run() {
 			return
 		case <-ticker.C:
 			for {
-				tasks, err := w.queue.Get(context.Background(), options)
+				tasks, err := w.queue.Get(context.TODO(), options)
 				if err != nil {
 					w.log.Errorf("[worker] failed to get tasks from queue: %v", err)
 					break
@@ -212,7 +212,7 @@ func (w *Worker) processRequeue() {
 
 func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) error {
 	if w.tracer != nil {
-		tracingCtx, span := w.tracer.Start(ctx, "worker.handle", trace.WithSpanKind(trace.SpanKindServer))
+		tracingCtx, span := w.tracer.Start(ctx, "worker.handle_task", trace.WithSpanKind(trace.SpanKindServer))
 		defer span.End()
 		ctx = tracingCtx
 	}
@@ -283,7 +283,9 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 
 	// deliver the request
 	startAt := time.Now()
+	ctx, span := tracing.Start(ctx, "worker.deliver", trace.WithSpanKind(trace.SpanKindClient))
 	response := w.deliverer.Deliver(ctx, request)
+	span.End()
 	finishAt := time.Now()
 
 	if response.Error != nil {

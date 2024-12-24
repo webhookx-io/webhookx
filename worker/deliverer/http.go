@@ -5,8 +5,6 @@ import (
 	"context"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/constants"
-	"github.com/webhookx-io/webhookx/pkg/tracing"
-	"go.opentelemetry.io/otel/trace"
 	"io"
 	"net/http"
 	"time"
@@ -34,9 +32,6 @@ func timing(fn func()) time.Duration {
 }
 
 func (d *HTTPDeliverer) Deliver(ctx context.Context, req *Request) (res *Response) {
-	tracingCtx, span := tracing.Start(ctx, "worker.deliver", trace.WithSpanKind(trace.SpanKindClient))
-	defer span.End()
-	ctx = tracingCtx
 	timeout := req.Timeout
 	if timeout == 0 {
 		timeout = d.defaultTimeout

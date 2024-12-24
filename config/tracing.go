@@ -15,5 +15,8 @@ func (cfg TracingConfig) Validate() error {
 	if cfg.SamplingRate > 1 || cfg.SamplingRate < 0 {
 		return errors.New("sampling_rate must be in the range [0, 1]")
 	}
+	if err := cfg.Opentelemetry.Validate(); err != nil {
+		return err
+	}
 	return nil
 }

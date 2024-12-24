@@ -11,7 +11,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/semconv/v1.26.0"
-	"time"
 )
 
 const (
@@ -63,7 +62,7 @@ func SetupOpentelemetry(ctx context.Context, attributes map[string]string, cfg c
 	}
 
 	opts := []metric.PeriodicReaderOption{
-		metric.WithInterval(time.Second * time.Duration(cfg.PushInterval)),
+		metric.WithInterval(metrics.Interval),
 	}
 
 	meterProvider := metric.NewMeterProvider(

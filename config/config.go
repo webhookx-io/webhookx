@@ -58,7 +58,6 @@ func (cfg Config) Validate() error {
 	if err := cfg.Metrics.Validate(); err != nil {
 		return err
 	}
-
 	if err := cfg.Tracing.Validate(); err != nil {
 		return err
 	}
@@ -75,6 +74,7 @@ func Init() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &cfg, nil
 }
 
@@ -98,5 +98,6 @@ func InitWithFile(filename string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &cfg, nil
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/test/helper"
+	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
 	"reflect"
 	"time"
@@ -26,8 +27,8 @@ var _ = Describe("tracing proxy", Ordered, func() {
 			var proxyClient *resty.Client
 
 			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{helper.DefaultEndpoint()},
-				Sources:   []*entities.Source{helper.DefaultSource()},
+				Endpoints: []*entities.Endpoint{factory.EndpointP()},
+				Sources:   []*entities.Source{factory.SourceP()},
 			}
 
 			BeforeAll(func() {
@@ -184,10 +185,9 @@ var _ = Describe("tracing proxy", Ordered, func() {
 		var proxyClient *resty.Client
 
 		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{helper.DefaultEndpoint()},
-			Sources:   []*entities.Source{helper.DefaultSource()},
+			Endpoints: []*entities.Endpoint{factory.EndpointP()},
+			Sources:   []*entities.Source{factory.SourceP()},
 		}
-		entitiesConfig.Sources[0].Async = false
 
 		BeforeAll(func() {
 			var err error

@@ -10,6 +10,7 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/test/helper"
+	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
 	"time"
 )
@@ -25,10 +26,9 @@ var _ = Describe("tracing admin", Ordered, func() {
 			var proxyClient *resty.Client
 			var adminClient *resty.Client
 			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{helper.DefaultEndpoint()},
-				Sources:   []*entities.Source{helper.DefaultSource()},
+				Endpoints: []*entities.Endpoint{factory.EndpointP()},
+				Sources:   []*entities.Source{factory.SourceP(factory.WithSourceAsync(true))},
 			}
-			entitiesConfig.Sources[0].Async = true
 			var gotScopeNames map[string]bool
 			var gotSpanAttributes map[string]map[string]string
 

@@ -78,6 +78,12 @@ func WithSourceID(id string) SourceOption {
 	}
 }
 
+func WithSourceAsync(async bool) SourceOption {
+	return func(e *entities.Source) {
+		e.Async = async
+	}
+}
+
 func Source(opts ...SourceOption) entities.Source {
 	e := defaultSource()
 	for _, opt := range opts {

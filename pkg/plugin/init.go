@@ -16,6 +16,23 @@ func New(name string) types.Plugin {
 	return nil
 }
 
+func NewConfiguration(name string, configuration string) (types.PluginConfig, error) {
+	instance := New(name)
+	if instance == nil {
+		return nil, errors.New("unknown plugin: " + name)
+	}
+
+	cfg := instance.Config()
+	if configuration != "" {
+		err := json.Unmarshal([]byte(configuration), cfg)
+		if err != nil {
+			return nil, err
+		}
+	}
+	cfg.ProcessDefault()
+	return cfg, nil
+}
+
 func ExecutePlugin(plugin *entities.Plugin, req *types.Request, ctx *types.Context) error {
 	instance := New(plugin.Name)
 	if instance == nil {

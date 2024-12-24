@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"context"
+	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"strconv"
 	"testing"
 	"time"
@@ -27,8 +28,8 @@ var _ = Describe("delivery", Ordered, func() {
 		var db *db.DB
 
 		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{helper.DefaultEndpoint()},
-			Sources:   []*entities.Source{helper.DefaultSource()},
+			Endpoints: []*entities.Endpoint{factory.EndpointP()},
+			Sources:   []*entities.Source{factory.SourceP()},
 		}
 		entitiesConfig.Plugins = []*entities.Plugin{{
 			ID:         utils.KSUID(),
@@ -127,13 +128,13 @@ var _ = Describe("delivery", Ordered, func() {
 
 		var app *app.Application
 		var db *db.DB
-		var endpoint = helper.DefaultEndpoint()
+		var endpoint = factory.Endpoint()
 
 		BeforeAll(func() {
 			endpoint.Request.Timeout = 1
 			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{endpoint},
-				Sources:   []*entities.Source{helper.DefaultSource()},
+				Endpoints: []*entities.Endpoint{&endpoint},
+				Sources:   []*entities.Source{factory.SourceP()},
 			}
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
@@ -194,13 +195,13 @@ var _ = Describe("delivery", Ordered, func() {
 
 		var app *app.Application
 		var db *db.DB
-		var endpoint = helper.DefaultEndpoint()
+		var endpoint = factory.Endpoint()
 
 		BeforeAll(func() {
 			endpoint.Retry.Config.Attempts = []int64{3, 1, 1}
 			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{endpoint},
-				Sources:   []*entities.Source{helper.DefaultSource()},
+				Endpoints: []*entities.Endpoint{&endpoint},
+				Sources:   []*entities.Source{factory.SourceP()},
 			}
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()

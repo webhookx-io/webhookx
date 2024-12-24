@@ -40,6 +40,10 @@ func (t Time) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf("%d", t.UnixMilli())), nil
 }
 
+func (t Time) MarshalYAML() (interface{}, error) {
+	return t.UnixMilli(), nil
+}
+
 func (t *Time) Scan(src interface{}) error {
 	if src == nil {
 		t.Time = time.Unix(0, 0)

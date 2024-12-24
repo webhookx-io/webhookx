@@ -12,6 +12,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/test/helper"
+	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
 	"time"
 )
@@ -125,8 +126,8 @@ var _ = Describe("/events", Ordered, func() {
 
 			BeforeAll(func() {
 				entitiesConfig := helper.EntitiesConfig{
-					Endpoints: []*entities.Endpoint{helper.DefaultEndpoint()},
-					Events:    []*entities.Event{helper.DefaultEvent()},
+					Endpoints: []*entities.Endpoint{factory.EndpointP()},
+					Events:    []*entities.Event{factory.EventP()},
 				}
 				endpointId = entitiesConfig.Endpoints[0].ID
 				eventId = entitiesConfig.Events[0].ID

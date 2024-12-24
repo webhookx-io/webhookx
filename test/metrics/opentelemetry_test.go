@@ -10,6 +10,7 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/test/helper"
+	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"testing"
 	"time"
 )
@@ -27,8 +28,8 @@ var _ = Describe("opentelemetry", Ordered, func() {
 
 			BeforeAll(func() {
 				entitiesConfig := helper.EntitiesConfig{
-					Endpoints: []*entities.Endpoint{helper.DefaultEndpoint(), helper.DefaultEndpoint()},
-					Sources:   []*entities.Source{helper.DefaultSource()},
+					Endpoints: []*entities.Endpoint{factory.EndpointP(), factory.EndpointP()},
+					Sources:   []*entities.Source{factory.SourceP()},
 				}
 				entitiesConfig.Endpoints[1].Request.Timeout = 1
 				entitiesConfig.Sources[0].Async = true

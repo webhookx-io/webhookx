@@ -3,12 +3,13 @@ package dao
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"go.opentelemetry.io/otel/trace"
-	"time"
 )
 
 type attemptDetailDao struct {
@@ -28,7 +29,7 @@ func NewAttemptDetailDao(db *sqlx.DB, workspace bool) AttemptDetailDAO {
 	}
 }
 
-func (dao *attemptDetailDao) Upsert(ctx context.Context, attemptDetail *entities.AttemptDetail) error {
+func (dao *attemptDetailDao) Insert(ctx context.Context, attemptDetail *entities.AttemptDetail) error {
 	tracingCtx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.upsert", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 	ctx = tracingCtx

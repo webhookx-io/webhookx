@@ -21,6 +21,9 @@ func (cfg *MetricsConfig) Validate() error {
 			return fmt.Errorf("invalid export: %s", export)
 		}
 	}
+	if cfg.Opentelemetry.PushInterval != 0 {
+		cfg.PushInterval = cfg.Opentelemetry.PushInterval
+	}
 	if cfg.PushInterval < 1 || cfg.PushInterval > 60 {
 		return fmt.Errorf("interval must be in the range [1, 60]")
 	}

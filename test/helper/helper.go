@@ -5,14 +5,12 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"github.com/creasty/defaults"
 	"github.com/go-resty/resty/v2"
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/migrator"
-	"github.com/webhookx-io/webhookx/utils"
 	"os"
 	"path"
 	"regexp"
@@ -186,6 +184,14 @@ func InitDB(truncated bool, entities *EntitiesConfig) *db.DB {
 	return db
 }
 
+func GetDeafultWorkspace() (*entities.Workspace, error) {
+	db, err := db.NewDB(&cfg.Database)
+	if err != nil {
+		return nil, err
+	}
+	return db.Workspaces.GetDefault(context.TODO())
+}
+
 func ResetDB() error {
 	cfg, err := config.Init()
 	if err != nil {
@@ -283,43 +289,6 @@ func FileHasLine(filename string, regex string) (bool, error) {
 	}
 
 	return false, nil
-}
-
-func DefaultEndpoint() *entities.Endpoint {
-	var entity entities.Endpoint
-	entity.Init()
-	defaults.Set(&entity)
-
-	entity.Request = entities.RequestConfig{
-		URL:    "http://localhost:9999/anything",
-		Method: "POST",
-	}
-	entity.Retry.Config.Attempts = []int64{0, 3, 3}
-	entity.Events = []string{"foo.bar"}
-
-	return &entity
-}
-
-func DefaultSource() *entities.Source {
-	var entity entities.Source
-	entity.Init()
-	defaults.Set(&entity)
-
-	entity.Path = "/"
-	entity.Methods = []string{"POST"}
-
-	return &entity
-}
-
-func DefaultEvent() *entities.Event {
-	var entity entities.Event
-	defaults.Set(&entity)
-
-	entity.ID = utils.KSUID()
-	entity.EventType = "foo.bar"
-	entity.Data = []byte("{}")
-
-	return &entity
 }
 
 func PathExist(_path string) bool {

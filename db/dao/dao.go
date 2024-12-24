@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/errs"
@@ -96,7 +96,12 @@ func (dao *DAO[T]) Get(ctx context.Context, id string) (entity *T, err error) {
 	tracingCtx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.get", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 	ctx = tracingCtx
-	builder := psql.Select("*").From(dao.opts.Table).Where(sq.Eq{"id": id})
+
+	return dao.Select(ctx, "id", id)
+}
+
+func (dao *DAO[T]) Select(ctx context.Context, field string, value string) (entity *T, err error) {
+	builder := psql.Select("*").From(dao.opts.Table).Where(sq.Eq{field: value})
 	if dao.workspace {
 		wid := ucontext.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
@@ -354,6 +359,53 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
 	if dao.opts.CachePropagate && err == nil {
 		go dao.handleCachePropagate(id)
+	}
+	return errs.ConvertError(err)
+}
+
+func (dao *DAO[T]) Upsert(ctx context.Context, fields []string, entity *T) error {
+	now := time.Now()
+	columns := make([]string, 0)
+	values := make([]interface{}, 0)
+	travel(entity, func(f reflect.StructField, v reflect.Value) {
+		column := utils.DefaultIfZero(f.Tag.Get("db"), strings.ToLower(f.Name))
+		switch column {
+		case "created_at", "updated_at":
+			columns = append(columns, column)
+			values = append(values, types.NewTime(now))
+		default:
+			columns = append(columns, column)
+			value := v.Interface()
+			if column == "ws_id" && dao.workspace {
+				value = ucontext.GetWorkspaceID(ctx)
+			}
+			values = append(values, value)
+		}
+	})
+	var clause strings.Builder
+	for i := range columns {
+		column := columns[i]
+		if column == "created_at" || column == "id" {
+			continue
+		}
+		clause.WriteString(column)
+		clause.WriteString(" = EXCLUDED.")
+		clause.WriteString(column)
+		if i < len(columns)-1 {
+			clause.WriteString(", ")
+		}
+	}
+	statement, args := psql.Insert(dao.opts.Table).Columns(columns...).Values(values...).
+		Suffix("ON CONFLICT (" + strings.Join(fields, ",") + ") DO UPDATE SET " + clause.String()).
+		Suffix("RETURNING *").
+		MustSql()
+	dao.debugSQL(statement, args)
+	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
+	if dao.opts.CachePropagate && err == nil {
+		id := reflect.ValueOf(*entity).FieldByName("ID")
+		if id.IsValid() {
+			go dao.handleCachePropagate(id.String())
+		}
 	}
 	return errs.ConvertError(err)
 }

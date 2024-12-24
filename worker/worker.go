@@ -320,7 +320,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		attemptDetail.ResponseBody = utils.Pointer(string(response.ResponseBody))
 	}
 	attemptDetail.WorkspaceId = endpoint.WorkspaceId
-	err = w.DB.AttemptDetails.Upsert(ctx, attemptDetail)
+	err = w.DB.AttemptDetails.Insert(ctx, attemptDetail)
 	if err != nil {
 		return err
 	}

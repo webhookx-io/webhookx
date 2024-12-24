@@ -10,7 +10,7 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 - **Admin API:** The admin API(:8080) provides a RESTful API for webhooks entities management.
 - **Retries:** WebhookX automatically retries unsuccessful deliveries at configurable delays.
 - **Fan out:** Events can be fan out to multiple destinations.
-- **Declarative configuration(WIP):**  Managing your configuration through declarative configuration file, and be DevOps compliant.
+- **Declarative configuration:** Managing your configuration through declarative configuration file, and be GitOps and DevOps compliant.
 - **Multi-tenancy:** Multi-tenancy is supported with workspaces. Workspaces provide an isolation of configuration entites.
 - **Plugins:**
   - `webhookx-signature`: signing outbound requests with HMAC(SHA-256) by adding `Webhookx-Signature` and `Webhookx-Timestamp` to request header.
@@ -22,7 +22,6 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 
 - [ ] Data retention policy
 - [ ] Insight admin APIs
-- [ ] Declarative configuration management
 
 #### Inbound
 
@@ -32,51 +31,45 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 
 ## Installation
 
+
+### macOS
+
 ```shell
+$ brew tap webhookx-io/webhookx
+$ brew install webhookx
+```
+
+### Linux
+
+- Download the binary distribution on [releases](https://github.com/webhookx-io/webhookx/releases).
+
+### Windows:
+
+- Download the binary distribution on [releases](https://github.com/webhookx-io/webhookx/releases).
+
+## Getting started
+
+
+#### 1. Running WebhookX
+
+```
+$ curl -O https://raw.githubusercontent.com/webhookx-io/webhookx/main/docker-compose.yml
 $ docker compose up
 ```
 
-```shell
+verify running
+
+```
 $ curl http://localhost:8080
 ```
 
 
-## Getting started
-
-#### 1. Create an endpoint that subscribes to specific events
-
-> **Endpoint** represents the event's destination.
+#### 2. Setup configuration
 
 ```
-$ curl -X POST http://localhost:8080/workspaces/default/endpoints \
-  --header 'Content-Type: application/json' \
-  --data '{
-      "request": {
-          "url": "https://httpbin.org/anything",
-          "method": "POST",
-          "headers": {
-              "api-key": "secret"
-          }
-      },
-      "events": [
-          "charge.succeeded"
-      ]
-  }'
+$ webhookx admin sync webhookx.sample.yml
 ```
 
-#### 2. Create a source that is used on the Proxy for receiving events
-
-> **Source** represents the ingress of events
-
-```
-$ curl -X POST http://localhost:8080/workspaces/default/sources \
-  --header 'accept: application/json' \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "path": "/",
-    "methods": ["POST"]
-  }'
-```
 
 #### 3. Send an event to the Proxy (port 8081)
 

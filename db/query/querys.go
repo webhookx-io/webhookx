@@ -54,21 +54,31 @@ func (q *AttemptQuery) WhereMap() map[string]interface{} {
 
 type SourceQuery struct {
 	Query
+
+	WorkspaceId *string
 }
 
 func (q *SourceQuery) WhereMap() map[string]interface{} {
-	return map[string]interface{}{}
+	maps := make(map[string]interface{})
+	if q.WorkspaceId != nil {
+		maps["ws_id"] = *q.WorkspaceId
+	}
+	return maps
 }
 
 type PluginQuery struct {
 	Query
 
-	EndpointId *string
-	Enabled    *bool
+	WorkspaceId *string
+	EndpointId  *string
+	Enabled     *bool
 }
 
 func (q *PluginQuery) WhereMap() map[string]interface{} {
 	maps := make(map[string]interface{})
+	if q.WorkspaceId != nil {
+		maps["ws_id"] = *q.WorkspaceId
+	}
 	if q.EndpointId != nil {
 		maps["endpoint_id"] = *q.EndpointId
 	}

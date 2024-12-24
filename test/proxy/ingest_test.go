@@ -10,6 +10,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
+	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
 	"time"
 )
@@ -23,8 +24,8 @@ var _ = Describe("ingest", Ordered, func() {
 		var db *db.DB
 
 		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{helper.DefaultEndpoint()},
-			Sources:   []*entities.Source{helper.DefaultSource()},
+			Endpoints: []*entities.Endpoint{factory.EndpointP()},
+			Sources:   []*entities.Source{factory.SourceP()},
 		}
 		entitiesConfig.Sources[0].Async = true
 
@@ -71,8 +72,8 @@ var _ = Describe("ingest", Ordered, func() {
 		var app *app.Application
 
 		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{helper.DefaultEndpoint()},
-			Sources:   []*entities.Source{helper.DefaultSource()},
+			Endpoints: []*entities.Endpoint{factory.EndpointP()},
+			Sources:   []*entities.Source{factory.SourceP()},
 		}
 		entitiesConfig.Sources[0].Async = true
 

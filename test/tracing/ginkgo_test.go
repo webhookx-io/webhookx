@@ -41,7 +41,7 @@ var _ = Describe("tracing disabled", Ordered, func() {
 				app.Stop()
 			})
 
-			It("disabled tracing"+protocol, func() {
+			It("disabled tracing "+protocol, func() {
 				ctx := context.Background()
 				tCtx, span := tracing.Start(ctx, "test")
 				spanCtxValid := span.SpanContext().IsValid()

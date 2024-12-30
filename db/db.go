@@ -65,9 +65,8 @@ func (db *DB) Ping() error {
 }
 
 func (db *DB) TX(ctx context.Context, fn func(ctx context.Context) error) error {
-	tracingCtx, span := tracing.Start(ctx, "db.transaction", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := tracing.Start(ctx, "db.transaction", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
-	ctx = tracingCtx
 
 	tx, err := db.DB.Beginx()
 	if err != nil {

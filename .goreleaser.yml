@@ -26,6 +26,7 @@ brews:
       owner: webhookx-io
       name: homebrew-webhookx
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Formula
     commit_author:
       name: "WebhookX"
       email: "webhookx@gmail.com"

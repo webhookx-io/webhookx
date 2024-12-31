@@ -45,7 +45,7 @@ func (bus *EventBus) Start() error {
 func (bus *EventBus) startListen() {
 	err := bus.listener.Listen(channelName)
 	if err != nil {
-		bus.log.Errorf("failed to listen: %v", err)
+		bus.log.Errorf("[eventbus] failed to listen on channel %s: %v", channelName, err)
 		return
 	}
 	bus.log.Infof("[eventbus] listening on channel: %s", channelName)

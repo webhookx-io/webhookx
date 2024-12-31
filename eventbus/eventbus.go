@@ -15,8 +15,8 @@ type EventBus struct {
 	ctx      context.Context
 	cancel   context.CancelFunc
 	nodeID   string
-	dsn      string
 	log      *zap.SugaredLogger
+	listener *pq.Listener
 	mux      sync.Mutex
 	handlers map[string][]func(data []byte)
 }
@@ -27,7 +27,7 @@ func NewEventBus(nodeID string, dsn string, log *zap.SugaredLogger) *EventBus {
 		ctx:      ctx,
 		cancel:   cancel,
 		nodeID:   nodeID,
-		dsn:      dsn,
+		listener: pq.NewListener(dsn, time.Millisecond*100, time.Second*30, nil),
 		mux:      sync.Mutex{},
 		handlers: make(map[string][]func(data []byte)),
 		log:      log,
@@ -37,32 +37,34 @@ func NewEventBus(nodeID string, dsn string, log *zap.SugaredLogger) *EventBus {
 }
 
 func (bus *EventBus) Start() error {
-	listener := pq.NewListener(bus.dsn, 10*time.Second, time.Minute, nil)
-	err := listener.Listen(channelName)
-	if err != nil {
-		return err
-	}
-	go bus.listenLoop(listener)
+	go bus.listenLoop()
+	go bus.startListen()
 	return nil
+}
+
+func (bus *EventBus) startListen() {
+	err := bus.listener.Listen(channelName)
+	if err != nil {
+		bus.log.Errorf("[eventbus] failed to listen on channel %s: %v", channelName, err)
+		return
+	}
+	bus.log.Infof("[eventbus] listening on channel: %s", channelName)
 }
 
 func (bus *EventBus) Stop() error {
 	bus.cancel()
-	return nil
+	return bus.listener.Close()
 }
 
-func (bus *EventBus) listenLoop(listener *pq.Listener) {
-	defer listener.Close()
-
-	bus.log.Infof("[eventbus] listening on channel: %s", channelName)
-	timeoutDuration := 90 * time.Second
+func (bus *EventBus) listenLoop() {
+	timeoutDuration := 5 * time.Second
 	timeout := time.NewTimer(timeoutDuration)
 	for {
 		timeout.Reset(timeoutDuration)
 		select {
 		case <-bus.ctx.Done():
 			return
-		case n := <-listener.NotificationChannel():
+		case n := <-bus.listener.NotificationChannel():
 			var payload EventPayload
 			if err := json.Unmarshal([]byte(n.Extra), &payload); err != nil {
 				bus.log.Errorf("[eventbus] failed to unmarshal payload: %s", err)
@@ -78,9 +80,10 @@ func (bus *EventBus) listenLoop(listener *pq.Listener) {
 				}
 			}
 		case <-timeout.C:
-			err := listener.Ping()
+			bus.log.Debugf("[eventbus] pinging database")
+			err := bus.listener.Ping()
 			if err != nil {
-				bus.log.Errorf("[eventbus] ping error: %v", err)
+				bus.log.Errorf("[eventbus] faield to ping database: %v", err)
 			}
 		}
 	}

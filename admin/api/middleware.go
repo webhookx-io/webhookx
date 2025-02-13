@@ -19,13 +19,16 @@ func (api *API) contextMiddleware(next http.Handler) http.Handler {
 		var err error
 
 		wid := mux.Vars(r)["workspace"]
-		if wid == "" || wid == "default" {
+		if wid == "" {
 			wid = "default"
-			workspace, err = api.DB.Workspaces.GetDefault(r.Context())
-		} else {
-			workspace, err = api.DB.Workspaces.Get(r.Context(), wid)
 		}
+
+		workspace, err = api.DB.Workspaces.GetWorkspace(r.Context(), wid)
 		api.assert(err)
+		if workspace == nil {
+			workspace, err = api.DB.Workspaces.Get(r.Context(), wid)
+			api.assert(err)
+		}
 
 		if workspace == nil {
 			api.error(400, w, errors.New("invalid workspace: "+wid))

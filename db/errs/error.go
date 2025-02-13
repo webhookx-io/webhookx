@@ -27,7 +27,7 @@ func ConvertError(err error) error {
 
 	var pgErr *pq.Error
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		re := regexp.MustCompile(`\([^()]+\)`)
+		re := regexp.MustCompile(`\([^()]*\)`)
 		matches := re.FindAllString(pgErr.Detail, -1)
 		var strs []string
 		for i := 0; i < len(matches); i = i + 2 {

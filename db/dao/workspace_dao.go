@@ -27,3 +27,7 @@ func NewWorkspaceDAO(db *sqlx.DB) WorkspaceDAO {
 func (dao *workspaceDAO) GetDefault(ctx context.Context) (*entities.Workspace, error) {
 	return dao.selectByField(ctx, "name", "default")
 }
+
+func (dao *workspaceDAO) GetWorkspace(ctx context.Context, name string) (*entities.Workspace, error) {
+	return dao.selectByField(ctx, "name", name)
+}

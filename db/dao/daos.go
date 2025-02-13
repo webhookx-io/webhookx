@@ -23,6 +23,7 @@ type BaseDAO[T any] interface {
 type WorkspaceDAO interface {
 	BaseDAO[entities.Workspace]
 	GetDefault(ctx context.Context) (*entities.Workspace, error)
+	GetWorkspace(ctx context.Context, name string) (*entities.Workspace, error)
 }
 
 type EndpointDAO interface {

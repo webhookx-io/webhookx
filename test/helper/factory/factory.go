@@ -197,3 +197,20 @@ func EventWS(wid string, opts ...EventOption) entities.Event {
 	p.WorkspaceId = wid
 	return p
 }
+
+// Workspace
+
+func defaultWorkspace() entities.Workspace {
+	var entity entities.Workspace
+	defaults.Set(&entity)
+
+	entity.ID = utils.KSUID()
+
+	return entity
+}
+
+func Workspace(name string) *entities.Workspace {
+	e := defaultWorkspace()
+	e.Name = &name
+	return &e
+}

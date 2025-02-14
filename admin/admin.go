@@ -11,7 +11,8 @@ import (
 
 // Admin is an HTTP Server
 type Admin struct {
-	s *http.Server
+	cfg *config.AdminConfig
+	s   *http.Server
 }
 
 func NewAdmin(cfg config.AdminConfig, handler http.Handler) *Admin {
@@ -21,12 +22,11 @@ func NewAdmin(cfg config.AdminConfig, handler http.Handler) *Admin {
 
 		WriteTimeout: 60 * time.Second,
 		ReadTimeout:  60 * time.Second,
-
-		// TODO: expose more to be configurable
 	}
 
 	admin := &Admin{
-		s: s,
+		cfg: &cfg,
+		s:   s,
 	}
 
 	return admin
@@ -35,9 +35,17 @@ func NewAdmin(cfg config.AdminConfig, handler http.Handler) *Admin {
 // Start starts an HTTP server
 func (a *Admin) Start() {
 	go func() {
-		if err := a.s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			zap.S().Errorf("Failed to start Admin : %v", err)
-			os.Exit(1)
+		tls := a.cfg.TLS
+		if tls.Enabled() {
+			if err := a.s.ListenAndServeTLS(tls.Cert, tls.Key); err != nil && err != http.ErrServerClosed {
+				zap.S().Errorf("Failed to start Admin : %v", err)
+				os.Exit(1)
+			}
+		} else {
+			if err := a.s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				zap.S().Errorf("Failed to start Admin : %v", err)
+				os.Exit(1)
+			}
 		}
 	}()
 }

@@ -2,6 +2,7 @@ package config
 
 type AdminConfig struct {
 	Listen string `yaml:"listen"`
+	TLS    TLS    `yaml:"tls"`
 }
 
 func (cfg AdminConfig) Validate() error {
@@ -13,4 +14,13 @@ func (cfg AdminConfig) IsEnabled() bool {
 		return false
 	}
 	return true
+}
+
+type TLS struct {
+	Cert string `yaml:"cert"`
+	Key  string `yaml:"key"`
+}
+
+func (cfg TLS) Enabled() bool {
+	return cfg.Cert != "" && cfg.Key != ""
 }

@@ -197,6 +197,7 @@ var _ = Describe("tracing proxy", Ordered, func() {
 
 			app, err = helper.Start(map[string]string{
 				"WEBHOOKX_PROXY_LISTEN":                   "0.0.0.0:8081",
+				"WEBHOOKX_TRACING_ENABLED":                "true",
 				"WEBHOOKX_TRACING_SAMPLING_RATE":          "1",
 				"WEBHOOKX_TRACING_ATTRIBUTES":             `{"env":"test"}`,
 				"WEBHOOKX_TRACING_OPENTELEMETRY_PROTOCOL": string(config.OtlpProtocolHTTP),
@@ -228,7 +229,11 @@ var _ = Describe("tracing proxy", Ordered, func() {
 				return err == nil && resp.StatusCode() == 200
 			}, time.Second*5, time.Second)
 
-			expected := map[string]string{"service.name": "WebhookX-Test", "service.version": "0.3", "env": "test"}
+			expected := map[string]string{
+				"service.name":    "WebhookX-Test",
+				"service.version": "0.3",
+				"env":             "test",
+			}
 			assert.Eventually(GinkgoT(), func() bool {
 				line, err := helper.FileLine(helper.OtelCollectorTracesFile, n)
 				if err != nil || line == "" {

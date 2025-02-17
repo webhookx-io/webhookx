@@ -33,7 +33,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.34.0
 	go.uber.org/mock v0.5.0
 	go.uber.org/zap v1.27.0
-	google.golang.org/grpc v1.69.4
+	google.golang.org/grpc v1.70.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

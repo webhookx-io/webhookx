@@ -6,8 +6,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/app"
-	"github.com/webhookx-io/webhookx/test"
 	"github.com/webhookx-io/webhookx/test/helper"
+	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 	"testing"
 )
@@ -19,11 +19,11 @@ var _ = Describe("logging", Ordered, func() {
 
 		BeforeAll(func() {
 			var err error
-			app, err = test.Start(map[string]string{
+			app = utils.Must(helper.Start(map[string]string{
 				"WEBHOOKX_LOG_LEVEL":  "debug",
 				"WEBHOOKX_LOG_FORMAT": "text",
 				"WEBHOOKX_LOG_FILE":   "webhookx.log",
-			})
+			}))
 			assert.Nil(GinkgoT(), err)
 		})
 
@@ -49,11 +49,11 @@ var _ = Describe("logging", Ordered, func() {
 		var app *app.Application
 		BeforeAll(func() {
 			var err error
-			app, err = test.Start(map[string]string{
+			app = utils.Must(helper.Start(map[string]string{
 				"WEBHOOKX_LOG_LEVEL":  "debug",
 				"WEBHOOKX_LOG_FORMAT": "json",
 				"WEBHOOKX_LOG_FILE":   "webhookx.log",
-			})
+			}))
 			assert.Nil(GinkgoT(), err)
 		})
 

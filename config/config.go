@@ -15,8 +15,6 @@ var (
 	NODE    = uuid.NewV4().String()
 )
 
-var cfg Config
-
 type Config struct {
 	Log      LogConfig      `yaml:"log" envconfig:"LOG"`
 	Database DatabaseConfig `yaml:"database" envconfig:"DATABASE"`
@@ -66,6 +64,7 @@ func (cfg Config) Validate() error {
 }
 
 func Init() (*Config, error) {
+	var cfg Config
 	if err := defaults.Set(&cfg); err != nil {
 		return nil, err
 	}
@@ -79,6 +78,7 @@ func Init() (*Config, error) {
 }
 
 func InitWithFile(filename string) (*Config, error) {
+	var cfg Config
 	if err := defaults.Set(&cfg); err != nil {
 		return nil, err
 	}

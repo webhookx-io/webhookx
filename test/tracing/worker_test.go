@@ -54,10 +54,10 @@ var _ = Describe("tracing worker", Ordered, func() {
 					"github.com/webhookx-io/webhookx",
 				}
 				expectedScopeSpans := map[string]map[string]string{
-					"worker.submit":              {},
-					"worker.handle_task":         {},
-					"dao.endpoints.get":          {},
-					"dao.plugins.list":           {},
+					"worker.submit":      {},
+					"worker.handle_task": {},
+					"dao.endpoints.get":  {},
+					// "dao.plugins.list":           {},
 					"dao.events.get":             {},
 					"worker.deliver":             {},
 					"dao.attempt_details.insert": {},

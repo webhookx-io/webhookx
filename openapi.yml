@@ -567,6 +567,37 @@ paths:
         '204':
           description: Deleted
 
+  /workspaces/{ws_id}/config/sync:
+    post:
+      parameters:
+        - $ref: '#/components/parameters/workspace_id'
+      summary: Sync declarative configuration
+      tags:
+        - Declarative
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: OK
+
+  /workspaces/{ws_id}/config/dump:
+    post:
+      parameters:
+        - $ref: '#/components/parameters/workspace_id'
+      summary: Dump declarative configuration
+      tags:
+        - Declarative
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+
 components:
   parameters:
     workspace_id:

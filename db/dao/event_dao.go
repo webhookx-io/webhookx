@@ -14,7 +14,7 @@ type eventDao struct {
 func NewEventDao(db *sqlx.DB, workspace bool) EventDAO {
 	opts := Options{
 		Table:          "events",
-		EntityName:     "Event",
+		EntityName:     "event",
 		Workspace:      workspace,
 		CachePropagate: false,
 		CacheKey:       constants.EventCacheKey,

@@ -3,7 +3,7 @@ package eventbus
 import "encoding/json"
 
 const (
-	EventInvalidation = "invalidation"
+	EventCRUD = "crud"
 )
 
 type EventPayload struct {
@@ -11,4 +11,11 @@ type EventPayload struct {
 	Data  json.RawMessage `json:"data"`
 	Time  int64           `json:"time"`
 	Node  string          `json:"node"`
+}
+
+type CrudData struct {
+	ID       string          `json:"id"`
+	CacheKey string          `json:"cache_key"`
+	Entity   string          `json:"entity"`
+	Data     json.RawMessage `json:"data"`
 }

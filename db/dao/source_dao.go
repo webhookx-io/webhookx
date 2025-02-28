@@ -13,7 +13,7 @@ type sourceDAO struct {
 func NewSourceDAO(db *sqlx.DB, workspace bool) SourceDAO {
 	opts := Options{
 		Table:          "sources",
-		EntityName:     "Source",
+		EntityName:     "source",
 		Workspace:      workspace,
 		CachePropagate: false,
 		CacheKey:       constants.SourceCacheKey,

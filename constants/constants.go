@@ -43,6 +43,7 @@ const (
 	Namespace             string   = "webhookx"
 	EventCacheKey         CacheKey = "events"
 	EndpointCacheKey      CacheKey = "endpoints"
+	EndpointPluginsKey    CacheKey = "endpoint_plugins"
 	SourceCacheKey        CacheKey = "sources"
 	WorkspaceCacheKey     CacheKey = "workspaces"
 	AttemptCacheKey       CacheKey = "attempts"

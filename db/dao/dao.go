@@ -14,7 +14,6 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/db/transaction"
 	"github.com/webhookx-io/webhookx/eventbus"
-	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
@@ -140,20 +139,20 @@ func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
 		wid := ucontext.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
 	}
-	statement, args := builder.MustSql()
+	statement, args := builder.Suffix("RETURNING *").MustSql()
 	dao.debugSQL(statement, args)
-	result, err := dao.DB(ctx).ExecContext(ctx, statement, args...)
+	entity := new(T)
+	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
 	if err != nil {
+		if errors.Is(err, ErrNoRows) {
+			return false, nil
+		}
 		return false, err
 	}
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return false, err
+	if dao.opts.CachePropagate {
+		go dao.propagateEvent(id, entity)
 	}
-	if dao.opts.CachePropagate && rows > 0 {
-		go dao.handleCachePropagate(id)
-	}
-	return rows > 0, nil
+	return true, nil
 }
 
 func (dao *DAO[T]) Page(ctx context.Context, q query.Queryer) (list []*T, total int64, err error) {
@@ -257,6 +256,12 @@ func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 		MustSql()
 	dao.debugSQL(statement, args)
 	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
+	if dao.opts.CachePropagate && err == nil {
+		id := reflect.ValueOf(*entity).FieldByName("ID")
+		if id.IsValid() {
+			go dao.propagateEvent(id.String(), entity)
+		}
+	}
 	return errs.ConvertError(err)
 }
 
@@ -325,9 +330,6 @@ func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interf
 		return 0, err
 	}
 	rows, err := result.RowsAffected()
-	if dao.opts.CachePropagate && rows == 1 {
-		go dao.handleCachePropagate(id)
-	}
 	return rows, err
 }
 
@@ -357,7 +359,7 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 	dao.debugSQL(statement, args)
 	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
 	if dao.opts.CachePropagate && err == nil {
-		go dao.handleCachePropagate(id)
+		go dao.propagateEvent(id, entity)
 	}
 	return errs.ConvertError(err)
 }
@@ -403,19 +405,18 @@ func (dao *DAO[T]) Upsert(ctx context.Context, fields []string, entity *T) error
 	if dao.opts.CachePropagate && err == nil {
 		id := reflect.ValueOf(*entity).FieldByName("ID")
 		if id.IsValid() {
-			go dao.handleCachePropagate(id.String())
+			go dao.propagateEvent(id.String(), entity)
 		}
 	}
 	return errs.ConvertError(err)
 }
 
-func (dao *DAO[T]) handleCachePropagate(id string) {
-	key := dao.opts.CacheKey.Build(id)
-	if e := mcache.Invalidate(context.TODO(), key); e != nil {
-		dao.log.Warnf("failed to invalidate mcache: key=%s, %v", key, e)
-	}
-	dao.publishEvent(eventbus.EventInvalidation, map[string]interface{}{
-		"cache_key": key,
+func (dao *DAO[T]) propagateEvent(id string, entity *T) {
+	dao.publishEvent(eventbus.EventCRUD, eventbus.CrudData{
+		ID:       id,
+		CacheKey: dao.opts.CacheKey.Build(id),
+		Entity:   dao.opts.EntityName,
+		Data:     utils.Must(json.Marshal(entity)),
 	})
 }
 

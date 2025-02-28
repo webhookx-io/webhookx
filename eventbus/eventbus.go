@@ -70,9 +70,6 @@ func (bus *EventBus) listenLoop() {
 				bus.log.Errorf("[eventbus] failed to unmarshal payload: %s", err)
 				continue
 			}
-			if payload.Node == bus.nodeID {
-				continue
-			}
 			bus.log.Debugf("[eventbus] received event: channel=%s, payload=%s", n.Channel, n.Extra)
 			if handlers, ok := bus.handlers[payload.Event]; ok {
 				for _, handler := range handlers {

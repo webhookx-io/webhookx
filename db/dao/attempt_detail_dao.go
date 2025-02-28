@@ -19,7 +19,7 @@ type attemptDetailDao struct {
 func NewAttemptDetailDao(db *sqlx.DB, workspace bool) AttemptDetailDAO {
 	opts := Options{
 		Table:          "attempt_details",
-		EntityName:     "AttemptDetail",
+		EntityName:     "attempt_detail",
 		Workspace:      workspace,
 		CachePropagate: false,
 		CacheKey:       constants.AttemptDetailCacheKey,

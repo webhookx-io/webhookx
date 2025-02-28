@@ -242,7 +242,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		return w.DB.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeUnknown)
 	}
 
-	plugins, err := w.DB.Plugins.ListEndpointPlugin(ctx, endpoint.ID)
+	plugins, err := listEndpointPlugins(ctx, w.DB, endpoint.ID)
 	if err != nil {
 		return err
 	}
@@ -403,4 +403,17 @@ func buildAttemptResult(request *deliverer.Request, response *deliverer.Response
 	}
 
 	return result
+}
+
+func listEndpointPlugins(ctx context.Context, db *db.DB, endpointId string) ([]*entities.Plugin, error) {
+	// refactor me
+	cacheKey := constants.EndpointPluginsKey.Build(endpointId)
+	plugins, err := mcache.Load(ctx, cacheKey, nil, func(ctx context.Context, id string) (*[]*entities.Plugin, error) {
+		plugins, err := db.Plugins.ListEndpointPlugin(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		return &plugins, nil
+	}, endpointId)
+	return *plugins, err
 }

@@ -14,7 +14,7 @@ type workspaceDAO struct {
 func NewWorkspaceDAO(db *sqlx.DB) WorkspaceDAO {
 	opts := Options{
 		Table:          "workspaces",
-		EntityName:     "Workspace",
+		EntityName:     "workspace",
 		Workspace:      false,
 		CachePropagate: true,
 		CacheKey:       constants.WorkspaceCacheKey,

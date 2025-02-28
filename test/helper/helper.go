@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/rand"
+	"crypto/tls"
 	"encoding/hex"
 	"github.com/go-resty/resty/v2"
 	"github.com/webhookx-io/webhookx/app"
@@ -38,21 +39,23 @@ var defaultEnvs = map[string]string{
 	"WEBHOOKX_LOG_FILE":   "webhookx.log",
 }
 
-// Start starts WebhookX with given environment variables
-func Start(envs map[string]string) (*app.Application, error) {
-	for name, value := range defaultEnvs {
-		if _, ok := envs[name]; !ok {
-			err := os.Setenv(name, value)
-			if err != nil {
-				return nil, err
-			}
+func setEnvs(envs map[string]string) error {
+	for name, value := range envs {
+		if err := os.Setenv(name, value); err != nil {
+			return err
 		}
 	}
-	for name, value := range envs {
-		err := os.Setenv(name, value)
-		if err != nil {
-			return nil, err
-		}
+	return nil
+}
+
+// Start starts WebhookX with given environment variables
+func Start(envs map[string]string) (*app.Application, error) {
+	if err := setEnvs(defaultEnvs); err != nil {
+		return nil, err
+	}
+
+	if err := setEnvs(envs); err != nil {
+		return nil, err
 	}
 
 	cfg, err := config.Init()
@@ -72,7 +75,12 @@ func Start(envs map[string]string) (*app.Application, error) {
 		return nil, err
 	}
 
-	go app.Wait()
+	go func() {
+		app.Wait()
+		for name := range envs {
+			os.Unsetenv(name)
+		}
+	}()
 
 	time.Sleep(time.Second)
 	return app, nil
@@ -84,9 +92,23 @@ func AdminClient() *resty.Client {
 	return c
 }
 
+func AdminTLSClient() *resty.Client {
+	c := resty.New()
+	c.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	c.SetBaseURL("https://localhost:8080")
+	return c
+}
+
 func ProxyClient() *resty.Client {
 	c := resty.New()
 	c.SetBaseURL("http://localhost:8081")
+	return c
+}
+
+func ProxyTLSClient() *resty.Client {
+	c := resty.New()
+	c.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	c.SetBaseURL("https://localhost:8081")
 	return c
 }
 

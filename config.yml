@@ -32,6 +32,9 @@ redis:
 
 admin:
   #listen: 127.0.0.1:8080
+  #tls:
+  #  cert: /path/to/server.crt
+  #  key: /path/to/server.key
 
 #------------------------------------------------------------------------------
 # WORKER
@@ -50,6 +53,9 @@ worker:
 #------------------------------------------------------------------------------
 proxy:
   #listen: 127.0.0.1:8081
+  #tls:
+  #  cert: /path/to/server.crt
+  #  key: /path/to/server.key
   timeout_read: 10                  # read timeout (in seconds), 0 indicates unlimited.
   timeout_write: 60                 # write timeout (in seconds), 0 indicates unlimited.
   max_request_body_size: 1048576

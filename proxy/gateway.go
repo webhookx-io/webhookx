@@ -206,9 +206,17 @@ func (gw *Gateway) Start() {
 	gw.ctx, gw.cancel = context.WithCancel(context.Background())
 
 	go func() {
-		if err := gw.s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			zap.S().Errorf("Failed to start Gateway : %v", err)
-			os.Exit(1)
+		tls := gw.cfg.TLS
+		if tls.Enabled() {
+			if err := gw.s.ListenAndServeTLS(tls.Cert, tls.Key); err != nil && err != http.ErrServerClosed {
+				zap.S().Errorf("Failed to start Admin : %v", err)
+				os.Exit(1)
+			}
+		} else {
+			if err := gw.s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				zap.S().Errorf("Failed to start Gateway : %v", err)
+				os.Exit(1)
+			}
 		}
 	}()
 

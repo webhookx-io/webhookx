@@ -28,7 +28,7 @@ type AttemptResult struct {
 func NewAttemptDao(db *sqlx.DB, workspace bool) AttemptDAO {
 	opts := Options{
 		Table:          "attempts",
-		EntityName:     "Attempt",
+		EntityName:     "attempt",
 		Workspace:      workspace,
 		CachePropagate: false,
 		CacheKey:       constants.AttemptCacheKey,

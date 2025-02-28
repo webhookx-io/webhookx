@@ -16,9 +16,9 @@ type pluginDAO struct {
 func NewPluginDAO(db *sqlx.DB, workspace bool) PluginDAO {
 	opts := Options{
 		Table:          "plugins",
-		EntityName:     "Plugin",
+		EntityName:     "plugin",
 		Workspace:      workspace,
-		CachePropagate: false,
+		CachePropagate: true,
 		CacheKey:       constants.PluginCacheKey,
 	}
 	return &pluginDAO{

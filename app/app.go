@@ -7,7 +7,9 @@ import (
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
@@ -144,13 +146,25 @@ func (app *Application) initialize() error {
 }
 
 func registerEventHandler(bus *eventbus.EventBus) {
-	bus.Subscribe(eventbus.EventInvalidation, func(data []byte) {
-		maps := make(map[string]interface{})
-		if err := json.Unmarshal(data, &maps); err != nil {
+	bus.Subscribe(eventbus.EventCRUD, func(data []byte) {
+		eventData := &eventbus.CrudData{}
+		if err := json.Unmarshal(data, eventData); err != nil {
+			zap.S().Errorf("failed to unmarshal event: %s", err)
 			return
 		}
-		if cacheKey, ok := maps["cache_key"]; ok {
-			err := mcache.Invalidate(context.TODO(), cacheKey.(string))
+
+		err := mcache.Invalidate(context.TODO(), eventData.CacheKey)
+		if err != nil {
+			zap.S().Errorf("failed to invalidate cache: key=%s %v", eventData.CacheKey, err)
+		}
+		if eventData.Entity == "plugin" {
+			plugin := entities.Plugin{}
+			if err := json.Unmarshal(eventData.Data, &plugin); err != nil {
+				zap.S().Errorf("failed to unmarshal event data: %s", err)
+				return
+			}
+			cacheKey := constants.EndpointPluginsKey.Build(plugin.EndpointId)
+			err := mcache.Invalidate(context.TODO(), cacheKey)
 			if err != nil {
 				zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
 			}

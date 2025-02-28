@@ -149,7 +149,7 @@ func registerEventHandler(bus *eventbus.EventBus) {
 	bus.Subscribe(eventbus.EventCRUD, func(data []byte) {
 		eventData := &eventbus.CrudData{}
 		if err := json.Unmarshal(data, eventData); err != nil {
-			zap.S().Errorf("failed to unmarshal event data: %s", err)
+			zap.S().Errorf("failed to unmarshal event: %s", err)
 			return
 		}
 
@@ -158,8 +158,9 @@ func registerEventHandler(bus *eventbus.EventBus) {
 			zap.S().Errorf("failed to invalidate cache: key=%s %v", eventData.CacheKey, err)
 		}
 		if eventData.Entity == "plugin" {
-			plugin := &entities.Plugin{}
-			if err := json.Unmarshal(eventData.Data, plugin); err != nil {
+			plugin := entities.Plugin{}
+			if err := json.Unmarshal(eventData.Data, &plugin); err != nil {
+				zap.S().Errorf("failed to unmarshal event data: %s", err)
 				return
 			}
 			cacheKey := constants.EndpointPluginsKey.Build(plugin.EndpointId)

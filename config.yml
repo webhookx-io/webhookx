@@ -32,6 +32,7 @@ redis:
 
 admin:
   #listen: 127.0.0.1:8080
+  #debug_endpoints: true             # enables debugging and profiling endpoints. see https://pkg.go.dev/net/http/pprof
   #tls:
   #  cert: /path/to/server.crt
   #  key: /path/to/server.key

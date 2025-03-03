@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 	"net/http"
+	"net/http/pprof"
 	"strconv"
 )
 
@@ -125,6 +126,14 @@ func (api *API) Handler() http.Handler {
 	r.HandleFunc("/workspaces/{id}", api.GetWorkspace).Methods("GET")
 	r.HandleFunc("/workspaces/{id}", api.UpdateWorkspace).Methods("PUT")
 	r.HandleFunc("/workspaces/{id}", api.DeleteWorkspace).Methods("DELETE")
+
+	if api.cfg.Admin.DebugEndpoints {
+		r.HandleFunc("/debug/pprof/profile", pprof.Profile).Methods("GET")
+		r.HandleFunc("/debug/pprof/symbol", pprof.Symbol).Methods("GET")
+		r.HandleFunc("/debug/pprof/trace", pprof.Trace).Methods("GET")
+		r.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline).Methods("GET")
+		r.PathPrefix("/debug/pprof/").HandlerFunc(pprof.Index).Methods("GET")
+	}
 
 	for _, prefix := range []string{"", "/workspaces/{workspace}"} {
 		r.HandleFunc(prefix+"/endpoints", api.PageEndpoint).Methods("GET")

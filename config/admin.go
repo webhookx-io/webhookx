@@ -2,6 +2,7 @@ package config
 
 type AdminConfig struct {
 	Listen string `yaml:"listen"`
+	Debug  bool   `yaml:"debug"`
 	TLS    TLS    `yaml:"tls"`
 }
 

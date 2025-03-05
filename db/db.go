@@ -2,12 +2,13 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/transaction"
+	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -32,29 +33,25 @@ type DB struct {
 	PluginsWS        dao.PluginDAO
 }
 
-func NewDB(cfg *config.DatabaseConfig) (*DB, error) {
-	sqlDB, err := cfg.InitSqlDB()
-	if err != nil {
-		return nil, err
-	}
+func NewDB(sqlDB *sql.DB, log *zap.SugaredLogger, bus *eventbus.EventBus) (*DB, error) {
 	sqlxDB := sqlx.NewDb(sqlDB, "postgres")
 
 	db := &DB{
 		DB:               sqlxDB,
-		log:              zap.S(),
-		Workspaces:       dao.NewWorkspaceDAO(sqlxDB),
-		Endpoints:        dao.NewEndpointDAO(sqlxDB, false),
-		EndpointsWS:      dao.NewEndpointDAO(sqlxDB, true),
-		Events:           dao.NewEventDao(sqlxDB, false),
-		EventsWS:         dao.NewEventDao(sqlxDB, true),
-		Attempts:         dao.NewAttemptDao(sqlxDB, false),
-		AttemptsWS:       dao.NewAttemptDao(sqlxDB, true),
-		Sources:          dao.NewSourceDAO(sqlxDB, false),
-		SourcesWS:        dao.NewSourceDAO(sqlxDB, true),
-		AttemptDetails:   dao.NewAttemptDetailDao(sqlxDB, false),
-		AttemptDetailsWS: dao.NewAttemptDetailDao(sqlxDB, true),
-		Plugins:          dao.NewPluginDAO(sqlxDB, false),
-		PluginsWS:        dao.NewPluginDAO(sqlxDB, true),
+		log:              log,
+		Workspaces:       dao.NewWorkspaceDAO(sqlxDB, bus),
+		Endpoints:        dao.NewEndpointDAO(sqlxDB, bus, false),
+		EndpointsWS:      dao.NewEndpointDAO(sqlxDB, bus, true),
+		Events:           dao.NewEventDao(sqlxDB, bus, false),
+		EventsWS:         dao.NewEventDao(sqlxDB, bus, true),
+		Attempts:         dao.NewAttemptDao(sqlxDB, bus, false),
+		AttemptsWS:       dao.NewAttemptDao(sqlxDB, bus, true),
+		Sources:          dao.NewSourceDAO(sqlxDB, bus, false),
+		SourcesWS:        dao.NewSourceDAO(sqlxDB, bus, true),
+		AttemptDetails:   dao.NewAttemptDetailDao(sqlxDB, bus, false),
+		AttemptDetailsWS: dao.NewAttemptDetailDao(sqlxDB, bus, true),
+		Plugins:          dao.NewPluginDAO(sqlxDB, bus, false),
+		PluginsWS:        dao.NewPluginDAO(sqlxDB, bus, true),
 	}
 
 	return db, nil

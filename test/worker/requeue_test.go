@@ -45,7 +45,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 		assert.NoError(GinkgoT(), err)
 		w = worker.NewWorker(worker.WorkerOptions{
 			RequeueJobInterval: time.Second,
-		}, db, deliverer.NewHTTPDeliverer(&config.WorkerDeliverer{}), queue, metrics, tracer)
+		}, db, deliverer.NewHTTPDeliverer(&config.WorkerDeliverer{}), queue, metrics, tracer, mocks.MockBus{})
 
 		// data
 		ws := utils.Must(db.Workspaces.GetDefault(context.TODO()))

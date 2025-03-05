@@ -6,6 +6,7 @@ import (
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -13,7 +14,7 @@ type pluginDAO struct {
 	*DAO[entities.Plugin]
 }
 
-func NewPluginDAO(db *sqlx.DB, workspace bool) PluginDAO {
+func NewPluginDAO(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) PluginDAO {
 	opts := Options{
 		Table:          "plugins",
 		EntityName:     "plugin",
@@ -22,7 +23,7 @@ func NewPluginDAO(db *sqlx.DB, workspace bool) PluginDAO {
 		CacheKey:       constants.PluginCacheKey,
 	}
 	return &pluginDAO{
-		DAO: NewDAO[entities.Plugin](db, opts),
+		DAO: NewDAO[entities.Plugin](db, bus, opts),
 	}
 }
 

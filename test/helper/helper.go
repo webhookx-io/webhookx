@@ -12,26 +12,28 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/migrator"
+	"github.com/webhookx-io/webhookx/eventbus"
+	"github.com/webhookx-io/webhookx/pkg/log"
 	"os"
 	"path"
 	"regexp"
 	"time"
 )
 
-var cfg *config.Config
+//var cfg *config.Config
 
 var (
 	OtelCollectorTracesFile  = "../output/otel/traces.json"
 	OtelCollectorMetricsFile = "../output/otel/metrics.json"
 )
 
-func init() {
-	var err error
-	cfg, err = config.Init()
-	if err != nil {
-		panic(err)
-	}
-}
+//func init() {
+//	var err error
+//	cfg, err = config.Init()
+//	if err != nil {
+//		panic(err)
+//	}
+//}
 
 var defaultEnvs = map[string]string{
 	"WEBHOOKX_LOG_LEVEL":  "debug",
@@ -117,7 +119,20 @@ func DB() *db.DB {
 	if err != nil {
 		return nil
 	}
-	db, err := db.NewDB(&cfg.Database)
+	sqlDB, err := cfg.Database.InitSqlDB()
+	if err != nil {
+		return nil
+	}
+	log1, err := log.NewZapLogger(&cfg.Log)
+	if err != nil {
+		return nil
+	}
+	eventbus := eventbus.NewEventBus(
+		config.NODE,
+		cfg.Database.GetDSN(),
+		log1.Sugar(), sqlDB)
+
+	db, err := db.NewDB(sqlDB, log1.Sugar(), eventbus)
 	if err != nil {
 		return nil
 	}
@@ -135,16 +150,13 @@ type EntitiesConfig struct {
 
 func InitDB(truncated bool, entities *EntitiesConfig) *db.DB {
 	if truncated {
-		err := ResetDB()
+		err := resetDB()
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	db, err := db.NewDB(&cfg.Database)
-	if err != nil {
-		panic(err)
-	}
+	db := DB()
 
 	if entities == nil {
 		return db
@@ -207,14 +219,11 @@ func InitDB(truncated bool, entities *EntitiesConfig) *db.DB {
 }
 
 func GetDeafultWorkspace() (*entities.Workspace, error) {
-	db, err := db.NewDB(&cfg.Database)
-	if err != nil {
-		return nil, err
-	}
+	db := DB()
 	return db.Workspaces.GetDefault(context.TODO())
 }
 
-func ResetDB() error {
+func resetDB() error {
 	cfg, err := config.Init()
 	if err != nil {
 		return err

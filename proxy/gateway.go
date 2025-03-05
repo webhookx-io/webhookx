@@ -11,10 +11,12 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
+	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/queue/redis"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
+	"github.com/webhookx-io/webhookx/pkg/store"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
@@ -42,19 +44,29 @@ type Gateway struct {
 
 	cfg *config.ProxyConfig
 
-	log    *zap.SugaredLogger
-	s      *http.Server
-	router *router.Router // TODO: happens-before
-	db     *db.DB
+	log *zap.SugaredLogger
+	s   *http.Server
+
+	router          *router.Router // TODO: happens-before
+	routerVersion   string
+	routerLastBuild time.Time
+
+	db *db.DB
 
 	dispatcher *dispatcher.Dispatcher
 
 	queue   queue.Queue
 	metrics *metrics.Metrics
 	tracer  *tracing.Tracer
+	bus     *eventbus.EventBus
 }
 
-func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher *dispatcher.Dispatcher, metrics *metrics.Metrics, tracer *tracing.Tracer) *Gateway {
+func NewGateway(cfg *config.ProxyConfig,
+	db *db.DB,
+	dispatcher *dispatcher.Dispatcher,
+	metrics *metrics.Metrics,
+	tracer *tracing.Tracer,
+	bus *eventbus.EventBus) *Gateway {
 	var q queue.Queue
 	switch cfg.Queue.Type {
 	case "redis":
@@ -72,6 +84,7 @@ func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher *dispatcher.Dispa
 		queue:      q,
 		metrics:    metrics,
 		tracer:     tracer,
+		bus:        bus,
 	}
 
 	r := mux.NewRouter()
@@ -95,13 +108,16 @@ func NewGateway(cfg *config.ProxyConfig, db *db.DB, dispatcher *dispatcher.Dispa
 	return gw
 }
 
-func (gw *Gateway) buildRouter() {
-	routes := make([]*router.Route, 0)
+func (gw *Gateway) buildRouter(version string) {
+	gw.log.Debugf("creating router")
+
 	sources, err := gw.db.Sources.List(context.TODO(), &query.SourceQuery{})
 	if err != nil {
 		gw.log.Warnf("[proxy] failed to build router: %v", err)
 		return
 	}
+
+	routes := make([]*router.Route, 0)
 	for _, source := range sources {
 		route := router.Route{
 			Paths:   []string{source.Path},
@@ -111,6 +127,8 @@ func (gw *Gateway) buildRouter() {
 		routes = append(routes, &route)
 	}
 	gw.router = router.NewRouter(routes)
+	gw.routerVersion = version
+	gw.routerLastBuild = time.Now()
 }
 
 func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
@@ -205,6 +223,20 @@ func (gw *Gateway) ingestEvent(ctx context.Context, async bool, event *entities.
 func (gw *Gateway) Start() {
 	gw.ctx, gw.cancel = context.WithCancel(context.Background())
 
+	gw.buildRouter("init")
+
+	schedule.Schedule(gw.ctx, func() {
+		version := store.GetDefault("router:version", "init").(string)
+		if gw.routerVersion == version {
+			return
+		}
+		gw.buildRouter(version)
+	}, time.Second)
+
+	gw.bus.Subscribe("source.crud", func(data interface{}) {
+		store.Set("router:version", utils.UUID())
+	})
+
 	go func() {
 		tls := gw.cfg.TLS
 		if tls.Enabled() {
@@ -219,8 +251,6 @@ func (gw *Gateway) Start() {
 			}
 		}
 	}()
-
-	schedule.Schedule(gw.ctx, gw.buildRouter, time.Second)
 
 	if gw.queue != nil {
 		listeners := runtime.GOMAXPROCS(0)

@@ -7,6 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"go.opentelemetry.io/otel/trace"
@@ -25,7 +26,7 @@ type AttemptResult struct {
 	Exhausted   bool
 }
 
-func NewAttemptDao(db *sqlx.DB, workspace bool) AttemptDAO {
+func NewAttemptDao(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) AttemptDAO {
 	opts := Options{
 		Table:          "attempts",
 		EntityName:     "attempt",
@@ -34,7 +35,7 @@ func NewAttemptDao(db *sqlx.DB, workspace bool) AttemptDAO {
 		CacheKey:       constants.AttemptCacheKey,
 	}
 	return &attemptDao{
-		DAO: NewDAO[entities.Attempt](db, opts),
+		DAO: NewDAO[entities.Attempt](db, bus, opts),
 	}
 }
 

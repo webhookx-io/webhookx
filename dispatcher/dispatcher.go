@@ -2,9 +2,12 @@ package dispatcher
 
 import (
 	"context"
+	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/eventbus"
+	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/model"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
@@ -22,15 +25,24 @@ type Dispatcher struct {
 	queue   taskqueue.TaskQueue
 	db      *db.DB
 	metrics *metrics.Metrics
+	bus     *eventbus.EventBus
 }
 
-func NewDispatcher(log *zap.SugaredLogger, queue taskqueue.TaskQueue, db *db.DB, metrics *metrics.Metrics) *Dispatcher {
+func NewDispatcher(log *zap.SugaredLogger, queue taskqueue.TaskQueue, db *db.DB, metrics *metrics.Metrics, bus *eventbus.EventBus) *Dispatcher {
 	dispatcher := &Dispatcher{
 		log:     log,
 		queue:   queue,
 		db:      db,
 		metrics: metrics,
+		bus:     bus,
 	}
+	dispatcher.bus.Subscribe("endpoint.crud", func(v interface{}) {
+		data := v.(*eventbus.CrudData)
+		err := mcache.Invalidate(context.TODO(), constants.WorkspaceEndpointsKey.Build(data.WID))
+		if err != nil {
+			log.Errorf("failed to invalidate cache: key=%s %v", constants.WorkspaceEndpointsKey.Build(data.WID), err)
+		}
+	})
 	return dispatcher
 }
 
@@ -150,9 +162,7 @@ func (d *Dispatcher) sendToQueue(ctx context.Context, attempts []*entities.Attem
 }
 
 func (d *Dispatcher) listSubscribedEndpoint(ctx context.Context, wid, eventType string) (list []*entities.Endpoint, err error) {
-	var q query.EndpointQuery
-	q.WorkspaceId = &wid
-	endpoints, err := d.db.Endpoints.List(ctx, &q)
+	endpoints, err := listWorkspaceEndpoints(ctx, d.db, wid)
 	if err != nil {
 		return nil, err
 	}
@@ -169,4 +179,20 @@ func (d *Dispatcher) listSubscribedEndpoint(ctx context.Context, wid, eventType 
 	}
 
 	return
+}
+
+func listWorkspaceEndpoints(ctx context.Context, db *db.DB, wid string) ([]*entities.Endpoint, error) {
+	// refactor me
+	cacheKey := constants.WorkspaceEndpointsKey.Build(wid)
+	endpoints, err := mcache.Load(ctx, cacheKey, nil, func(ctx context.Context, id string) (*[]*entities.Endpoint, error) {
+		var q query.EndpointQuery
+		q.WorkspaceId = &wid
+		//q.Enabled = true
+		endpoints, err := db.Endpoints.List(ctx, &q)
+		if err != nil {
+			return nil, err
+		}
+		return &endpoints, nil
+	}, wid)
+	return *endpoints, err
 }

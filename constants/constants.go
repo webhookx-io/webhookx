@@ -49,6 +49,7 @@ const (
 	AttemptCacheKey       CacheKey = "attempts"
 	PluginCacheKey        CacheKey = "plugins"
 	AttemptDetailCacheKey CacheKey = "attempt_details"
+	WorkspaceEndpointsKey CacheKey = "workspaces_endpoints"
 )
 
 var (

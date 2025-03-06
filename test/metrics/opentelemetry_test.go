@@ -38,13 +38,13 @@ var _ = Describe("opentelemetry", Ordered, func() {
 				proxyClient = helper.ProxyClient()
 				var err error
 				app, err = helper.Start(map[string]string{
-					"WEBHOOKX_ADMIN_LISTEN":                       "0.0.0.0:8080",
-					"WEBHOOKX_PROXY_LISTEN":                       "0.0.0.0:8081",
-					"WEBHOOKX_WORKER_ENABLED":                     "true",
-					"WEBHOOKX_METRICS_EXPORTS":                    "opentelemetry",
-					"WEBHOOKX_METRICS_OPENTELEMETRY_PUSHINTERVAL": "5",
-					"WEBHOOKX_METRICS_OPENTELEMETRY_PROTOCOL":     protocol,
-					"WEBHOOKX_METRICS_OPENTELEMETRY_ENDPOINT":     endpoints[protocol],
+					"WEBHOOKX_ADMIN_LISTEN":                        "0.0.0.0:8080",
+					"WEBHOOKX_PROXY_LISTEN":                        "0.0.0.0:8081",
+					"WEBHOOKX_WORKER_ENABLED":                      "true",
+					"WEBHOOKX_METRICS_EXPORTS":                     "opentelemetry",
+					"WEBHOOKX_METRICS_OPENTELEMETRY_PUSH_INTERVAL": "5",
+					"WEBHOOKX_METRICS_OPENTELEMETRY_PROTOCOL":      protocol,
+					"WEBHOOKX_METRICS_OPENTELEMETRY_ENDPOINT":      endpoints[protocol],
 				})
 				assert.Nil(GinkgoT(), err)
 			})
@@ -126,12 +126,12 @@ var _ = Describe("opentelemetry", Ordered, func() {
 			var err error
 			helper.InitOtelOutput()
 			app, err = helper.Start(map[string]string{
-				"WEBHOOKX_METRICS_ATTRIBUTES":                 `{"env": "prod"}`,
-				"WEBHOOKX_METRICS_EXPORTS":                    "opentelemetry",
-				"WEBHOOKX_METRICS_OPENTELEMETRY_PROTOCOL":     "grpc",
-				"WEBHOOKX_METRICS_OPENTELEMETRY_ENDPOINT":     "localhost:4317",
-				"OTEL_RESOURCE_ATTRIBUTES":                    "key1=value1,key2=value2",
-				"WEBHOOKX_METRICS_OPENTELEMETRY_PUSHINTERVAL": "5",
+				"WEBHOOKX_METRICS_ATTRIBUTES":                  `{"env": "prod"}`,
+				"WEBHOOKX_METRICS_EXPORTS":                     "opentelemetry",
+				"WEBHOOKX_METRICS_OPENTELEMETRY_PROTOCOL":      "grpc",
+				"WEBHOOKX_METRICS_OPENTELEMETRY_ENDPOINT":      "localhost:4317",
+				"OTEL_RESOURCE_ATTRIBUTES":                     "key1=value1,key2=value2",
+				"WEBHOOKX_METRICS_OPENTELEMETRY_PUSH_INTERVAL": "5",
 			})
 			assert.Nil(GinkgoT(), err)
 		})

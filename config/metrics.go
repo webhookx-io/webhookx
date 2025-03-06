@@ -6,9 +6,9 @@ import (
 )
 
 type MetricsConfig struct {
-	Attributes    Map           `yaml:"attributes" envconfig:"ATTRIBUTES"`
-	Exports       []Export      `yaml:"exports" envconfig:"EXPORTS"`
-	PushInterval  uint32        `yaml:"push_interval" default:"10"`
+	Attributes    Map           `yaml:"attributes"`
+	Exports       []Export      `yaml:"exports"`
+	PushInterval  uint32        `yaml:"push_interval" default:"10" envconfig:"PUSH_INTERVAL"`
 	Opentelemetry Opentelemetry `yaml:"opentelemetry"`
 }
 

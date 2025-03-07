@@ -23,8 +23,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 	var ws *entities.Workspace
 
 	BeforeAll(func() {
-		assert.Nil(GinkgoT(), helper.ResetDB())
-		db = helper.DB()
+		db = helper.InitDB(true, nil)
 		var err error
 		adminClient = helper.AdminClient()
 		app, err = test.Start(map[string]string{

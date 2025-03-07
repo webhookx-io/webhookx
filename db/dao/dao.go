@@ -8,7 +8,6 @@ import (
 	"fmt"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
-	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/errs"
 	"github.com/webhookx-io/webhookx/db/query"
@@ -42,6 +41,7 @@ type Queryable interface {
 type DAO[T any] struct {
 	log *zap.SugaredLogger
 	db  *sqlx.DB
+	bus *eventbus.EventBus
 
 	workspace bool
 	opts      Options
@@ -55,10 +55,11 @@ type Options struct {
 	CacheKey       constants.CacheKey
 }
 
-func NewDAO[T any](db *sqlx.DB, opts Options) *DAO[T] {
+func NewDAO[T any](db *sqlx.DB, bus *eventbus.EventBus, opts Options) *DAO[T] {
 	dao := DAO[T]{
 		log:       zap.S(),
 		db:        db,
+		bus:       bus,
 		workspace: opts.Workspace,
 		opts:      opts,
 	}
@@ -412,36 +413,15 @@ func (dao *DAO[T]) Upsert(ctx context.Context, fields []string, entity *T) error
 }
 
 func (dao *DAO[T]) propagateEvent(id string, entity *T) {
-	dao.publishEvent(eventbus.EventCRUD, eventbus.CrudData{
+	data := &eventbus.CrudData{
 		ID:       id,
 		CacheKey: dao.opts.CacheKey.Build(id),
 		Entity:   dao.opts.EntityName,
 		Data:     utils.Must(json.Marshal(entity)),
-	})
-}
-
-func (dao *DAO[T]) publishEvent(event string, data interface{}) {
-	bytes, err := json.Marshal(data)
-	if err != nil {
-		dao.log.Warnf("failed to marshal data: %v", err)
-		return
 	}
-	payload := eventbus.EventPayload{
-		Event: event,
-		Data:  bytes,
-		Time:  time.Now().UnixMilli(),
-		Node:  config.NODE,
+	wid := reflect.ValueOf(*entity).FieldByName("WorkspaceId")
+	if wid.IsValid() {
+		data.WID = wid.String()
 	}
-	bytes, err = json.Marshal(payload)
-	if err != nil {
-		dao.log.Warnf("failed to marshal payload: %v", err)
-		return
-	}
-
-	dao.log.Debugf("broadcasting event: %s", string(bytes))
-	statement := fmt.Sprintf("NOTIFY %s, '%s'", "webhookx", string(bytes))
-	_, err = dao.DB(context.TODO()).ExecContext(context.TODO(), statement)
-	if err != nil {
-		dao.log.Warnf("failed to publish event: %v", err)
-	}
+	_ = dao.bus.ClusteringBroadcast(eventbus.EventCRUD, data)
 }

@@ -6,7 +6,6 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/webhookx-io/webhookx/config"
-	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/migrations"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -87,11 +86,11 @@ func (m *Migrator) Status() (version uint, dirty bool, err error) {
 }
 
 func (m *Migrator) initDefaultWorkspace() error {
-	db, err := db.NewDB(m.cfg)
+	db, err := sql.Open("postgres", m.cfg.GetDSN())
 	if err != nil {
 		return err
 	}
 	sql := `INSERT INTO workspaces(id, name) VALUES($1, 'default') ON CONFLICT(name) DO NOTHING;`
-	_, err = db.DB.Exec(sql, utils.KSUID())
+	_, err = db.Exec(sql, utils.KSUID())
 	return err
 }

@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"fmt"
+	"github.com/webhookx-io/webhookx/eventbus"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -16,7 +17,7 @@ type attemptDetailDao struct {
 	*DAO[entities.AttemptDetail]
 }
 
-func NewAttemptDetailDao(db *sqlx.DB, workspace bool) AttemptDetailDAO {
+func NewAttemptDetailDao(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) AttemptDetailDAO {
 	opts := Options{
 		Table:          "attempt_details",
 		EntityName:     "attempt_detail",
@@ -25,7 +26,7 @@ func NewAttemptDetailDao(db *sqlx.DB, workspace bool) AttemptDetailDAO {
 		CacheKey:       constants.AttemptDetailCacheKey,
 	}
 	return &attemptDetailDao{
-		DAO: NewDAO[entities.AttemptDetail](db, opts),
+		DAO: NewDAO[entities.AttemptDetail](db, bus, opts),
 	}
 }
 

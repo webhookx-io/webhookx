@@ -2,11 +2,13 @@ package worker
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/model"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
@@ -54,7 +56,8 @@ func NewWorker(
 	deliverer deliverer.Deliverer,
 	queue taskqueue.TaskQueue,
 	metrics *metrics.Metrics,
-	tracer *tracing.Tracer) *Worker {
+	tracer *tracing.Tracer,
+	bus eventbus.Bus) *Worker {
 
 	opts.RequeueJobBatch = utils.DefaultIfZero(opts.RequeueJobBatch, constants.RequeueBatch)
 	opts.RequeueJobInterval = utils.DefaultIfZero(opts.RequeueJobInterval, constants.RequeueInterval)
@@ -74,6 +77,19 @@ func NewWorker(
 		metrics:   metrics,
 		tracer:    tracer,
 	}
+
+	bus.Subscribe("plugin.crud", func(data interface{}) {
+		plugin := entities.Plugin{}
+		if err := json.Unmarshal(data.(*eventbus.CrudData).Data, &plugin); err != nil {
+			zap.S().Errorf("failed to unmarshal event data: %s", err)
+			return
+		}
+		cacheKey := constants.EndpointPluginsKey.Build(plugin.EndpointId)
+		err := mcache.Invalidate(context.TODO(), cacheKey)
+		if err != nil {
+			zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
+		}
+	})
 
 	return worker
 }
@@ -415,5 +431,8 @@ func listEndpointPlugins(ctx context.Context, db *db.DB, endpointId string) ([]*
 		}
 		return &plugins, nil
 	}, endpointId)
+	if err != nil {
+		return nil, err
+	}
 	return *plugins, err
 }

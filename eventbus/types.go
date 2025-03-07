@@ -6,16 +6,27 @@ const (
 	EventCRUD = "crud"
 )
 
-type EventPayload struct {
+type Bus interface {
+	ClusteringBroadcast(event string, data interface{}) error
+	ClusteringSubscribe(channel string, fn func(data []byte))
+	Broadcast(channel string, data interface{})
+	Subscribe(channel string, cb Callback)
+}
+
+// Message clustering message
+type Message struct {
 	Event string          `json:"event"`
-	Data  json.RawMessage `json:"data"`
 	Time  int64           `json:"time"`
 	Node  string          `json:"node"`
+	Data  json.RawMessage `json:"data"`
 }
 
 type CrudData struct {
-	ID       string          `json:"id"`
-	CacheKey string          `json:"cache_key"`
 	Entity   string          `json:"entity"`
+	ID       string          `json:"id"`
+	WID      string          `json:"wid"`
+	CacheKey string          `json:"cache_key"`
 	Data     json.RawMessage `json:"data"`
 }
+
+type Callback func(data interface{})

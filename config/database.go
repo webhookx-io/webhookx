@@ -38,7 +38,7 @@ func (cfg DatabaseConfig) Validate() error {
 	return nil
 }
 
-func (cfg *DatabaseConfig) InitSqlDB() (*sql.DB, error) {
+func (cfg DatabaseConfig) InitSqlDB() (*sql.DB, error) {
 	var driverName = "postgres"
 	db, err := sql.Open(driverName, cfg.GetDSN())
 	if err != nil {

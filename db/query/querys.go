@@ -3,11 +3,15 @@ package query
 type EndpointQuery struct {
 	Query
 
+	Enabled     *bool
 	WorkspaceId *string
 }
 
 func (q *EndpointQuery) WhereMap() map[string]interface{} {
 	maps := make(map[string]interface{})
+	if q.Enabled != nil {
+		maps["enabled"] = *q.Enabled
+	}
 	if q.WorkspaceId != nil {
 		maps["ws_id"] = *q.WorkspaceId
 	}

@@ -4,12 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
-	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
-	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
@@ -87,10 +86,15 @@ func (app *Application) initialize() error {
 		L2:     app.cache,
 	}))
 
+	sqlDB, err := cfg.Database.InitSqlDB()
+	if err != nil {
+		return err
+	}
+
 	app.bus = eventbus.NewEventBus(
 		app.NodeID(),
 		cfg.Database.GetDSN(),
-		app.log)
+		app.log, sqlDB)
 	registerEventHandler(app.bus)
 
 	// tracing
@@ -102,7 +106,7 @@ func (app *Application) initialize() error {
 	app.tracer = tracer
 
 	// db
-	db, err := db.NewDB(&cfg.Database)
+	db, err := db.NewDB(sqlDB, app.log, app.bus)
 	if err != nil {
 		return err
 	}
@@ -119,7 +123,7 @@ func (app *Application) initialize() error {
 	}, app.log, app.metrics)
 	app.queue = queue
 
-	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db, app.metrics)
+	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db, app.metrics, app.bus)
 
 	// worker
 	if cfg.Worker.Enabled {
@@ -128,7 +132,7 @@ func (app *Application) initialize() error {
 			PoolConcurrency: int(cfg.Worker.Pool.Concurrency),
 		}
 		deliverer := deliverer.NewHTTPDeliverer(&cfg.Worker.Deliverer)
-		app.worker = worker.NewWorker(opts, db, deliverer, queue, app.metrics, tracer)
+		app.worker = worker.NewWorker(opts, db, deliverer, queue, app.metrics, tracer, app.bus)
 	}
 
 	// admin
@@ -139,36 +143,28 @@ func (app *Application) initialize() error {
 
 	// gateway
 	if cfg.Proxy.IsEnabled() {
-		app.gateway = proxy.NewGateway(&cfg.Proxy, db, app.dispatcher, app.metrics, app.tracer)
+		app.gateway = proxy.NewGateway(&cfg.Proxy, db, app.dispatcher, app.metrics, app.tracer, app.bus)
 	}
 
 	return nil
 }
 
 func registerEventHandler(bus *eventbus.EventBus) {
-	bus.Subscribe(eventbus.EventCRUD, func(data []byte) {
+	bus.ClusteringSubscribe(eventbus.EventCRUD, func(data []byte) {
 		eventData := &eventbus.CrudData{}
 		if err := json.Unmarshal(data, eventData); err != nil {
 			zap.S().Errorf("failed to unmarshal event: %s", err)
 			return
 		}
-
+		bus.Broadcast(eventbus.EventCRUD, eventData)
+	})
+	bus.Subscribe(eventbus.EventCRUD, func(data interface{}) {
+		eventData := data.(*eventbus.CrudData)
 		err := mcache.Invalidate(context.TODO(), eventData.CacheKey)
 		if err != nil {
 			zap.S().Errorf("failed to invalidate cache: key=%s %v", eventData.CacheKey, err)
 		}
-		if eventData.Entity == "plugin" {
-			plugin := entities.Plugin{}
-			if err := json.Unmarshal(eventData.Data, &plugin); err != nil {
-				zap.S().Errorf("failed to unmarshal event data: %s", err)
-				return
-			}
-			cacheKey := constants.EndpointPluginsKey.Build(plugin.EndpointId)
-			err := mcache.Invalidate(context.TODO(), cacheKey)
-			if err != nil {
-				zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
-			}
-		}
+		bus.Broadcast(fmt.Sprintf("%s.crud", eventData.Entity), eventData)
 	})
 }
 

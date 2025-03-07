@@ -156,12 +156,14 @@ func registerEventHandler(bus *eventbus.EventBus) {
 			zap.S().Errorf("failed to unmarshal event: %s", err)
 			return
 		}
-
+		bus.Broadcast(eventbus.EventCRUD, eventData)
+	})
+	bus.Subscribe(eventbus.EventCRUD, func(data interface{}) {
+		eventData := data.(*eventbus.CrudData)
 		err := mcache.Invalidate(context.TODO(), eventData.CacheKey)
 		if err != nil {
 			zap.S().Errorf("failed to invalidate cache: key=%s %v", eventData.CacheKey, err)
 		}
-
 		bus.Broadcast(fmt.Sprintf("%s.crud", eventData.Entity), eventData)
 	})
 }

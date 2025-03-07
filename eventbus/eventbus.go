@@ -29,6 +29,7 @@ type EventBus struct {
 
 func NewEventBus(nodeID string, dsn string, log *zap.SugaredLogger, db *sql.DB) *EventBus {
 	ctx, cancel := context.WithCancel(context.Background())
+
 	bus := EventBus{
 		ctx:      ctx,
 		cancel:   cancel,
@@ -45,7 +46,7 @@ func NewEventBus(nodeID string, dsn string, log *zap.SugaredLogger, db *sql.DB) 
 }
 
 func (bus *EventBus) Start() error {
-	go bus.listenLoop()
+	go bus.listenClusterLoop()
 	go bus.startListen()
 	return nil
 }
@@ -64,7 +65,7 @@ func (bus *EventBus) Stop() error {
 	return bus.listener.Close()
 }
 
-func (bus *EventBus) listenLoop() {
+func (bus *EventBus) listenClusterLoop() {
 	timeoutDuration := 5 * time.Second
 	timeout := time.NewTimer(timeoutDuration)
 	for {
@@ -75,17 +76,19 @@ func (bus *EventBus) listenLoop() {
 		case n := <-bus.listener.NotificationChannel():
 			var msg Message
 			if err := json.Unmarshal([]byte(n.Extra), &msg); err != nil {
-				bus.log.Errorf("[eventbus] failed to unmarshal payload: %s", err)
+				bus.log.Errorf("[eventbus] failed to unmarshal message: %s", err)
 				continue
 			}
-			bus.log.Debugf("[eventbus] received event: channel=%s, payload=%s", n.Channel, n.Extra)
+			if msg.Node == bus.nodeID {
+				continue
+			}
+			bus.log.Debugf("[eventbus] received event: channel=%s, message=%s", n.Channel, n.Extra)
 			if handlers, ok := bus.handlers[msg.Event]; ok {
 				for _, handler := range handlers {
 					handler(msg.Data)
 				}
 			}
 		case <-timeout.C:
-			// bus.log.Debugf("[eventbus] pinging database")
 			err := bus.listener.Ping()
 			if err != nil {
 				bus.log.Errorf("[eventbus] faield to ping database: %v", err)
@@ -94,30 +97,32 @@ func (bus *EventBus) listenLoop() {
 	}
 }
 
-func (bus *EventBus) ClusteringBroadcast(event string, data interface{}) error {
+func (bus *EventBus) ClusteringBroadcast(channel string, data interface{}) error {
+	bus.bus.Publish(channel, data)
+
 	bytes, err := json.Marshal(data)
 	if err != nil {
 		bus.log.Errorf("[eventbus] failed to marshal data: %v", err)
 		return err
 	}
 	msg := Message{
-		Event: event,
+		Event: channel,
 		Time:  time.Now().UnixMilli(),
 		Node:  config.NODE,
 		Data:  bytes,
 	}
 	bytes, err = json.Marshal(msg)
 	if err != nil {
-		bus.log.Errorf("[eventbus] failed to marshal payload: %v", err)
+		bus.log.Errorf("[eventbus] failed to marshal message: %v", err)
 		return err
 	}
 
-	bus.log.Debugf("[eventbus] broadcasting cluster event: %s", string(bytes))
+	bus.log.Debugf("[eventbus] broadcasting cluster message: %s", string(bytes))
 
 	statement := fmt.Sprintf("NOTIFY %s, '%s'", "webhookx", string(bytes))
 	_, err = bus.db.ExecContext(context.TODO(), statement)
 	if err != nil {
-		bus.log.Errorf("[eventbus] failed to broadcast event: %v", err)
+		bus.log.Errorf("[eventbus] failed to broadcast message: %v", err)
 	}
 	return err
 }

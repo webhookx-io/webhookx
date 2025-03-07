@@ -413,7 +413,7 @@ func (dao *DAO[T]) Upsert(ctx context.Context, fields []string, entity *T) error
 }
 
 func (dao *DAO[T]) propagateEvent(id string, entity *T) {
-	data := eventbus.CrudData{
+	data := &eventbus.CrudData{
 		ID:       id,
 		CacheKey: dao.opts.CacheKey.Build(id),
 		Entity:   dao.opts.EntityName,

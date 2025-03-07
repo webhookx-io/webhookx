@@ -431,5 +431,8 @@ func listEndpointPlugins(ctx context.Context, db *db.DB, endpointId string) ([]*
 		}
 		return &plugins, nil
 	}, endpointId)
+	if err != nil {
+		return nil, err
+	}
 	return *plugins, err
 }

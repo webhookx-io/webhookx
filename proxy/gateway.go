@@ -47,9 +47,8 @@ type Gateway struct {
 	log *zap.SugaredLogger
 	s   *http.Server
 
-	router          *router.Router // TODO: happens-before
-	routerVersion   string
-	routerLastBuild time.Time
+	router        *router.Router // TODO: happens-before
+	routerVersion string
 
 	db *db.DB
 
@@ -109,7 +108,7 @@ func NewGateway(cfg *config.ProxyConfig,
 }
 
 func (gw *Gateway) buildRouter(version string) {
-	gw.log.Debugf("creating router")
+	gw.log.Debugf("[proxy] creating router")
 
 	sources, err := gw.db.Sources.List(context.TODO(), &query.SourceQuery{})
 	if err != nil {
@@ -128,7 +127,6 @@ func (gw *Gateway) buildRouter(version string) {
 	}
 	gw.router = router.NewRouter(routes)
 	gw.routerVersion = version
-	gw.routerLastBuild = time.Now()
 }
 
 func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {

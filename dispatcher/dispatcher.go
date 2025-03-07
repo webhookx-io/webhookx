@@ -187,12 +187,15 @@ func listWorkspaceEndpoints(ctx context.Context, db *db.DB, wid string) ([]*enti
 	endpoints, err := mcache.Load(ctx, cacheKey, nil, func(ctx context.Context, id string) (*[]*entities.Endpoint, error) {
 		var q query.EndpointQuery
 		q.WorkspaceId = &wid
-		//q.Enabled = true
+		q.Enabled = utils.Pointer(true)
 		endpoints, err := db.Endpoints.List(ctx, &q)
 		if err != nil {
 			return nil, err
 		}
 		return &endpoints, nil
 	}, wid)
+	if err != nil {
+		return nil, err
+	}
 	return *endpoints, err
 }

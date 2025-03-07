@@ -82,7 +82,7 @@ func (bus *EventBus) listenClusterLoop() {
 			if msg.Node == bus.nodeID {
 				continue
 			}
-			bus.log.Debugf("[eventbus] received event: channel=%s, message=%s", n.Channel, n.Extra)
+			bus.log.Debugf("[eventbus] dispatch cluster message: %s", n.Extra)
 			if handlers, ok := bus.handlers[msg.Event]; ok {
 				for _, handler := range handlers {
 					handler(msg.Data)

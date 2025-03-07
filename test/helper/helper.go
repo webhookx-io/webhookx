@@ -20,20 +20,10 @@ import (
 	"time"
 )
 
-//var cfg *config.Config
-
 var (
 	OtelCollectorTracesFile  = "../output/otel/traces.json"
 	OtelCollectorMetricsFile = "../output/otel/metrics.json"
 )
-
-//func init() {
-//	var err error
-//	cfg, err = config.Init()
-//	if err != nil {
-//		panic(err)
-//	}
-//}
 
 var defaultEnvs = map[string]string{
 	"WEBHOOKX_LOG_LEVEL":  "debug",

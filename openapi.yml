@@ -598,6 +598,35 @@ paths:
               schema:
                 type: string
 
+  /debug/pprof/:
+    get:
+      summary: Responds the pprof html page listing the available profiles
+      tags:
+        - Debug
+      responses:
+        '200':
+          description: OK
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /debug/pprof/{profile}:
+    get:
+      summary: Responds a specific pprof profile
+      tags:
+        - Debug
+      parameters:
+        - in: path
+          name: profile
+          required: true
+          schema:
+            type: string
+            enum: [allocs, block, goroutine, heap, mutex, threadcreate, cmdline, symbol, profile, trace]
+      responses:
+        '200':
+          description: OK
+
 components:
   parameters:
     workspace_id:

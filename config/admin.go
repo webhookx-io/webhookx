@@ -1,8 +1,9 @@
 package config
 
 type AdminConfig struct {
-	Listen string `yaml:"listen"`
-	TLS    TLS    `yaml:"tls"`
+	Listen         string `yaml:"listen"`
+	DebugEndpoints bool   `yaml:"debug_endpoints" envconfig:"DEBUG_ENDPOINTS"`
+	TLS            TLS    `yaml:"tls"`
 }
 
 func (cfg AdminConfig) Validate() error {

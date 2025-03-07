@@ -39,9 +39,9 @@ func (cfg Queue) Validate() error {
 type ProxyConfig struct {
 	Listen             string        `yaml:"listen"`
 	TLS                TLS           `yaml:"tls"`
-	TimeoutRead        int64         `yaml:"timeout_read" default:"10"`
-	TimeoutWrite       int64         `yaml:"timeout_write" default:"10"`
-	MaxRequestBodySize int64         `yaml:"max_request_body_size" default:"1048576"`
+	TimeoutRead        int64         `yaml:"timeout_read" default:"10" envconfig:"TIMEOUT_READ"`
+	TimeoutWrite       int64         `yaml:"timeout_write" default:"10" envconfig:"TIMEOUT_WRITE"`
+	MaxRequestBodySize int64         `yaml:"max_request_body_size" default:"1048576" envconfig:"MAX_REQUEST_BODY_SIZE"`
 	Response           ProxyResponse `yaml:"response"`
 	Queue              Queue         `yaml:"queue"`
 }

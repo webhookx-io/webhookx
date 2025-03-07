@@ -4,7 +4,6 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"github.com/creasty/defaults"
-	"github.com/lib/pq"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -27,7 +26,7 @@ type Source struct {
 	Name     *string         `json:"name" db:"name"`
 	Enabled  bool            `json:"enabled" db:"enabled" default:"true"`
 	Path     string          `json:"path" db:"path"`
-	Methods  pq.StringArray  `json:"methods" db:"methods"`
+	Methods  Strings         `json:"methods" db:"methods"`
 	Async    bool            `json:"async" db:"async"`
 	Response *CustomResponse `json:"response" db:"response"`
 

@@ -86,7 +86,7 @@ func (app *Application) initialize() error {
 		L2:     app.cache,
 	}))
 
-	sqlDB, err := cfg.Database.InitSqlDB()
+	sqlDB, err := db.NewSqlDB(cfg.Database)
 	if err != nil {
 		return err
 	}

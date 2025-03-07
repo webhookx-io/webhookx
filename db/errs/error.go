@@ -3,7 +3,7 @@ package errs
 import (
 	"errors"
 	"fmt"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 	"regexp"
 	"strings"
 )
@@ -25,7 +25,7 @@ func ConvertError(err error) error {
 		return nil
 	}
 
-	var pgErr *pq.Error
+	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 		re := regexp.MustCompile(`\([^()]*\)`)
 		matches := re.FindAllString(pgErr.Detail, -1)

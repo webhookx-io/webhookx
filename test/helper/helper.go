@@ -109,7 +109,7 @@ func DB() *db.DB {
 	if err != nil {
 		return nil
 	}
-	sqlDB, err := cfg.Database.InitSqlDB()
+	sqlDB, err := db.NewSqlDB(cfg.Database)
 	if err != nil {
 		return nil
 	}

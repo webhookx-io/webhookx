@@ -1,11 +1,11 @@
 package migrator
 
 import (
-	"database/sql"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/migrations"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -22,7 +22,7 @@ func New(cfg *config.DatabaseConfig) *Migrator {
 }
 
 func (m *Migrator) init() (*migrate.Migrate, error) {
-	db, err := sql.Open("postgres", m.cfg.GetDSN())
+	db, err := db.NewSqlDB(*m.cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (m *Migrator) Status() (version uint, dirty bool, err error) {
 }
 
 func (m *Migrator) initDefaultWorkspace() error {
-	db, err := sql.Open("postgres", m.cfg.GetDSN())
+	db, err := db.NewSqlDB(*m.cfg)
 	if err != nil {
 		return err
 	}

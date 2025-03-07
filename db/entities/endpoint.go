@@ -3,18 +3,17 @@ package entities
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"github.com/lib/pq"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
 type Endpoint struct {
-	ID          string         `json:"id" db:"id"`
-	Name        *string        `json:"name" db:"name"`
-	Description *string        `json:"description" db:"description"`
-	Enabled     bool           `json:"enabled" db:"enabled" default:"true"`
-	Request     RequestConfig  `json:"request" db:"request"`
-	Retry       Retry          `json:"retry" db:"retry"`
-	Events      pq.StringArray `json:"events" db:"events"`
+	ID          string        `json:"id" db:"id"`
+	Name        *string       `json:"name" db:"name"`
+	Description *string       `json:"description" db:"description"`
+	Enabled     bool          `json:"enabled" db:"enabled" default:"true"`
+	Request     RequestConfig `json:"request" db:"request"`
+	Retry       Retry         `json:"retry" db:"retry"`
+	Events      Strings       `json:"events" db:"events"`
 
 	BaseModel `yaml:"-"`
 }

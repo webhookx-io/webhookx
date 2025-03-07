@@ -3,6 +3,7 @@ package config
 import (
 	"database/sql"
 	"fmt"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"time"
 )
 
@@ -39,7 +40,7 @@ func (cfg DatabaseConfig) Validate() error {
 }
 
 func (cfg DatabaseConfig) InitSqlDB() (*sql.DB, error) {
-	var driverName = "postgres"
+	var driverName = "pgx"
 	db, err := sql.Open(driverName, cfg.GetDSN())
 	if err != nil {
 		return nil, err

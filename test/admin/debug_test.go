@@ -38,7 +38,7 @@ var _ = Describe("/debug", Ordered, func() {
 		}
 
 		for _, path := range paths {
-			resp, err := adminClient.R().Get(path + "?debug=1")
+			resp, err := adminClient.R().Get(path)
 			assert.NoError(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 200, resp.StatusCode(), fmt.Sprintf("%s \n%s", path, resp.Status()))
 		}

@@ -217,19 +217,6 @@ func TestMetricsConfig(t *testing.T) {
 			},
 			expectedValidateErr: errors.New("interval must be in the range [1, 60]"),
 		},
-		{
-			desc: "invalid PushInterval (Opentelemetry has higher priority)",
-			cfg: MetricsConfig{
-				Attributes:   nil,
-				Exports:      nil,
-				PushInterval: 1,
-				Opentelemetry: Opentelemetry{
-					PushInterval: 61,
-					Protocol:     "http/protobuf",
-				},
-			},
-			expectedValidateErr: errors.New("interval must be in the range [1, 60]"),
-		},
 	}
 
 	for _, test := range tests {

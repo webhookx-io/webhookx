@@ -10,7 +10,6 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
-	"github.com/webhookx-io/webhookx/model"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	plugintypes "github.com/webhookx-io/webhookx/pkg/plugin/types"
@@ -127,7 +126,7 @@ func (w *Worker) run() {
 							defer span.End()
 							ctx = tracingCtx
 						}
-						task.Data = &model.MessageData{}
+						task.Data = &MessageData{}
 						err = task.UnmarshalData(task.Data)
 						if err != nil {
 							w.log.Errorf("[worker] failed to unmarshal task: %v", err)
@@ -195,13 +194,19 @@ func (w *Worker) processRequeue() {
 
 		tasks := make([]*taskqueue.TaskMessage, 0, len(attempts))
 		for _, attempt := range attempts {
+			event, err := w.DB.Events.Get(ctx, attempt.EventId)
+			if err != nil {
+				w.log.Errorf("[worker] failed to get event: %v", err)
+				break
+			}
 			task := &taskqueue.TaskMessage{
 				ID:          attempt.ID,
 				ScheduledAt: attempt.ScheduledAt.Time,
-				Data: &model.MessageData{
+				Data: &MessageData{
 					EventID:    attempt.EventId,
 					EndpointId: attempt.EndpointId,
 					Attempt:    attempt.AttemptNumber,
+					Event:      string(event.Data),
 				},
 			}
 			tasks = append(tasks, task)
@@ -232,7 +237,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		defer span.End()
 		ctx = tracingCtx
 	}
-	data := task.Data.(*model.MessageData)
+	data := task.Data.(*MessageData)
 
 	// verify endpoint
 	cacheKey := constants.EndpointCacheKey.Build(data.EndpointId)
@@ -247,15 +252,18 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		return w.DB.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeEndpointDisabled)
 	}
 
-	// verify event
-	cacheKey = constants.EventCacheKey.Build(data.EventID)
-	opts := &mcache.LoadOptions{DisableLRU: true}
-	event, err := mcache.Load(ctx, cacheKey, opts, w.DB.Events.Get, data.EventID)
-	if err != nil {
-		return err
-	}
-	if event == nil {
-		return w.DB.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeUnknown)
+	if data.Event == "" { // backward compatibility
+		// verify event
+		cacheKey = constants.EventCacheKey.Build(data.EventID)
+		opts := &mcache.LoadOptions{DisableLRU: true}
+		event, err := mcache.Load(ctx, cacheKey, opts, w.DB.Events.Get, data.EventID)
+		if err != nil {
+			return err
+		}
+		if event == nil {
+			return w.DB.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeUnknown)
+		}
+		data.Event = string(event.Data)
 	}
 
 	plugins, err := listEndpointPlugins(ctx, w.DB, endpoint.ID)
@@ -273,7 +281,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		URL:     endpoint.Request.URL,
 		Method:  endpoint.Request.Method,
 		Headers: endpoint.Request.Headers,
-		Payload: event.Data,
+		Payload: []byte(data.Event),
 	}
 	if pluginReq.Headers == nil {
 		pluginReq.Headers = make(map[string]string)
@@ -326,22 +334,24 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		return err
 	}
 
-	attemptDetail := &entities.AttemptDetail{
-		ID:             task.ID,
-		RequestHeaders: utils.HeaderMap(request.Request.Header),
-		RequestBody:    utils.Pointer(string(request.Payload)),
-	}
-	if len(response.Header) > 0 {
-		attemptDetail.ResponseHeaders = utils.Pointer(entities.Headers(utils.HeaderMap(response.Header)))
-	}
-	if response.ResponseBody != nil {
-		attemptDetail.ResponseBody = utils.Pointer(string(response.ResponseBody))
-	}
-	attemptDetail.WorkspaceId = endpoint.WorkspaceId
-	err = w.DB.AttemptDetails.Insert(ctx, attemptDetail)
-	if err != nil {
-		return err
-	}
+	go func() {
+		attemptDetail := &entities.AttemptDetail{
+			ID:             task.ID,
+			RequestHeaders: utils.HeaderMap(request.Request.Header),
+			RequestBody:    utils.Pointer(string(request.Payload)),
+		}
+		if len(response.Header) > 0 {
+			attemptDetail.ResponseHeaders = utils.Pointer(entities.Headers(utils.HeaderMap(response.Header)))
+		}
+		if response.ResponseBody != nil {
+			attemptDetail.ResponseBody = utils.Pointer(string(response.ResponseBody))
+		}
+		attemptDetail.WorkspaceId = endpoint.WorkspaceId
+		err = w.DB.AttemptDetails.Insert(ctx, attemptDetail)
+		if err != nil {
+			w.log.Errorf("[worker] failed to insert attempt detail: %v", err)
+		}
+	}()
 
 	if result.Status == entities.AttemptStatusSuccess {
 		return nil
@@ -355,7 +365,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	delay := endpoint.Retry.Config.Attempts[data.Attempt]
 	nextAttempt := &entities.Attempt{
 		ID:            utils.KSUID(),
-		EventId:       event.ID,
+		EventId:       data.EventID,
 		EndpointId:    endpoint.ID,
 		Status:        entities.AttemptStatusInit,
 		AttemptNumber: data.Attempt + 1,
@@ -372,7 +382,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	task = &taskqueue.TaskMessage{
 		ID:          nextAttempt.ID,
 		ScheduledAt: nextAttempt.ScheduledAt.Time,
-		Data: &model.MessageData{
+		Data: &MessageData{
 			EventID:    data.EventID,
 			EndpointId: data.EndpointId,
 			Attempt:    nextAttempt.AttemptNumber,

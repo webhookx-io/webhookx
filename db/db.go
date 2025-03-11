@@ -4,14 +4,18 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/transaction"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"time"
 )
 
 type DB struct {
@@ -33,8 +37,25 @@ type DB struct {
 	PluginsWS        dao.PluginDAO
 }
 
+func NewSqlDB(cfg config.DatabaseConfig) (*sql.DB, error) {
+	pgxConfig, err := pgxpool.ParseConfig(cfg.GetDSN())
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.MaxPoolSize > 0 {
+		pgxConfig.MaxConns = int32(cfg.MaxPoolSize)
+	}
+	pgxConfig.MaxConnLifetime = time.Second * time.Duration(cfg.MaxLifetime)
+	pool, err := pgxpool.NewWithConfig(context.Background(), pgxConfig)
+	if err != nil {
+		return nil, err
+	}
+	return stdlib.OpenDBFromPool(pool), nil
+}
+
 func NewDB(sqlDB *sql.DB, log *zap.SugaredLogger, bus *eventbus.EventBus) (*DB, error) {
-	sqlxDB := sqlx.NewDb(sqlDB, "postgres")
+	sqlxDB := sqlx.NewDb(sqlDB, "pgx")
 
 	db := &DB{
 		DB:               sqlxDB,

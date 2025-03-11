@@ -3,6 +3,7 @@ package entities
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"github.com/lib/pq"
 	"github.com/webhookx-io/webhookx/pkg/types"
 )
 
@@ -31,3 +32,5 @@ func (m *Headers) Scan(src interface{}) error {
 func (m Headers) Value() (driver.Value, error) {
 	return json.Marshal(m)
 }
+
+type Strings = pq.StringArray

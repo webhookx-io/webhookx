@@ -45,6 +45,7 @@ type DAO[T any] struct {
 
 	workspace bool
 	opts      Options
+	columns   []string
 }
 
 type Options struct {
@@ -63,6 +64,12 @@ func NewDAO[T any](db *sqlx.DB, bus *eventbus.EventBus, opts Options) *DAO[T] {
 		workspace: opts.Workspace,
 		opts:      opts,
 	}
+	EachField(new(T), func(f reflect.StructField, _ reflect.Value, column string) {
+		if column == "created_at" || column == "updated_at" {
+			return
+		}
+		dao.columns = append(dao.columns, column)
+	})
 	return &dao
 }
 
@@ -213,46 +220,22 @@ func (dao *DAO[T]) List(ctx context.Context, q query.Queryer) (list []*T, err er
 	return
 }
 
-func travel(entity interface{}, fn func(field reflect.StructField, value reflect.Value)) {
-	t := reflect.TypeOf(entity)
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-	v := reflect.ValueOf(entity)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		value := v.Field(i)
-		if field.Anonymous {
-			travel(value.Interface(), fn)
-		} else {
-			fn(field, value)
-		}
-	}
-}
-
 func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.insert", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
-	columns := make([]string, 0)
 	values := make([]interface{}, 0)
-	travel(entity, func(f reflect.StructField, v reflect.Value) {
-		column := utils.DefaultIfZero(f.Tag.Get("db"), strings.ToLower(f.Name))
-		switch column {
-		case "created_at", "updated_at": // ignore
-		default:
-			columns = append(columns, column)
-			value := v.Interface()
-			if column == "ws_id" && dao.workspace {
-				value = ucontext.GetWorkspaceID(ctx)
-			}
-			values = append(values, value)
+	EachField(entity, func(f reflect.StructField, v reflect.Value, column string) {
+		if column == "created_at" || column == "updated_at" {
+			return
 		}
+		value := v.Interface()
+		if column == "ws_id" && dao.workspace {
+			value = ucontext.GetWorkspaceID(ctx)
+		}
+		values = append(values, value)
 	})
-	statement, args := psql.Insert(dao.opts.Table).Columns(columns...).Values(values...).
+	statement, args := psql.Insert(dao.opts.Table).Columns(dao.columns...).Values(values...).
 		Suffix("RETURNING *").
 		MustSql()
 	dao.debugSQL(statement, args)
@@ -274,30 +257,19 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 		return nil
 	}
 
-	builder := psql.Insert(dao.opts.Table)
-	travel(entities[0], func(f reflect.StructField, v reflect.Value) {
-		column := utils.DefaultIfZero(f.Tag.Get("db"), strings.ToLower(f.Name))
-		switch column {
-		case "created_at", "updated_at": // ignore
-		default:
-			builder = builder.Columns(column)
-		}
-	})
+	builder := psql.Insert(dao.opts.Table).Columns(dao.columns...)
 
 	for _, entity := range entities {
 		values := make([]interface{}, 0)
-		travel(entity, func(f reflect.StructField, v reflect.Value) {
-			column := utils.DefaultIfZero(f.Tag.Get("db"), strings.ToLower(f.Name))
-			switch column {
-			case "created_at", "updated_at":
-				// ignore
-			default:
-				value := v.Interface()
-				if column == "ws_id" && dao.workspace {
-					value = ucontext.GetWorkspaceID(ctx)
-				}
-				values = append(values, value)
+		EachField(entity, func(f reflect.StructField, v reflect.Value, column string) {
+			if column == "created_at" || column == "updated_at" {
+				return
 			}
+			value := v.Interface()
+			if column == "ws_id" && dao.workspace {
+				value = ucontext.GetWorkspaceID(ctx)
+			}
+			values = append(values, value)
 		})
 		builder = builder.Values(values...)
 	}
@@ -340,8 +312,7 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 
 	var id string
 	builder := psql.Update(dao.opts.Table)
-	travel(entity, func(f reflect.StructField, v reflect.Value) {
-		column := utils.DefaultIfZero(f.Tag.Get("db"), strings.ToLower(f.Name))
+	EachField(entity, func(f reflect.StructField, v reflect.Value, column string) {
 		switch column {
 		case "id":
 			id = v.Interface().(string)
@@ -369,8 +340,7 @@ func (dao *DAO[T]) Upsert(ctx context.Context, fields []string, entity *T) error
 	now := time.Now()
 	columns := make([]string, 0)
 	values := make([]interface{}, 0)
-	travel(entity, func(f reflect.StructField, v reflect.Value) {
-		column := utils.DefaultIfZero(f.Tag.Get("db"), strings.ToLower(f.Name))
+	EachField(entity, func(f reflect.StructField, v reflect.Value, column string) {
 		switch column {
 		case "created_at", "updated_at":
 			columns = append(columns, column)

@@ -60,9 +60,7 @@ var _ = Describe("delivery", Ordered, func() {
 				resp, err := proxyClient.R().
 					SetBody(`{
 					    "event_type": "foo.bar",
-					    "data": {
-							"key": "value"
-						}
+					    "data": {"key": "value"}
 					}`).
 					Post("/")
 				return err == nil && resp.StatusCode() == 200

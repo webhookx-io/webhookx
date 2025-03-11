@@ -8,12 +8,12 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
-	"github.com/webhookx-io/webhookx/model"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
+	"github.com/webhookx-io/webhookx/worker"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"time"
@@ -114,6 +114,7 @@ func fanout(event *entities.Event, endpoints []*entities.Endpoint, mode entities
 			AttemptNumber: 1,
 			ScheduledAt:   types.NewTime(now.Add(time.Second * time.Duration(delay))),
 			TriggerMode:   mode,
+			Event:         event,
 		}
 		attempt.WorkspaceId = event.WorkspaceId
 		attempts = append(attempts, attempt)
@@ -141,10 +142,11 @@ func (d *Dispatcher) sendToQueue(ctx context.Context, attempts []*entities.Attem
 		tasks = append(tasks, &taskqueue.TaskMessage{
 			ID:          attempt.ID,
 			ScheduledAt: attempt.ScheduledAt.Time,
-			Data: &model.MessageData{
+			Data: &worker.MessageData{
 				EventID:    attempt.EventId,
 				EndpointId: attempt.EndpointId,
 				Attempt:    attempt.AttemptNumber,
+				Event:      string(attempt.Event.Data),
 			},
 		})
 		ids = append(ids, attempt.ID)

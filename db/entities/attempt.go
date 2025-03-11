@@ -22,6 +22,8 @@ type Attempt struct {
 	Request   *AttemptRequest   `json:"request" db:"request"`
 	Response  *AttemptResponse  `json:"response" db:"response"`
 
+	Event *Event `json:"-" db:"-"`
+
 	BaseModel
 }
 

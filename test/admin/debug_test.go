@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"fmt"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
@@ -27,21 +26,40 @@ var _ = Describe("/debug", Ordered, func() {
 		app.Stop()
 	})
 
-	It("/debug/pprof/", func() {
-		paths := []string{
-			"/debug/pprof/allocs",
-			"/debug/pprof/block",
-			"/debug/pprof/goroutine",
-			"/debug/pprof/heap",
-			"/debug/pprof/mutex",
-			"/debug/pprof/threadcreate",
-		}
+	It("/debug/pprof/allocs", func() {
+		resp, err := adminClient.R().Get("/debug/pprof/allocs?debug=1")
+		assert.NoError(GinkgoT(), err)
+		assert.Equal(GinkgoT(), 200, resp.StatusCode())
+	})
 
-		for _, path := range paths {
-			resp, err := adminClient.R().Get(path)
-			assert.NoError(GinkgoT(), err)
-			assert.Equal(GinkgoT(), 200, resp.StatusCode(), fmt.Sprintf("%s \n%s", path, resp.Status()))
-		}
+	It("/debug/pprof/block", func() {
+		resp, err := adminClient.R().Get("/debug/pprof/block?debug=1")
+		assert.NoError(GinkgoT(), err)
+		assert.Equal(GinkgoT(), 200, resp.StatusCode())
+	})
+
+	It("/debug/pprof/goroutine", func() {
+		resp, err := adminClient.R().Get("/debug/pprof/goroutine?debug=1")
+		assert.NoError(GinkgoT(), err)
+		assert.Equal(GinkgoT(), 200, resp.StatusCode())
+	})
+
+	It("/debug/pprof/heap", func() {
+		resp, err := adminClient.R().Get("/debug/pprof/heap?debug=1")
+		assert.NoError(GinkgoT(), err)
+		assert.Equal(GinkgoT(), 200, resp.StatusCode())
+	})
+
+	It("/debug/pprof/mutex", func() {
+		resp, err := adminClient.R().Get("/debug/pprof/mutex?debug=1")
+		assert.NoError(GinkgoT(), err)
+		assert.Equal(GinkgoT(), 200, resp.StatusCode())
+	})
+
+	It("/debug/pprof/threadcreate", func() {
+		resp, err := adminClient.R().Get("/debug/pprof/threadcreate?debug=1")
+		assert.NoError(GinkgoT(), err)
+		assert.Equal(GinkgoT(), 200, resp.StatusCode())
 	})
 
 	It("/debug/pprof/cmdline", func() {

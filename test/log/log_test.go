@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/app"
+	"github.com/webhookx-io/webhookx/test"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
@@ -22,7 +23,7 @@ var _ = Describe("logging", Ordered, func() {
 			app = utils.Must(helper.Start(map[string]string{
 				"WEBHOOKX_LOG_LEVEL":  "debug",
 				"WEBHOOKX_LOG_FORMAT": "text",
-				"WEBHOOKX_LOG_FILE":   "webhookx.log",
+				"WEBHOOKX_LOG_FILE":   test.FilePath("output/webhookx-text.log"),
 			}))
 			assert.Nil(GinkgoT(), err)
 		})
@@ -31,14 +32,14 @@ var _ = Describe("logging", Ordered, func() {
 			app.Stop()
 		})
 
-		BeforeEach(func() {
-			helper.TruncateFile("webhookx.log")
-		})
-
 		Context("DEBUG", func() {
 			It("outputs log with text format", func() {
+				zap.S().Sync()
+				n, err := helper.FileCountLine(test.FilePath("output/webhookx-text.log"))
+				assert.Nil(GinkgoT(), err)
 				zap.S().Debugf("a debug log")
-				line, err := helper.FileLine("webhookx.log", 1)
+				zap.S().Sync()
+				line, err := helper.FileLine(test.FilePath("output/webhookx-text.log"), n+1)
 				assert.Nil(GinkgoT(), err)
 				assert.Regexp(GinkgoT(), "^.+DEBUG.+a debug log$", line)
 			})
@@ -52,7 +53,7 @@ var _ = Describe("logging", Ordered, func() {
 			app = utils.Must(helper.Start(map[string]string{
 				"WEBHOOKX_LOG_LEVEL":  "debug",
 				"WEBHOOKX_LOG_FORMAT": "json",
-				"WEBHOOKX_LOG_FILE":   "webhookx.log",
+				"WEBHOOKX_LOG_FILE":   test.FilePath("output/webhookx-json.log"),
 			}))
 			assert.Nil(GinkgoT(), err)
 		})
@@ -61,17 +62,17 @@ var _ = Describe("logging", Ordered, func() {
 			app.Stop()
 		})
 
-		BeforeEach(func() {
-			helper.TruncateFile("webhookx.log")
-		})
-
 		Context("DEBUG", func() {
 			It("outputs log with json format", func() {
+				zap.S().Sync()
+				n, err := helper.FileCountLine(test.FilePath("output/webhookx-json.log"))
+				assert.Nil(GinkgoT(), err)
 				zap.S().Debugf("a debug log")
-				line, err := helper.FileLine("webhookx.log", 1)
+				zap.S().Sync()
+				line, err := helper.FileLine(test.FilePath("output/webhookx-json.log"), n+1)
 				assert.Nil(GinkgoT(), err)
 				data := make(map[string]interface{})
-				assert.Nil(GinkgoT(), json.Unmarshal([]byte(line), &data))
+				assert.Nil(GinkgoT(), json.Unmarshal([]byte(line), &data), line)
 				assert.Equal(GinkgoT(), "a debug log", data["msg"])
 				assert.Equal(GinkgoT(), "debug", data["level"])
 			})

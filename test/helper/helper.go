@@ -14,15 +14,15 @@ import (
 	"github.com/webhookx-io/webhookx/db/migrator"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/log"
+	"github.com/webhookx-io/webhookx/test"
 	"os"
-	"path"
 	"regexp"
 	"time"
 )
 
 var (
-	OtelCollectorTracesFile  = "../output/otel/traces.json"
-	OtelCollectorMetricsFile = "../output/otel/metrics.json"
+	OtelCollectorTracesFile  = test.FilePath("output/otel/traces.json")
+	OtelCollectorMetricsFile = test.FilePath("output/otel/metrics.json")
 )
 
 var defaultEnvs = map[string]string{
@@ -321,11 +321,6 @@ func PathExist(_path string) bool {
 }
 
 func InitOtelOutput() {
-	if v := os.Getenv("WEBHOOKX_TEST_OTEL_COLLECTOR_OUTPUT_PATH"); v != "" {
-		OtelCollectorMetricsFile = path.Join(v, "metrics.json")
-		OtelCollectorTracesFile = path.Join(v, "traces.json")
-	}
-
 	if !PathExist(OtelCollectorTracesFile) {
 		os.Create(OtelCollectorTracesFile)
 	}

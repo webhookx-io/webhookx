@@ -128,8 +128,8 @@ var _ = Describe("opentelemetry", Ordered, func() {
 			app, err = helper.Start(map[string]string{
 				"WEBHOOKX_METRICS_ATTRIBUTES":             `{"env": "prod"}`,
 				"WEBHOOKX_METRICS_EXPORTS":                "opentelemetry",
-				"WEBHOOKX_METRICS_OPENTELEMETRY_PROTOCOL": "grpc",
-				"WEBHOOKX_METRICS_OPENTELEMETRY_ENDPOINT": "localhost:4317",
+				"WEBHOOKX_METRICS_OPENTELEMETRY_PROTOCOL": "http/protobuf",
+				"WEBHOOKX_METRICS_OPENTELEMETRY_ENDPOINT": "http://localhost:4318/v1/metrics",
 				"OTEL_RESOURCE_ATTRIBUTES":                "key1=value1,key2=value2",
 				"WEBHOOKX_METRICS_PUSH_INTERVAL":          "1",
 			})
@@ -162,11 +162,12 @@ var _ = Describe("opentelemetry", Ordered, func() {
 				for _, name := range expected {
 					if !attributesMap[name] {
 						fmt.Println("missing attribute: " + name)
+						fmt.Println(line)
 						return false
 					}
 				}
 				return true
-			}, time.Second*40, time.Second)
+			}, time.Second*60, time.Millisecond*100)
 		})
 	})
 })

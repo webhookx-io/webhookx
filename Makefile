@@ -1,7 +1,5 @@
 DIR := $(shell pwd)
 
-export WEBHOOKX_TEST_OTEL_COLLECTOR_OUTPUT_PATH=$(DIR)/test/output/otel
-
 LDFLAGS = --ldflags "\
 		-X github.com/webhookx-io/webhookx/config.COMMIT=`git rev-parse --verify --short HEAD` \
 		-X github.com/webhookx-io/webhookx/config.VERSION=`git tag -l --points-at HEAD | head -n 1`"
@@ -43,4 +41,3 @@ goreleaser:
 
 migrate-create:
 	migrate create -ext sql -dir db/migrations -seq -digits 1 $(message)
-	

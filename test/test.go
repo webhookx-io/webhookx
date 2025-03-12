@@ -2,10 +2,8 @@ package test
 
 import (
 	"github.com/stretchr/testify/suite"
-	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db/migrator"
-	"github.com/webhookx-io/webhookx/test/helper"
 	"path/filepath"
 	"runtime"
 )
@@ -41,8 +39,4 @@ func (s *BasicSuite) ResetDatabase() error {
 		return err
 	}
 	return migrator.Up()
-}
-
-func Start(envs map[string]string) (*app.Application, error) {
-	return helper.Start(envs)
 }

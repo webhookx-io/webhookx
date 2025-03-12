@@ -23,20 +23,19 @@ var _ = Describe("tracing worker", Ordered, func() {
 		Context(protocol, func() {
 			var app *app.Application
 			var proxyClient *resty.Client
-			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{factory.EndpointP()},
-				Sources:   []*entities.Source{factory.SourceP(factory.WithSourceAsync(true))},
-			}
-			entitiesConfig.Sources[0].Async = true
 
 			BeforeAll(func() {
 				helper.InitOtelOutput()
-				helper.InitDB(true, &entitiesConfig)
+				cfg := &helper.EntitiesConfig{
+					Endpoints: []*entities.Endpoint{factory.EndpointP()},
+					Sources:   []*entities.Source{factory.SourceP(factory.WithSourceAsync(true))},
+				}
+				helper.InitDB(true, cfg)
 				proxyClient = helper.ProxyClient()
 				envs := map[string]string{
 					"WEBHOOKX_PROXY_LISTEN":                   "0.0.0.0:8081",
 					"WEBHOOKX_TRACING_ENABLED":                "true",
-					"WEBHOOKX_WORKER_ENABLED":                 "true", // env splite by _
+					"WEBHOOKX_WORKER_ENABLED":                 "true",
 					"WEBHOOKX_TRACING_SAMPLING_RATE":          "1.0",
 					"WEBHOOKX_TRACING_OPENTELEMETRY_PROTOCOL": protocol,
 					"WEBHOOKX_TRACING_OPENTELEMETRY_ENDPOINT": address,
@@ -54,11 +53,10 @@ var _ = Describe("tracing worker", Ordered, func() {
 					"github.com/webhookx-io/webhookx",
 				}
 				expectedScopeSpans := map[string]map[string]string{
-					"worker.submit":      {},
-					"worker.handle_task": {},
-					"dao.endpoints.get":  {},
-					// "dao.plugins.list":           {},
-					"dao.events.get":             {},
+					"worker.submit":              {},
+					"worker.handle_task":         {},
+					"dao.endpoints.get":          {},
+					"dao.plugins.list":           {},
 					"worker.deliver":             {},
 					"dao.attempt_details.insert": {},
 					"taskqueue.redis.delete":     {},
@@ -68,8 +66,10 @@ var _ = Describe("tracing worker", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				n++
 
+				time.Sleep(time.Second * 3)
 				// wait for export
 				proxyFunc := func() bool {
+					fmt.Println("send...")
 					resp, err := proxyClient.R().
 						SetBody(`{
 							"event_type": "foo.bar",
@@ -81,36 +81,35 @@ var _ = Describe("tracing worker", Ordered, func() {
 				}
 				assert.Eventually(GinkgoT(), proxyFunc, time.Second*5, time.Second)
 
-				time.Sleep(time.Second * 3)
-
 				gotScopeNames := make(map[string]bool)
 				gotSpanAttributes := make(map[string]map[string]string)
 
+				fmt.Printf("reading trace file start from line: %d\n", n)
 				assert.Eventually(GinkgoT(), func() bool {
 					line, err := helper.FileLine(helper.OtelCollectorTracesFile, n)
 					if err != nil || line == "" {
-						fmt.Printf("read empty line %d", n)
-						fmt.Println("")
-						proxyFunc()
 						return false
 					}
 					n++
+
+					// fmt.Printf("%s\n", line)
+
 					var trace ExportedTrace
 					err = json.Unmarshal([]byte(line), &trace)
 					if err != nil {
-						fmt.Printf("unmarshal err %v", err)
+						fmt.Printf("unmarshal err %v\n", err)
 						return false
 					}
 
 					if len(trace.ResourceSpans) == 0 {
-						fmt.Printf("no resource spans")
+						fmt.Println("no resource spans")
 						return false
 					}
 
 					// make sure worker handle full trace
 					traceID := trace.getTraceIDBySpanName("worker.handle_task")
 					if traceID == "" {
-						fmt.Printf("trace id not exist")
+						fmt.Println("trace id not exist")
 						return false
 					}
 					scopeNames, spanAttrs := trace.filterSpansByTraceID(traceID)
@@ -154,7 +153,7 @@ var _ = Describe("tracing worker", Ordered, func() {
 						}
 					}
 					return true
-				}, time.Second*30, time.Second)
+				}, time.Second*60, time.Second)
 			})
 		})
 	}

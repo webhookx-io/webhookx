@@ -9,7 +9,6 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/test"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -25,7 +24,7 @@ var _ = Describe("/workspaces", Ordered, func() {
 		db = helper.InitDB(true, nil)
 		var err error
 		adminClient = helper.AdminClient()
-		app, err = test.Start(map[string]string{
+		app, err = helper.Start(map[string]string{
 			"WEBHOOKX_ADMIN_LISTEN": "0.0.0.0:8080",
 		})
 		assert.Nil(GinkgoT(), err)

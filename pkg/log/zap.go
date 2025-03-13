@@ -20,7 +20,6 @@ func NewZapLogger(cfg *config.LogConfig) (*zap.Logger, error) {
 		"text": zap.NewDevelopmentEncoderConfig(),
 		"json": zap.NewProductionEncoderConfig(),
 	}
-	zap.NewProductionConfig()
 	zapConfig := zap.Config{
 		Level:             zap.NewAtomicLevelAt(level),
 		Development:       false,

@@ -4,10 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"runtime"
+	"time"
+
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
@@ -22,8 +26,6 @@ import (
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"runtime"
-	"time"
 )
 
 type Worker struct {
@@ -34,12 +36,15 @@ type Worker struct {
 
 	log *zap.SugaredLogger
 
-	queue     taskqueue.TaskQueue
-	deliverer deliverer.Deliverer
-	DB        *db.DB
-	tracer    *tracing.Tracer
-	pool      *pool.Pool
-	metrics   *metrics.Metrics
+	queue      taskqueue.TaskQueue
+	deliverer  deliverer.Deliverer
+	DB         *db.DB
+	tracer     *tracing.Tracer
+	pool       *pool.Pool
+	metrics    *metrics.Metrics
+	dispatcher *dispatcher.Dispatcher
+
+	tasks chan *entities.AttemptDetail
 }
 
 type WorkerOptions struct {
@@ -56,7 +61,8 @@ func NewWorker(
 	queue taskqueue.TaskQueue,
 	metrics *metrics.Metrics,
 	tracer *tracing.Tracer,
-	bus eventbus.Bus) *Worker {
+	bus eventbus.Bus,
+	dispatcher *dispatcher.Dispatcher) *Worker {
 
 	opts.RequeueJobBatch = utils.DefaultIfZero(opts.RequeueJobBatch, constants.RequeueBatch)
 	opts.RequeueJobInterval = utils.DefaultIfZero(opts.RequeueJobInterval, constants.RequeueInterval)
@@ -65,16 +71,18 @@ func NewWorker(
 
 	ctx, cancel := context.WithCancel(context.Background())
 	worker := &Worker{
-		ctx:       ctx,
-		cancel:    cancel,
-		opts:      opts,
-		queue:     queue,
-		log:       zap.S(),
-		deliverer: deliverer,
-		DB:        db,
-		pool:      pool.NewPool(opts.PoolSize, opts.PoolConcurrency),
-		metrics:   metrics,
-		tracer:    tracer,
+		ctx:        ctx,
+		cancel:     cancel,
+		opts:       opts,
+		queue:      queue,
+		log:        zap.S(),
+		deliverer:  deliverer,
+		DB:         db,
+		pool:       pool.NewPool(opts.PoolSize, opts.PoolConcurrency),
+		metrics:    metrics,
+		tracer:     tracer,
+		tasks:      make(chan *entities.AttemptDetail, 1000),
+		dispatcher: dispatcher,
 	}
 
 	bus.Subscribe("plugin.crud", func(data interface{}) {
@@ -126,7 +134,7 @@ func (w *Worker) run() {
 							defer span.End()
 							ctx = tracingCtx
 						}
-						task.Data = &MessageData{}
+						task.Data = &taskqueue.MessageData{}
 						err = task.UnmarshalData(task.Data)
 						if err != nil {
 							w.log.Errorf("[worker] failed to unmarshal task: %v", err)
@@ -161,6 +169,10 @@ func (w *Worker) run() {
 
 // Start starts worker
 func (w *Worker) Start() error {
+	for range runtime.NumCPU() {
+		go w.consumeAttemptDetails()
+	}
+
 	go w.run()
 
 	schedule.Schedule(w.ctx, w.processRequeue, w.opts.RequeueJobInterval)
@@ -202,7 +214,7 @@ func (w *Worker) processRequeue() {
 			task := &taskqueue.TaskMessage{
 				ID:          attempt.ID,
 				ScheduledAt: attempt.ScheduledAt.Time,
-				Data: &MessageData{
+				Data: &taskqueue.MessageData{
 					EventID:    attempt.EventId,
 					EndpointId: attempt.EndpointId,
 					Attempt:    attempt.AttemptNumber,
@@ -237,7 +249,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		defer span.End()
 		ctx = tracingCtx
 	}
-	data := task.Data.(*MessageData)
+	data := task.Data.(*taskqueue.MessageData)
 
 	// verify endpoint
 	cacheKey := constants.EndpointCacheKey.Build(data.EndpointId)
@@ -334,24 +346,19 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		return err
 	}
 
-	go func() {
-		attemptDetail := &entities.AttemptDetail{
-			ID:             task.ID,
-			RequestHeaders: utils.HeaderMap(request.Request.Header),
-			RequestBody:    utils.Pointer(string(request.Payload)),
-		}
-		if len(response.Header) > 0 {
-			attemptDetail.ResponseHeaders = utils.Pointer(entities.Headers(utils.HeaderMap(response.Header)))
-		}
-		if response.ResponseBody != nil {
-			attemptDetail.ResponseBody = utils.Pointer(string(response.ResponseBody))
-		}
-		attemptDetail.WorkspaceId = endpoint.WorkspaceId
-		err = w.DB.AttemptDetails.Insert(ctx, attemptDetail)
-		if err != nil {
-			w.log.Errorf("[worker] failed to insert attempt detail: %v", err)
-		}
-	}()
+	attemptDetail := &entities.AttemptDetail{
+		ID:             task.ID,
+		RequestHeaders: utils.HeaderMap(request.Request.Header),
+		RequestBody:    utils.Pointer(string(request.Payload)),
+	}
+	if len(response.Header) > 0 {
+		attemptDetail.ResponseHeaders = utils.Pointer(entities.Headers(utils.HeaderMap(response.Header)))
+	}
+	if response.ResponseBody != nil {
+		attemptDetail.ResponseBody = utils.Pointer(string(response.ResponseBody))
+	}
+	attemptDetail.WorkspaceId = endpoint.WorkspaceId
+	w.tasks <- attemptDetail
 
 	if result.Status == entities.AttemptStatusSuccess {
 		return nil
@@ -371,6 +378,9 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		AttemptNumber: data.Attempt + 1,
 		ScheduledAt:   types.NewTime(finishAt.Add(time.Second * time.Duration(delay))),
 		TriggerMode:   entities.AttemptTriggerModeAutomatic,
+		Event: &entities.Event{
+			Data: json.RawMessage(data.Event),
+		},
 	}
 	nextAttempt.WorkspaceId = endpoint.WorkspaceId
 
@@ -379,24 +389,8 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		return err
 	}
 
-	task = &taskqueue.TaskMessage{
-		ID:          nextAttempt.ID,
-		ScheduledAt: nextAttempt.ScheduledAt.Time,
-		Data: &MessageData{
-			EventID:    data.EventID,
-			EndpointId: data.EndpointId,
-			Attempt:    nextAttempt.AttemptNumber,
-		},
-	}
+	go w.dispatcher.SendToQueue(context.WithoutCancel(ctx), []*entities.Attempt{nextAttempt})
 
-	err = w.queue.Add(ctx, []*taskqueue.TaskMessage{task})
-	if err != nil {
-		w.log.Warnf("[worker] failed to add task to queue: %v", err)
-	}
-	err = w.DB.Attempts.UpdateStatus(ctx, nextAttempt.ID, entities.AttemptStatusQueued)
-	if err != nil {
-		w.log.Warnf("[worker] failed to update attempt status: %v", err)
-	}
 	return nil
 }
 
@@ -445,4 +439,41 @@ func listEndpointPlugins(ctx context.Context, db *db.DB, endpointId string) ([]*
 		return nil, err
 	}
 	return *plugins, err
+}
+
+func (w *Worker) consumeAttemptDetails() {
+	batch := 5
+
+	for {
+		select {
+		case <-w.ctx.Done():
+			return
+		default:
+		}
+
+		list := make([]*entities.AttemptDetail, 0, batch)
+
+		timeoutT := time.After(time.Millisecond * 100)
+		timeout := false
+		for i := 0; i < batch; i++ {
+			select {
+			case task := <-w.tasks:
+				list = append(list, task)
+			case <-timeoutT:
+				timeout = true
+			}
+			if timeout {
+				break
+			}
+		}
+
+		if len(list) == 0 {
+			continue
+		}
+
+		err := w.DB.AttemptDetails.BatchInsert(context.TODO(), list)
+		if err != nil {
+			w.log.Warnf("[worker] failed to batch insert attempt details: %v", err)
+		}
+	}
 }

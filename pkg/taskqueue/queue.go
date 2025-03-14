@@ -13,6 +13,13 @@ type TaskMessage struct {
 	data        []byte
 }
 
+type MessageData struct {
+	EventID    string `json:"event_id"`
+	EndpointId string `json:"endpoint_id"`
+	Attempt    int    `json:"attempt"`
+	Event      string `json:"event"`
+}
+
 func (t *TaskMessage) String() string {
 	return t.ID + ":" + string(t.data)
 }

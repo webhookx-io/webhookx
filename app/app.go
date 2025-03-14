@@ -132,7 +132,7 @@ func (app *Application) initialize() error {
 			PoolConcurrency: int(cfg.Worker.Pool.Concurrency),
 		}
 		deliverer := deliverer.NewHTTPDeliverer(&cfg.Worker.Deliverer)
-		app.worker = worker.NewWorker(opts, db, deliverer, queue, app.metrics, tracer, app.bus)
+		app.worker = worker.NewWorker(opts, db, deliverer, queue, app.metrics, tracer, app.bus, app.dispatcher)
 	}
 
 	// admin

@@ -13,7 +13,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
-	"github.com/webhookx-io/webhookx/worker"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"time"
@@ -96,7 +95,7 @@ func (d *Dispatcher) dispatchBatch(ctx context.Context, events []*entities.Event
 		return d.db.Attempts.BatchInsert(ctx, attempts)
 	})
 	if err == nil {
-		go d.sendToQueue(context.WithoutCancel(ctx), attempts)
+		go d.SendToQueue(context.WithoutCancel(ctx), attempts)
 	}
 	return n, err
 }
@@ -130,19 +129,19 @@ func (d *Dispatcher) DispatchEndpoint(ctx context.Context, event *entities.Event
 		return err
 	}
 
-	d.sendToQueue(ctx, attempts)
+	d.SendToQueue(ctx, attempts)
 
 	return nil
 }
 
-func (d *Dispatcher) sendToQueue(ctx context.Context, attempts []*entities.Attempt) {
+func (d *Dispatcher) SendToQueue(ctx context.Context, attempts []*entities.Attempt) {
 	tasks := make([]*taskqueue.TaskMessage, 0, len(attempts))
 	ids := make([]string, 0, len(attempts))
 	for _, attempt := range attempts {
 		tasks = append(tasks, &taskqueue.TaskMessage{
 			ID:          attempt.ID,
 			ScheduledAt: attempt.ScheduledAt.Time,
-			Data: &worker.MessageData{
+			Data: &taskqueue.MessageData{
 				EventID:    attempt.EventId,
 				EndpointId: attempt.EndpointId,
 				Attempt:    attempt.AttemptNumber,

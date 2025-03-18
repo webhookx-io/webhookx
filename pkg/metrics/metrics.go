@@ -48,6 +48,9 @@ type Metrics struct {
 
 func (m *Metrics) Stop() error {
 	m.cancel()
+	if m.Enabled {
+		return StopOpentelemetry()
+	}
 	return nil
 }
 
@@ -61,7 +64,7 @@ func New(cfg config.MetricsConfig) (*Metrics, error) {
 
 	if len(cfg.Exports) > 0 {
 		m.Interval = time.Second * time.Duration(cfg.PushInterval)
-		err := SetupOpentelemetry(m.ctx, cfg.Attributes, cfg.Opentelemetry, m)
+		err := SetupOpentelemetry(cfg.Attributes, cfg.Opentelemetry, m)
 		if err != nil {
 			return nil, err
 		}

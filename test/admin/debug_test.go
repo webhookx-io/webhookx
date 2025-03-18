@@ -7,6 +7,7 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
+	"time"
 )
 
 var _ = Describe("/debug", Ordered, func() {
@@ -20,6 +21,11 @@ var _ = Describe("/debug", Ordered, func() {
 			"WEBHOOKX_ADMIN_DEBUG_ENDPOINTS": "true",
 		}))
 		adminClient = helper.AdminClient()
+
+		assert.Eventually(GinkgoT(), func() bool {
+			resp, err := adminClient.R().Get("/")
+			return err == nil && resp.StatusCode() == 200
+		}, time.Second*10, time.Second)
 	})
 
 	AfterAll(func() {

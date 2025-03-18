@@ -29,10 +29,9 @@ var _ = Describe("opentelemetry", Ordered, func() {
 			BeforeAll(func() {
 				entitiesConfig := helper.EntitiesConfig{
 					Endpoints: []*entities.Endpoint{factory.EndpointP(), factory.EndpointP()},
-					Sources:   []*entities.Source{factory.SourceP()},
+					Sources:   []*entities.Source{factory.SourceP(factory.WithSourceAsync(true))},
 				}
 				entitiesConfig.Endpoints[1].Request.Timeout = 1
-				entitiesConfig.Sources[0].Async = true
 				helper.InitDB(true, &entitiesConfig)
 				helper.InitOtelOutput()
 				proxyClient = helper.ProxyClient()
@@ -42,7 +41,7 @@ var _ = Describe("opentelemetry", Ordered, func() {
 					"WEBHOOKX_PROXY_LISTEN":                   "0.0.0.0:8081",
 					"WEBHOOKX_WORKER_ENABLED":                 "true",
 					"WEBHOOKX_METRICS_EXPORTS":                "opentelemetry",
-					"WEBHOOKX_METRICS_PUSH_INTERVAL":          "1",
+					"WEBHOOKX_METRICS_PUSH_INTERVAL":          "3",
 					"WEBHOOKX_METRICS_OPENTELEMETRY_PROTOCOL": protocol,
 					"WEBHOOKX_METRICS_OPENTELEMETRY_ENDPOINT": endpoints[protocol],
 				})
@@ -131,7 +130,7 @@ var _ = Describe("opentelemetry", Ordered, func() {
 				"WEBHOOKX_METRICS_OPENTELEMETRY_PROTOCOL": "http/protobuf",
 				"WEBHOOKX_METRICS_OPENTELEMETRY_ENDPOINT": "http://localhost:4318/v1/metrics",
 				"OTEL_RESOURCE_ATTRIBUTES":                "key1=value1,key2=value2",
-				"WEBHOOKX_METRICS_PUSH_INTERVAL":          "1",
+				"WEBHOOKX_METRICS_PUSH_INTERVAL":          "3",
 			})
 			assert.Nil(GinkgoT(), err)
 		})
@@ -152,7 +151,7 @@ var _ = Describe("opentelemetry", Ordered, func() {
 				}
 				n++
 				var req ExportRequest
-				_ = json.Unmarshal([]byte(line), &req)
+				assert.Nil(GinkgoT(), json.Unmarshal([]byte(line), &req))
 				attributesMap := make(map[string]bool)
 				for _, resourceMetrics := range req.ResourceMetrics {
 					for _, attr := range resourceMetrics.Resource.Attributes {

@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/semconv/v1.26.0"
+	"time"
 )
 
 const (
@@ -32,7 +33,7 @@ func newGRPCExporter(endpoint string) (metric.Exporter, error) {
 	return otlpmetricgrpc.New(context.Background(), opts...)
 }
 
-func SetupOpentelemetry(ctx context.Context, attributes map[string]string, cfg config.Opentelemetry, metrics *Metrics) error {
+func SetupOpentelemetry(attributes map[string]string, cfg config.Opentelemetry, metrics *Metrics) error {
 	var err error
 	var exporter metric.Exporter
 	switch cfg.Protocol {
@@ -51,7 +52,8 @@ func SetupOpentelemetry(ctx context.Context, attributes map[string]string, cfg c
 		attrs = append(attrs, attribute.String(name, value))
 	}
 
-	res, err := resource.New(ctx,
+	res, err := resource.New(
+		context.Background(),
 		resource.WithAttributes(semconv.ServiceNameKey.String("webhookx")),
 		resource.WithAttributes(semconv.ServiceVersionKey.String(config.VERSION)),
 		resource.WithFromEnv(),
@@ -99,4 +101,10 @@ func SetupOpentelemetry(ctx context.Context, attributes map[string]string, cfg c
 	metrics.EventPendingGauge = NewGauge(meter, prefix+"event.pending", "")
 
 	return nil
+}
+
+func StopOpentelemetry() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return otel.GetMeterProvider().(*metric.MeterProvider).Shutdown(ctx)
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 	"testing"
+	"time"
 )
 
 var _ = Describe("logging", Ordered, func() {
@@ -34,9 +35,13 @@ var _ = Describe("logging", Ordered, func() {
 
 		Context("DEBUG", func() {
 			It("outputs log with text format", func() {
-				zap.S().Sync()
-				n, err := helper.FileCountLine(test.FilePath("output/webhookx-text.log"))
-				assert.Nil(GinkgoT(), err)
+				var n = 0
+				var err error
+				assert.Eventually(GinkgoT(), func() bool {
+					zap.S().Sync()
+					n, err = helper.FileCountLine(test.FilePath("output/webhookx-text.log"))
+					return err == nil
+				}, time.Second*10, time.Second)
 				zap.S().Debugf("a debug log")
 				zap.S().Sync()
 				line, err := helper.FileLine(test.FilePath("output/webhookx-text.log"), n+1)
@@ -64,9 +69,13 @@ var _ = Describe("logging", Ordered, func() {
 
 		Context("DEBUG", func() {
 			It("outputs log with json format", func() {
-				zap.S().Sync()
-				n, err := helper.FileCountLine(test.FilePath("output/webhookx-json.log"))
-				assert.Nil(GinkgoT(), err)
+				var n = 0
+				var err error
+				assert.Eventually(GinkgoT(), func() bool {
+					zap.S().Sync()
+					n, err = helper.FileCountLine(test.FilePath("output/webhookx-json.log"))
+					return err == nil
+				}, time.Second*10, time.Second)
 				zap.S().Debugf("a debug log")
 				zap.S().Sync()
 				line, err := helper.FileLine(test.FilePath("output/webhookx-json.log"), n+1)

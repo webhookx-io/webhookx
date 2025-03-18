@@ -20,6 +20,7 @@ import (
 	"github.com/webhookx-io/webhookx/proxy"
 	"github.com/webhookx-io/webhookx/worker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"sync"
 	"time"
@@ -96,6 +97,10 @@ func (app *Application) initialize() error {
 		cfg.Database.GetDSN(),
 		app.log, sqlDB)
 	registerEventHandler(app.bus)
+
+	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+		app.log.Error(err)
+	}))
 
 	// tracing
 	tracer, err := tracing.New(&cfg.Tracing)
@@ -224,6 +229,7 @@ func (app *Application) Stop() error {
 
 	defer func() {
 		app.log.Infof("stopped")
+		_ = app.log.Sync()
 	}()
 
 	_ = app.bus.Stop()
@@ -240,7 +246,6 @@ func (app *Application) Stop() error {
 	if app.worker != nil {
 		_ = app.worker.Stop()
 	}
-
 	if app.tracer != nil {
 		_ = app.tracer.Stop()
 	}

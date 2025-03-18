@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
@@ -11,6 +12,8 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/sdk/metric"
 	"testing"
 	"time"
 )
@@ -29,10 +32,9 @@ var _ = Describe("opentelemetry", Ordered, func() {
 			BeforeAll(func() {
 				entitiesConfig := helper.EntitiesConfig{
 					Endpoints: []*entities.Endpoint{factory.EndpointP(), factory.EndpointP()},
-					Sources:   []*entities.Source{factory.SourceP()},
+					Sources:   []*entities.Source{factory.SourceP(factory.WithSourceAsync(true))},
 				}
 				entitiesConfig.Endpoints[1].Request.Timeout = 1
-				entitiesConfig.Sources[0].Async = true
 				helper.InitDB(true, &entitiesConfig)
 				helper.InitOtelOutput()
 				proxyClient = helper.ProxyClient()
@@ -50,6 +52,7 @@ var _ = Describe("opentelemetry", Ordered, func() {
 			})
 
 			AfterAll(func() {
+				otel.GetMeterProvider().(*metric.MeterProvider).Shutdown(context.Background())
 				app.Stop()
 			})
 

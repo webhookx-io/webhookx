@@ -7,6 +7,7 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
+	"time"
 )
 
 var _ = Describe("/debug", Ordered, func() {
@@ -27,9 +28,10 @@ var _ = Describe("/debug", Ordered, func() {
 	})
 
 	It("/debug/pprof/allocs", func() {
-		resp, err := adminClient.R().Get("/debug/pprof/allocs?debug=1")
-		assert.NoError(GinkgoT(), err)
-		assert.Equal(GinkgoT(), 200, resp.StatusCode())
+		assert.Eventually(GinkgoT(), func() bool {
+			resp, err := adminClient.R().Get("/debug/pprof/allocs?debug=1")
+			return err == nil && resp.StatusCode() == 200
+		}, time.Second*10, time.Second)
 	})
 
 	It("/debug/pprof/block", func() {

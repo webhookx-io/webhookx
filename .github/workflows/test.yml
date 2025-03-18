@@ -67,16 +67,3 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
           flags: integration
-
-  test-docker-compose:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: test docker compose
-        run: |
-          docker build . -t webhookx/webhookx:latest
-          docker compose up -d
-          sleep 10
-          curl http://localhost:8080

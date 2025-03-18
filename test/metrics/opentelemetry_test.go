@@ -42,7 +42,7 @@ var _ = Describe("opentelemetry", Ordered, func() {
 					"WEBHOOKX_PROXY_LISTEN":                   "0.0.0.0:8081",
 					"WEBHOOKX_WORKER_ENABLED":                 "true",
 					"WEBHOOKX_METRICS_EXPORTS":                "opentelemetry",
-					"WEBHOOKX_METRICS_PUSH_INTERVAL":          "1",
+					"WEBHOOKX_METRICS_PUSH_INTERVAL":          "3",
 					"WEBHOOKX_METRICS_OPENTELEMETRY_PROTOCOL": protocol,
 					"WEBHOOKX_METRICS_OPENTELEMETRY_ENDPOINT": endpoints[protocol],
 				})
@@ -131,7 +131,7 @@ var _ = Describe("opentelemetry", Ordered, func() {
 				"WEBHOOKX_METRICS_OPENTELEMETRY_PROTOCOL": "http/protobuf",
 				"WEBHOOKX_METRICS_OPENTELEMETRY_ENDPOINT": "http://localhost:4318/v1/metrics",
 				"OTEL_RESOURCE_ATTRIBUTES":                "key1=value1,key2=value2",
-				"WEBHOOKX_METRICS_PUSH_INTERVAL":          "1",
+				"WEBHOOKX_METRICS_PUSH_INTERVAL":          "3",
 			})
 			assert.Nil(GinkgoT(), err)
 		})

@@ -6,6 +6,8 @@ receivers:
       http:
         endpoint: 0.0.0.0:4318
 
+processors:
+
 exporters:
   debug:
     verbosity: detailed
@@ -27,9 +29,7 @@ service:
   pipelines:
     metrics:
       receivers: [otlp]
-      processors: [batch]
       exporters: [debug, file/metrics]
     traces:
       receivers: [otlp]
-      processors: [batch]
       exporters: [debug, file/traces]

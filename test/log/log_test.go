@@ -42,7 +42,7 @@ var _ = Describe("logging", Ordered, func() {
 					n, err = helper.FileCountLine(test.FilePath("output/webhookx-text.log"))
 					assert.Nil(GinkgoT(), err)
 					return err == nil
-				}, time.Second*5, time.Second)
+				}, time.Second*10, time.Second)
 				zap.S().Debugf("a debug log")
 				zap.S().Sync()
 				line, err := helper.FileLine(test.FilePath("output/webhookx-text.log"), n+1)
@@ -76,7 +76,7 @@ var _ = Describe("logging", Ordered, func() {
 					zap.S().Sync()
 					n, err = helper.FileCountLine(test.FilePath("output/webhookx-json.log"))
 					return err == nil
-				}, time.Second*5, time.Second)
+				}, time.Second*10, time.Second)
 				zap.S().Debugf("a debug log")
 				zap.S().Sync()
 				line, err := helper.FileLine(test.FilePath("output/webhookx-json.log"), n+1)

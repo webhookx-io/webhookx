@@ -152,7 +152,7 @@ var _ = Describe("opentelemetry", Ordered, func() {
 				}
 				n++
 				var req ExportRequest
-				_ = json.Unmarshal([]byte(line), &req)
+				assert.Nil(GinkgoT(), json.Unmarshal([]byte(line), &req))
 				attributesMap := make(map[string]bool)
 				for _, resourceMetrics := range req.ResourceMetrics {
 					for _, attr := range resourceMetrics.Resource.Attributes {

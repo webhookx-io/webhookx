@@ -12,7 +12,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/gorilla/mux v1.8.1
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/jackc/pgx/v5 v5.7.2
+	github.com/jackc/pgx/v5 v5.7.3
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
 	github.com/onsi/ginkgo/v2 v2.22.2

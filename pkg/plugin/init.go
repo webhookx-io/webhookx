@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/plugin/types"
+	"github.com/webhookx-io/webhookx/pkg/plugin/wasm"
 	"github.com/webhookx-io/webhookx/pkg/plugin/webhookx_signature"
 )
 
@@ -12,6 +13,8 @@ func New(name string) types.Plugin {
 	switch name {
 	case "webhookx-signature":
 		return webhookx_signature.New()
+	case "wasm":
+		return wasm.New()
 	}
 	return nil
 }
@@ -42,6 +45,5 @@ func ExecutePlugin(plugin *entities.Plugin, req *types.Request, ctx *types.Conte
 	if err != nil {
 		return err
 	}
-	instance.Execute(req, ctx)
-	return nil
+	return instance.Execute(req, ctx)
 }

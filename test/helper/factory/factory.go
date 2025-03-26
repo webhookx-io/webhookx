@@ -158,6 +158,11 @@ func Plugin(opts ...PluginOption) entities.Plugin {
 	return e
 }
 
+func PluginP(opts ...PluginOption) *entities.Plugin {
+	e := Plugin(opts...)
+	return &e
+}
+
 func PluginWS(wid string, opts ...PluginOption) entities.Plugin {
 	p := Plugin(opts...)
 	p.WorkspaceId = wid

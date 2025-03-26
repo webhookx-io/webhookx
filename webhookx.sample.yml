@@ -15,7 +15,11 @@ endpoints:
       - name: webhookx-signature
         config:
           signing_secret: foo
-
+#      - name: wasm
+#        config:
+#          file: /path/to/your.wasm
+#          envs:
+#            foo: bar
 sources:
   - name: default-source
     path: /

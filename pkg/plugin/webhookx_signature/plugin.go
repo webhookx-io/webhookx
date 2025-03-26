@@ -46,14 +46,15 @@ func computeSignature(ts time.Time, payload []byte, secret string) []byte {
 	return mac.Sum(nil)
 }
 
-func (p *SignaturePlugin) Execute(req *types.Request, context *types.Context) {
+func (p *SignaturePlugin) Execute(req *types.Request, context *types.Context) error {
 	ts := p.ts
 	if ts.IsZero() {
 		ts = time.Now()
 	}
-	signature := computeSignature(ts, req.Payload, p.cfg.SigningSecret)
+	signature := computeSignature(ts, []byte(req.Payload), p.cfg.SigningSecret)
 	req.Headers["webhookx-signature"] = "v1=" + hex.EncodeToString(signature)
 	req.Headers["webhookx-timestamp"] = strconv.FormatInt(ts.Unix(), 10)
+	return nil
 }
 
 func (p *SignaturePlugin) Config() types.PluginConfig {

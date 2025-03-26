@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/dao"
@@ -281,7 +282,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		URL:     endpoint.Request.URL,
 		Method:  endpoint.Request.Method,
 		Headers: endpoint.Request.Headers,
-		Payload: []byte(data.Event),
+		Payload: data.Event,
 	}
 	if pluginReq.Headers == nil {
 		pluginReq.Headers = make(map[string]string)
@@ -292,7 +293,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	for _, p := range plugins {
 		err = plugin.ExecutePlugin(p, &pluginReq, pluginCtx)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to execute %s plugin: %v", p.Name, err)
 		}
 	}
 
@@ -300,7 +301,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		Request: nil,
 		URL:     pluginReq.URL,
 		Method:  pluginReq.Method,
-		Payload: pluginReq.Payload,
+		Payload: []byte(pluginReq.Payload),
 		Headers: pluginReq.Headers,
 		Timeout: time.Duration(endpoint.Request.Timeout) * time.Millisecond,
 	}

@@ -7,6 +7,10 @@ The examples in this directory show you how to customize request headers in diff
 - [TinyGo](tinygo)
 
 
+```
+$ webhookx admin sync webhookx.yml
+```
+
 ```yaml
 # webhookx.yml
 endpoints:
@@ -25,7 +29,6 @@ endpoints:
         config:
           file: /path/to/your.wasm
           envs:
-            foo: bar
             secret: secret-value
 sources:
   - name: default-source

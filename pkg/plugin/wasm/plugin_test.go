@@ -76,7 +76,7 @@ var _ = Describe("wasm", Ordered, func() {
 			plugin.(*WasmPlugin).cfg.File = "./testdata/no_transform.wasm"
 			err := plugin.Execute(nil, nil)
 			assert.Error(GinkgoT(), err)
-			assert.Equal(GinkgoT(), "the 'transform' function is not defined in the module", err.Error())
+			assert.Equal(GinkgoT(), "exported function 'transform' is not defined in module", err.Error())
 		})
 
 		It("transform return does not return 0", func() {

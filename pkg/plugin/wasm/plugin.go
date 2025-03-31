@@ -65,7 +65,7 @@ func (p *WasmPlugin) Execute(req *types.Request, _ *types.Context) error {
 
 	transform := mod.ExportedFunction("transform")
 	if transform == nil {
-		return fmt.Errorf("exported function 'transform' is not defined in module.")
+		return fmt.Errorf("exported function 'transform' is not defined in module")
 	}
 
 	ctx = withContext(ctx, req)

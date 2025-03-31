@@ -7,7 +7,7 @@ import (
 )
 
 func writeString(ctx context.Context, memory api.Memory, malloc api.Function, str string) (uint32, error) {
-	ptr, err := malloc.Call(ctx, uint64(len(str)))
+	ptr, err := allocate.Call(ctx, uint64(len(str)))
 	if err != nil || len(ptr) == 0 {
 		return 0, err
 	}

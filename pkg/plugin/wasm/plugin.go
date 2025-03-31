@@ -65,7 +65,7 @@ func (p *WasmPlugin) Execute(req *types.Request, _ *types.Context) error {
 
 	transform := mod.ExportedFunction("transform")
 	if transform == nil {
-		return fmt.Errorf("the 'transform' function is not defined in the module")
+		return fmt.Errorf("exported function 'transform' is not defined in module.")
 	}
 
 	ctx = withContext(ctx, req)
@@ -74,7 +74,7 @@ func (p *WasmPlugin) Execute(req *types.Request, _ *types.Context) error {
 		return err
 	}
 	if len(results) != 1 {
-		return fmt.Errorf("the transform function must return exactly one result")
+		return fmt.Errorf("exported function 'transform' must return exactly one result")
 	}
 	if results[0] != 1 {
 		return fmt.Errorf("transform failed with value %d", results[0])

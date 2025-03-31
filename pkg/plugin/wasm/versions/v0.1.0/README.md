@@ -9,7 +9,7 @@
 
 
 
-### Functions exposed by the host
+### Functions exposed by the Host
 
 - [get_request_json](#get_request_json)
 - [set_request_json](#set_request_json)

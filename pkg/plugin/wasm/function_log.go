@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// Log ABI log
 func Log(ctx context.Context, m api.Module, logLevel, strValue, strSize uint32) Status {
 	str, ok := readString(m.Memory(), strValue, strSize)
 	if !ok {

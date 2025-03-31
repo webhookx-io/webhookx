@@ -19,6 +19,8 @@ endpoints:
         enabled: false
         config:
           file: test/fixtures/noop.wasm
+          envs:
+            foo: bar
 
 sources:
   - name: default-source

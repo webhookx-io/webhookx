@@ -15,6 +15,12 @@ endpoints:
       - name: webhookx-signature
         config:
           signing_secret: foo
+      - name: wasm
+        enabled: false
+        config:
+          file: test/fixtures/noop.wasm
+          envs:
+            foo: bar
 
 sources:
   - name: default-source

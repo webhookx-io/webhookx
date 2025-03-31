@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestAdmin(t *testing.T) {
+func TestPluginst *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Plugins Suite")
 }

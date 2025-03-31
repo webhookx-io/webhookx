@@ -24,6 +24,6 @@ enabled: true
 config:
   file: /path/to/your.wasm
   envs:
-  foo: bar
+    foo: bar
 ```
 

@@ -6,7 +6,7 @@ import (
 	"github.com/tetratelabs/wazero/api"
 )
 
-func writeString(ctx context.Context, memory api.Memory, malloc api.Function, str string) (uint32, error) {
+func writeString(ctx context.Context, memory api.Memory, allocate api.Function, str string) (uint32, error) {
 	ptr, err := allocate.Call(ctx, uint64(len(str)))
 	if err != nil || len(ptr) == 0 {
 		return 0, err

@@ -16,7 +16,7 @@ func Log(ctx context.Context, m api.Module, logLevel, strValue, strSize uint32) 
 	log := zap.S()
 	message := fmt.Sprintf("[wasm]: %s", str)
 
-	switch int(logLevel) {
+	switch LogLevel(logLevel) {
 	case LogLveDebug:
 		log.Debug(message)
 	case LogLveInfo:

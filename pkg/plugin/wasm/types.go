@@ -1,6 +1,6 @@
 package wasm
 
-type Status = int32
+type Status int32
 
 const (
 	StatusOk                  Status = 0
@@ -10,7 +10,7 @@ const (
 	StatusInvalidJSON         Status = 11
 )
 
-type LogLevel = int
+type LogLevel int32
 
 const (
 	LogLveDebug LogLevel = 0

@@ -23,7 +23,7 @@ func GetRequestJSON(ctx context.Context, m api.Module, jsonPtr, jsonSizePtr uint
 
 	allocate := m.ExportedFunction("allocate")
 	if allocate == nil {
-		zap.S().Error("[wasm] cannot find exported function 'allocate'")
+		zap.S().Error("[wasm] exported function 'allocate' is not defined")
 		return StatusInternalFailure
 	}
 
@@ -33,7 +33,7 @@ func GetRequestJSON(ctx context.Context, m api.Module, jsonPtr, jsonSizePtr uint
 		return StatusInvalidMemoryAccess
 	}
 	if ptr == 0 {
-		zap.S().Error("[wasm] failed to call 'allocate' function with return value 0")
+		zap.S().Error("[wasm] exported function 'allocate' returned 0")
 		return StatusInvalidMemoryAccess
 	}
 

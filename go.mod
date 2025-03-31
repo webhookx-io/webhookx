@@ -23,7 +23,7 @@ require (
 	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
-	go.opentelemetry.io/contrib/propagators/autoprop v0.59.0
+	go.opentelemetry.io/contrib/propagators/autoprop v0.60.0
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.35.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.35.0
@@ -47,10 +47,10 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/tetratelabs/wazero v1.9.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/contrib/propagators/aws v1.34.0 // indirect
-	go.opentelemetry.io/contrib/propagators/b3 v1.34.0 // indirect
-	go.opentelemetry.io/contrib/propagators/jaeger v1.34.0 // indirect
-	go.opentelemetry.io/contrib/propagators/ot v1.34.0 // indirect
+	go.opentelemetry.io/contrib/propagators/aws v1.35.0 // indirect
+	go.opentelemetry.io/contrib/propagators/b3 v1.35.0 // indirect
+	go.opentelemetry.io/contrib/propagators/jaeger v1.35.0 // indirect
+	go.opentelemetry.io/contrib/propagators/ot v1.35.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 )
 

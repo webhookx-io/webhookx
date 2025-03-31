@@ -2,7 +2,6 @@
 
 This plugin allow you to  customize delivery requests including URL, method, headers, and payload.
 
-
 The Application Binary Interface (ABI) was defined in [versions](./versions).
 
 For more examples, please see [examples/wasm](/examples/wasm).

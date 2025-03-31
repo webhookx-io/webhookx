@@ -1,0 +1,24 @@
+name: Release Test
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types:
+      - completed
+
+jobs:
+  test-docker-compose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: test docker compose
+        run: |
+          docker compose up -d
+          sleep 10
+          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:8080)
+          if [ "$STATUS_CODE" -ne 200 ]; then
+            echo "API failed with status code $STATUS_CODE"
+            exit 1
+          fi

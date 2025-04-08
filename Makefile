@@ -25,10 +25,10 @@ test-deps:
 	docker compose -f test/docker-compose.yml up -d
 
 test: clean
-	go test $$(go list ./... | grep -v /test/)
+	go test $$(go list ./... | grep -v /test/ | grep -v /examples/ )
 
 test-coverage: clean
-	go test $$(go list ./... | grep -v /test/) -coverprofile=coverage.txt
+	go test $$(go list ./... | grep -v /test/ | grep -v /examples/ ) -coverprofile=coverage.txt
 
 test-integration: clean
 	go test -p 1 -v ./test/...

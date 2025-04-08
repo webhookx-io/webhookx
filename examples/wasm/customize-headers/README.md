@@ -4,6 +4,7 @@ The examples in this directory show you how to customize request headers in diff
 
 - [AssemblyCcript](assemblyscript)
 - [Rust](rust)
+- [Go](go)
 - [TinyGo](tinygo)
 
 

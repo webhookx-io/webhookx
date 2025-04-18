@@ -81,7 +81,7 @@ var _ = Describe("Declarative", Ordered, func() {
 					Post("/workspaces/default/config/sync")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
-				assert.Equal(GinkgoT(), `{"message":"invalid configuration: unknown plugin: foo"}`, string(resp.Body()))
+				assert.Equal(GinkgoT(), `{"message":"invalid configuration: unknown plugin name: 'foo'"}`, string(resp.Body()))
 			})
 		})
 	})

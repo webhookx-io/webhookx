@@ -2,11 +2,9 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
-	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/utils"
 	"net/http"
 )
@@ -23,15 +21,15 @@ func (api *API) PagePlugin(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) GetPlugin(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	Plugin, err := api.DB.PluginsWS.Get(r.Context(), id)
+	plugin, err := api.DB.PluginsWS.Get(r.Context(), id)
 	api.assert(err)
 
-	if Plugin == nil {
+	if plugin == nil {
 		api.json(404, w, ErrorResponse{Message: MsgNotFound})
 		return
 	}
 
-	api.json(200, w, Plugin)
+	api.json(200, w, plugin)
 }
 
 func (api *API) CreatePlugin(w http.ResponseWriter, r *http.Request) {
@@ -48,28 +46,10 @@ func (api *API) CreatePlugin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := plugin.New(model.Name)
-	if p == nil {
-		api.error(400, w, errors.New("unknown plugin name"))
-		return
-	}
-
-	config := p.Config()
-	if model.Config != nil {
-		err := json.Unmarshal(model.Config, config)
-		if err != nil {
-			api.error(400, w, err)
-			return
-		}
-	}
-	config.ProcessDefault()
-	if err := config.Validate(); err != nil {
-		api.error(400, w, err)
-		return
-	}
-	model.Config = utils.Must(json.Marshal(config))
-
-	err := api.DB.PluginsWS.Insert(r.Context(), &model)
+	p, err := model.ToPlugin()
+	api.assert(err)
+	model.Config = utils.Must(p.MarshalConfig())
+	err = api.DB.PluginsWS.Insert(r.Context(), &model)
 	api.assert(err)
 
 	api.json(201, w, model)
@@ -94,26 +74,10 @@ func (api *API) UpdatePlugin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := plugin.New(model.Name)
-	if p == nil {
-		api.error(400, w, errors.New("unknown plugin name"))
-		return
-	}
+	p, err := model.ToPlugin()
+	api.assert(err)
 
-	config := p.Config()
-	if model.Config != nil {
-		err := json.Unmarshal(model.Config, config)
-		if err != nil {
-			api.error(400, w, err)
-			return
-		}
-	}
-	config.ProcessDefault()
-	if err := config.Validate(); err != nil {
-		api.error(400, w, err)
-		return
-	}
-	model.Config = utils.Must(json.Marshal(config))
+	model.Config = utils.Must(p.MarshalConfig())
 
 	model.ID = id
 	err = api.DB.PluginsWS.Update(r.Context(), model)

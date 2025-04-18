@@ -124,7 +124,7 @@ func WithPluginID(id string) PluginOption {
 
 func WithPluginEndpointID(endpointID string) PluginOption {
 	return func(e *entities.Plugin) {
-		e.EndpointId = endpointID
+		e.EndpointId = &endpointID
 	}
 }
 

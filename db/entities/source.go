@@ -3,7 +3,6 @@ package entities
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -31,15 +30,6 @@ type Source struct {
 	Response *CustomResponse `json:"response" db:"response"`
 
 	BaseModel `yaml:"-"`
-}
-
-func (m *Source) UnmarshalJSON(data []byte) error {
-	err := defaults.Set(m)
-	if err != nil {
-		return err
-	}
-	type alias Source
-	return json.Unmarshal(data, (*alias)(m))
 }
 
 func (m *Source) Validate() error {

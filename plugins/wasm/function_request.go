@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/tetratelabs/wazero/api"
-	"github.com/webhookx-io/webhookx/pkg/plugin/types"
+	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"go.uber.org/zap"
 )
 
@@ -53,7 +53,7 @@ func SetRequestJSON(ctx context.Context, m api.Module, jsonPtr, jsonSize uint32)
 		return StatusInvalidMemoryAccess
 	}
 
-	var value types.Request
+	var value plugin.Request
 	if err := json.Unmarshal([]byte(str), &value); err != nil {
 		return StatusInvalidJSON
 	}

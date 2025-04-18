@@ -9,7 +9,7 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/cmd"
 	"github.com/webhookx-io/webhookx/db"
-	"github.com/webhookx-io/webhookx/pkg/plugin/webhookx_signature"
+	"github.com/webhookx-io/webhookx/plugins/webhookx_signature"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"

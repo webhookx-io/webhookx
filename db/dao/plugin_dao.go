@@ -33,3 +33,10 @@ func (dao *pluginDAO) ListEndpointPlugin(ctx context.Context, endpointId string)
 	q.Enabled = utils.Pointer(true)
 	return dao.List(ctx, &q)
 }
+
+func (dao *pluginDAO) ListSourcePlugin(ctx context.Context, sourceId string) ([]*entities.Plugin, error) {
+	q := query.PluginQuery{}
+	q.EndpointId = &sourceId
+	q.Enabled = utils.Pointer(true)
+	return dao.List(ctx, &q)
+}

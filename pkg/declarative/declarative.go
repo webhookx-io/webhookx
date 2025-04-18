@@ -17,7 +17,7 @@ func NewDeclarative(db *db.DB) *Declarative {
 	}
 }
 
-func (m *Declarative) Sync(wid string, cfg Configuration) error {
+func (m *Declarative) Sync(wid string, cfg *Configuration) error {
 	ctx := context.Background()
 
 	upsertedEndpoints := make(map[string]bool)
@@ -26,7 +26,6 @@ func (m *Declarative) Sync(wid string, cfg Configuration) error {
 	err := m.db.TX(ctx, func(ctx context.Context) error {
 		// Endpoints
 		for _, endpoint := range cfg.Endpoints {
-			endpoint.ID = utils.KSUID()
 			endpoint.WorkspaceId = wid
 			err := m.db.Endpoints.Upsert(ctx, []string{"ws_id", "name"}, &endpoint.Endpoint)
 			if err != nil {
@@ -36,9 +35,8 @@ func (m *Declarative) Sync(wid string, cfg Configuration) error {
 
 			// Plugins
 			for _, model := range endpoint.Plugins {
-				model.ID = utils.KSUID()
 				model.WorkspaceId = wid
-				model.EndpointId = endpoint.ID
+				model.EndpointId = utils.Pointer(endpoint.ID)
 				err = m.db.Plugins.Upsert(ctx, []string{"endpoint_id", "name"}, model)
 				if err != nil {
 					return err
@@ -48,13 +46,22 @@ func (m *Declarative) Sync(wid string, cfg Configuration) error {
 
 		// Sources
 		for _, source := range cfg.Sources {
-			source.ID = utils.KSUID()
 			source.WorkspaceId = wid
-			err := m.db.Sources.Upsert(ctx, []string{"ws_id", "name"}, source)
+			err := m.db.Sources.Upsert(ctx, []string{"ws_id", "name"}, &source.Source)
 			if err != nil {
 				return err
 			}
 			upsertedSources[source.ID] = true
+
+			// Plugins
+			for _, model := range source.Plugins {
+				model.WorkspaceId = wid
+				model.SourceId = utils.Pointer(source.ID)
+				err = m.db.Plugins.Upsert(ctx, []string{"source_id", "name"}, model)
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 		return nil
@@ -128,7 +135,19 @@ func (m *Declarative) Dump(ctx context.Context, wid string) (*Configuration, err
 		if err != nil {
 			return err
 		}
-		cfg.Sources = sources
+		for _, source := range sources {
+			var e Source
+			e.Source = *source
+			var q query.PluginQuery
+			q.SourceId = &source.ID
+			q.WorkspaceId = &source.WorkspaceId
+			plugins, err := m.db.Plugins.List(ctx, &q)
+			if err != nil {
+				return err
+			}
+			e.Plugins = plugins
+			cfg.Sources = append(cfg.Sources, &e)
+		}
 
 		return nil
 	})

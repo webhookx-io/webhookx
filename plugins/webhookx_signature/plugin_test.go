@@ -2,23 +2,24 @@ package webhookx_signature
 
 import (
 	"github.com/stretchr/testify/assert"
-	"github.com/webhookx-io/webhookx/pkg/plugin/types"
+	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"testing"
 	"time"
 )
 
 func TestExecute(t *testing.T) {
-	plugin := New()
-	plugin.(*SignaturePlugin).ts = time.Unix(1726285679, 0)
-	plugin.(*SignaturePlugin).cfg.SigningSecret = "QGvaZ0uPwA9nYi7jr31JtZn1EKK4pJpK"
+	p, err := New(nil)
+	assert.Nil(t, err)
+	p.(*SignaturePlugin).ts = time.Unix(1726285679, 0)
+	p.(*SignaturePlugin).Config.SigningSecret = "QGvaZ0uPwA9nYi7jr31JtZn1EKK4pJpK"
 
-	pluginReq := &types.Request{
+	pluginReq := &plugin.Request{
 		URL:     "https://example.com",
 		Method:  "POST",
 		Headers: make(map[string]string),
 		Payload: "foo",
 	}
-	plugin.Execute(pluginReq, nil)
+	p.ExecuteOutbound(pluginReq, nil)
 
 	assert.Equal(t, "https://example.com", pluginReq.URL)
 	assert.Equal(t, "POST", pluginReq.Method)

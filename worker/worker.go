@@ -13,7 +13,6 @@ import (
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
-	plugintypes "github.com/webhookx-io/webhookx/pkg/plugin/types"
 	"github.com/webhookx-io/webhookx/pkg/pool"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
@@ -85,10 +84,17 @@ func NewWorker(
 			zap.S().Errorf("failed to unmarshal event data: %s", err)
 			return
 		}
-		cacheKey := constants.EndpointPluginsKey.Build(plugin.EndpointId)
-		err := mcache.Invalidate(context.TODO(), cacheKey)
-		if err != nil {
-			zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
+
+		if plugin.EndpointId != nil {
+			cacheKey := constants.EndpointPluginsKey.Build(*plugin.EndpointId)
+			err := mcache.Invalidate(context.TODO(), cacheKey)
+			if err != nil {
+				zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
+			}
+		}
+
+		if plugin.SourceId != nil {
+			// TODO
 		}
 	})
 
@@ -274,23 +280,28 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	}
 
 	cacheKey = constants.WorkspaceCacheKey.Build(endpoint.WorkspaceId)
-	workspace, err := mcache.Load(ctx, cacheKey, nil, w.DB.Workspaces.Get, endpoint.WorkspaceId)
-	if err != nil {
-		return err
-	}
+	//workspace, err := mcache.Load(ctx, cacheKey, nil, w.DB.Workspaces.Get, endpoint.WorkspaceId)
+	//if err != nil {
+	//	return err
+	//}
 
-	pluginReq := plugintypes.Request{
+	pluginReq := plugin.Request{
 		URL:     endpoint.Request.URL,
 		Method:  endpoint.Request.Method,
 		Headers: make(map[string]string),
 		Payload: data.Event,
 	}
 	maps.Copy(pluginReq.Headers, endpoint.Request.Headers)
-	pluginCtx := &plugintypes.Context{
-		Workspace: workspace,
+	pluginCtx := &plugin.Context{
+		//Workspace: workspace,
 	}
 	for _, p := range plugins {
-		err = plugin.ExecutePlugin(p, &pluginReq, pluginCtx)
+		executor, err := p.ToPlugin()
+		if err != nil {
+			return err
+		}
+
+		err = executor.ExecuteOutbound(&pluginReq, pluginCtx)
 		if err != nil {
 			return fmt.Errorf("failed to execute %s plugin: %v", p.Name, err)
 		}

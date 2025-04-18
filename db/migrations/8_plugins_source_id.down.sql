@@ -1,0 +1,1 @@
+ALTER TABLE IF EXISTS ONLY "plugins" DROP COLUMN IF EXISTS "source_id";

@@ -91,6 +91,13 @@ var _ = Describe("admin", Ordered, func() {
 				assert.Equal(GinkgoT(), "webhookx-signature", plugins[0].Name)
 				assert.Equal(GinkgoT(), true, plugins[0].Enabled)
 				assert.Equal(GinkgoT(), `{"signing_secret": "foo"}`, string(plugins[0].Config))
+
+				plugins, err = db.Plugins.ListSourcePlugin(context.TODO(), source.ID)
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 1, len(plugins))
+				assert.Equal(GinkgoT(), "function", plugins[0].Name)
+				assert.Equal(GinkgoT(), true, plugins[0].Enabled)
+				assert.Equal(GinkgoT(), `{"function": "function handle() {}"}`, string(plugins[0].Config))
 			})
 
 			It("entities not defined in the declarative configuration should be deleted", func() {

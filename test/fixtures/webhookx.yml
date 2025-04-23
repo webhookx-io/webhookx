@@ -30,3 +30,7 @@ sources:
       code: 200
       content_type: application/json
       body: '{"message": "OK"}'
+    plugins:
+      - name: function
+        config:
+          function: "function handle() {}"

@@ -65,7 +65,6 @@ func Validate(v interface{}) error {
 	if err != nil {
 		validateErr := errs.NewValidateError(validationErr)
 		for _, e := range err.(validator.ValidationErrors) {
-			fmt.Println(e.Namespace())
 			fields := strings.Split(e.Namespace(), ".")
 			node := validateErr.Fields
 			for i := 1; i < len(fields); i++ {

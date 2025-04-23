@@ -170,7 +170,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"unknown plugin name: 'unknown'"}`,
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"name":"unknown plugin name 'unknown'"}}}`,
 					string(resp.Body()))
 			})
 

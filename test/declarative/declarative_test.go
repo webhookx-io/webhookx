@@ -23,9 +23,18 @@ sources:
     enabled: ok
 `
 
+	invalidEndpointYAML = `
+endpoints:
+  - name: default-endpoint
+    events: [ "charge.succeeded" ]
+`
+
 	unknownPluginYAML = `
 endpoints:
   - name: default-endpoint
+    request:
+      url: https://httpbin.org/anything
+      method: POST
     events: [ "charge.succeeded" ]
     plugins:
       - name: foo
@@ -75,13 +84,21 @@ var _ = Describe("Declarative", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 			})
+			It("should return 400 for invalid endpoint yaml", func() {
+				resp, err := adminClient.R().
+					SetBody(invalidEndpointYAML).
+					Post("/workspaces/default/config/sync")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"endpoints[0]":{"Endpoint":{"request":{"method":"required field missing","url":"required field missing"}}}}}}`, string(resp.Body()))
+			})
 			It("should return 400 for unknown plugin", func() {
 				resp, err := adminClient.R().
 					SetBody(unknownPluginYAML).
 					Post("/workspaces/default/config/sync")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
-				assert.Equal(GinkgoT(), `{"message":"invalid configuration: unknown plugin name: 'foo'"}`, string(resp.Body()))
+				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"endpoints[0]":{"plugins[0]":{"name":"unknown plugin name 'foo'"}}}}}`, string(resp.Body()))
 			})
 		})
 	})

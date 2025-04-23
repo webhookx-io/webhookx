@@ -861,15 +861,15 @@ components:
           type: boolean
         endpoint_id:
           type: string
+          nullable: true
+        source_id:
+          type: string
+          nullable: true
         config:
           type: object
-          properties:
-            key:
-              type: string
         created_at:
           type: integer
         updated_at:
           type: integer
       required:
         - name
-        - endpoint_id

@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/utils"
-	"net/http"
 	"strconv"
 	"time"
 )
@@ -48,7 +47,7 @@ func computeSignature(ts time.Time, payload []byte, secret string) []byte {
 	return mac.Sum(nil)
 }
 
-func (p *SignaturePlugin) ExecuteOutbound(req *plugin.Request, _ *plugin.Context) error {
+func (p *SignaturePlugin) ExecuteOutbound(req *plugin.OutboundRequest, _ *plugin.Context) error {
 	ts := p.ts
 	if ts.IsZero() {
 		ts = time.Now()
@@ -57,8 +56,4 @@ func (p *SignaturePlugin) ExecuteOutbound(req *plugin.Request, _ *plugin.Context
 	req.Headers["webhookx-signature"] = "v1=" + hex.EncodeToString(signature)
 	req.Headers["webhookx-timestamp"] = strconv.FormatInt(ts.Unix(), 10)
 	return nil
-}
-
-func (p *SignaturePlugin) ExecuteInbound(r *http.Request, w http.ResponseWriter) error {
-	panic("not implemented")
 }

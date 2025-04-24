@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/utils"
-	"net/http"
 )
 
 type Config struct {
@@ -32,12 +31,7 @@ func (p *HelloPlugin) ValidateConfig() error {
 	return utils.Validate(p.Config)
 }
 
-func (p *HelloPlugin) ExecuteOutbound(req *plugin.Request, _ *plugin.Context) error {
-	fmt.Println(p.Config.Message)
-	return nil
-}
-
-func (p *HelloPlugin) ExecuteInbound(r *http.Request, w http.ResponseWriter) error {
+func (p *HelloPlugin) ExecuteOutbound(req *plugin.OutboundRequest, _ *plugin.Context) error {
 	fmt.Println(p.Config.Message)
 	return nil
 }

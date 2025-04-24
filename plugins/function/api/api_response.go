@@ -1,14 +1,14 @@
-package function
+package api
 
 import "encoding/json"
 
 type ResponseAPI struct {
-	res *ExecutionResult
+	opts *Options
 }
 
-func NewResponseAPI(_ *ExecutionContext, res *ExecutionResult) *ResponseAPI {
+func NewResponseAPI(opts *Options) *ResponseAPI {
 	return &ResponseAPI{
-		res: res,
+		opts: opts,
 	}
 }
 
@@ -27,5 +27,5 @@ func (api *ResponseAPI) Exit(code int, headers map[string]string, body interface
 		}
 		response.Body = string(bytes)
 	}
-	api.res.HTTPResponse = response
+	api.opts.Result.HTTPResponse = response
 }

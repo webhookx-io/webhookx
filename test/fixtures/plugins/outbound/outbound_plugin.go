@@ -3,7 +3,6 @@ package outbound
 import (
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/utils"
-	"net/http"
 )
 
 type Config struct {
@@ -30,10 +29,6 @@ func (p *OutboundPlugin) ValidateConfig() error {
 	return utils.Validate(p.Config)
 }
 
-func (p *OutboundPlugin) ExecuteOutbound(req *plugin.Request, _ *plugin.Context) error {
+func (p *OutboundPlugin) ExecuteOutbound(req *plugin.OutboundRequest, _ *plugin.Context) error {
 	return nil
-}
-
-func (p *OutboundPlugin) ExecuteInbound(r *http.Request, w http.ResponseWriter) error {
-	panic("not implemented")
 }

@@ -128,6 +128,12 @@ func WithPluginEndpointID(endpointID string) PluginOption {
 	}
 }
 
+func WithPluginSourceID(sourceID string) PluginOption {
+	return func(e *entities.Plugin) {
+		e.SourceId = &sourceID
+	}
+}
+
 func WithPluginName(name string) PluginOption {
 	return func(e *entities.Plugin) {
 		e.Name = name

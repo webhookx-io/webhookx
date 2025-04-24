@@ -13,7 +13,7 @@ func TestExecute(t *testing.T) {
 	p.(*SignaturePlugin).ts = time.Unix(1726285679, 0)
 	p.(*SignaturePlugin).Config.SigningSecret = "QGvaZ0uPwA9nYi7jr31JtZn1EKK4pJpK"
 
-	pluginReq := &plugin.Request{
+	pluginReq := &plugin.OutboundRequest{
 		URL:     "https://example.com",
 		Method:  "POST",
 		Headers: make(map[string]string),

@@ -1,11 +1,10 @@
 package function
 
 import (
-	"bytes"
-	"github.com/webhookx-io/webhookx/pkg/function"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
+	"github.com/webhookx-io/webhookx/plugins/function/api"
+	"github.com/webhookx-io/webhookx/plugins/function/function"
 	"github.com/webhookx-io/webhookx/utils"
-	"io"
 	"net/http"
 )
 
@@ -34,26 +33,40 @@ func (p *FunctionPlugin) ValidateConfig() error {
 	return utils.Validate(p.Config)
 }
 
-func (p *FunctionPlugin) ExecuteOutbound(req *plugin.Request, _ *plugin.Context) error {
+func (p *FunctionPlugin) ExecuteOutbound(req *plugin.OutboundRequest, _ *plugin.Context) error {
 	panic("not implemented")
 }
 
-func (p *FunctionPlugin) ExecuteInbound(r *http.Request, w http.ResponseWriter) error {
+func (p *FunctionPlugin) ExecuteInbound(r *http.Request, body []byte, w http.ResponseWriter) (result plugin.InboundResult, err error) {
 	fn := function.New("javascript", p.Config.Function)
-	res, err := fn.Execute(nil) // todo
-	if err != nil {
-		return err
+	result.Payload = body
+
+	req := api.HTTPRequest{
+		Method:  r.Method,
+		Path:    r.URL.Path,
+		Headers: utils.HeaderMap(r.Header),
+		Body:    body,
 	}
+
+	res, err := fn.Execute(&api.ExecutionContext{
+		HTTPRequest: &req,
+		Workspace:   nil,
+		Source:      nil,
+		Event:       nil,
+	})
+	if err != nil {
+		return
+	}
+
 	if res.HTTPResponse != nil {
 		for k, v := range res.HTTPResponse.Headers {
 			w.Header().Set(k, v)
 		}
 		w.WriteHeader(res.HTTPResponse.Code)
 		w.Write([]byte(res.HTTPResponse.Body))
-		return nil
+		result.Terminated = true
+		return
 	}
-	if res.Payload != nil {
-		r.Body = io.NopCloser(bytes.NewBufferString("new body"))
-	}
-	return nil
+	result.Payload = req.Body
+	return
 }

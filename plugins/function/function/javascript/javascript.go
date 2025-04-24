@@ -1,35 +1,44 @@
-package function
+package javascript
 
 import (
 	"errors"
 	"fmt"
 	"github.com/dop251/goja"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/webhookx-io/webhookx/plugins/function/api"
 	"strings"
 	"time"
 )
 
-type JavaScriptFunction struct {
+type JavaScript struct {
+	opts   Options
 	vm     *goja.Runtime
 	script string
 }
 
-var cache, _ = lru.New[string, *goja.Program](128)
+type Options struct {
+	Timeout time.Duration
+}
 
-func NewJavaScript(script string) *JavaScriptFunction {
+func New(script string, opts Options) *JavaScript {
 	vm := goja.New()
 	vm.SetFieldNameMapper(goja.TagFieldNameMapper("json", true))
-	return &JavaScriptFunction{
+	return &JavaScript{
+		opts:   opts,
 		script: script,
 		vm:     vm,
 	}
 }
 
-func (f *JavaScriptFunction) Execute(ctx *ExecutionContext) (res ExecutionResult, err error) {
-	vm := f.vm
+var cache, _ = lru.New[string, *goja.Program](128)
 
-	api := NewAPI(ctx, &res)
-	err = vm.GlobalObject().Set("webhookx", api)
+func (m *JavaScript) Execute(ctx *api.ExecutionContext) (res api.ExecutionResult, err error) {
+	vm := m.vm
+
+	err = vm.GlobalObject().Set("webhookx", api.NewAPI(&api.Options{
+		Context: ctx,
+		Result:  &res,
+	}))
 	if err != nil {
 		return
 	}
@@ -51,16 +60,18 @@ func (f *JavaScriptFunction) Execute(ctx *ExecutionContext) (res ExecutionResult
 		return
 	}
 
-	timer := time.AfterFunc(Timeout, func() { vm.Interrupt(errors.New("timeout")) })
-	defer timer.Stop()
+	if m.opts.Timeout > 0 {
+		timer := time.AfterFunc(m.opts.Timeout, func() { vm.Interrupt(errors.New("timeout")) })
+		defer timer.Stop()
+	}
 
-	program, ok := cache.Get(f.script)
+	program, ok := cache.Get(m.script)
 	if !ok {
-		program, err = goja.Compile("", f.script, false)
+		program, err = goja.Compile("", m.script, false)
 		if err != nil {
 			return res, err
 		}
-		cache.Add(f.script, program)
+		cache.Add(m.script, program)
 	}
 
 	_, err = vm.RunProgram(program)

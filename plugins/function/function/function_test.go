@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"github.com/stretchr/testify/assert"
+	"github.com/webhookx-io/webhookx/plugins/function/api"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"io"
@@ -14,7 +15,11 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Function", Ordered, func() {
+func NewJavaScript(script string) Function {
+	return New("javascript", script)
+}
+
+var _ = Describe("JavaScript", Ordered, func() {
 
 	Context("API", func() {
 		It("console.log", func() {
@@ -107,21 +112,22 @@ var _ = Describe("Function", Ordered, func() {
 		Context("request", func() {
 			It("sanity", func() {
 				script := `function handle() {
-					return {
+					var obj = {
 						method: webhookx.request.getMethod(),
 						headers: webhookx.request.getHeaders(),
 						body: webhookx.request.getBody()
 					}
+					return obj
                 }`
 				function := NewJavaScript(script)
-				result, err := function.Execute(&ExecutionContext{
-					HTTPRequest: HTTPRequest{
+				result, err := function.Execute(&api.ExecutionContext{
+					HTTPRequest: &api.HTTPRequest{
 						Method: "GET",
 						Headers: map[string]string{
 							"Content-Type":        "application/json",
 							"X-Hub-Signature-256": "sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17",
 						},
-						Body: "payload",
+						Body: []byte("payload"),
 					},
 				})
 				assert.Nil(GinkgoT(), err)
@@ -131,6 +137,23 @@ var _ = Describe("Function", Ordered, func() {
 				headers := v["headers"].(map[string]string)
 				assert.Equal(GinkgoT(), "application/json", headers["Content-Type"])
 				assert.Equal(GinkgoT(), "sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17", headers["X-Hub-Signature-256"])
+			})
+
+			It("setBody", func() {
+				script := `function handle() {
+					webhookx.request.setBody('new body')
+					return webhookx.request.getBody()
+                }`
+				function := NewJavaScript(script)
+				req := &api.HTTPRequest{
+					Body: []byte("body"),
+				}
+				result, err := function.Execute(&api.ExecutionContext{
+					HTTPRequest: req,
+				})
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), "new body", result.ReturnValue)
+				assert.Equal(GinkgoT(), "new body", string(req.Body))
 			})
 		})
 

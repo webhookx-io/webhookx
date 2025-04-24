@@ -30,10 +30,6 @@ func (p *InboundPlugin) ValidateConfig() error {
 	return utils.Validate(p.Config)
 }
 
-func (p *InboundPlugin) ExecuteOutbound(req *plugin.Request, _ *plugin.Context) error {
-	panic("not implemented")
-}
-
-func (p *InboundPlugin) ExecuteInbound(r *http.Request, w http.ResponseWriter) error {
-	return nil
+func (p *InboundPlugin) ExecuteInbound(r *http.Request, body []byte, w http.ResponseWriter) (res plugin.InboundResult, err error) {
+	return
 }

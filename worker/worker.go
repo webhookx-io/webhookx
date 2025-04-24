@@ -92,10 +92,6 @@ func NewWorker(
 				zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
 			}
 		}
-
-		if plugin.SourceId != nil {
-			// TODO
-		}
 	})
 
 	return worker
@@ -285,7 +281,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	//	return err
 	//}
 
-	pluginReq := plugin.Request{
+	pluginReq := plugin.OutboundRequest{
 		URL:     endpoint.Request.URL,
 		Method:  endpoint.Request.Method,
 		Headers: make(map[string]string),

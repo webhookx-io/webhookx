@@ -53,7 +53,7 @@ func SetRequestJSON(ctx context.Context, m api.Module, jsonPtr, jsonSize uint32)
 		return StatusInvalidMemoryAccess
 	}
 
-	var value plugin.Request
+	var value plugin.OutboundRequest
 	if err := json.Unmarshal([]byte(str), &value); err != nil {
 		return StatusInvalidJSON
 	}

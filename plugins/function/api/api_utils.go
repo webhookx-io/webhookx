@@ -1,4 +1,4 @@
-package function
+package api
 
 import (
 	"crypto/hmac"

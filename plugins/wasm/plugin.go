@@ -7,7 +7,6 @@ import (
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/utils"
-	"net/http"
 	"os"
 )
 
@@ -36,7 +35,7 @@ func (p *WasmPlugin) ValidateConfig() error {
 	return utils.Validate(p.Config)
 }
 
-func (p *WasmPlugin) ExecuteOutbound(req *plugin.Request, _ *plugin.Context) error {
+func (p *WasmPlugin) ExecuteOutbound(req *plugin.OutboundRequest, _ *plugin.Context) error {
 	source, err := os.ReadFile(p.Config.File)
 	if err != nil {
 		return err
@@ -84,8 +83,4 @@ func (p *WasmPlugin) ExecuteOutbound(req *plugin.Request, _ *plugin.Context) err
 	}
 
 	return nil
-}
-
-func (p *WasmPlugin) ExecuteInbound(r *http.Request, w http.ResponseWriter) error {
-	panic("not implemented")
 }

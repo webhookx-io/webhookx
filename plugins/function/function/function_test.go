@@ -248,7 +248,7 @@ var _ = Describe("JavaScript", Ordered, func() {
 			script := `function handle() { JSON.parse("invalid JSON") }`
 			function := NewJavaScript(script)
 			_, err := function.Execute(nil)
-			assert.Equal(GinkgoT(), "SyntaxError: invalid character 'i' looking for beginning of value at parse (native)", err.Error())
+			assert.Equal(GinkgoT(), "SyntaxError: invalid character 'i' looking for beginning of value\n\tat parse (native)\n\tat handle (<eval>:1:31(4))\n", err.Error())
 		})
 		It("should return error when handle function not defined", func() {
 			script := ``

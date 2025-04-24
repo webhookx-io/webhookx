@@ -19,7 +19,7 @@ func (api *RequestAPI) GetHeaders() map[string]string {
 }
 
 func (api *RequestAPI) GetHeader(name string) string {
-	return api.opts.Context.HTTPRequest.Headers[name]
+	return api.opts.Context.HTTPRequest.R.Header.Get(name)
 }
 
 func (api *RequestAPI) GetBody() string {

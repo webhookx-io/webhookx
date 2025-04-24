@@ -94,8 +94,11 @@ func (m *JavaScript) Execute(ctx *api.ExecutionContext) (res api.ExecutionResult
 
 	output, err := handle()
 	if err != nil {
-		if e, ok := err.(*goja.InterruptedError); ok {
-			err = e.Unwrap()
+		switch e := err.(type) {
+		case *goja.InterruptedError:
+			return res, e.Unwrap()
+		case *goja.Exception:
+			return res, errors.New(e.String()) // full stacktrace
 		}
 		return
 	}

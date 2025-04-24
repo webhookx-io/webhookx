@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/webhookx-io/webhookx/db/entities"
+	"net/http"
 )
 
 type API struct {
@@ -40,6 +41,7 @@ func (api *API) GetEvent() *entities.Event {
 }
 
 type HTTPRequest struct {
+	R       *http.Request
 	Method  string
 	Path    string
 	Headers map[string]string

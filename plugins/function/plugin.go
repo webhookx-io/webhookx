@@ -42,6 +42,7 @@ func (p *FunctionPlugin) ExecuteInbound(r *http.Request, body []byte, w http.Res
 	result.Payload = body
 
 	req := api.HTTPRequest{
+		R:       r,
 		Method:  r.Method,
 		Path:    r.URL.Path,
 		Headers: utils.HeaderMap(r.Header),
@@ -63,10 +64,11 @@ func (p *FunctionPlugin) ExecuteInbound(r *http.Request, body []byte, w http.Res
 			w.Header().Set(k, v)
 		}
 		w.WriteHeader(res.HTTPResponse.Code)
-		w.Write([]byte(res.HTTPResponse.Body))
+		_, _ = w.Write([]byte(res.HTTPResponse.Body))
 		result.Terminated = true
 		return
 	}
+
 	result.Payload = req.Body
 	return
 }

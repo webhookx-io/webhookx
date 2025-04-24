@@ -23,6 +23,7 @@ import (
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"maps"
 	"runtime"
 	"time"
 )
@@ -281,12 +282,10 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	pluginReq := plugintypes.Request{
 		URL:     endpoint.Request.URL,
 		Method:  endpoint.Request.Method,
-		Headers: endpoint.Request.Headers,
+		Headers: make(map[string]string),
 		Payload: data.Event,
 	}
-	if pluginReq.Headers == nil {
-		pluginReq.Headers = make(map[string]string)
-	}
+	maps.Copy(pluginReq.Headers, endpoint.Request.Headers)
 	pluginCtx := &plugintypes.Context{
 		Workspace: workspace,
 	}

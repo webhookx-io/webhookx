@@ -23,7 +23,6 @@ type Options struct {
 
 func NewSDK(opts *Options) *SDK {
 	return &SDK{
-		version:  "0.1.0",
 		Request:  NewRequestSDK(opts),
 		Utils:    NewUtilsSDK(),
 		Log:      NewLogSDK(),

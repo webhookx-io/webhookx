@@ -47,7 +47,7 @@ func (m *Plugin) Validate() error {
 	}
 
 	// validate plugin configuration
-	p, err := m.ToPlugin()
+	p, err := m.Plugin()
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (m *Plugin) Init() {
 	m.Enabled = true
 }
 
-func (m *Plugin) ToPlugin() (plugin.Plugin, error) {
+func (m *Plugin) Plugin() (plugin.Plugin, error) {
 	r := plugin.GetRegistration(m.Name)
 	if r == nil {
 		return nil, fmt.Errorf("unknown plugin name: '%s'", m.Name)

@@ -50,7 +50,7 @@ func (cfg *Configuration) Validate() error {
 			if err := model.Validate(); err != nil {
 				return err
 			}
-			p, err := model.ToPlugin()
+			p, err := model.Plugin()
 			if err != nil {
 				return err
 			}
@@ -63,7 +63,7 @@ func (cfg *Configuration) Validate() error {
 			if err := model.Validate(); err != nil {
 				return err
 			}
-			p, err := model.ToPlugin()
+			p, err := model.Plugin()
 			if err != nil {
 				return err
 			}

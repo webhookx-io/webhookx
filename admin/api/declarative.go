@@ -36,7 +36,7 @@ func (api *API) Sync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var cfg declarative.Configuration
-	if err = json.Unmarshal(body, &cfg); err != nil {
+	if err := json.Unmarshal(body, &cfg); err != nil {
 		api.error(400, w, errors.New("invalid yaml content: "+err.Error()))
 		return
 	}

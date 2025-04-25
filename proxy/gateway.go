@@ -170,7 +170,7 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, p := range plugins {
-		executor, err := p.ToPlugin()
+		executor, err := p.Plugin()
 		if err != nil {
 			exit(w, 500, `{"message": "internal error"}`, nil)
 			return

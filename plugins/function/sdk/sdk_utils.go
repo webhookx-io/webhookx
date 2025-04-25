@@ -51,6 +51,6 @@ func (sdk *UtilsSDK) Encode(name string, data []byte) string {
 	}
 }
 
-func (sdk *UtilsSDK) DigestEqual(a string, b string) bool {
+func (sdk *UtilsSDK) TimingSafeEqual(a string, b string) bool {
 	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }

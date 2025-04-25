@@ -21,7 +21,7 @@ function handle() {
 	var bytes = webhookx.utils.hmac('SHA-256', "my_secret", webhookx.request.getBody())
 	var signature = webhookx.utils.encode('hex', bytes)
     var signatureHeader = webhookx.request.getHeader("X-Signature")
-	if (!webhookx.utils.digestEqual(signature, signatureHeader)) {
+	if (!webhookx.utils.timingSafeEqual(signature, signatureHeader)) {
 		webhookx.response.exit(400, { 'Content-Type': 'application/json' }, { message: 'invalid signature' })
 	}
 	webhookx.log.debug('valid signature')

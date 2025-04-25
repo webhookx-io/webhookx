@@ -94,16 +94,16 @@ var _ = Describe("JavaScript", Ordered, func() {
 				})
 			})
 
-			Context("digestEqual", func() {
+			Context("timingSafeEqual", func() {
 				It("should return true", func() {
-					script := `function handle() { return webhookx.utils.digestEqual('a', 'a') }`
+					script := `function handle() { return webhookx.utils.timingSafeEqual('a', 'a') }`
 					function := NewJavaScript(script)
 					res, err := function.Execute(nil)
 					assert.Nil(GinkgoT(), err)
 					assert.Equal(GinkgoT(), true, res.ReturnValue)
 				})
 				It("should return false", func() {
-					script := `function handle() { return webhookx.utils.digestEqual('a', 'b') }`
+					script := `function handle() { return webhookx.utils.timingSafeEqual('a', 'b') }`
 					function := NewJavaScript(script)
 					res, err := function.Execute(nil)
 					assert.Nil(GinkgoT(), err)
@@ -291,7 +291,7 @@ func BenchmarkVerifySignature(b *testing.B) {
 				var bytes = webhookx.utils.hmac('SHA-256', "It's a Secret to Everybody", 'Hello, World!')
 				var signature = "sha256=" + webhookx.utils.encode('hex', bytes)
 			    var signatureHeader = webhookx.request.getHeader("X-Hub-Signature-256")
-				if (!webhookx.utils.digestEqual(signature, signatureHeader)) {
+				if (!webhookx.utils.timingSafeEqual(signature, signatureHeader)) {
 					console.log("invalid signature")
 					webhookx.response.exit(400, { 'Content-Type': 'application/json' }, 'invalid signature')
 				}

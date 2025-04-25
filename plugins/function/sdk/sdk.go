@@ -6,8 +6,6 @@ import (
 )
 
 type SDK struct {
-	version string
-
 	Request  *RequestSDK  `json:"request"`
 	Response *ResponseSDK `json:"response"`
 	Utils    *UtilsSDK    `json:"utils"`

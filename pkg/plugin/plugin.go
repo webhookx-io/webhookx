@@ -1,40 +1,50 @@
 package plugin
 
 import (
-	"fmt"
-	"sync"
+	"encoding/json"
+	"net/http"
 )
 
-type Type string
-
-const (
-	TypeInbound  Type = "inbound"
-	TypeOutbound Type = "outbound"
-)
-
-type NewPluginFunc func(config []byte) (Plugin, error)
-
-type Registration struct {
-	Type Type
-	New  NewPluginFunc
+type Plugin interface {
+	ExecuteOutbound(r *OutboundRequest, context *Context) error
+	ExecuteInbound(r *http.Request, body []byte, w http.ResponseWriter) (InboundResult, error)
+	ValidateConfig() error
+	MarshalConfig() ([]byte, error)
 }
 
-var mux sync.Mutex
-var registry = make(map[string]*Registration)
-
-func RegisterPlugin(typ Type, name string, fn NewPluginFunc) {
-	mux.Lock()
-	defer mux.Unlock()
-	if _, ok := registry[name]; ok {
-		panic(fmt.Sprintf("plugin '%s' already registered", name))
-	}
-
-	registry[name] = &Registration{
-		Type: typ,
-		New:  fn,
-	}
+type BasePlugin[T any] struct {
+	Name   string
+	Config T
 }
 
-func GetRegistration(name string) *Registration {
-	return registry[name]
+func (p *BasePlugin[T]) UnmarshalConfig(data []byte) error {
+	return json.Unmarshal(data, &p.Config)
+}
+
+func (p *BasePlugin[T]) MarshalConfig() ([]byte, error) {
+	return json.Marshal(p.Config)
+}
+
+func (p *BasePlugin[T]) ExecuteOutbound(r *OutboundRequest, context *Context) error {
+	panic("not implemented")
+}
+
+func (p *BasePlugin[T]) ExecuteInbound(r *http.Request, body []byte, w http.ResponseWriter) (InboundResult, error) {
+	panic("not implemented")
+}
+
+type OutboundRequest struct {
+	URL     string            `json:"url"`
+	Method  string            `json:"method"`
+	Headers map[string]string `json:"headers"`
+	Payload string            `json:"payload"`
+}
+
+type Context struct {
+	//Workspace *entities.Workspace
+}
+
+type InboundResult struct {
+	Terminated bool
+	Payload    []byte
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"reflect"
 	"strings"
+	"sync"
 )
 
 var validate = validator.New(validator.WithRequiredStructEnabled())
@@ -21,6 +22,7 @@ func init() {
 	})
 }
 
+var mux sync.RWMutex
 var formatters = make(map[string]func(fe validator.FieldError) string)
 
 func init() {
@@ -57,6 +59,8 @@ func RegisterValidation(tag string, fn validator.Func) {
 }
 
 func RegisterFormatter(tag string, fn func(fe validator.FieldError) string) {
+	mux.Lock()
+	defer mux.Unlock()
 	formatters[tag] = fn
 }
 
@@ -85,6 +89,8 @@ func Validate(v interface{}) error {
 }
 
 func formatError(fe validator.FieldError) string {
+	mux.RLock()
+	defer mux.RUnlock()
 	if formatter, ok := formatters[fe.Tag()]; ok {
 		return formatter(fe)
 	}

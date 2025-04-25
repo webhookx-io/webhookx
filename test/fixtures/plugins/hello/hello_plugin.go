@@ -31,7 +31,7 @@ func (p *HelloPlugin) ValidateConfig() error {
 	return utils.Validate(p.Config)
 }
 
-func (p *HelloPlugin) ExecuteOutbound(req *plugin.OutboundRequest, _ *plugin.Context) error {
+func (p *HelloPlugin) ExecuteOutbound(outbound *plugin.Outbound, _ *plugin.Context) error {
 	fmt.Println(p.Config.Message)
 	return nil
 }

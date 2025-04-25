@@ -6,8 +6,8 @@ import (
 )
 
 type Plugin interface {
-	ExecuteOutbound(r *OutboundRequest, context *Context) error
-	ExecuteInbound(r *http.Request, body []byte, w http.ResponseWriter) (InboundResult, error)
+	ExecuteOutbound(outbound *Outbound, context *Context) error
+	ExecuteInbound(inbound *Inbound) (InboundResult, error)
 	ValidateConfig() error
 	MarshalConfig() ([]byte, error)
 }
@@ -25,19 +25,25 @@ func (p *BasePlugin[T]) MarshalConfig() ([]byte, error) {
 	return json.Marshal(p.Config)
 }
 
-func (p *BasePlugin[T]) ExecuteOutbound(r *OutboundRequest, context *Context) error {
+func (p *BasePlugin[T]) ExecuteOutbound(outbound *Outbound, context *Context) error {
 	panic("not implemented")
 }
 
-func (p *BasePlugin[T]) ExecuteInbound(r *http.Request, body []byte, w http.ResponseWriter) (InboundResult, error) {
+func (p *BasePlugin[T]) ExecuteInbound(inbound *Inbound) (InboundResult, error) {
 	panic("not implemented")
 }
 
-type OutboundRequest struct {
+type Outbound struct {
 	URL     string            `json:"url"`
 	Method  string            `json:"method"`
 	Headers map[string]string `json:"headers"`
 	Payload string            `json:"payload"`
+}
+
+type Inbound struct {
+	Request  *http.Request
+	Response http.ResponseWriter
+	RawBody  []byte
 }
 
 type Context struct {

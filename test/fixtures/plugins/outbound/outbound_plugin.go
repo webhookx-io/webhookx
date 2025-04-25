@@ -29,6 +29,6 @@ func (p *OutboundPlugin) ValidateConfig() error {
 	return utils.Validate(p.Config)
 }
 
-func (p *OutboundPlugin) ExecuteOutbound(req *plugin.OutboundRequest, _ *plugin.Context) error {
+func (p *OutboundPlugin) ExecuteOutbound(outbound *plugin.Outbound, _ *plugin.Context) error {
 	return nil
 }

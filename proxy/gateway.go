@@ -14,6 +14,7 @@ import (
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/queue/redis"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
@@ -175,7 +176,11 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 			exit(w, 500, `{"message": "internal error"}`, nil)
 			return
 		}
-		result, err := executor.ExecuteInbound(r, body, w)
+		result, err := executor.ExecuteInbound(&plugin.Inbound{
+			Request:  r,
+			Response: w,
+			RawBody:  body,
+		})
 		if err != nil {
 			gw.log.Errorf("[proxy] failed to execute plugin: %v", err)
 			exit(w, 500, `{"message": "internal error"}`, nil)

@@ -47,13 +47,13 @@ func computeSignature(ts time.Time, payload []byte, secret string) []byte {
 	return mac.Sum(nil)
 }
 
-func (p *SignaturePlugin) ExecuteOutbound(req *plugin.OutboundRequest, _ *plugin.Context) error {
+func (p *SignaturePlugin) ExecuteOutbound(outbound *plugin.Outbound, _ *plugin.Context) error {
 	ts := p.ts
 	if ts.IsZero() {
 		ts = time.Now()
 	}
-	signature := computeSignature(ts, []byte(req.Payload), p.Config.SigningSecret)
-	req.Headers["webhookx-signature"] = "v1=" + hex.EncodeToString(signature)
-	req.Headers["webhookx-timestamp"] = strconv.FormatInt(ts.Unix(), 10)
+	signature := computeSignature(ts, []byte(outbound.Payload), p.Config.SigningSecret)
+	outbound.Headers["webhookx-signature"] = "v1=" + hex.EncodeToString(signature)
+	outbound.Headers["webhookx-timestamp"] = strconv.FormatInt(ts.Unix(), 10)
 	return nil
 }

@@ -3,7 +3,6 @@ package inbound
 import (
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/utils"
-	"net/http"
 )
 
 type Config struct {
@@ -30,6 +29,6 @@ func (p *InboundPlugin) ValidateConfig() error {
 	return utils.Validate(p.Config)
 }
 
-func (p *InboundPlugin) ExecuteInbound(r *http.Request, body []byte, w http.ResponseWriter) (res plugin.InboundResult, err error) {
+func (p *InboundPlugin) ExecuteInbound(inbound *plugin.Inbound) (res plugin.InboundResult, err error) {
 	return
 }

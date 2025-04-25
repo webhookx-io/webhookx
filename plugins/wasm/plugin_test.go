@@ -43,7 +43,7 @@ var _ = Describe("wasm", Ordered, func() {
 			assert.Nil(GinkgoT(), err)
 			p.(*WasmPlugin).Config.File = filename
 
-			pluginReq := &plugin.OutboundRequest{
+			pluginReq := &plugin.Outbound{
 				URL:     "https://example.com",
 				Method:  "GET",
 				Headers: make(map[string]string),

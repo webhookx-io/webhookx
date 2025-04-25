@@ -281,13 +281,13 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	//	return err
 	//}
 
-	pluginReq := plugin.OutboundRequest{
+	outbound := plugin.Outbound{
 		URL:     endpoint.Request.URL,
 		Method:  endpoint.Request.Method,
 		Headers: make(map[string]string),
 		Payload: data.Event,
 	}
-	maps.Copy(pluginReq.Headers, endpoint.Request.Headers)
+	maps.Copy(outbound.Headers, endpoint.Request.Headers)
 	pluginCtx := &plugin.Context{
 		//Workspace: workspace,
 	}
@@ -297,7 +297,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 			return err
 		}
 
-		err = executor.ExecuteOutbound(&pluginReq, pluginCtx)
+		err = executor.ExecuteOutbound(&outbound, pluginCtx)
 		if err != nil {
 			return fmt.Errorf("failed to execute %s plugin: %v", p.Name, err)
 		}
@@ -305,10 +305,10 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 
 	request := &deliverer.Request{
 		Request: nil,
-		URL:     pluginReq.URL,
-		Method:  pluginReq.Method,
-		Payload: []byte(pluginReq.Payload),
-		Headers: pluginReq.Headers,
+		URL:     outbound.URL,
+		Method:  outbound.Method,
+		Payload: []byte(outbound.Payload),
+		Headers: outbound.Headers,
 		Timeout: time.Duration(endpoint.Request.Timeout) * time.Millisecond,
 	}
 

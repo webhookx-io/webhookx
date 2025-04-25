@@ -35,7 +35,7 @@ func (p *WasmPlugin) ValidateConfig() error {
 	return utils.Validate(p.Config)
 }
 
-func (p *WasmPlugin) ExecuteOutbound(req *plugin.OutboundRequest, _ *plugin.Context) error {
+func (p *WasmPlugin) ExecuteOutbound(outbound *plugin.Outbound, _ *plugin.Context) error {
 	source, err := os.ReadFile(p.Config.File)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (p *WasmPlugin) ExecuteOutbound(req *plugin.OutboundRequest, _ *plugin.Cont
 		return fmt.Errorf("exported function 'transform' is not defined in module")
 	}
 
-	ctx = withContext(ctx, req)
+	ctx = withContext(ctx, outbound)
 	results, err := transform.Call(ctx)
 	if err != nil {
 		return err

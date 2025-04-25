@@ -84,6 +84,12 @@ func WithSourceAsync(async bool) SourceOption {
 	}
 }
 
+func WithSourcePath(path string) SourceOption {
+	return func(e *entities.Source) {
+		e.Path = path
+	}
+}
+
 func Source(opts ...SourceOption) entities.Source {
 	e := defaultSource()
 	for _, opt := range opts {

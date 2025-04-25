@@ -1,7 +1,9 @@
 package plugins
 
 import (
-	"fmt"
+	"context"
+	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/plugins/function"
 	"github.com/webhookx-io/webhookx/plugins/function/sdk"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
@@ -25,6 +27,9 @@ function handle() {
 		webhookx.response.exit(400, { 'Content-Type': 'application/json' }, { message: 'invalid signature' })
 	}
 	webhookx.log.debug('valid signature')
+	var obj = JSON.parse(webhookx.request.getBody())
+    obj.data.foo = 'bar'
+    webhookx.request.setBody(JSON.stringify(obj))
 }
 `
 
@@ -34,7 +39,7 @@ var _ = Describe("function", Ordered, func() {
 		var proxyClient *resty.Client
 
 		var app *app.Application
-		//var db *db.DB
+		var db *db.DB
 
 		entitiesConfig := helper.EntitiesConfig{
 			Endpoints: []*entities.Endpoint{factory.EndpointP()},
@@ -51,7 +56,7 @@ var _ = Describe("function", Ordered, func() {
 		}
 
 		BeforeAll(func() {
-			helper.InitDB(true, &entitiesConfig)
+			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
 			app = utils.Must(helper.Start(map[string]string{
@@ -74,19 +79,30 @@ var _ = Describe("function", Ordered, func() {
 					SetHeader("X-Signature", signature).
 					SetBody(body).
 					Post("/")
-				fmt.Println(string(resp.Body()))
 				return err == nil && resp.StatusCode() == 200
 			}, time.Second*5, time.Second)
 
 			matched, err := helper.FileHasLine("webhookx.log", "^.*valid signature$")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), true, matched)
+
+			// payload should be changed
+			var event *entities.Event
+			assert.Eventually(GinkgoT(), func() bool {
+				list, err := db.Events.List(context.TODO(), &query.EventQuery{})
+				if err != nil || len(list) != 1 {
+					return false
+				}
+				event = list[0]
+				return true
+			}, time.Second*5, time.Second)
+			assert.JSONEq(GinkgoT(), `{"foo": "bar", "key": "value"}`, string(event.Data))
 		})
 
 		It("should return desired response for invalid signature", func() {
 			assert.Eventually(GinkgoT(), func() bool {
 				resp, err := proxyClient.R().
-					SetHeader("X-Signature", "test").
+					SetHeader("X-Signature", "fake").
 					SetBody(`{"event_type": "foo.bar","data": {"key": "value"}}`).
 					Post("/")
 				return err == nil && resp.StatusCode() == 400 &&
@@ -94,6 +110,5 @@ var _ = Describe("function", Ordered, func() {
 					resp.Header().Get("Content-Type") == "application/json"
 			}, time.Second*5, time.Second)
 		})
-
 	})
 })

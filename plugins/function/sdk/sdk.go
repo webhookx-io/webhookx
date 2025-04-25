@@ -33,11 +33,8 @@ func NewSDK(opts *Options) *SDK {
 }
 
 type HTTPRequest struct {
-	R       *http.Request
-	Method  string
-	Path    string
-	Headers map[string]string
-	Body    []byte
+	R    *http.Request
+	Body []byte
 }
 
 type HTTPResponse struct {

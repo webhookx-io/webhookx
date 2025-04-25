@@ -1,5 +1,7 @@
 package sdk
 
+import "github.com/webhookx-io/webhookx/utils"
+
 type RequestSDK struct {
 	opts *Options
 }
@@ -10,12 +12,20 @@ func NewRequestSDK(opts *Options) *RequestSDK {
 	}
 }
 
+func (sdk *RequestSDK) GetHost() string {
+	return sdk.opts.Context.HTTPRequest.R.Host
+}
+
 func (sdk *RequestSDK) GetMethod() string {
-	return sdk.opts.Context.HTTPRequest.Method
+	return sdk.opts.Context.HTTPRequest.R.Method
+}
+
+func (sdk *RequestSDK) GetPath() string {
+	return sdk.opts.Context.HTTPRequest.R.URL.Path
 }
 
 func (sdk *RequestSDK) GetHeaders() map[string]string {
-	return sdk.opts.Context.HTTPRequest.Headers
+	return utils.HeaderMap(sdk.opts.Context.HTTPRequest.R.Header)
 }
 
 func (sdk *RequestSDK) GetHeader(name string) string {

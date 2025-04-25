@@ -36,11 +36,8 @@ func (p *FunctionPlugin) ExecuteInbound(inbound *plugin.Inbound) (result plugin.
 	fn := function.New("javascript", p.Config.Function)
 
 	req := sdk.HTTPRequest{
-		R:       inbound.Request,
-		Method:  inbound.Request.Method,
-		Path:    inbound.Request.URL.Path,
-		Headers: utils.HeaderMap(inbound.Request.Header),
-		Body:    inbound.RawBody,
+		R:    inbound.Request,
+		Body: inbound.RawBody,
 	}
 
 	res, err := fn.Execute(&sdk.ExecutionContext{

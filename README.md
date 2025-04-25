@@ -1,4 +1,4 @@
-# WebhookX [![release](https://img.shields.io/github/v/release/webhookx-io/webhookx?color=green)](https://github.com/webhookx-io/webhookx/releases) [![test-workflow](https://github.com/webhookx-io/webhookx/actions/workflows/test.yml/badge.svg)](https://github.com/webhookx-io/webhookx/actions/workflows/test.yml) [![lint-workflow](https://github.com/webhookx-io/webhookx/actions/workflows/lint.yml/badge.svg)](https://github.com/webhookx-io/webhookx/actions/workflows/lint.yml) [![go-report](https://goreportcard.com/badge/github.com/webhookx-io/webhookx)](https://goreportcard.com/report/github.com/webhookx-io/webhookx) [![codecov](https://codecov.io/gh/webhookx-io/webhookx/graph/badge.svg?token=O4AQNRBJRF)](https://codecov.io/gh/webhookx-io/webhookx) [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)
+# WebhookX [![release](https://img.shields.io/github/v/release/webhookx-io/webhookx?color=green)](https://github.com/webhookx-io/webhookx/releases) [![test-workflow](https://github.com/webhookx-io/webhookx/actions/workflows/test.yml/badge.svg)](https://github.com/webhookx-io/webhookx/actions/workflows/test.yml) [![lint-workflow](https://github.com/webhookx-io/webhookx/actions/workflows/lint.yml/badge.svg)](https://github.com/webhookx-io/webhookx/actions/workflows/lint.yml) [![codecov](https://codecov.io/gh/webhookx-io/webhookx/graph/badge.svg?token=O4AQNRBJRF)](https://codecov.io/gh/webhookx-io/webhookx) [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)
 
 [![Join Slack](https://img.shields.io/badge/Slack-4285F4?logo=slack&logoColor=white)](https://join.slack.com/t/webhookx/shared_invite/zt-2o4b6hv45-mWm6_WUcQP9qEf1nOxhrrg) [![Follow on Twitter](https://img.shields.io/badge/twitter-1DA1F2?logo=twitter&logoColor=white)](https://twitter.com/webhookx)
 
@@ -12,11 +12,10 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 - **Fan out:** Events can be fan out to multiple destinations.
 - **Declarative configuration:** Managing your configuration through declarative configuration file, and be GitOps and DevOps compliant.
 - **Multi-tenancy:** Multi-tenancy is supported with workspaces. Workspaces provide an isolation of configuration entites.
-- **Plugins:**
-  - `webhookx-signature`: signing outbound requests with HMAC(SHA-256) by adding `Webhookx-Signature` and `Webhookx-Timestamp` to request header.
-  - `wasm`: using high-level programming languages such as AssemblyScript, Rust and TinyGo to transform outbound requests. See [plugin/wasm](pkg/plugin/wasm).
-  - `function`: 
-  - `transformer`(WIP): transform request before sending outbound requests.
+- **Plugins:** Extend functionality via inbound and outbound plugins.
+  - `webhookx-signature`: Signing outbound requests with HMAC(SHA-256) by adding `Webhookx-Signature` and `Webhookx-Timestamp` to request header.
+  - `wasm`: Using high-level programming languages such as AssemblyScript, Rust and TinyGo to transform outbound requests. See [plugin/wasm](pkg/plugin/wasm).
+  - `function`: Using JavaScript to customize inbound behavior, such as signature verification and request body transformation.
 - **Observability:** OpenTelemetry Metrics and Tracing.
 
 

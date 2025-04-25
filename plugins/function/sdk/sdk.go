@@ -1,17 +1,17 @@
-package api
+package sdk
 
 import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"net/http"
 )
 
-type API struct {
+type SDK struct {
 	version string
 
-	Request  *RequestAPI  `json:"request"`
-	Response *ResponseAPI `json:"response"`
-	Utils    *UtilsAPI    `json:"utils"`
-	Log      *LogAPI      `json:"log"`
+	Request  *RequestSDK  `json:"request"`
+	Response *ResponseSDK `json:"response"`
+	Utils    *UtilsSDK    `json:"utils"`
+	Log      *LogSDK      `json:"log"`
 
 	opts *Options
 }
@@ -21,23 +21,15 @@ type Options struct {
 	Result  *ExecutionResult
 }
 
-func NewAPI(opts *Options) *API {
-	return &API{
+func NewSDK(opts *Options) *SDK {
+	return &SDK{
 		version:  "0.1.0",
-		Request:  NewRequestAPI(opts),
-		Utils:    NewUtilsAPI(),
-		Log:      NewLogger(),
-		Response: NewResponseAPI(opts),
+		Request:  NewRequestSDK(opts),
+		Utils:    NewUtilsSDK(),
+		Log:      NewLogSDK(),
+		Response: NewResponseSDK(opts),
 		opts:     opts,
 	}
-}
-
-func (api *API) GetSource() *entities.Source {
-	return api.opts.Context.Source
-}
-
-func (api *API) GetEvent() *entities.Event {
-	return api.opts.Context.Event
 }
 
 type HTTPRequest struct {

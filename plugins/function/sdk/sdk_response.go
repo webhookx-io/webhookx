@@ -1,18 +1,18 @@
-package api
+package sdk
 
 import "encoding/json"
 
-type ResponseAPI struct {
+type ResponseSDK struct {
 	opts *Options
 }
 
-func NewResponseAPI(opts *Options) *ResponseAPI {
-	return &ResponseAPI{
+func NewResponseSDK(opts *Options) *ResponseSDK {
+	return &ResponseSDK{
 		opts: opts,
 	}
 }
 
-func (api *ResponseAPI) Exit(code int, headers map[string]string, body interface{}) {
+func (sdk *ResponseSDK) Exit(code int, headers map[string]string, body interface{}) {
 	response := &HTTPResponse{
 		Code:    code,
 		Headers: headers,
@@ -27,5 +27,5 @@ func (api *ResponseAPI) Exit(code int, headers map[string]string, body interface
 		}
 		response.Body = string(bytes)
 	}
-	api.opts.Result.HTTPResponse = response
+	sdk.opts.Result.HTTPResponse = response
 }

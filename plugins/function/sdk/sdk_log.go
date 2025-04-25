@@ -1,32 +1,32 @@
-package api
+package sdk
 
 import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-type LogAPI struct{}
+type LogSDK struct{}
 
-func NewLogger() *LogAPI {
-	return &LogAPI{}
+func NewLogSDK() *LogSDK {
+	return &LogSDK{}
 }
 
 func log(level zapcore.Level, msg string) {
 	zap.S().Log(level, msg)
 }
 
-func (m *LogAPI) Debug(msg string) {
+func (m *LogSDK) Debug(msg string) {
 	log(zapcore.DebugLevel, msg)
 }
 
-func (m *LogAPI) Info(msg string) {
+func (m *LogSDK) Info(msg string) {
 	log(zapcore.InfoLevel, msg)
 }
 
-func (m *LogAPI) Warn(msg string) {
+func (m *LogSDK) Warn(msg string) {
 	log(zapcore.WarnLevel, msg)
 }
 
-func (m *LogAPI) Error(msg string) {
+func (m *LogSDK) Error(msg string) {
 	log(zapcore.ErrorLevel, msg)
 }

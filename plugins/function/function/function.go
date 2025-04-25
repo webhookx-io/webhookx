@@ -1,13 +1,13 @@
 package function
 
 import (
-	"github.com/webhookx-io/webhookx/plugins/function/api"
 	"github.com/webhookx-io/webhookx/plugins/function/function/javascript"
+	"github.com/webhookx-io/webhookx/plugins/function/sdk"
 	"time"
 )
 
 type Function interface {
-	Execute(ctx *api.ExecutionContext) (api.ExecutionResult, error)
+	Execute(ctx *sdk.ExecutionContext) (sdk.ExecutionResult, error)
 }
 
 func New(language string, script string) Function {

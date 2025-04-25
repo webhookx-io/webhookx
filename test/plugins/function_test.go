@@ -3,7 +3,7 @@ package plugins
 import (
 	"fmt"
 	"github.com/webhookx-io/webhookx/plugins/function"
-	"github.com/webhookx-io/webhookx/plugins/function/api"
+	"github.com/webhookx-io/webhookx/plugins/function/sdk"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"time"
 
@@ -66,7 +66,7 @@ var _ = Describe("function", Ordered, func() {
 		})
 
 		It("OK", func() {
-			utilsAPI := api.NewUtilsAPI()
+			utilsAPI := sdk.NewUtilsSDK()
 			body := `{"event_type": "foo.bar","data": {"key": "value"}}`
 			signature := utilsAPI.Encode("hex", utilsAPI.Hmac("SHA-256", "my_secret", body))
 			assert.Eventually(GinkgoT(), func() bool {

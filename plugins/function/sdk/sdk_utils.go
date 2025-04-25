@@ -1,4 +1,4 @@
-package api
+package sdk
 
 import (
 	"crypto/hmac"
@@ -13,13 +13,13 @@ import (
 	"hash"
 )
 
-type UtilsAPI struct{}
+type UtilsSDK struct{}
 
-func NewUtilsAPI() *UtilsAPI {
-	return &UtilsAPI{}
+func NewUtilsSDK() *UtilsSDK {
+	return &UtilsSDK{}
 }
 
-func (api *UtilsAPI) Hmac(algorithm string, key string, data string) []byte {
+func (sdk *UtilsSDK) Hmac(algorithm string, key string, data string) []byte {
 	var fn func() hash.Hash
 	switch algorithm {
 	case "SHA-1":
@@ -38,7 +38,7 @@ func (api *UtilsAPI) Hmac(algorithm string, key string, data string) []byte {
 	return mac.Sum(nil)
 }
 
-func (api *UtilsAPI) Encode(name string, data []byte) string {
+func (sdk *UtilsSDK) Encode(name string, data []byte) string {
 	switch name {
 	case "hex":
 		return hex.EncodeToString(data)
@@ -51,6 +51,6 @@ func (api *UtilsAPI) Encode(name string, data []byte) string {
 	}
 }
 
-func (api *UtilsAPI) DigestEqual(a string, b string) bool {
+func (sdk *UtilsSDK) DigestEqual(a string, b string) bool {
 	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }

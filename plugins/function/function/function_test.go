@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"github.com/stretchr/testify/assert"
-	"github.com/webhookx-io/webhookx/plugins/function/api"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"io"
@@ -120,8 +119,8 @@ var _ = Describe("JavaScript", Ordered, func() {
 					return obj
                 }`
 				function := NewJavaScript(script)
-				result, err := function.Execute(&api.ExecutionContext{
-					HTTPRequest: &api.HTTPRequest{
+				result, err := function.Execute(&sdk.ExecutionContext{
+					HTTPRequest: &sdk.HTTPRequest{
 						Method: "GET",
 						Headers: map[string]string{
 							"Content-Type":        "application/json",
@@ -145,10 +144,10 @@ var _ = Describe("JavaScript", Ordered, func() {
 					return webhookx.request.getBody()
                 }`
 				function := NewJavaScript(script)
-				req := &api.HTTPRequest{
+				req := &sdk.HTTPRequest{
 					Body: []byte("body"),
 				}
-				result, err := function.Execute(&api.ExecutionContext{
+				result, err := function.Execute(&sdk.ExecutionContext{
 					HTTPRequest: req,
 				})
 				assert.Nil(GinkgoT(), err)
@@ -263,4 +262,55 @@ var _ = Describe("JavaScript", Ordered, func() {
 func Test(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Function Suite")
+}
+
+func BenchmarkEmptyFunction(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		function := NewJavaScript(`function handle() {}`)
+		function.Execute(nil)
+	}
+}
+
+func BenchmarkVerifySignature(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		function := NewJavaScript(`
+			function handle() { 
+				var bytes = webhookx.utils.hmac('SHA-256', "It's a Secret to Everybody", 'Hello, World!')
+				var signature = "sha256=" + webhookx.utils.encode('hex', bytes)
+			    var signatureHeader = webhookx.request.getHeader("X-Hub-Signature-256")
+				if (!webhookx.utils.digestEqual(signature, signatureHeader)) {
+					console.log("invalid signature")
+					webhookx.response.exit(400, { 'Content-Type': 'application/json' }, 'invalid signature')
+				}
+			}`)
+		function.Execute(&sdk.ExecutionContext{
+			HTTPRequest: &sdk.HTTPRequest{
+				Method: "GET",
+				Headers: map[string]string{
+					"Content-Type":        "application/json",
+					"X-Hub-Signature-256": "sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17",
+				},
+				Body: []byte("payload"),
+			},
+		})
+	}
+}
+
+func BenchmarkTransformBody(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		function := NewJavaScript(`
+			function handle() { 
+	            var body = webhookx.request.getBody()
+	            var obj = JSON.parse(body)
+	            obj.foo = 'bar'
+	            webhookx.setEvent(JSON.stringify(obj))
+			}`)
+		function.Execute(&sdk.ExecutionContext{
+			HTTPRequest: &sdk.HTTPRequest{
+				Method:  "GET",
+				Headers: map[string]string{},
+				Body:    []byte(`{"key": "value"}`),
+			},
+		})
+	}
 }

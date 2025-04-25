@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/dop251/goja"
 	lru "github.com/hashicorp/golang-lru/v2"
-	"github.com/webhookx-io/webhookx/plugins/function/api"
+	"github.com/webhookx-io/webhookx/plugins/function/sdk"
 	"strings"
 	"time"
 )
@@ -32,10 +32,10 @@ func New(script string, opts Options) *JavaScript {
 
 var cache, _ = lru.New[string, *goja.Program](128)
 
-func (m *JavaScript) Execute(ctx *api.ExecutionContext) (res api.ExecutionResult, err error) {
+func (m *JavaScript) Execute(ctx *sdk.ExecutionContext) (res sdk.ExecutionResult, err error) {
 	vm := m.vm
 
-	err = vm.GlobalObject().Set("webhookx", api.NewAPI(&api.Options{
+	err = vm.GlobalObject().Set("webhookx", sdk.NewSDK(&sdk.Options{
 		Context: ctx,
 		Result:  &res,
 	}))

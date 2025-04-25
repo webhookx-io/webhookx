@@ -2,8 +2,8 @@ package function
 
 import (
 	"github.com/webhookx-io/webhookx/pkg/plugin"
-	"github.com/webhookx-io/webhookx/plugins/function/api"
 	"github.com/webhookx-io/webhookx/plugins/function/function"
+	"github.com/webhookx-io/webhookx/plugins/function/sdk"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -35,7 +35,7 @@ func (p *FunctionPlugin) ValidateConfig() error {
 func (p *FunctionPlugin) ExecuteInbound(inbound *plugin.Inbound) (result plugin.InboundResult, err error) {
 	fn := function.New("javascript", p.Config.Function)
 
-	req := api.HTTPRequest{
+	req := sdk.HTTPRequest{
 		R:       inbound.Request,
 		Method:  inbound.Request.Method,
 		Path:    inbound.Request.URL.Path,
@@ -43,7 +43,7 @@ func (p *FunctionPlugin) ExecuteInbound(inbound *plugin.Inbound) (result plugin.
 		Body:    inbound.RawBody,
 	}
 
-	res, err := fn.Execute(&api.ExecutionContext{
+	res, err := fn.Execute(&sdk.ExecutionContext{
 		HTTPRequest: &req,
 		Workspace:   nil,
 		Source:      nil,

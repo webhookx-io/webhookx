@@ -42,9 +42,6 @@ func (p *FunctionPlugin) ExecuteInbound(inbound *plugin.Inbound) (result plugin.
 
 	res, err := fn.Execute(&sdk.ExecutionContext{
 		HTTPRequest: &req,
-		Workspace:   nil,
-		Source:      nil,
-		Event:       nil,
 	})
 	if err != nil {
 		return

@@ -14,7 +14,7 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 - **Multi-tenancy:** Multi-tenancy is supported with workspaces. Workspaces provide an isolation of configuration entites.
 - **Plugins:** Extend functionality via inbound and outbound plugins.
   - `webhookx-signature`: Signing outbound requests with HMAC(SHA-256) by adding `Webhookx-Signature` and `Webhookx-Timestamp` to request header.
-  - `wasm`: Using high-level programming languages such as AssemblyScript, Rust and TinyGo to transform outbound requests. See [plugin/wasm](pkg/plugin/wasm).
+  - `wasm`: Using high-level programming languages such as AssemblyScript, Rust and TinyGo to transform outbound requests. See [plugin/wasm](plugins/wasm).
   - `function`: Using JavaScript to customize inbound behavior, such as signature verification and request body transformation.
 - **Observability:** OpenTelemetry Metrics and Tracing.
 

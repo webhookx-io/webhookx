@@ -279,6 +279,7 @@ var _ = Describe("/plugins", Ordered, func() {
 		Context("PUT", func() {
 			var endpoint *entities.Endpoint
 			var plugin *entities.Plugin
+
 			BeforeAll(func() {
 				endpoint = &entities.Endpoint{
 					ID:      utils.KSUID(),
@@ -321,6 +322,44 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Equal(GinkgoT(), "webhookx-signature", result.Name)
 				assert.Equal(GinkgoT(), false, result.Enabled)
 			})
+
+			Context("errors", func() {
+				It("should return HTTP 400 for unkown plugin name", func() {
+					resp, err := adminClient.R().
+						SetBody(map[string]interface{}{
+							"config": map[string]interface{}{
+								"signing_secret": 1,
+							},
+						}).
+						SetResult(entities.Plugin{}).
+						Put("/workspaces/default/plugins/" + plugin.ID)
+					assert.Nil(GinkgoT(), err)
+					assert.Equal(GinkgoT(), 400, resp.StatusCode())
+					assert.Equal(GinkgoT(),
+						"{\"message\":\"json: cannot unmarshal number into Go struct field Config.signing_secret of type string\"}",
+						string(resp.Body()))
+				})
+
+				It("should return HTTP 400 for invalid request body", func() {
+					resp, err := adminClient.R().
+						SetBody("{ invalid json }").
+						SetResult(entities.Plugin{}).
+						Put("/workspaces/default/plugins/" + plugin.ID)
+					assert.Nil(GinkgoT(), err)
+					assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				})
+
+				It("should return HTTP 404", func() {
+					resp, err := adminClient.R().
+						SetBody(map[string]interface{}{}).
+						SetResult(entities.Plugin{}).
+						Put("/workspaces/default/plugins/notfound")
+					assert.Nil(GinkgoT(), err)
+					assert.Equal(GinkgoT(), 404, resp.StatusCode())
+					assert.Equal(GinkgoT(), `{"message":"Not found"}`, string(resp.Body()))
+				})
+			})
+
 		})
 
 		Context("DELETE", func() {

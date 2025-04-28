@@ -11,22 +11,22 @@ func NewLogSDK() *LogSDK {
 	return &LogSDK{}
 }
 
-func log(level zapcore.Level, msg string) {
-	zap.S().Log(level, msg)
+func log(level zapcore.Level, args []interface{}) {
+	zap.S().Logln(level, args...)
 }
 
-func (m *LogSDK) Debug(msg string) {
-	log(zapcore.DebugLevel, msg)
+func (m *LogSDK) Debug(args ...interface{}) {
+	log(zapcore.DebugLevel, args)
 }
 
-func (m *LogSDK) Info(msg string) {
-	log(zapcore.InfoLevel, msg)
+func (m *LogSDK) Info(args ...interface{}) {
+	log(zapcore.InfoLevel, args)
 }
 
-func (m *LogSDK) Warn(msg string) {
-	log(zapcore.WarnLevel, msg)
+func (m *LogSDK) Warn(args ...interface{}) {
+	log(zapcore.WarnLevel, args)
 }
 
-func (m *LogSDK) Error(msg string) {
-	log(zapcore.ErrorLevel, msg)
+func (m *LogSDK) Error(args ...interface{}) {
+	log(zapcore.ErrorLevel, args)
 }

@@ -213,14 +213,14 @@ var _ = Describe("JavaScript", Ordered, func() {
 			})
 			It("sanity", func() {
 				script := `function handle() { 
-                    webhookx.log.debug('debug')
-					webhookx.log.info('info')
-					webhookx.log.warn('warn')
-					webhookx.log.error('error')
+                    webhookx.log.debug('debug', "hello world")
+					webhookx.log.info('info', "hello world")
+					webhookx.log.warn('warn', "hello world")
+					webhookx.log.error('error', "hello world")
                 }`
 				function := NewJavaScript(script)
 				function.Execute(nil)
-				assert.Equal(GinkgoT(), "DEBUG\tdebug\nINFO\tinfo\nWARN\twarn\nERROR\terror\n", buf.String())
+				assert.Equal(GinkgoT(), "DEBUG\tdebug hello world\nINFO\tinfo hello world\nWARN\twarn hello world\nERROR\terror hello world\n", buf.String())
 			})
 		})
 	})

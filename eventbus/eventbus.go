@@ -119,7 +119,7 @@ func (bus *EventBus) ClusteringBroadcast(channel string, data interface{}) error
 
 	bus.log.Debugf("[eventbus] broadcasting cluster message: %s", string(bytes))
 
-	statement := fmt.Sprintf("NOTIFY %s, '%s'", "webhookx", string(bytes))
+	statement := fmt.Sprintf("NOTIFY %s, %s", "webhookx", pq.QuoteLiteral(string(bytes)))
 	_, err = bus.db.ExecContext(context.TODO(), statement)
 	if err != nil {
 		bus.log.Errorf("[eventbus] failed to broadcast message: %v", err)

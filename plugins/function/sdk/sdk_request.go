@@ -1,6 +1,9 @@
 package sdk
 
-import "github.com/webhookx-io/webhookx/utils"
+import (
+	"github.com/dop251/goja"
+	"github.com/webhookx-io/webhookx/utils"
+)
 
 type RequestSDK struct {
 	opts *Options
@@ -28,8 +31,22 @@ func (sdk *RequestSDK) GetHeaders() map[string]string {
 	return utils.HeaderMap(sdk.opts.Context.HTTPRequest.R.Header)
 }
 
-func (sdk *RequestSDK) GetHeader(name string) string {
-	return sdk.opts.Context.HTTPRequest.R.Header.Get(name)
+func (sdk *RequestSDK) getHeader(name string) *string {
+	values := sdk.opts.Context.HTTPRequest.R.Header.Values(name)
+	if len(values) == 0 {
+		return nil
+	}
+	value := values[0]
+	return &value
+}
+
+func (sdk *RequestSDK) GetHeader(call goja.FunctionCall) goja.Value {
+	name := call.Argument(0).String()
+	value := sdk.getHeader(name)
+	if value == nil {
+		return goja.Null()
+	}
+	return sdk.opts.VM.ToValue(*value)
 }
 
 func (sdk *RequestSDK) GetBody() string {

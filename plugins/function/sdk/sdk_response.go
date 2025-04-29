@@ -12,9 +12,9 @@ func NewResponseSDK(opts *Options) *ResponseSDK {
 	}
 }
 
-func (sdk *ResponseSDK) Exit(code int, headers map[string]string, body interface{}) {
+func (sdk *ResponseSDK) Exit(status int, headers map[string]string, body interface{}) {
 	response := &HTTPResponse{
-		Code:    code,
+		Code:    status,
 		Headers: headers,
 	}
 	switch v := body.(type) {

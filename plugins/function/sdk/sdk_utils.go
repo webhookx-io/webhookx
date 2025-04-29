@@ -38,8 +38,8 @@ func (sdk *UtilsSDK) Hmac(algorithm string, key string, data string) []byte {
 	return mac.Sum(nil)
 }
 
-func (sdk *UtilsSDK) Encode(name string, data []byte) string {
-	switch name {
+func (sdk *UtilsSDK) Encode(encoding string, data []byte) string {
+	switch encoding {
 	case "hex":
 		return hex.EncodeToString(data)
 	case "base64":
@@ -47,10 +47,10 @@ func (sdk *UtilsSDK) Encode(name string, data []byte) string {
 	case "base64url":
 		return base64.RawURLEncoding.EncodeToString(data)
 	default:
-		panic(errors.New("unknown encode type: " + name))
+		panic(errors.New("unknown encode type: " + encoding))
 	}
 }
 
-func (sdk *UtilsSDK) TimingSafeEqual(a string, b string) bool {
-	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
+func (sdk *UtilsSDK) TimingSafeEqual(str1 string, str2 string) bool {
+	return subtle.ConstantTimeCompare([]byte(str1), []byte(str2)) == 1
 }

@@ -8,7 +8,7 @@ import (
 )
 
 type Config struct {
-	Function string `json:"function" validate:"required"`
+	Function string `json:"function" validate:"required,max=1048576"`
 }
 
 type FunctionPlugin struct {

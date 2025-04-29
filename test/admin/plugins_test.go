@@ -17,6 +17,7 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
+	"strings"
 )
 
 var _ = Describe("/plugins", Ordered, func() {
@@ -159,6 +160,29 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.NotNil(GinkgoT(), e)
 			})
 
+		})
+
+		Context("function plugin", func() {
+			It("return 400 when function exceed the maximum length", func() {
+				source := factory.SourceP()
+				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"name":      "function",
+						"source_id": source.ID,
+						"config": map[string]string{
+							"function": strings.Repeat("a", 1048576+1),
+						},
+					}).
+					SetResult(entities.Plugin{}).
+					Post("/workspaces/default/plugins")
+
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"function":"length must be at most 1048576"}}}}`,
+					string(resp.Body()))
+			})
 		})
 
 		Context("errors", func() {

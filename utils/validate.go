@@ -47,6 +47,9 @@ func init() {
 	RegisterFormatter("min", func(fe validator.FieldError) string {
 		return fmt.Sprintf("length must be at least %s", fe.Param())
 	})
+	RegisterFormatter("max", func(fe validator.FieldError) string {
+		return fmt.Sprintf("length must be at most %s", fe.Param())
+	})
 }
 
 var validationErr = errors.New("request validation")
@@ -94,5 +97,5 @@ func formatError(fe validator.FieldError) string {
 	if formatter, ok := formatters[fe.Tag()]; ok {
 		return formatter(fe)
 	}
-	return fe.Field()
+	return fe.Error()
 }

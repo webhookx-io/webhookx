@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"github.com/dop251/goja"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"net/http"
 )
@@ -15,6 +16,7 @@ type SDK struct {
 }
 
 type Options struct {
+	VM      *goja.Runtime
 	Context *ExecutionContext
 	Result  *ExecutionResult
 }

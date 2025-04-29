@@ -135,6 +135,7 @@ var _ = Describe("JavaScript", Ordered, func() {
 							Header: http.Header{
 								"Content-Type":        []string{"application/json"},
 								"X-Hub-Signature-256": []string{"sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17"},
+								"X-Foo":               []string{"bar1", "bar2"},
 							},
 						},
 						Body: []byte("payload"),
@@ -149,6 +150,40 @@ var _ = Describe("JavaScript", Ordered, func() {
 				headers := v["headers"].(map[string]string)
 				assert.Equal(GinkgoT(), "application/json", headers["Content-Type"])
 				assert.Equal(GinkgoT(), "sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17", headers["X-Hub-Signature-256"])
+				assert.Equal(GinkgoT(), "bar1,bar2", headers["X-Foo"])
+			})
+
+			It("getHeader", func() {
+				script := `function handle() {
+					var obj = {
+						single: webhookx.request.getHeader('X-Single'),
+						single_type: typeof webhookx.request.getHeader('X-Single'),
+						multiple: webhookx.request.getHeader('X-Multiple'),
+						multiple_type: typeof webhookx.request.getHeader('X-Multiple'),
+						notfound: webhookx.request.getHeader('X-Notfound'),
+						notfound_type: typeof webhookx.request.getHeader('X-Notfound'),
+					}
+					return obj
+                }`
+				function := NewJavaScript(script)
+				result, err := function.Execute(&sdk.ExecutionContext{
+					HTTPRequest: &sdk.HTTPRequest{
+						R: &http.Request{
+							Header: http.Header{
+								"X-Single":   []string{"value"},
+								"X-Multiple": []string{"value1", "value2"},
+							},
+						},
+					},
+				})
+				assert.Nil(GinkgoT(), err)
+				v := result.ReturnValue.(map[string]interface{})
+				assert.Equal(GinkgoT(), "value", v["single"])
+				assert.Equal(GinkgoT(), "string", v["single_type"])
+				assert.Equal(GinkgoT(), "value1", v["multiple"])
+				assert.Equal(GinkgoT(), "string", v["multiple_type"])
+				assert.Equal(GinkgoT(), nil, v["notfound"])
+				assert.Equal(GinkgoT(), "object", v["notfound_type"])
 			})
 
 			It("setBody", func() {

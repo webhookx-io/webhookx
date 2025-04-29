@@ -36,6 +36,7 @@ func (m *JavaScript) Execute(ctx *sdk.ExecutionContext) (res sdk.ExecutionResult
 	vm := m.vm
 
 	err = vm.GlobalObject().Set("webhookx", sdk.NewSDK(&sdk.Options{
+		VM:      vm,
 		Context: ctx,
 		Result:  &res,
 	}))

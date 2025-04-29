@@ -56,4 +56,5 @@ type AttemptDetailDAO interface {
 type PluginDAO interface {
 	BaseDAO[entities.Plugin]
 	ListEndpointPlugin(ctx context.Context, endpointId string) (list []*entities.Plugin, err error)
+	ListSourcePlugin(ctx context.Context, sourceId string) ([]*entities.Plugin, error)
 }

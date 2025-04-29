@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
-	"github.com/webhookx-io/webhookx/pkg/plugin/types"
+	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/utils"
 	"os"
 )
@@ -15,26 +15,28 @@ type Config struct {
 	Envs map[string]string `json:"envs"`
 }
 
-func (cfg *Config) Validate() error {
-	return utils.Validate(cfg)
-}
-
-func (cfg *Config) ProcessDefault() {}
-
 type WasmPlugin struct {
-	types.BasePlugin
-
-	cfg Config
+	plugin.BasePlugin[Config]
 }
 
-func New() types.Plugin {
-	plugin := &WasmPlugin{}
-	plugin.Name = "wasm"
-	return plugin
+func New(config []byte) (plugin.Plugin, error) {
+	p := &WasmPlugin{}
+	p.Name = "wasm"
+
+	if config != nil {
+		if err := p.UnmarshalConfig(config); err != nil {
+			return nil, err
+		}
+	}
+
+	return p, nil
+}
+func (p *WasmPlugin) ValidateConfig() error {
+	return utils.Validate(p.Config)
 }
 
-func (p *WasmPlugin) Execute(req *types.Request, _ *types.Context) error {
-	source, err := os.ReadFile(p.cfg.File)
+func (p *WasmPlugin) ExecuteOutbound(outbound *plugin.Outbound, _ *plugin.Context) error {
+	source, err := os.ReadFile(p.Config.File)
 	if err != nil {
 		return err
 	}
@@ -55,7 +57,7 @@ func (p *WasmPlugin) Execute(req *types.Request, _ *types.Context) error {
 	wasi_snapshot_preview1.MustInstantiate(ctx, runtime)
 
 	cfg := wazero.NewModuleConfig().WithStartFunctions("_initialize", "_start")
-	for k, v := range p.cfg.Envs {
+	for k, v := range p.Config.Envs {
 		cfg = cfg.WithEnv(k, v)
 	}
 	mod, err := runtime.InstantiateWithConfig(ctx, source, cfg)
@@ -68,7 +70,7 @@ func (p *WasmPlugin) Execute(req *types.Request, _ *types.Context) error {
 		return fmt.Errorf("exported function 'transform' is not defined in module")
 	}
 
-	ctx = withContext(ctx, req)
+	ctx = withContext(ctx, outbound)
 	results, err := transform.Call(ctx)
 	if err != nil {
 		return err
@@ -81,8 +83,4 @@ func (p *WasmPlugin) Execute(req *types.Request, _ *types.Context) error {
 	}
 
 	return nil
-}
-
-func (p *WasmPlugin) Config() types.PluginConfig {
-	return &p.cfg
 }

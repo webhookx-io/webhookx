@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/webhookx-io/webhookx/config"
-	"github.com/webhookx-io/webhookx/pkg/plugin/webhookx_signature"
+	"github.com/webhookx-io/webhookx/plugins/webhookx_signature"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"strconv"
 	"time"

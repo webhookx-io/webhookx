@@ -84,6 +84,12 @@ func WithSourceAsync(async bool) SourceOption {
 	}
 }
 
+func WithSourcePath(path string) SourceOption {
+	return func(e *entities.Source) {
+		e.Path = path
+	}
+}
+
 func Source(opts ...SourceOption) entities.Source {
 	e := defaultSource()
 	for _, opt := range opts {
@@ -124,7 +130,13 @@ func WithPluginID(id string) PluginOption {
 
 func WithPluginEndpointID(endpointID string) PluginOption {
 	return func(e *entities.Plugin) {
-		e.EndpointId = endpointID
+		e.EndpointId = &endpointID
+	}
+}
+
+func WithPluginSourceID(sourceID string) PluginOption {
+	return func(e *entities.Plugin) {
+		e.SourceId = &sourceID
 	}
 }
 

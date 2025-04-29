@@ -12,7 +12,9 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
+	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/queue/redis"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
@@ -28,6 +30,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"io"
 	"net/http"
 	"os"
 	"runtime"
@@ -151,14 +154,46 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 		ctx = tracingCtx
 	}
 
-	var event entities.Event
 	r.Body = http.MaxBytesReader(w, r.Body, gw.cfg.MaxRequestBodySize)
-	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
 		if _, ok := err.(*http.MaxBytesError); ok {
 			code := http.StatusRequestEntityTooLarge
 			http.Error(w, http.StatusText(code), code)
 			return
 		}
+	}
+
+	plugins, err := listSourcePlugins(ctx, gw.db, source.ID)
+	if err != nil {
+		exit(w, 500, `{"message": "internal error"}`, nil)
+		return
+	}
+
+	for _, p := range plugins {
+		executor, err := p.Plugin()
+		if err != nil {
+			exit(w, 500, `{"message": "internal error"}`, nil)
+			return
+		}
+		result, err := executor.ExecuteInbound(&plugin.Inbound{
+			Request:  r,
+			Response: w,
+			RawBody:  body,
+		})
+		if err != nil {
+			gw.log.Errorf("[proxy] failed to execute plugin: %v", err)
+			exit(w, 500, `{"message": "internal error"}`, nil)
+			return
+		}
+		if result.Terminated {
+			return
+		}
+		body = result.Payload
+	}
+
+	var event entities.Event
+	if err := json.Unmarshal(body, &event); err != nil {
 		utils.JsonResponse(400, w, types.ErrorResponse{
 			Message: err.Error(),
 		})
@@ -176,7 +211,7 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := gw.ingestEvent(ctx, source.Async, &event)
+	err = gw.ingestEvent(ctx, source.Async, &event)
 	if err != nil {
 		gw.log.Errorf("[proxy] failed to ingest event: %v", err)
 		exit(w, 500, `{"message": "internal error"}`, nil)
@@ -233,6 +268,21 @@ func (gw *Gateway) Start() {
 
 	gw.bus.Subscribe("source.crud", func(data interface{}) {
 		store.Set("router:version", utils.UUID())
+	})
+	gw.bus.Subscribe("plugin.crud", func(data interface{}) {
+		plugin := entities.Plugin{}
+		if err := json.Unmarshal(data.(*eventbus.CrudData).Data, &plugin); err != nil {
+			zap.S().Errorf("failed to unmarshal event data: %s", err)
+			return
+		}
+
+		if plugin.SourceId != nil {
+			cacheKey := constants.SourcePluginsKey.Build(*plugin.SourceId)
+			err := mcache.Invalidate(context.TODO(), cacheKey)
+			if err != nil {
+				zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
+			}
+		}
 	})
 
 	go func() {
@@ -331,4 +381,20 @@ func exit(w http.ResponseWriter, status int, body string, headers headers) {
 
 	w.WriteHeader(status)
 	_, _ = w.Write([]byte(body))
+}
+
+func listSourcePlugins(ctx context.Context, db *db.DB, sourceId string) ([]*entities.Plugin, error) {
+	// refactor me
+	cacheKey := constants.SourcePluginsKey.Build(sourceId)
+	plugins, err := mcache.Load(ctx, cacheKey, nil, func(ctx context.Context, id string) (*[]*entities.Plugin, error) {
+		plugins, err := db.Plugins.ListSourcePlugin(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		return &plugins, nil
+	}, sourceId)
+	if err != nil {
+		return nil, err
+	}
+	return *plugins, err
 }

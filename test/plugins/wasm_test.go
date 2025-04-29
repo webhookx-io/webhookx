@@ -2,7 +2,7 @@ package plugins
 
 import (
 	"context"
-	"github.com/webhookx-io/webhookx/pkg/plugin/wasm"
+	"github.com/webhookx-io/webhookx/plugins/wasm"
 	"github.com/webhookx-io/webhookx/test"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"time"

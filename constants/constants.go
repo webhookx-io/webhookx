@@ -44,6 +44,7 @@ const (
 	EventCacheKey         CacheKey = "events"
 	EndpointCacheKey      CacheKey = "endpoints"
 	EndpointPluginsKey    CacheKey = "endpoint_plugins"
+	SourcePluginsKey      CacheKey = "source_plugins"
 	SourceCacheKey        CacheKey = "sources"
 	WorkspaceCacheKey     CacheKey = "workspaces"
 	AttemptCacheKey       CacheKey = "attempts"

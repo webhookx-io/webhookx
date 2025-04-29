@@ -13,7 +13,6 @@ import (
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
-	plugintypes "github.com/webhookx-io/webhookx/pkg/plugin/types"
 	"github.com/webhookx-io/webhookx/pkg/pool"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
@@ -85,10 +84,13 @@ func NewWorker(
 			zap.S().Errorf("failed to unmarshal event data: %s", err)
 			return
 		}
-		cacheKey := constants.EndpointPluginsKey.Build(plugin.EndpointId)
-		err := mcache.Invalidate(context.TODO(), cacheKey)
-		if err != nil {
-			zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
+
+		if plugin.EndpointId != nil {
+			cacheKey := constants.EndpointPluginsKey.Build(*plugin.EndpointId)
+			err := mcache.Invalidate(context.TODO(), cacheKey)
+			if err != nil {
+				zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
+			}
 		}
 	})
 
@@ -274,23 +276,28 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	}
 
 	cacheKey = constants.WorkspaceCacheKey.Build(endpoint.WorkspaceId)
-	workspace, err := mcache.Load(ctx, cacheKey, nil, w.DB.Workspaces.Get, endpoint.WorkspaceId)
-	if err != nil {
-		return err
-	}
+	//workspace, err := mcache.Load(ctx, cacheKey, nil, w.DB.Workspaces.Get, endpoint.WorkspaceId)
+	//if err != nil {
+	//	return err
+	//}
 
-	pluginReq := plugintypes.Request{
+	outbound := plugin.Outbound{
 		URL:     endpoint.Request.URL,
 		Method:  endpoint.Request.Method,
 		Headers: make(map[string]string),
 		Payload: data.Event,
 	}
-	maps.Copy(pluginReq.Headers, endpoint.Request.Headers)
-	pluginCtx := &plugintypes.Context{
-		Workspace: workspace,
+	maps.Copy(outbound.Headers, endpoint.Request.Headers)
+	pluginCtx := &plugin.Context{
+		//Workspace: workspace,
 	}
 	for _, p := range plugins {
-		err = plugin.ExecutePlugin(p, &pluginReq, pluginCtx)
+		executor, err := p.Plugin()
+		if err != nil {
+			return err
+		}
+
+		err = executor.ExecuteOutbound(&outbound, pluginCtx)
 		if err != nil {
 			return fmt.Errorf("failed to execute %s plugin: %v", p.Name, err)
 		}
@@ -298,10 +305,10 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 
 	request := &deliverer.Request{
 		Request: nil,
-		URL:     pluginReq.URL,
-		Method:  pluginReq.Method,
-		Payload: []byte(pluginReq.Payload),
-		Headers: pluginReq.Headers,
+		URL:     outbound.URL,
+		Method:  outbound.Method,
+		Payload: []byte(outbound.Payload),
+		Headers: outbound.Headers,
 		Timeout: time.Duration(endpoint.Request.Timeout) * time.Millisecond,
 	}
 

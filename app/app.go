@@ -17,6 +17,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
+	"github.com/webhookx-io/webhookx/plugins"
 	"github.com/webhookx-io/webhookx/proxy"
 	"github.com/webhookx-io/webhookx/worker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
@@ -30,6 +31,10 @@ var (
 	ErrApplicationStarted = errors.New("already started")
 	ErrApplicationStopped = errors.New("already stopped")
 )
+
+func init() {
+	plugins.LoadPlugins()
+}
 
 type Application struct {
 	mux     sync.Mutex

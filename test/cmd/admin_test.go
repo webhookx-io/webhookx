@@ -9,7 +9,7 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/cmd"
 	"github.com/webhookx-io/webhookx/db"
-	"github.com/webhookx-io/webhookx/pkg/plugin/webhookx_signature"
+	"github.com/webhookx-io/webhookx/plugins/webhookx_signature"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
@@ -91,6 +91,13 @@ var _ = Describe("admin", Ordered, func() {
 				assert.Equal(GinkgoT(), "webhookx-signature", plugins[0].Name)
 				assert.Equal(GinkgoT(), true, plugins[0].Enabled)
 				assert.Equal(GinkgoT(), `{"signing_secret": "foo"}`, string(plugins[0].Config))
+
+				plugins, err = db.Plugins.ListSourcePlugin(context.TODO(), source.ID)
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 1, len(plugins))
+				assert.Equal(GinkgoT(), "function", plugins[0].Name)
+				assert.Equal(GinkgoT(), true, plugins[0].Enabled)
+				assert.Equal(GinkgoT(), `{"function": "function handle() {}"}`, string(plugins[0].Config))
 			})
 
 			It("entities not defined in the declarative configuration should be deleted", func() {

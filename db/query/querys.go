@@ -75,6 +75,7 @@ type PluginQuery struct {
 
 	WorkspaceId *string
 	EndpointId  *string
+	SourceId    *string
 	Enabled     *bool
 }
 
@@ -85,6 +86,9 @@ func (q *PluginQuery) WhereMap() map[string]interface{} {
 	}
 	if q.EndpointId != nil {
 		maps["endpoint_id"] = *q.EndpointId
+	}
+	if q.SourceId != nil {
+		maps["source_id"] = *q.SourceId
 	}
 	if q.Enabled != nil {
 		maps["enabled"] = *q.Enabled

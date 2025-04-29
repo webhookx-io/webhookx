@@ -36,19 +36,20 @@ func (api *API) Sync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var cfg declarative.Configuration
-	err = json.Unmarshal(body, &cfg)
-	if err != nil {
+	if err := json.Unmarshal(body, &cfg); err != nil {
 		api.error(400, w, errors.New("invalid yaml content: "+err.Error()))
 		return
 	}
 
+	cfg.Init()
+
 	if err := cfg.Validate(); err != nil {
-		api.error(400, w, errors.New("invalid configuration: "+err.Error()))
+		api.error(400, w, err)
 		return
 	}
 
 	wid := ucontext.GetWorkspaceID(r.Context())
-	err = api.declarative.Sync(wid, cfg)
+	err = api.declarative.Sync(wid, &cfg)
 	api.assert(err)
 
 	api.json(200, w, nil)

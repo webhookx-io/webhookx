@@ -22,6 +22,7 @@ endpoints:
         name: webhookx-signature
         enabled: true
         endpoint_id: 2q6ItdkHcFz8jQaXxrGp35xsShS
+        source_id: null
         config:
           signing_secret: test
 sources:
@@ -33,3 +34,4 @@ sources:
       - POST
     async: false
     response: null
+    plugins: []

@@ -79,7 +79,7 @@ sources:
                 let parsed = parse(webhookx.request.getHeader("Stripe-Signature"))
               
                 var signedPayload = `${parsed.timestamp}.${webhookx.request.getBody()}`
-                var bytes = webhookx.utils.hmac('SHA-256', "whsec_EE55FpBAWJ2rF2d4fWPRCjtZiSzAihH7", signedPayload)
+                var bytes = webhookx.utils.hmac('SHA-256', "whsec_yoursecret", signedPayload)
                 var exceptedSignature = webhookx.utils.encode('hex', bytes)
             
                 var valid = false

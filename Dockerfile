@@ -1,4 +1,4 @@
-FROM golang:1.23 AS build-env
+FROM golang:1.24.3 AS build-env
 
 WORKDIR /go/src/webhookx-io/webhookx
 

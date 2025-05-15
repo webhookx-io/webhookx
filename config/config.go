@@ -16,14 +16,15 @@ var (
 )
 
 type Config struct {
-	Log      LogConfig      `yaml:"log" envconfig:"LOG"`
-	Database DatabaseConfig `yaml:"database" envconfig:"DATABASE"`
-	Redis    RedisConfig    `yaml:"redis" envconfig:"REDIS"`
-	Admin    AdminConfig    `yaml:"admin" envconfig:"ADMIN"`
-	Proxy    ProxyConfig    `yaml:"proxy" envconfig:"PROXY"`
-	Worker   WorkerConfig   `yaml:"worker" envconfig:"WORKER"`
-	Metrics  MetricsConfig  `yaml:"metrics" envconfig:"METRICS"`
-	Tracing  TracingConfig  `yaml:"tracing" envconfig:"TRACING"`
+	Log       LogConfig       `yaml:"log" envconfig:"LOG"`
+	AccessLog AccessLogConfig `yaml:"access_log" envconfig:"ACCESS_LOG"`
+	Database  DatabaseConfig  `yaml:"database" envconfig:"DATABASE"`
+	Redis     RedisConfig     `yaml:"redis" envconfig:"REDIS"`
+	Admin     AdminConfig     `yaml:"admin" envconfig:"ADMIN"`
+	Proxy     ProxyConfig     `yaml:"proxy" envconfig:"PROXY"`
+	Worker    WorkerConfig    `yaml:"worker" envconfig:"WORKER"`
+	Metrics   MetricsConfig   `yaml:"metrics" envconfig:"METRICS"`
+	Tracing   TracingConfig   `yaml:"tracing" envconfig:"TRACING"`
 }
 
 func (cfg Config) String() string {
@@ -36,6 +37,9 @@ func (cfg Config) String() string {
 
 func (cfg Config) Validate() error {
 	if err := cfg.Log.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.AccessLog.Validate(); err != nil {
 		return err
 	}
 	if err := cfg.Database.Validate(); err != nil {

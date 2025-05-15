@@ -13,6 +13,7 @@ import (
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
+	"github.com/webhookx-io/webhookx/pkg/accesslog"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/queue"
@@ -68,7 +69,8 @@ func NewGateway(cfg *config.ProxyConfig,
 	dispatcher *dispatcher.Dispatcher,
 	metrics *metrics.Metrics,
 	tracer *tracing.Tracer,
-	bus *eventbus.EventBus) *Gateway {
+	bus *eventbus.EventBus,
+	accessLogger accesslog.AccessLogger) *Gateway {
 	var q queue.Queue
 	switch cfg.Queue.Type {
 	case "redis":
@@ -90,6 +92,9 @@ func NewGateway(cfg *config.ProxyConfig,
 	}
 
 	r := mux.NewRouter()
+	if accessLogger != nil {
+		r.Use(accesslog.NewMiddleware(accessLogger))
+	}
 	r.Use(middlewares.PanicRecovery)
 	if metrics.Enabled {
 		r.Use(middlewares.NewMetricsMiddleware(metrics).Handle)

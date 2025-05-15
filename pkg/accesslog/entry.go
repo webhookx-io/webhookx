@@ -53,7 +53,7 @@ func (m *Entry) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("username", m.Username)
 	e.Str("referer", m.Referer)
 	e.Str("user_agent", m.UserAgent)
-	e.Int64("duration", m.Latency.Milliseconds())
+	e.Int64("latency", m.Latency.Milliseconds())
 	e.Int("response_size", m.BodySize)
 }
 

@@ -1,4 +1,0 @@
-log:
-  file: webhookx.log
-  level: info
-  format: text

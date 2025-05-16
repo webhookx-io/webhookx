@@ -6,6 +6,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/pkg/envconfig"
 	"gopkg.in/yaml.v3"
+	"io"
 	"os"
 )
 
@@ -94,7 +95,7 @@ func InitWithFile(filename string) (*Config, error) {
 	defer f.Close()
 	decoder := yaml.NewDecoder(f)
 	err = decoder.Decode(&cfg)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, err
 	}
 

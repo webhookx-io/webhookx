@@ -321,7 +321,7 @@ func TestConfig(t *testing.T) {
 }
 
 func TestInitWithFile(t *testing.T) {
-	cfg, err := InitWithFile("./testdata/config.yml")
+	cfg, err := InitWithFile("./testdata/config-empty.yml")
 	assert.Nil(t, err)
 	assert.Nil(t, cfg.Validate())
 }

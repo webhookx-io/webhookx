@@ -3,6 +3,7 @@ package accesslog
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -12,7 +13,7 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
-	"os"
+	"net/url"
 	"regexp"
 	"testing"
 	"time"
@@ -71,9 +72,6 @@ var _ = Describe("access_log", Ordered, func() {
 				Sources:   []*entities.Source{factory.SourceP()},
 			}
 			helper.InitDB(true, &entitiesConfig)
-			if _, err := os.Stat("webhookx-access.log"); err == nil {
-				helper.TruncateFile("webhookx-access.log")
-			}
 			app = utils.Must(helper.Start(map[string]string{
 				"NO_COLOR":                 "true",
 				"WEBHOOKX_ADMIN_LISTEN":    "0.0.0.0:8080",
@@ -117,6 +115,8 @@ var _ = Describe("access_log", Ordered, func() {
 		})
 
 		It("proxy accesslog", func() {
+			u, err := url.Parse(proxyClient.BaseURL)
+			newURL := fmt.Sprintf("%s://username:password@%s/%s", u.Scheme, u.Host, u.Path)
 			assert.Eventually(GinkgoT(), func() bool {
 				resp, err := proxyClient.R().
 					SetHeader("User-Agent", "WebhookX/dev").
@@ -126,8 +126,7 @@ var _ = Describe("access_log", Ordered, func() {
 							"key": "value"
 						}
 					}`).
-					SetBasicAuth("username", "password").
-					Post("/")
+					Post(newURL)
 				return err == nil && resp.StatusCode() == 200
 			}, time.Second*5, time.Second)
 			line, err := helper.FileLine("webhookx-access.log", 1)

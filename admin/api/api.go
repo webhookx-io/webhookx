@@ -7,6 +7,7 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
+	"github.com/webhookx-io/webhookx/pkg/accesslog"
 	"github.com/webhookx-io/webhookx/pkg/declarative"
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
@@ -22,22 +23,24 @@ const (
 )
 
 type API struct {
-	cfg         *config.Config
-	log         *zap.SugaredLogger
-	DB          *db.DB
-	dispatcher  *dispatcher.Dispatcher
-	tracer      *tracing.Tracer
-	declarative *declarative.Declarative
+	cfg          *config.Config
+	log          *zap.SugaredLogger
+	DB           *db.DB
+	dispatcher   *dispatcher.Dispatcher
+	tracer       *tracing.Tracer
+	declarative  *declarative.Declarative
+	accessLogger accesslog.AccessLogger
 }
 
-func NewAPI(cfg *config.Config, db *db.DB, dispatcher *dispatcher.Dispatcher, tracer *tracing.Tracer) *API {
+func NewAPI(cfg *config.Config, db *db.DB, dispatcher *dispatcher.Dispatcher, tracer *tracing.Tracer, accessLogger accesslog.AccessLogger) *API {
 	return &API{
-		cfg:         cfg,
-		log:         zap.S(),
-		DB:          db,
-		dispatcher:  dispatcher,
-		tracer:      tracer,
-		declarative: declarative.NewDeclarative(db),
+		cfg:          cfg,
+		log:          zap.S(),
+		DB:           db,
+		dispatcher:   dispatcher,
+		tracer:       tracer,
+		declarative:  declarative.NewDeclarative(db),
+		accessLogger: accessLogger,
 	}
 }
 
@@ -110,6 +113,10 @@ func (api *API) assert(err error) {
 // Handler returns a http.Handler
 func (api *API) Handler() http.Handler {
 	r := mux.NewRouter()
+
+	if api.accessLogger != nil {
+		r.Use(accesslog.NewMiddleware(api.accessLogger))
+	}
 	if api.tracer != nil {
 		r.Use(otelhttp.NewMiddleware("api.admin"))
 	}

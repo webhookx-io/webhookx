@@ -12,6 +12,7 @@ import (
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
+	"github.com/webhookx-io/webhookx/pkg/accesslog"
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
@@ -147,13 +148,33 @@ func (app *Application) initialize() error {
 
 	// admin
 	if cfg.Admin.IsEnabled() {
-		handler := api.NewAPI(cfg, db, app.dispatcher, app.tracer).Handler()
-		app.admin = admin.NewAdmin(cfg.Admin, handler)
+		var accessLogger accesslog.AccessLogger
+		if cfg.AccessLog.Enabled() {
+			accessLogger, err = accesslog.NewAccessLogger("admin", accesslog.Options{
+				File:   cfg.AccessLog.File,
+				Format: string(cfg.AccessLog.Format),
+			})
+			if err != nil {
+				return err
+			}
+		}
+		api := api.NewAPI(cfg, db, app.dispatcher, app.tracer, accessLogger)
+		app.admin = admin.NewAdmin(cfg.Admin, api.Handler())
 	}
 
 	// gateway
 	if cfg.Proxy.IsEnabled() {
-		app.gateway = proxy.NewGateway(&cfg.Proxy, db, app.dispatcher, app.metrics, app.tracer, app.bus)
+		var accessLogger accesslog.AccessLogger
+		if cfg.AccessLog.Enabled() {
+			accessLogger, err = accesslog.NewAccessLogger("proxy", accesslog.Options{
+				File:   cfg.AccessLog.File,
+				Format: string(cfg.AccessLog.Format),
+			})
+			if err != nil {
+				return err
+			}
+		}
+		app.gateway = proxy.NewGateway(&cfg.Proxy, db, app.dispatcher, app.metrics, app.tracer, app.bus, accessLogger)
 	}
 
 	return nil

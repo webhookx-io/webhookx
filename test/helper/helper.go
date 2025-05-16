@@ -26,9 +26,10 @@ var (
 )
 
 var defaultEnvs = map[string]string{
-	"WEBHOOKX_LOG_LEVEL":  "debug",
-	"WEBHOOKX_LOG_FORMAT": "text",
-	"WEBHOOKX_LOG_FILE":   "webhookx.log",
+	"WEBHOOKX_LOG_LEVEL":       "debug",
+	"WEBHOOKX_LOG_FORMAT":      "text",
+	"WEBHOOKX_LOG_FILE":        "webhookx.log",
+	"WEBHOOKX_ACCESS_LOG_FILE": "webhookx.log",
 }
 
 func setEnvs(envs map[string]string) error {
@@ -57,6 +58,10 @@ func Start(envs map[string]string) (*app.Application, error) {
 
 	if _, err := os.Stat(defaultEnvs["WEBHOOKX_LOG_FILE"]); err == nil {
 		TruncateFile(defaultEnvs["WEBHOOKX_LOG_FILE"])
+	}
+
+	if _, err := os.Stat(defaultEnvs["WEBHOOKX_ACCESS_LOG_FILE"]); err == nil {
+		TruncateFile(defaultEnvs["WEBHOOKX_ACCESS_LOG_FILE"])
 	}
 
 	app, err := app.NewApplication(cfg)
@@ -227,11 +232,8 @@ func resetDB() error {
 	return migrator.Up()
 }
 
-func TruncateFile(filename string) {
-	err := os.Truncate(filename, 0)
-	if err != nil {
-		panic("failed to truncate file: " + err.Error())
-	}
+func TruncateFile(filename string) error {
+	return os.Truncate(filename, 0)
 }
 
 func FileLine(filename string, n int) (string, error) {

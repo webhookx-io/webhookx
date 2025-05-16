@@ -29,7 +29,7 @@ type Entry struct {
 
 func NewEntry(r *http.Request) *Entry {
 	host, _ := parseHostPort(r.RemoteAddr)
-	username, _ := extractBasicAuth(r)
+	username, _, _ := r.BasicAuth()
 	entry := Entry{
 		Username:   username,
 		Method:     r.Method,

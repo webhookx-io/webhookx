@@ -271,6 +271,43 @@ func TestTracingConfig(t *testing.T) {
 	}
 }
 
+func TestAccessLogConfig(t *testing.T) {
+	tests := []struct {
+		desc                string
+		cfg                 AccessLogConfig
+		expectedValidateErr error
+	}{
+		{
+			desc: "sanity",
+			cfg: AccessLogConfig{
+				File:   "/dev/stdout",
+				Format: "text",
+			},
+			expectedValidateErr: nil,
+		},
+		{
+			desc: "invalid format",
+			cfg: AccessLogConfig{
+				File:   "/dev/stdout",
+				Format: "",
+			},
+			expectedValidateErr: errors.New("invalid format: "),
+		},
+		{
+			desc: "invalid format: x",
+			cfg: AccessLogConfig{
+				File:   "/dev/stdout",
+				Format: "x",
+			},
+			expectedValidateErr: errors.New("invalid format: x"),
+		},
+	}
+	for _, test := range tests {
+		actualValidateErr := test.cfg.Validate()
+		assert.Equal(t, test.expectedValidateErr, actualValidateErr, "expected %v got %v", test.expectedValidateErr, actualValidateErr)
+	}
+}
+
 func TestConfig(t *testing.T) {
 	cfg, err := Init()
 	assert.Nil(t, err)

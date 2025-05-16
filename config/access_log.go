@@ -6,7 +6,7 @@ import (
 )
 
 type AccessLogConfig struct {
-	File   string    `yaml:"file"`
+	File   string    `yaml:"file" default:"/dev/stdout"`
 	Format LogFormat `yaml:"format" default:"text"`
 }
 

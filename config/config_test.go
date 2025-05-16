@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -310,6 +311,17 @@ func TestAccessLogConfig(t *testing.T) {
 
 func TestConfig(t *testing.T) {
 	cfg, err := Init()
+	assert.Nil(t, err)
+	assert.Nil(t, cfg.Validate())
+	str := cfg.String()
+	cfg2 := &Config{}
+	err = json.Unmarshal([]byte(str), cfg2)
+	assert.Nil(t, err)
+	assert.Equal(t, cfg, cfg2)
+}
+
+func TestInitWithFile(t *testing.T) {
+	cfg, err := InitWithFile("./testdata/config.yml")
 	assert.Nil(t, err)
 	assert.Nil(t, cfg.Validate())
 }

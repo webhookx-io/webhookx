@@ -232,11 +232,8 @@ func resetDB() error {
 	return migrator.Up()
 }
 
-func TruncateFile(filename string) {
-	err := os.Truncate(filename, 0)
-	if err != nil {
-		panic("failed to truncate file: " + err.Error())
-	}
+func TruncateFile(filename string) error {
+	return os.Truncate(filename, 0)
 }
 
 func FileLine(filename string, n int) (string, error) {

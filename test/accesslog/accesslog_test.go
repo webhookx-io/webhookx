@@ -88,9 +88,14 @@ var _ = Describe("access_log", Ordered, func() {
 			app.Stop()
 		})
 
+		BeforeEach(func() {
+			helper.TruncateFile("webhookx-access.log")
+		})
+
 		It("admin accesslog", func() {
 			resp, err := adminClient.R().
 				SetHeader("User-Agent", "WebhookX/dev").
+				SetBasicAuth("username", "password").
 				Get("/")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
@@ -99,6 +104,7 @@ var _ = Describe("access_log", Ordered, func() {
 			entryMap, err := parse(line)
 			assert.Nil(GinkgoT(), err)
 			assert.Regexp(GinkgoT(), "\\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}", entryMap["ts"])
+			assert.Equal(GinkgoT(), "username", entryMap["username"])
 			assert.Equal(GinkgoT(), "admin", entryMap["name"])
 			assert.Regexp(GinkgoT(), "\\d+", entryMap["response_size"])
 			assert.Equal(GinkgoT(), "/", entryMap["path"])
@@ -120,14 +126,16 @@ var _ = Describe("access_log", Ordered, func() {
 							"key": "value"
 						}
 					}`).
+					SetBasicAuth("username", "password").
 					Post("/")
 				return err == nil && resp.StatusCode() == 200
 			}, time.Second*5, time.Second)
-			line, err := helper.FileLine("webhookx-access.log", 2)
+			line, err := helper.FileLine("webhookx-access.log", 1)
 			assert.Nil(GinkgoT(), err)
 			entryMap, err := parse(line)
 			assert.Nil(GinkgoT(), err)
 			assert.Regexp(GinkgoT(), "\\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}", entryMap["ts"])
+			assert.Equal(GinkgoT(), "username", entryMap["username"])
 			assert.Equal(GinkgoT(), "proxy", entryMap["name"])
 			assert.Regexp(GinkgoT(), "\\d+", entryMap["response_size"])
 			assert.Equal(GinkgoT(), "/", entryMap["path"])
@@ -151,7 +159,6 @@ var _ = Describe("access_log", Ordered, func() {
 				Sources:   []*entities.Source{factory.SourceP()},
 			}
 			helper.InitDB(true, &entitiesConfig)
-			helper.TruncateFile("webhookx-access.log")
 			app = utils.Must(helper.Start(map[string]string{
 				"NO_COLOR":                   "true",
 				"WEBHOOKX_ADMIN_LISTEN":      "0.0.0.0:8080",
@@ -167,9 +174,14 @@ var _ = Describe("access_log", Ordered, func() {
 			app.Stop()
 		})
 
+		BeforeEach(func() {
+			helper.TruncateFile("webhookx-access.log")
+		})
+
 		It("admin accesslog", func() {
 			resp, err := adminClient.R().
 				SetHeader("User-Agent", "WebhookX/dev").
+				SetBasicAuth("username", "password").
 				Get("/")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
@@ -179,6 +191,7 @@ var _ = Describe("access_log", Ordered, func() {
 			json.Unmarshal([]byte(line), &entryMap)
 			assert.Nil(GinkgoT(), err)
 			assert.Regexp(GinkgoT(), "\\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}", entryMap["ts"])
+			assert.Equal(GinkgoT(), "username", entryMap["username"])
 			assert.Equal(GinkgoT(), "admin", entryMap["name"])
 			assert.Regexp(GinkgoT(), "\\d+", entryMap["response_size"])
 			assert.Equal(GinkgoT(), "/", entryMap["path"])
@@ -194,6 +207,7 @@ var _ = Describe("access_log", Ordered, func() {
 			assert.Eventually(GinkgoT(), func() bool {
 				resp, err := proxyClient.R().
 					SetHeader("User-Agent", "WebhookX/dev").
+					SetBasicAuth("username", "password").
 					SetBody(`{
 					    "event_type": "foo.bar",
 					    "data": {
@@ -203,12 +217,13 @@ var _ = Describe("access_log", Ordered, func() {
 					Post("/")
 				return err == nil && resp.StatusCode() == 200
 			}, time.Second*5, time.Second)
-			line, err := helper.FileLine("webhookx-access.log", 2)
+			line, err := helper.FileLine("webhookx-access.log", 1)
 			assert.Nil(GinkgoT(), err)
 			entryMap := make(map[string]interface{})
 			json.Unmarshal([]byte(line), &entryMap)
 			assert.Nil(GinkgoT(), err)
 			assert.Regexp(GinkgoT(), "\\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3}", entryMap["ts"])
+			assert.Equal(GinkgoT(), "username", entryMap["username"])
 			assert.Equal(GinkgoT(), "proxy", entryMap["name"])
 			assert.Regexp(GinkgoT(), "\\d+", entryMap["response_size"])
 			assert.Equal(GinkgoT(), "/", entryMap["path"])

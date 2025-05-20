@@ -28,7 +28,7 @@ func (m *middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http
 	rw := &responseWriter{ResponseWriter: w}
 	next.ServeHTTP(rw, r)
 
-	entry.Latency = time.Now().Sub(now)
+	entry.Latency = time.Since(now)
 	entry.Response.Status = rw.statusCode
 	entry.Response.Size = rw.bytesWritten
 

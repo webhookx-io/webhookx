@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/constants"
@@ -14,6 +15,7 @@ import (
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/accesslog"
+	"github.com/webhookx-io/webhookx/pkg/loglimiter"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/queue"
@@ -62,6 +64,8 @@ type Gateway struct {
 	metrics *metrics.Metrics
 	tracer  *tracing.Tracer
 	bus     *eventbus.EventBus
+
+	limiter *loglimiter.Limiter
 }
 
 func NewGateway(cfg *config.ProxyConfig,
@@ -81,7 +85,7 @@ func NewGateway(cfg *config.ProxyConfig,
 
 	gw := &Gateway{
 		cfg:        cfg,
-		log:        zap.S(),
+		log:        zap.S().Named("proxy"),
 		router:     router.NewRouter(nil),
 		db:         db,
 		dispatcher: dispatcher,
@@ -89,6 +93,7 @@ func NewGateway(cfg *config.ProxyConfig,
 		metrics:    metrics,
 		tracer:     tracer,
 		bus:        bus,
+		limiter:    loglimiter.NewLimiter(time.Second),
 	}
 
 	r := mux.NewRouter()
@@ -116,11 +121,11 @@ func NewGateway(cfg *config.ProxyConfig,
 }
 
 func (gw *Gateway) buildRouter(version string) {
-	gw.log.Debugf("[proxy] creating router")
+	gw.log.Debugw("building router", "version", version)
 
 	sources, err := gw.db.Sources.List(context.TODO(), &query.SourceQuery{})
 	if err != nil {
-		gw.log.Warnf("[proxy] failed to build router: %v", err)
+		gw.log.Warnf("failed to build router: %v", err)
 		return
 	}
 
@@ -187,7 +192,7 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 			RawBody:  body,
 		})
 		if err != nil {
-			gw.log.Errorf("[proxy] failed to execute plugin: %v", err)
+			gw.log.Errorf("failed to execute plugin: %v", err)
 			exit(w, 500, `{"message": "internal error"}`, nil)
 			return
 		}
@@ -218,7 +223,7 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err = gw.ingestEvent(ctx, source.Async, &event)
 	if err != nil {
-		gw.log.Errorf("[proxy] failed to ingest event: %v", err)
+		gw.log.Errorf("failed to ingest event: %v", err)
 		exit(w, 500, `{"message": "internal error"}`, nil)
 		return
 	}
@@ -305,15 +310,18 @@ func (gw *Gateway) Start() {
 		}
 	}()
 
+	gw.log.Infow(fmt.Sprintf(`listening on address "%s"`, gw.cfg.Listen),
+		"tls", gw.cfg.TLS.Enabled(),
+	)
+
 	if gw.queue != nil {
 		listeners := runtime.GOMAXPROCS(0)
-		gw.log.Infof("[proxy] starting %d queue listener", listeners)
+		gw.log.Infof(`starting %d listeners`, listeners)
 		for i := 0; i < listeners; i++ {
 			go gw.listenQueue()
 		}
 	}
 
-	gw.log.Info("[proxy] started")
 }
 
 // Stop stops the HTTP server
@@ -324,6 +332,9 @@ func (gw *Gateway) Stop() error {
 		// Error from closing listeners, or context timeout:
 		return err
 	}
+
+	gw.log.Info("proxy stopped")
+
 	return nil
 }
 
@@ -340,8 +351,8 @@ func (gw *Gateway) listenQueue() {
 		default:
 			ctx := context.TODO()
 			messages, err := gw.queue.Dequeue(ctx, opts)
-			if err != nil {
-				gw.log.Warnf("[proxy] [queue] failed to dequeue: %v", err)
+			if err != nil && gw.limiter.Allow(err.Error()) {
+				gw.log.Warnf("failed to dequeue: %v", err)
 				time.Sleep(time.Second)
 				continue
 			}
@@ -354,7 +365,7 @@ func (gw *Gateway) listenQueue() {
 				var event entities.Event
 				err = json.Unmarshal(message.Data, &event)
 				if err != nil {
-					gw.log.Warnf("[proxy] [queue] faield to unmarshal message: %v", err)
+					gw.log.Warnf("faield to unmarshal message: %v", err)
 					continue
 				}
 				event.WorkspaceId = message.WorkspaceID
@@ -363,7 +374,7 @@ func (gw *Gateway) listenQueue() {
 
 			err = gw.dispatcher.DispatchBatch(ctx, events)
 			if err != nil {
-				gw.log.Warnf("[proxy] [queue] failed to dispatch event in batch: %v", err)
+				gw.log.Warnf("failed to dispatch event in batch: %v", err)
 				continue
 			}
 			_ = gw.queue.Delete(ctx, messages)

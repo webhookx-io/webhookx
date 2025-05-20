@@ -1,10 +1,9 @@
 package accesslog
 
 import (
-	"fmt"
 	"github.com/rs/zerolog"
+	"github.com/webhookx-io/webhookx/utils"
 	"io"
-	"os"
 )
 
 type TextLogger struct {
@@ -29,19 +28,11 @@ func NewTextLogger(name string, writer io.Writer) *TextLogger {
 	output.FieldsExclude = []string{"name"}
 	output.FormatLevel = func(i interface{}) string { return "" }
 	output.FormatFieldName = func(i interface{}) string { return "" }
-	name = colorize("["+name+"]", 90)
+	name = utils.Colorize("["+name+"]", utils.ColorDarkGray)
 	logger := zerolog.New(output).With().Str("name", name).Logger()
 	return &TextLogger{
 		logger: &logger,
 	}
-}
-
-func colorize(s interface{}, c int) string {
-	if os.Getenv("NO_COLOR") != "" || c == 0 {
-		return fmt.Sprintf("%s", s)
-	}
-
-	return fmt.Sprintf("\x1b[%dm%v\x1b[0m", c, s)
 }
 
 func (l *TextLogger) Log(entry *Entry) {

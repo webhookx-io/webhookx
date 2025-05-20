@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -18,8 +19,9 @@ type Pool struct {
 
 	workers int
 
-	tasks chan Task
-	wait  sync.WaitGroup
+	tasks    chan Task
+	wait     sync.WaitGroup
+	handling int64
 }
 
 func NewPool(size int, workers int) *Pool {
@@ -77,9 +79,15 @@ func (p *Pool) consume() {
 		case <-p.ctx.Done():
 			return
 		case t := <-p.tasks:
+			atomic.AddInt64(&p.handling, 1)
 			t.Execute()
+			atomic.AddInt64(&p.handling, -1)
 		}
 	}
+}
+
+func (p *Pool) GetHandling() int64 {
+	return atomic.LoadInt64(&p.handling)
 }
 
 func (p *Pool) Shutdown() {

@@ -64,7 +64,7 @@ func Start(envs map[string]string) (*app.Application, error) {
 		TruncateFile(defaultEnvs["WEBHOOKX_ACCESS_LOG_FILE"])
 	}
 
-	app, err := app.NewApplication(cfg)
+	app, err := app.New(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -125,9 +125,9 @@ func DB() *db.DB {
 	eventbus := eventbus.NewEventBus(
 		config.NODE,
 		cfg.Database.GetDSN(),
-		log1.Sugar(), sqlDB)
+		log1, sqlDB)
 
-	db, err := db.NewDB(sqlDB, log1.Sugar(), eventbus)
+	db, err := db.NewDB(sqlDB, log1, eventbus)
 	if err != nil {
 		return nil
 	}

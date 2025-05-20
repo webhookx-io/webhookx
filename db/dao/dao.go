@@ -58,7 +58,7 @@ type Options struct {
 
 func NewDAO[T any](db *sqlx.DB, bus *eventbus.EventBus, opts Options) *DAO[T] {
 	dao := DAO[T]{
-		log:       zap.S(),
+		log:       zap.S().Named("dao"),
 		db:        db,
 		bus:       bus,
 		workspace: opts.Workspace,
@@ -74,7 +74,7 @@ func NewDAO[T any](db *sqlx.DB, bus *eventbus.EventBus, opts Options) *DAO[T] {
 }
 
 func (dao *DAO[T]) debugSQL(sql string, args []interface{}) {
-	dao.log.Debugf("[dao] execute: %s", sql)
+	dao.log.Debug(sql)
 }
 
 func (dao *DAO[T]) DB(ctx context.Context) Queryable {

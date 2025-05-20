@@ -70,7 +70,7 @@ func NewWorker(
 		cancel:    cancel,
 		opts:      opts,
 		queue:     queue,
-		log:       zap.S(),
+		log:       zap.S().Named("worker"),
 		deliverer: deliverer,
 		DB:        db,
 		pool:      pool.NewPool(opts.PoolSize, opts.PoolConcurrency),
@@ -112,14 +112,14 @@ func (w *Worker) run() {
 			for {
 				tasks, err := w.queue.Get(context.TODO(), options)
 				if err != nil {
-					w.log.Errorf("[worker] failed to get tasks from queue: %v", err)
+					w.log.Errorf("failed to fetch tasks from queue: %v", err)
 					break
 				}
 				if len(tasks) == 0 {
 					break
 				}
 
-				w.log.Debugf("[worker] receive tasks: %d", len(tasks))
+				w.log.Debugf("received tasks: %d", len(tasks))
 				var errs []error
 				for _, task := range tasks {
 					err = w.pool.SubmitFn(time.Second*5, func() {
@@ -133,7 +133,7 @@ func (w *Worker) run() {
 						task.Data = &MessageData{}
 						err = task.UnmarshalData(task.Data)
 						if err != nil {
-							w.log.Errorf("[worker] failed to unmarshal task: %v", err)
+							w.log.Errorf("failed to unmarshal task: %v", err)
 							_ = w.queue.Delete(ctx, task)
 							return
 						}
@@ -141,7 +141,7 @@ func (w *Worker) run() {
 						err = w.handleTask(ctx, task)
 						if err != nil {
 							// TODO: delete task when causes error too many times (maxReceiveCount)
-							w.log.Errorf("[worker] failed to handle task: %v", err)
+							w.log.Errorf("failed to handle task: %v", err)
 							return
 						}
 
@@ -155,7 +155,7 @@ func (w *Worker) run() {
 					}
 				}
 				if len(errs) > 0 { // pool.ErrTimeout
-					w.log.Warnf("[worker] failed to submit tasks to pool: %v", errs) // consider tuning pool configuration
+					w.log.Warnf("failed to submit tasks to pool: %v", errs) // consider tuning pool configuration
 					break
 				}
 			}
@@ -165,20 +165,24 @@ func (w *Worker) run() {
 
 // Start starts worker
 func (w *Worker) Start() error {
+	w.log.Infow("starting worker", zap.Any("pool", map[string]interface{}{
+		"size":      w.opts.PoolSize,
+		"consumers": w.opts.PoolConcurrency,
+	}))
+
 	go w.run()
 
 	schedule.Schedule(w.ctx, w.processRequeue, w.opts.RequeueJobInterval)
-	w.log.Infof("[worker] created pool(size=%d, concurrency=%d)", w.opts.PoolSize, w.opts.PoolConcurrency)
-	w.log.Info("[worker] started")
 	return nil
 }
 
 // Stop stops worker
 func (w *Worker) Stop() error {
 	w.cancel()
-	w.log.Info("[worker] goroutine pool is shutting down")
+	w.log.Named("pool").Infow("closing pool", "handling", w.pool.GetHandling())
 	w.pool.Shutdown()
-	w.log.Info("[worker] stopped")
+	w.log.Named("pool").Info("closed pool")
+	w.log.Info("worker stopped")
 
 	return nil
 }
@@ -200,7 +204,7 @@ func (w *Worker) processRequeue() {
 		for _, attempt := range attempts {
 			event, err := w.DB.Events.Get(ctx, attempt.EventId)
 			if err != nil {
-				w.log.Errorf("[worker] failed to get event: %v", err)
+				w.log.Errorf("failed to get event: %v", err)
 				break
 			}
 			task := &taskqueue.TaskMessage{
@@ -320,9 +324,9 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	finishAt := time.Now()
 
 	if response.Error != nil {
-		w.log.Infof("[worker] failed to delivery event: %v", response.Error)
+		w.log.Infof("failed to delivery event: %v", response.Error)
 	}
-	w.log.Debugf("[worker] delivery response: %v", response)
+	w.log.Debugf("delivery response: %v", response)
 
 	result := buildAttemptResult(request, response)
 	result.AttemptedAt = types.NewTime(startAt)
@@ -356,7 +360,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		attemptDetail.WorkspaceId = endpoint.WorkspaceId
 		err = w.DB.AttemptDetails.Insert(ctx, attemptDetail)
 		if err != nil {
-			w.log.Errorf("[worker] failed to insert attempt detail: %v", err)
+			w.log.Errorf("failed to insert attempt detail: %v", err)
 		}
 	}()
 
@@ -365,7 +369,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	}
 
 	if result.Exhausted {
-		w.log.Debugf("[worker] webhook delivery exhausted : %s", task.ID)
+		w.log.Debugf("webhook delivery exhausted : %s", task.ID)
 		return nil
 	}
 
@@ -398,11 +402,11 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 
 	err = w.queue.Add(ctx, []*taskqueue.TaskMessage{task})
 	if err != nil {
-		w.log.Warnf("[worker] failed to add task to queue: %v", err)
+		w.log.Warnf("failed to add task to queue: %v", err)
 	}
 	err = w.DB.Attempts.UpdateStatus(ctx, nextAttempt.ID, entities.AttemptStatusQueued)
 	if err != nil {
-		w.log.Warnf("[worker] failed to update attempt status: %v", err)
+		w.log.Warnf("failed to update attempt status: %v", err)
 	}
 	return nil
 }

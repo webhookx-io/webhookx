@@ -38,16 +38,15 @@ func init() {
 }
 
 type Application struct {
+	cfg *config.Config
+
 	mux     sync.Mutex
 	started bool
 
 	stop chan struct{}
 
-	cfg *config.Config
-
 	log        *zap.SugaredLogger
 	db         *db.DB
-	queue      taskqueue.TaskQueue
 	dispatcher *dispatcher.Dispatcher
 	cache      cache.Cache
 	bus        *eventbus.EventBus
@@ -59,10 +58,10 @@ type Application struct {
 	tracer  *tracing.Tracer
 }
 
-func NewApplication(cfg *config.Config) (*Application, error) {
+func New(cfg *config.Config) (*Application, error) {
 	app := &Application{
-		stop: make(chan struct{}),
 		cfg:  cfg,
+		stop: make(chan struct{}),
 	}
 
 	err := app.initialize()
@@ -80,8 +79,8 @@ func (app *Application) initialize() error {
 	if err != nil {
 		return err
 	}
-	zap.ReplaceGlobals(log)
-	app.log = zap.S()
+	zap.ReplaceGlobals(log.Desugar())
+	app.log = log
 
 	// cache
 	client := cfg.Redis.GetClient()
@@ -101,7 +100,7 @@ func (app *Application) initialize() error {
 	app.bus = eventbus.NewEventBus(
 		app.NodeID(),
 		cfg.Database.GetDSN(),
-		app.log, sqlDB)
+		log, sqlDB)
 	registerEventHandler(app.bus)
 
 	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
@@ -117,7 +116,7 @@ func (app *Application) initialize() error {
 	app.tracer = tracer
 
 	// db
-	db, err := db.NewDB(sqlDB, app.log, app.bus)
+	db, err := db.NewDB(sqlDB, log, app.bus)
 	if err != nil {
 		return err
 	}
@@ -131,10 +130,9 @@ func (app *Application) initialize() error {
 	// queue
 	queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
 		Client: client,
-	}, app.log, app.metrics)
-	app.queue = queue
+	}, log, app.metrics)
 
-	app.dispatcher = dispatcher.NewDispatcher(log.Sugar(), queue, db, app.metrics, app.bus)
+	app.dispatcher = dispatcher.NewDispatcher(log, queue, db, app.metrics, app.bus)
 
 	// worker
 	if cfg.Worker.Enabled {
@@ -220,17 +218,19 @@ func (app *Application) Start() error {
 		return ErrApplicationStarted
 	}
 
+	app.log.Infof("starting WebhookX %s", config.VERSION)
+
 	if err := app.bus.Start(); err != nil {
 		return err
 	}
 	if app.admin != nil {
 		app.admin.Start()
 	}
-	if app.gateway != nil {
-		app.gateway.Start()
-	}
 	if app.worker != nil {
 		app.worker.Start()
+	}
+	if app.gateway != nil {
+		app.gateway.Start()
 	}
 
 	app.started = true
@@ -251,10 +251,10 @@ func (app *Application) Stop() error {
 		return ErrApplicationStopped
 	}
 
-	app.log.Infof("shutting down")
+	app.log.Info("exiting 👋")
 
 	defer func() {
-		app.log.Infof("stopped")
+		app.log.Info("exit")
 		_ = app.log.Sync()
 	}()
 
@@ -266,11 +266,11 @@ func (app *Application) Stop() error {
 	if app.admin != nil {
 		_ = app.admin.Stop()
 	}
-	if app.gateway != nil {
-		_ = app.gateway.Stop()
-	}
 	if app.worker != nil {
 		_ = app.worker.Stop()
+	}
+	if app.gateway != nil {
+		_ = app.gateway.Stop()
 	}
 	if app.tracer != nil {
 		_ = app.tracer.Stop()

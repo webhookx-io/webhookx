@@ -80,7 +80,7 @@ func NewRedisQueue(opts RedisTaskQueueOptions, logger *zap.SugaredLogger, metric
 		visibilityTimeout: utils.DefaultIfZero(opts.VisibilityTimeout, constants.TaskQueueVisibilityTimeout),
 		queueData:         utils.DefaultIfZero(opts.QueueDataName, constants.TaskQueueDataName),
 		c:                 opts.Client,
-		log:               logger,
+		log:               logger.Named("queue.task"),
 		metrics:           metrics,
 	}
 	q.process()
@@ -98,6 +98,7 @@ func (q *RedisTaskQueue) Add(ctx context.Context, tasks []*TaskMessage) error {
 
 	members := make([]redis.Z, 0, len(tasks))
 	strs := make([]interface{}, 0, len(tasks)*2)
+	ids := make([]string, 0, len(tasks))
 	for _, task := range tasks {
 		members = append(members, redis.Z{
 			Score:  float64(task.ScheduledAt.UnixMilli()),
@@ -108,8 +109,9 @@ func (q *RedisTaskQueue) Add(ctx context.Context, tasks []*TaskMessage) error {
 			return err
 		}
 		strs = append(strs, task.ID, data)
+		ids = append(ids, task.ID)
 	}
-
+	q.log.Debugw("adding tasks", "tasks", ids)
 	pipeline := q.c.Pipeline()
 	pipeline.HSet(ctx, q.queueData, strs...)
 	pipeline.ZAdd(ctx, q.queue, members...)
@@ -145,7 +147,7 @@ func (q *RedisTaskQueue) Get(ctx context.Context, opts *GetOptions) ([]*TaskMess
 		}
 		return tasks, nil
 	default:
-		return nil, fmt.Errorf("[redis-queue] unexpected return value: expect array, got %s", res)
+		return nil, fmt.Errorf("unexpected return value: expect array, got %s", res)
 	}
 }
 
@@ -153,7 +155,7 @@ func (q *RedisTaskQueue) Delete(ctx context.Context, task *TaskMessage) error {
 	ctx, span := tracing.Start(ctx, "taskqueue.redis.delete", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
-	q.log.Debugf("[redis-queue]: delete task %s", task.ID)
+	q.log.Debugf("deleting task %s", task.ID)
 	pipeline := q.c.Pipeline()
 	pipeline.HDel(ctx, q.queueData, task.ID)
 	pipeline.ZRem(ctx, q.invisibleQueue, task.ID)

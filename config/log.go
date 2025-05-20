@@ -25,6 +25,7 @@ type LogConfig struct {
 	File   string    `yaml:"file" default:"/dev/stdout"`
 	Level  LogLevel  `yaml:"level" default:"info"`
 	Format LogFormat `yaml:"format" default:"text"`
+	Color  bool      `yaml:"color" default:"true"`
 }
 
 func (cfg LogConfig) Validate() error {

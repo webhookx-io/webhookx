@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"fmt"
 	"github.com/webhookx-io/webhookx/config"
 	"go.uber.org/zap"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 type Admin struct {
 	cfg *config.AdminConfig
 	s   *http.Server
+	log *zap.SugaredLogger
 }
 
 func NewAdmin(cfg config.AdminConfig, handler http.Handler) *Admin {
@@ -27,6 +29,7 @@ func NewAdmin(cfg config.AdminConfig, handler http.Handler) *Admin {
 	admin := &Admin{
 		cfg: &cfg,
 		s:   s,
+		log: zap.S().Named("admin"),
 	}
 
 	return admin
@@ -48,6 +51,13 @@ func (a *Admin) Start() {
 			}
 		}
 	}()
+
+	a.log.Infow(fmt.Sprintf(`listening on address "%s"`, a.cfg.Listen),
+		"tls", a.cfg.TLS.Enabled())
+
+	if a.cfg.DebugEndpoints {
+		a.log.Infow("serving debug endpoints at /debug", "pprof", "/debug/pprof/")
+	}
 }
 
 // Stop stops the HTTP server
@@ -57,5 +67,6 @@ func (a *Admin) Stop() error {
 		// Error from closing listeners, or context timeout:
 		return err
 	}
+	a.log.Infof("admin stopped")
 	return nil
 }

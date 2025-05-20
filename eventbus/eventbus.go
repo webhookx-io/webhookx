@@ -38,7 +38,7 @@ func NewEventBus(nodeID string, dsn string, log *zap.SugaredLogger, db *sql.DB) 
 		listener: pq.NewListener(dsn, time.Millisecond*100, time.Second*30, nil),
 		mux:      sync.Mutex{},
 		handlers: make(map[string][]func(data []byte)),
-		log:      log,
+		log:      log.Named("eventbus"),
 		db:       db,
 	}
 
@@ -54,10 +54,10 @@ func (bus *EventBus) Start() error {
 func (bus *EventBus) startListen() {
 	err := bus.listener.Listen(channelName)
 	if err != nil {
-		bus.log.Errorf("[eventbus] failed to listen on channel %s: %v", channelName, err)
+		bus.log.Errorf("failed to listen on channel %s: %v", channelName, err)
 		return
 	}
-	bus.log.Infof("[eventbus] listening on channel: %s", channelName)
+	bus.log.Infof(`listening on channel "%s"`, channelName)
 }
 
 func (bus *EventBus) Stop() error {
@@ -76,13 +76,13 @@ func (bus *EventBus) listenClusterLoop() {
 		case n := <-bus.listener.NotificationChannel():
 			var msg Message
 			if err := json.Unmarshal([]byte(n.Extra), &msg); err != nil {
-				bus.log.Errorf("[eventbus] failed to unmarshal message: %s", err)
+				bus.log.Errorf("failed to unmarshal message: %s", err)
 				continue
 			}
 			if msg.Node == bus.nodeID {
 				continue
 			}
-			bus.log.Debugf("[eventbus] dispatch cluster message: %s", n.Extra)
+			bus.log.Debugf("dispatch cluster message: %s", n.Extra)
 			if handlers, ok := bus.handlers[msg.Event]; ok {
 				for _, handler := range handlers {
 					handler(msg.Data)
@@ -91,7 +91,7 @@ func (bus *EventBus) listenClusterLoop() {
 		case <-timeout.C:
 			err := bus.listener.Ping()
 			if err != nil {
-				bus.log.Errorf("[eventbus] faield to ping database: %v", err)
+				bus.log.Errorf("faield to ping database: %v", err)
 			}
 		}
 	}
@@ -102,7 +102,7 @@ func (bus *EventBus) ClusteringBroadcast(channel string, data interface{}) error
 
 	bytes, err := json.Marshal(data)
 	if err != nil {
-		bus.log.Errorf("[eventbus] failed to marshal data: %v", err)
+		bus.log.Errorf("failed to marshal data: %v", err)
 		return err
 	}
 	msg := Message{
@@ -113,16 +113,16 @@ func (bus *EventBus) ClusteringBroadcast(channel string, data interface{}) error
 	}
 	bytes, err = json.Marshal(msg)
 	if err != nil {
-		bus.log.Errorf("[eventbus] failed to marshal message: %v", err)
+		bus.log.Errorf("failed to marshal message: %v", err)
 		return err
 	}
 
-	bus.log.Debugf("[eventbus] broadcasting cluster message: %s", string(bytes))
+	bus.log.Debugf("broadcasting cluster message: %s", string(bytes))
 
 	statement := fmt.Sprintf("NOTIFY %s, %s", "webhookx", pq.QuoteLiteral(string(bytes)))
 	_, err = bus.db.ExecContext(context.TODO(), statement)
 	if err != nil {
-		bus.log.Errorf("[eventbus] failed to broadcast message: %v", err)
+		bus.log.Errorf("failed to broadcast message: %v", err)
 	}
 	return err
 }

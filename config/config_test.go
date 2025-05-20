@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -271,8 +272,56 @@ func TestTracingConfig(t *testing.T) {
 	}
 }
 
+func TestAccessLogConfig(t *testing.T) {
+	tests := []struct {
+		desc                string
+		cfg                 AccessLogConfig
+		expectedValidateErr error
+	}{
+		{
+			desc: "sanity",
+			cfg: AccessLogConfig{
+				File:   "/dev/stdout",
+				Format: "text",
+			},
+			expectedValidateErr: nil,
+		},
+		{
+			desc: "invalid format",
+			cfg: AccessLogConfig{
+				File:   "/dev/stdout",
+				Format: "",
+			},
+			expectedValidateErr: errors.New("invalid format: "),
+		},
+		{
+			desc: "invalid format: x",
+			cfg: AccessLogConfig{
+				File:   "/dev/stdout",
+				Format: "x",
+			},
+			expectedValidateErr: errors.New("invalid format: x"),
+		},
+	}
+	for _, test := range tests {
+		actualValidateErr := test.cfg.Validate()
+		assert.Equal(t, test.expectedValidateErr, actualValidateErr, "expected %v got %v", test.expectedValidateErr, actualValidateErr)
+	}
+}
+
 func TestConfig(t *testing.T) {
 	cfg, err := Init()
+	assert.Nil(t, err)
+	assert.Nil(t, cfg.Validate())
+	str := cfg.String()
+	cfg2 := &Config{}
+	err = json.Unmarshal([]byte(str), cfg2)
+	assert.Nil(t, err)
+	assert.Equal(t, cfg, cfg2)
+}
+
+func TestInitWithFile(t *testing.T) {
+	cfg, err := InitWithFile("./testdata/config-empty.yml")
 	assert.Nil(t, err)
 	assert.Nil(t, cfg.Validate())
 }

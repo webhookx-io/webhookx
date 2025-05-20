@@ -5,7 +5,11 @@
 log:
   file: /dev/stdout
   level: info   # supported values are debug, info, warn, and error.
-  format: text  # supported values are text and json
+  format: text  # supported values are "text" and "json"
+
+access_log:
+  file: /dev/stdout
+  format: text  # supported values are "text" and "json"
 
 database:
   host: localhost

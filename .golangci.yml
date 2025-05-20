@@ -2,6 +2,8 @@ version: "2"
 
 linters:
   exclusions:
+    paths:
+      - test
     rules:
       - path: '(.+)_test\.go'
         linters:

@@ -3,19 +3,12 @@ package log
 import (
 	"fmt"
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
 	"time"
 )
-
-func colorize(s interface{}, c int) string {
-	if os.Getenv("NO_COLOR") != "" || c == 0 {
-		return fmt.Sprintf("%s", s)
-	}
-
-	return fmt.Sprintf("\x1b[%dm%v\x1b[0m", c, s)
-}
 
 func NewZapLogger(cfg *config.LogConfig) (*zap.SugaredLogger, error) {
 	level, err := zapcore.ParseLevel(string(cfg.Level))
@@ -46,11 +39,11 @@ func NewZapLogger(cfg *config.LogConfig) (*zap.SugaredLogger, error) {
 		zapConfig.EncoderConfig.EncodeName = func(loggerName string, enc zapcore.PrimitiveArrayEncoder) {
 			enc.AppendString(fmt.Sprintf("%-8s", "["+loggerName+"]"))
 		}
-		if cfg.Color {
+		if os.Getenv("NO_COLOR") == "" {
 			zapConfig.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-			zapConfig.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-				enc.AppendString(colorize(t.Format("2006/01/02 15:04:05.000"), 90))
-			}
+		}
+		zapConfig.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+			enc.AppendString(utils.Colorize(t.Format("2006/01/02 15:04:05.000"), utils.ColorDarkGray))
 		}
 	}
 

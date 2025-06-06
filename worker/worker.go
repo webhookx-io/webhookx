@@ -78,7 +78,7 @@ func NewWorker(
 		tracer:    tracer,
 	}
 
-	bus.Subscribe("plugin.crud", func(data interface{}) {
+	bus.Subscribe("", func(data interface{}) {
 		plugin := entities.Plugin{}
 		if err := json.Unmarshal(data.(*eventbus.CrudData).Data, &plugin); err != nil {
 			zap.S().Errorf("failed to unmarshal event data: %s", err)

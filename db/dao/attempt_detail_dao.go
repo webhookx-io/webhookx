@@ -30,22 +30,25 @@ func NewAttemptDetailDao(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) At
 	}
 }
 
-func (dao *attemptDetailDao) Insert(ctx context.Context, attemptDetail *entities.AttemptDetail) error {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.insert", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+func (dao *attemptDetailDao) BatchInsert(ctx context.Context, entities []*entities.AttemptDetail) error {
+	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.batch_insert", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	now := time.Now()
-	values := []interface{}{attemptDetail.ID, attemptDetail.RequestHeaders, attemptDetail.RequestBody, attemptDetail.ResponseHeaders, attemptDetail.ResponseBody, now, now, attemptDetail.WorkspaceId}
 
-	sql := `INSERT INTO attempt_details (id, request_headers, request_body, response_headers, response_body, created_at, updated_at, ws_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
-		ON CONFLICT (id) DO UPDATE SET 
-		request_headers = EXCLUDED.request_headers, 
-		request_body = EXCLUDED.request_body, 
-		response_headers = EXCLUDED.response_headers, 
-		response_body = EXCLUDED.response_body, 
-		updated_at = EXCLUDED.updated_at`
-
-	result, err := dao.DB(ctx).ExecContext(ctx, sql, values...)
+	builder := psql.Insert(dao.opts.Table).Columns("id", "request_headers", "request_body", "response_headers", "response_body", "created_at", "updated_at", "ws_id")
+	for _, entity := range entities {
+		builder = builder.Values(entity.ID, entity.RequestHeaders, entity.RequestBody, entity.ResponseHeaders, entity.ResponseBody, now, now, entity.WorkspaceId)
+	}
+	sql, args := builder.Suffix(`
+		ON CONFLICT (id) DO UPDATE SET
+		request_headers = EXCLUDED.request_headers,
+		request_body = EXCLUDED.request_body,
+		response_headers = EXCLUDED.response_headers,
+		response_body = EXCLUDED.response_body,
+		updated_at = EXCLUDED.updated_at`).MustSql()
+	dao.debugSQL(sql, args)
+	result, err := dao.DB(ctx).ExecContext(ctx, sql, args...)
 	if err != nil {
 		return err
 	}

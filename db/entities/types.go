@@ -3,6 +3,7 @@ package entities
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"errors"
 	"github.com/lib/pq"
 	"github.com/webhookx-io/webhookx/pkg/types"
 )
@@ -26,7 +27,14 @@ type BaseModel struct {
 type Headers map[string]string
 
 func (m *Headers) Scan(src interface{}) error {
-	return json.Unmarshal(src.([]byte), m)
+	switch v := src.(type) {
+	case string:
+		return json.Unmarshal([]byte(v), m)
+	case []byte:
+		return json.Unmarshal(v, m)
+	default:
+		return errors.New("unknown type")
+	}
 }
 
 func (m Headers) Value() (driver.Value, error) {

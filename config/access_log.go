@@ -6,8 +6,8 @@ import (
 )
 
 type AccessLogConfig struct {
-	File   string    `yaml:"file" default:"/dev/stdout"`
-	Format LogFormat `yaml:"format" default:"text"`
+	File   string    `yaml:"file" json:"file" default:"/dev/stdout"`
+	Format LogFormat `yaml:"format" json:"format" default:"text"`
 }
 
 func (cfg AccessLogConfig) Validate() error {

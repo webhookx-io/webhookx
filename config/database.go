@@ -5,14 +5,14 @@ import (
 )
 
 type DatabaseConfig struct {
-	Host        string `yaml:"host" default:"localhost"`
-	Port        uint32 `yaml:"port" default:"5432"`
-	Username    string `yaml:"username" default:"webhookx"`
-	Password    string `yaml:"password" default:""`
-	Database    string `yaml:"database" default:"webhookx"`
-	Parameters  string `yaml:"parameters" default:"application_name=webhookx&sslmode=disable&connect_timeout=10"`
-	MaxPoolSize uint32 `yaml:"max_pool_size" default:"40" envconfig:"MAX_POOL_SIZE"`
-	MaxLifetime uint32 `yaml:"max_life_time" default:"1800" envconfig:"MAX_LIFETIME"`
+	Host        string   `yaml:"host" json:"host" default:"localhost"`
+	Port        uint32   `yaml:"port" json:"port" default:"5432"`
+	Username    string   `yaml:"username" json:"username" default:"webhookx"`
+	Password    Password `yaml:"password" json:"password" default:""`
+	Database    string   `yaml:"database" json:"database" default:"webhookx"`
+	Parameters  string   `yaml:"parameters" json:"parameters" default:"application_name=webhookx&sslmode=disable&connect_timeout=10"`
+	MaxPoolSize uint32   `yaml:"max_pool_size" json:"max_pool_size" default:"40" envconfig:"MAX_POOL_SIZE"`
+	MaxLifetime uint32   `yaml:"max_life_time" json:"max_life_time" default:"1800" envconfig:"MAX_LIFETIME"`
 }
 
 func (cfg DatabaseConfig) GetDSN() string {

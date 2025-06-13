@@ -7,9 +7,9 @@ import (
 )
 
 type ProxyResponse struct {
-	Code        uint   `yaml:"code" default:"200"`
-	ContentType string `yaml:"contentType" default:"application/json"`
-	Body        string `yaml:"body" default:"{\"message\": \"OK\"}"`
+	Code        uint   `yaml:"code" json:"code" default:"200"`
+	ContentType string `yaml:"content_type" json:"content_type" default:"application/json" envconfig:"CONTENT_TYPE"`
+	Body        string `yaml:"body" json:"body" default:"{\"message\": \"OK\"}"`
 }
 
 type QueueType string
@@ -20,8 +20,8 @@ const (
 )
 
 type Queue struct {
-	Type  QueueType   `yaml:"type" default:"redis"`
-	Redis RedisConfig `yaml:"redis"`
+	Type  QueueType   `yaml:"type" json:"type" default:"redis"`
+	Redis RedisConfig `yaml:"redis" json:"redis"`
 }
 
 func (cfg Queue) Validate() error {
@@ -37,13 +37,13 @@ func (cfg Queue) Validate() error {
 }
 
 type ProxyConfig struct {
-	Listen             string        `yaml:"listen"`
-	TLS                TLS           `yaml:"tls"`
-	TimeoutRead        int64         `yaml:"timeout_read" default:"10" envconfig:"TIMEOUT_READ"`
-	TimeoutWrite       int64         `yaml:"timeout_write" default:"10" envconfig:"TIMEOUT_WRITE"`
-	MaxRequestBodySize int64         `yaml:"max_request_body_size" default:"1048576" envconfig:"MAX_REQUEST_BODY_SIZE"`
-	Response           ProxyResponse `yaml:"response"`
-	Queue              Queue         `yaml:"queue"`
+	Listen             string        `yaml:"listen" json:"listen"`
+	TLS                TLS           `yaml:"tls" json:"tls"`
+	TimeoutRead        int64         `yaml:"timeout_read" json:"timeout_read" default:"10" envconfig:"TIMEOUT_READ"`
+	TimeoutWrite       int64         `yaml:"timeout_write" json:"timeout_write" default:"10" envconfig:"TIMEOUT_WRITE"`
+	MaxRequestBodySize int64         `yaml:"max_request_body_size" json:"max_request_body_size" default:"1048576" envconfig:"MAX_REQUEST_BODY_SIZE"`
+	Response           ProxyResponse `yaml:"response" json:"response"`
+	Queue              Queue         `yaml:"queue" json:"queue"`
 }
 
 func (cfg ProxyConfig) Validate() error {

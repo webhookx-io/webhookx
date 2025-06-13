@@ -1,9 +1,9 @@
 package config
 
 type AdminConfig struct {
-	Listen         string `yaml:"listen"`
-	DebugEndpoints bool   `yaml:"debug_endpoints" envconfig:"DEBUG_ENDPOINTS"`
-	TLS            TLS    `yaml:"tls"`
+	Listen         string `yaml:"listen" json:"listen"`
+	DebugEndpoints bool   `yaml:"debug_endpoints" json:"debug_endpoints" envconfig:"DEBUG_ENDPOINTS"`
+	TLS            TLS    `yaml:"tls" json:"tls"`
 }
 
 func (cfg AdminConfig) Validate() error {
@@ -18,8 +18,8 @@ func (cfg AdminConfig) IsEnabled() bool {
 }
 
 type TLS struct {
-	Cert string `yaml:"cert"`
-	Key  string `yaml:"key"`
+	Cert string `yaml:"cert" json:"cert"`
+	Key  string `yaml:"key" json:"key"`
 }
 
 func (cfg TLS) Enabled() bool {

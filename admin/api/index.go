@@ -5,10 +5,18 @@ import (
 	"net/http"
 )
 
+type IndexResponse struct {
+	Version       string         `json:"version"`
+	Message       string         `json:"message"`
+	Configuration *config.Config `json:"configuration"`
+}
+
 func (api *API) Index(w http.ResponseWriter, r *http.Request) {
-	data := make(map[string]interface{})
+	var response IndexResponse
 
-	data["version"] = config.VERSION
+	response.Version = config.VERSION
+	response.Message = "Welcome to WebhookX"
+	response.Configuration = api.cfg
 
-	api.json(200, w, data)
+	api.json(200, w, response)
 }

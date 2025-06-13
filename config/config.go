@@ -17,15 +17,15 @@ var (
 )
 
 type Config struct {
-	Log       LogConfig       `yaml:"log" envconfig:"LOG"`
-	AccessLog AccessLogConfig `yaml:"access_log" envconfig:"ACCESS_LOG"`
-	Database  DatabaseConfig  `yaml:"database" envconfig:"DATABASE"`
-	Redis     RedisConfig     `yaml:"redis" envconfig:"REDIS"`
-	Admin     AdminConfig     `yaml:"admin" envconfig:"ADMIN"`
-	Proxy     ProxyConfig     `yaml:"proxy" envconfig:"PROXY"`
-	Worker    WorkerConfig    `yaml:"worker" envconfig:"WORKER"`
-	Metrics   MetricsConfig   `yaml:"metrics" envconfig:"METRICS"`
-	Tracing   TracingConfig   `yaml:"tracing" envconfig:"TRACING"`
+	Log       LogConfig       `yaml:"log" json:"log" envconfig:"LOG"`
+	AccessLog AccessLogConfig `yaml:"access_log" json:"access_log" envconfig:"ACCESS_LOG"`
+	Database  DatabaseConfig  `yaml:"database" json:"database" envconfig:"DATABASE"`
+	Redis     RedisConfig     `yaml:"redis" json:"redis" envconfig:"REDIS"`
+	Admin     AdminConfig     `yaml:"admin" json:"admin" envconfig:"ADMIN"`
+	Proxy     ProxyConfig     `yaml:"proxy" json:"proxy" envconfig:"PROXY"`
+	Worker    WorkerConfig    `yaml:"worker" json:"worker" envconfig:"WORKER"`
+	Metrics   MetricsConfig   `yaml:"metrics" json:"metrics" envconfig:"METRICS"`
+	Tracing   TracingConfig   `yaml:"tracing" json:"tracing" envconfig:"TRACING"`
 }
 
 func (cfg Config) String() string {

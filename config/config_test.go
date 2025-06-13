@@ -316,6 +316,10 @@ func TestConfig(t *testing.T) {
 	str := cfg.String()
 	cfg2 := &Config{}
 	err = json.Unmarshal([]byte(str), cfg2)
+	// restore password
+	cfg2.Database.Password = cfg.Database.Password
+	cfg2.Redis.Password = cfg.Redis.Password
+	cfg2.Proxy.Queue.Redis.Password = cfg.Proxy.Queue.Redis.Password
 	assert.Nil(t, err)
 	assert.Equal(t, cfg, cfg2)
 }

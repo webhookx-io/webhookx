@@ -6,10 +6,10 @@ import (
 )
 
 type MetricsConfig struct {
-	Attributes    Map           `yaml:"attributes"`
-	Exports       []Export      `yaml:"exports"`
-	PushInterval  uint32        `yaml:"push_interval" default:"10" envconfig:"PUSH_INTERVAL"`
-	Opentelemetry Opentelemetry `yaml:"opentelemetry"`
+	Attributes    Map           `yaml:"attributes" json:"attributes"`
+	Exports       []Export      `yaml:"exports" json:"exports"`
+	PushInterval  uint32        `yaml:"push_interval" json:"push_interval" default:"10" envconfig:"PUSH_INTERVAL"`
+	Opentelemetry Opentelemetry `yaml:"opentelemetry" json:"opentelemetry"`
 }
 
 func (cfg *MetricsConfig) Validate() error {

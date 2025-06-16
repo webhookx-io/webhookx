@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/webhookx-io/webhookx/pkg/declarative"
+	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -74,5 +75,5 @@ func (api *API) Dump(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api.text(200, w, buf.String())
+	response.Text(w, 200, buf.String())
 }

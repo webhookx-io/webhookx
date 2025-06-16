@@ -20,6 +20,8 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/plugins"
 	"github.com/webhookx-io/webhookx/proxy"
+	"github.com/webhookx-io/webhookx/status"
+	"github.com/webhookx-io/webhookx/status/health"
 	"github.com/webhookx-io/webhookx/worker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.opentelemetry.io/otel"
@@ -31,6 +33,7 @@ import (
 var (
 	ErrApplicationStarted = errors.New("already started")
 	ErrApplicationStopped = errors.New("already stopped")
+	Indicators            []*health.Indicator
 )
 
 func init() {
@@ -52,6 +55,7 @@ type Application struct {
 	bus        *eventbus.EventBus
 	metrics    *metrics.Metrics
 
+	status  *status.Status
 	admin   *admin.Admin
 	gateway *proxy.Gateway
 	worker  *worker.Worker
@@ -175,6 +179,48 @@ func (app *Application) initialize() error {
 		app.gateway = proxy.NewGateway(&cfg.Proxy, db, app.dispatcher, app.metrics, app.tracer, app.bus, accessLogger)
 	}
 
+	if cfg.Status.IsEnabled() {
+		var accessLogger accesslog.AccessLogger
+		if cfg.AccessLog.Enabled() {
+			accessLogger, err = accesslog.NewAccessLogger("status", accesslog.Options{
+				File:   cfg.AccessLog.File,
+				Format: string(cfg.AccessLog.Format),
+			})
+			if err != nil {
+				return err
+			}
+		}
+		indicators := make([]*health.Indicator, 0)
+		indicators = append(indicators, &health.Indicator{
+			Name: "db",
+			Check: func() error {
+				return db.Ping()
+			},
+		})
+		indicators = append(indicators, &health.Indicator{
+			Name: "redis",
+			Check: func() error {
+				resp := client.Ping(context.TODO())
+				if resp.Err() != nil {
+					return resp.Err()
+				}
+				if resp.Val() != "PONG" {
+					return errors.New("invalid response from redis: " + resp.Val())
+				}
+				return nil
+			},
+		})
+		for _, i := range Indicators {
+			indicators = append(indicators, i)
+		}
+		opts := status.Options{
+			AccessLog:  accessLogger,
+			Config:     cfg,
+			Indicators: indicators,
+		}
+		app.status = status.NewStatus(cfg.Status, app.tracer, opts)
+	}
+
 	return nil
 }
 
@@ -209,6 +255,10 @@ func (app *Application) Config() *config.Config {
 	return app.cfg
 }
 
+func (app *Application) Status() *status.Status {
+	return app.status
+}
+
 // Start starts application
 func (app *Application) Start() error {
 	app.mux.Lock()
@@ -231,6 +281,9 @@ func (app *Application) Start() error {
 	}
 	if app.gateway != nil {
 		app.gateway.Start()
+	}
+	if app.status != nil {
+		app.status.Start()
 	}
 
 	app.started = true
@@ -274,6 +327,9 @@ func (app *Application) Stop() error {
 	}
 	if app.tracer != nil {
 		_ = app.tracer.Stop()
+	}
+	if app.status != nil {
+		app.status.Stop()
 	}
 
 	app.started = false

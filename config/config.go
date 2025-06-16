@@ -22,6 +22,7 @@ type Config struct {
 	Database  DatabaseConfig  `yaml:"database" json:"database" envconfig:"DATABASE"`
 	Redis     RedisConfig     `yaml:"redis" json:"redis" envconfig:"REDIS"`
 	Admin     AdminConfig     `yaml:"admin" json:"admin" envconfig:"ADMIN"`
+	Status    StatusConfig    `yaml:"status" json:"status" envconfig:"STATUS"`
 	Proxy     ProxyConfig     `yaml:"proxy" json:"proxy" envconfig:"PROXY"`
 	Worker    WorkerConfig    `yaml:"worker" json:"worker" envconfig:"WORKER"`
 	Metrics   MetricsConfig   `yaml:"metrics" json:"metrics" envconfig:"METRICS"`

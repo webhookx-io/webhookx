@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/webhookx-io/webhookx/pkg/types"
 	"net/http"
 
 	"github.com/webhookx-io/webhookx/db/query"
@@ -29,7 +30,7 @@ func (api *API) GetAttempt(w http.ResponseWriter, r *http.Request) {
 	api.assert(err)
 
 	if attempt == nil {
-		api.json(404, w, ErrorResponse{Message: MsgNotFound})
+		api.json(404, w, types.ErrorResponse{Message: MsgNotFound})
 		return
 	}
 

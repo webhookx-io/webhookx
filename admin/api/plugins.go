@@ -5,6 +5,7 @@ import (
 	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
 	"net/http"
 )
@@ -25,7 +26,7 @@ func (api *API) GetPlugin(w http.ResponseWriter, r *http.Request) {
 	api.assert(err)
 
 	if plugin == nil {
-		api.json(404, w, ErrorResponse{Message: MsgNotFound})
+		api.json(404, w, types.ErrorResponse{Message: MsgNotFound})
 		return
 	}
 
@@ -60,7 +61,7 @@ func (api *API) UpdatePlugin(w http.ResponseWriter, r *http.Request) {
 	model, err := api.DB.PluginsWS.Get(r.Context(), id)
 	api.assert(err)
 	if model == nil {
-		api.json(404, w, ErrorResponse{Message: MsgNotFound})
+		api.json(404, w, types.ErrorResponse{Message: MsgNotFound})
 		return
 	}
 

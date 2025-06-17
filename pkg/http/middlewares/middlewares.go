@@ -5,15 +5,11 @@ import (
 	"fmt"
 	"github.com/webhookx-io/webhookx/db/errs"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
+	"github.com/webhookx-io/webhookx/pkg/types"
 	"go.uber.org/zap"
 	"net/http"
 	"runtime"
 )
-
-type ErrorResponse struct {
-	Message string      `json:"message"`
-	Error   interface{} `json:"error,omitempty"`
-}
 
 func PanicRecovery(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +24,7 @@ func PanicRecovery(h http.Handler) http.Handler {
 				}
 
 				if e, ok := err.(*errs.DBError); ok {
-					response.JSON(w, 400, ErrorResponse{Message: e.Error()})
+					response.JSON(w, 400, types.ErrorResponse{Message: e.Error()})
 					return
 				}
 
@@ -37,7 +33,7 @@ func PanicRecovery(h http.Handler) http.Handler {
 				buf = buf[:n]
 
 				zap.S().Errorf("panic recovered: %v\n %s", err, buf)
-				response.JSON(w, 500, ErrorResponse{Message: "internal error"})
+				response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
 			}
 		}()
 

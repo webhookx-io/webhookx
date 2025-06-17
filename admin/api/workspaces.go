@@ -6,6 +6,7 @@ import (
 	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
 	"net/http"
 )
@@ -26,7 +27,7 @@ func (api *API) GetWorkspace(w http.ResponseWriter, r *http.Request) {
 	api.assert(err)
 
 	if workspace == nil {
-		api.json(404, w, ErrorResponse{Message: MsgNotFound})
+		api.json(404, w, types.ErrorResponse{Message: MsgNotFound})
 		return
 	}
 
@@ -58,7 +59,7 @@ func (api *API) UpdateWorkspace(w http.ResponseWriter, r *http.Request) {
 	workspace, err := api.DB.Workspaces.Get(r.Context(), id)
 	api.assert(err)
 	if workspace == nil {
-		api.json(404, w, ErrorResponse{Message: MsgNotFound})
+		api.json(404, w, types.ErrorResponse{Message: MsgNotFound})
 		return
 	}
 

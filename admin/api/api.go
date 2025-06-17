@@ -12,6 +12,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
+	"github.com/webhookx-io/webhookx/pkg/types"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 	"net/http"
@@ -71,13 +72,13 @@ func (api *API) bindQuery(r *http.Request, q *query.Query) {
 
 func (api *API) error(code int, w http.ResponseWriter, err error) {
 	if e, ok := err.(*errs.ValidateError); ok {
-		api.json(code, w, ErrorResponse{
+		api.json(code, w, types.ErrorResponse{
 			Message: "Request Validation",
 			Error:   e,
 		})
 		return
 	}
-	api.json(code, w, ErrorResponse{Message: err.Error()})
+	api.json(code, w, types.ErrorResponse{Message: err.Error()})
 }
 
 func (api *API) notfound(w http.ResponseWriter) {

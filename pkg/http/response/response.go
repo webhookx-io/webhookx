@@ -2,26 +2,17 @@ package response
 
 import (
 	"encoding/json"
-	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/constants"
 	"net/http"
 )
 
-type Header struct {
-	Name  string
-	Value string
+func JSON(w http.ResponseWriter, code int, data interface{}) {
+	_json(w, code, data, false)
 }
 
-var (
-	// TODO
-	DefaultResponseHeaders = []Header{
-		{Name: "Server", Value: "WebhookX/" + config.VERSION},
-	}
-)
-
-func JSON(w http.ResponseWriter, code int, data interface{}) {
-	for header, value := range constants.DefaultResponseHeaders {
-		w.Header().Set(header, value)
+func _json(w http.ResponseWriter, code int, data interface{}, pretty bool) {
+	for _, header := range constants.DefaultResponseHeaders {
+		w.Header().Set(header.Name, header.Value)
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -32,16 +23,30 @@ func JSON(w http.ResponseWriter, code int, data interface{}) {
 		return
 	}
 
-	bytes, err := json.Marshal(data)
+	var bytes []byte
+	switch v := data.(type) {
+	case string:
+		bytes = []byte(v)
+	default:
+		var err error
+		if pretty {
+			bytes, err = json.MarshalIndent(data, "", "  ")
+		} else {
+			bytes, err = json.Marshal(data)
+		}
+		if err != nil {
+			panic(err)
+		}
+	}
+	_, err := w.Write(bytes)
 	if err != nil {
 		panic(err)
 	}
-	_, _ = w.Write(bytes)
 }
 
 func Text(w http.ResponseWriter, code int, body string) {
-	for header, value := range constants.DefaultResponseHeaders {
-		w.Header().Set(header, value)
+	for _, header := range constants.DefaultResponseHeaders {
+		w.Header().Set(header.Name, header.Value)
 	}
 
 	w.Header().Set("Content-Type", "text/plain")

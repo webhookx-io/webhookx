@@ -15,6 +15,7 @@ import (
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/accesslog"
+	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/loglimiter"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
@@ -145,7 +146,7 @@ func (gw *Gateway) buildRouter(version string) {
 func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 	source, _ := gw.router.Execute(r).(*entities.Source)
 	if source == nil {
-		exit(w, 404, `{"message": "not found"}`, nil)
+		response.JSON(w, 404, types.ErrorResponse{Message: "not found"})
 		return
 	}
 
@@ -176,14 +177,14 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 
 	plugins, err := listSourcePlugins(ctx, gw.db, source.ID)
 	if err != nil {
-		exit(w, 500, `{"message": "internal error"}`, nil)
+		response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
 		return
 	}
 
 	for _, p := range plugins {
 		executor, err := p.Plugin()
 		if err != nil {
-			exit(w, 500, `{"message": "internal error"}`, nil)
+			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
 			return
 		}
 		result, err := executor.ExecuteInbound(&plugin.Inbound{
@@ -193,7 +194,7 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			gw.log.Errorf("failed to execute plugin: %v", err)
-			exit(w, 500, `{"message": "internal error"}`, nil)
+			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
 			return
 		}
 		if result.Terminated {
@@ -224,7 +225,7 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 	err = gw.ingestEvent(ctx, source.Async, &event)
 	if err != nil {
 		gw.log.Errorf("failed to ingest event: %v", err)
-		exit(w, 500, `{"message": "internal error"}`, nil)
+		response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
 		return
 	}
 	if gw.metrics.Enabled {
@@ -385,8 +386,8 @@ func (gw *Gateway) listenQueue() {
 type headers map[string]string
 
 func exit(w http.ResponseWriter, status int, body string, headers headers) {
-	for header, value := range constants.DefaultResponseHeaders {
-		w.Header().Set(header, value)
+	for _, header := range constants.DefaultResponseHeaders {
+		w.Header().Set(header.Name, header.Value)
 	}
 
 	if len(headers) > 0 {

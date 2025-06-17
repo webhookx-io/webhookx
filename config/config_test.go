@@ -309,6 +309,35 @@ func TestAccessLogConfig(t *testing.T) {
 	}
 }
 
+func TestStatusConfig(t *testing.T) {
+	tests := []struct {
+		desc                string
+		cfg                 StatusConfig
+		expectedValidateErr error
+	}{
+		{
+			desc: "sanity",
+			cfg: StatusConfig{
+				Listen:         "",
+				DebugEndpoints: false,
+			},
+			expectedValidateErr: nil,
+		},
+		{
+			desc: "invalid listen",
+			cfg: StatusConfig{
+				Listen:         "invalid",
+				DebugEndpoints: true,
+			},
+			expectedValidateErr: errors.New("invalid listen 'invalid': address invalid: missing port in address"),
+		},
+	}
+	for _, test := range tests {
+		actualValidateErr := test.cfg.Validate()
+		assert.Equal(t, test.expectedValidateErr, actualValidateErr, "expected %v got %v", test.expectedValidateErr, actualValidateErr)
+	}
+}
+
 func TestConfig(t *testing.T) {
 	cfg, err := Init()
 	assert.Nil(t, err)

@@ -53,6 +53,9 @@ func (cfg Config) Validate() error {
 	if err := cfg.Admin.Validate(); err != nil {
 		return err
 	}
+	if err := cfg.Status.Validate(); err != nil {
+		return err
+	}
 	if err := cfg.Proxy.Validate(); err != nil {
 		return err
 	}

@@ -6,17 +6,17 @@ import (
 )
 
 type RedisConfig struct {
-	Host     string `yaml:"host" default:"localhost"`
-	Port     uint32 `yaml:"port" default:"6379"`
-	Password string `yaml:"password" default:""`
-	Database uint32 `yaml:"database" default:"0"`
+	Host     string   `yaml:"host" json:"host" default:"localhost"`
+	Port     uint32   `yaml:"port" json:"port" default:"6379"`
+	Password Password `yaml:"password" json:"password" default:""`
+	Database uint32   `yaml:"database" json:"database" default:"0"`
 	// fixme: pool property
 }
 
 func (cfg RedisConfig) GetClient() *redis.Client {
 	options := &redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
-		Password: cfg.Password,
+		Password: string(cfg.Password),
 		DB:       int(cfg.Database),
 	}
 	return redis.NewClient(options)

@@ -5,10 +5,10 @@ import (
 )
 
 type TracingConfig struct {
-	Enabled       bool          `yaml:"enabled" default:"false"`
-	Attributes    Map           `yaml:"attributes"`
-	Opentelemetry Opentelemetry `yaml:"opentelemetry"`
-	SamplingRate  float64       `yaml:"sampling_rate" default:"1.0" envconfig:"SAMPLING_RATE"`
+	Enabled       bool          `yaml:"enabled" json:"enabled" default:"false"`
+	Attributes    Map           `yaml:"attributes" json:"attributes"`
+	Opentelemetry Opentelemetry `yaml:"opentelemetry" json:"opentelemetry"`
+	SamplingRate  float64       `yaml:"sampling_rate" json:"sampling_rate" default:"1.0" envconfig:"SAMPLING_RATE"`
 }
 
 func (cfg TracingConfig) Validate() error {

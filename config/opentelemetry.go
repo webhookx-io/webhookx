@@ -13,8 +13,8 @@ const (
 )
 
 type Opentelemetry struct {
-	Protocol OtlpProtocol `yaml:"protocol" envconfig:"PROTOCOL" default:"http/protobuf"`
-	Endpoint string       `yaml:"endpoint" envconfig:"ENDPOINT" default:"http://localhost:4318/v1/metrics"`
+	Protocol OtlpProtocol `yaml:"protocol" json:"protocol" envconfig:"PROTOCOL" default:"http/protobuf"`
+	Endpoint string       `yaml:"endpoint" json:"endpoint" envconfig:"ENDPOINT" default:"http://localhost:4318/v1/metrics"`
 }
 
 func (cfg Opentelemetry) Validate() error {

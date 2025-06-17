@@ -210,9 +210,7 @@ func (app *Application) initialize() error {
 				return nil
 			},
 		})
-		for _, i := range Indicators {
-			indicators = append(indicators, i)
-		}
+		indicators = append(indicators, Indicators...)
 		opts := status.Options{
 			AccessLog:  accessLogger,
 			Config:     cfg,
@@ -329,7 +327,7 @@ func (app *Application) Stop() error {
 		_ = app.tracer.Stop()
 	}
 	if app.status != nil {
-		app.status.Stop()
+		_ = app.status.Stop()
 	}
 
 	app.started = false

@@ -60,7 +60,7 @@ var _ = Describe("proxy", Ordered, func() {
 			resp, err := proxyClient.R().Get("/")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 404, resp.StatusCode())
-			assert.Equal(GinkgoT(), "application/json", resp.Header().Get("Content-Type"))
+			assert.Equal(GinkgoT(), "application/json; charset=utf-8", resp.Header().Get("Content-Type"))
 			assert.Equal(GinkgoT(), "WebhookX/"+config.VERSION, resp.Header().Get("Server"))
 		})
 	})

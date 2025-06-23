@@ -160,7 +160,10 @@ func (q *RedisQueue) Size(ctx context.Context) (int64, error) {
 func (q *RedisQueue) Stats() map[string]interface{} {
 	stats := make(map[string]interface{})
 
-	size, _ := q.Size(context.TODO())
+	size, err := q.Size(context.TODO())
+	if err != nil {
+		q.log.Errorf("failed to retrieve status: %v", err)
+	}
 	stats["eventqueue.size"] = size
 
 	return stats

@@ -54,7 +54,7 @@ func NewStatus(cfg config.StatusConfig, tracer *tracing.Tracer, opts Options) *S
 func (a *Status) Start() {
 	go func() {
 		if err := a.s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			zap.S().Errorf("Failed to start status : %v", err)
+			zap.S().Errorf("Failed to start status HTTP server: %v", err)
 			os.Exit(1)
 		}
 	}()

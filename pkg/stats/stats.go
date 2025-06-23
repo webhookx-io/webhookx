@@ -29,13 +29,6 @@ func Register(p Provider) {
 
 type Stats map[string]interface{}
 
-func (m Stats) get(key string, def interface{}) interface{} {
-	if v, ok := m[key]; ok {
-		return v
-	}
-	return def
-}
-
 func (m Stats) Int(key string) int {
 	v, ok := m[key]
 	if !ok {
@@ -50,14 +43,6 @@ func (m Stats) Int64(key string) int64 {
 		return 0
 	}
 	return v.(int64)
-}
-
-func (m Stats) String(key string) string {
-	v, ok := m[key]
-	if !ok {
-		return ""
-	}
-	return v.(string)
 }
 
 func (m Stats) Time(key string) time.Time {

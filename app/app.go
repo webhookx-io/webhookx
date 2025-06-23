@@ -256,10 +256,6 @@ func (app *Application) Config() *config.Config {
 	return app.cfg
 }
 
-func (app *Application) Status() *status.Status {
-	return app.status
-}
-
 // Start starts application
 func (app *Application) Start() error {
 	app.mux.Lock()
@@ -333,11 +329,11 @@ func (app *Application) Stop() error {
 	if app.gateway != nil {
 		_ = app.gateway.Stop()
 	}
-	if app.tracer != nil {
-		_ = app.tracer.Stop()
-	}
 	if app.status != nil {
 		_ = app.status.Stop()
+	}
+	if app.tracer != nil {
+		_ = app.tracer.Stop()
 	}
 
 	app.started = false

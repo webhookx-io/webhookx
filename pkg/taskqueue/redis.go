@@ -172,16 +172,22 @@ func (q *RedisTaskQueue) Size(ctx context.Context) (int64, error) {
 func (q *RedisTaskQueue) Stats() map[string]interface{} {
 	stats := make(map[string]interface{})
 
-	size, _ := q.Size(context.TODO())
+	size, err := q.Size(context.TODO())
+	if err != nil {
+		q.log.Errorf("failed to retrieve size: %v", err)
+	}
 	stats["queue.size"] = size
 
 	now := time.Now()
-	res, _ := q.c.ZRangeByScoreWithScores(context.TODO(), constants.TaskQueueName, &redis.ZRangeBy{
+	res, err := q.c.ZRangeByScoreWithScores(context.TODO(), constants.TaskQueueName, &redis.ZRangeBy{
 		Min:    "0",
 		Max:    strconv.FormatInt(now.UnixMilli(), 10),
 		Offset: 0,
 		Count:  1,
 	}).Result()
+	if err != nil {
+		q.log.Errorf("failed to retrieve backlog_latency: %v", err)
+	}
 
 	if len(res) > 0 {
 		seconds := (now.UnixMilli() - int64(res[0].Score)) / 1000

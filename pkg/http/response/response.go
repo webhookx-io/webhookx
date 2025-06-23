@@ -51,5 +51,8 @@ func Text(w http.ResponseWriter, code int, body string) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(code)
-	_, _ = w.Write([]byte(body))
+	_, err := w.Write([]byte(body))
+	if err != nil {
+		panic(err)
+	}
 }

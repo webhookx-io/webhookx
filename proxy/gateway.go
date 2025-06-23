@@ -329,7 +329,7 @@ func (gw *Gateway) Start() {
 		tls := gw.cfg.TLS
 		if tls.Enabled() {
 			if err := gw.s.ListenAndServeTLS(tls.Cert, tls.Key); err != nil && err != http.ErrServerClosed {
-				zap.S().Errorf("Failed to start gateway HTTP server: %v", err)
+				zap.S().Errorf("Failed to start gateway HTTPS server: %v", err)
 				os.Exit(1)
 			}
 		} else {

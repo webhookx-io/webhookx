@@ -24,7 +24,7 @@ type API struct {
 	indicators     []*health.Indicator
 }
 
-func (api *API) Index(w http.ResponseWriter, r *http.Request) {
+func (api *API) Status(w http.ResponseWriter, r *http.Request) {
 	var mstats runtime.MemStats
 	runtime.ReadMemStats(&mstats)
 
@@ -105,7 +105,7 @@ func (api *API) Handler() http.Handler {
 	}
 	r.Use(middlewares.PanicRecovery)
 
-	r.HandleFunc("/", api.Index).Methods("GET")
+	r.HandleFunc("/", api.Status).Methods("GET")
 	r.HandleFunc("/health", api.Health).Methods("GET")
 
 	if api.debugEndpoints {

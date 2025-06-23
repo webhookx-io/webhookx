@@ -34,9 +34,8 @@ func NewStatus(cfg config.StatusConfig, tracer *tracing.Tracer, opts Options) *S
 		indicators:     opts.Indicators,
 	}
 	s := &http.Server{
-		Handler: api.Handler(),
-		Addr:    cfg.Listen,
-
+		Handler:      api.Handler(),
+		Addr:         cfg.Listen,
 		WriteTimeout: 10 * time.Second,
 		ReadTimeout:  10 * time.Second,
 	}

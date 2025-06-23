@@ -157,6 +157,15 @@ func (q *RedisQueue) Size(ctx context.Context) (int64, error) {
 	return q.c.XLen(ctx, q.stream).Result()
 }
 
+func (q *RedisQueue) Stats() map[string]interface{} {
+	stats := make(map[string]interface{})
+
+	size, _ := q.Size(context.TODO())
+	stats["eventqueue.size"] = size
+
+	return stats
+}
+
 func (q *RedisQueue) createConsumerGroup() {
 	res := q.c.XGroupCreateMkStream(context.TODO(), q.stream, q.group, "0")
 	if res.Err() == nil {

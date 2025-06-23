@@ -4,8 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/webhookx-io/webhookx/config"
@@ -38,20 +37,14 @@ type DB struct {
 }
 
 func NewSqlDB(cfg config.DatabaseConfig) (*sql.DB, error) {
-	pgxConfig, err := pgxpool.ParseConfig(cfg.GetDSN())
+	db, err := sql.Open("pgx", cfg.GetDSN())
 	if err != nil {
 		return nil, err
 	}
-
-	if cfg.MaxPoolSize > 0 {
-		pgxConfig.MaxConns = int32(cfg.MaxPoolSize)
-	}
-	pgxConfig.MaxConnLifetime = time.Second * time.Duration(cfg.MaxLifetime)
-	pool, err := pgxpool.NewWithConfig(context.Background(), pgxConfig)
-	if err != nil {
-		return nil, err
-	}
-	return stdlib.OpenDBFromPool(pool), nil
+	db.SetMaxOpenConns(int(cfg.MaxPoolSize))
+	db.SetMaxIdleConns(int(cfg.MaxPoolSize))
+	db.SetConnMaxLifetime(time.Second * time.Duration(cfg.MaxLifetime))
+	return db, nil
 }
 
 func NewDB(sqlDB *sql.DB, log *zap.SugaredLogger, bus *eventbus.EventBus) (*DB, error) {
@@ -80,6 +73,14 @@ func NewDB(sqlDB *sql.DB, log *zap.SugaredLogger, bus *eventbus.EventBus) (*DB, 
 
 func (db *DB) Ping() error {
 	return db.DB.Ping()
+}
+
+func (db *DB) Stats() map[string]interface{} {
+	stats := db.DB.Stats()
+	return map[string]interface{}{
+		"database.total_connections":  stats.OpenConnections,
+		"database.active_connections": stats.InUse,
+	}
 }
 
 func (db *DB) TX(ctx context.Context, fn func(ctx context.Context) error) error {

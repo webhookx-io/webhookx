@@ -16,6 +16,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/plugins"
@@ -125,6 +126,7 @@ func (app *Application) initialize() error {
 		return err
 	}
 	app.db = db
+	stats.Register(db)
 
 	app.metrics, err = metrics.New(cfg.Metrics)
 	if err != nil {
@@ -135,6 +137,7 @@ func (app *Application) initialize() error {
 	queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
 		Client: client,
 	}, log, app.metrics)
+	stats.Register(queue)
 
 	app.dispatcher = dispatcher.NewDispatcher(log, queue, db, app.metrics, app.bus)
 
@@ -267,6 +270,13 @@ func (app *Application) Start() error {
 	}
 
 	app.log.Infof("starting WebhookX %s", config.VERSION)
+
+	now := time.Now()
+	stats.Register(stats.ProviderFunc(func() map[string]interface{} {
+		return map[string]interface{}{
+			"started_at": now,
+		}
+	}))
 
 	if err := app.bus.Start(); err != nil {
 		return err

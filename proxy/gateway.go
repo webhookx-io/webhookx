@@ -22,6 +22,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/queue/redis"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
+	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/store"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
@@ -38,11 +39,17 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"sync/atomic"
 	"time"
 )
 
 var (
 	ErrQueueDisabled = errors.New("queue is disabled")
+)
+
+var (
+	counter  atomic.Int64
+	failures atomic.Int64
 )
 
 type Gateway struct {
@@ -69,6 +76,15 @@ type Gateway struct {
 	limiter *loglimiter.Limiter
 }
 
+func init() {
+	stats.Register(stats.ProviderFunc(func() map[string]interface{} {
+		return map[string]interface{}{
+			"gateway.requests":        counter.Load(),
+			"gateway.failed_requests": failures.Load(),
+		}
+	}))
+}
+
 func NewGateway(cfg *config.ProxyConfig,
 	db *db.DB,
 	dispatcher *dispatcher.Dispatcher,
@@ -82,6 +98,7 @@ func NewGateway(cfg *config.ProxyConfig,
 		q, _ = redis.NewRedisQueue(redis.RedisQueueOptions{
 			Client: cfg.Queue.Redis.GetClient(),
 		}, zap.S(), metrics)
+		stats.Register(q)
 	}
 
 	gw := &Gateway{
@@ -98,6 +115,12 @@ func NewGateway(cfg *config.ProxyConfig,
 	}
 
 	r := mux.NewRouter()
+	r.Use(func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h.ServeHTTP(w, r)
+			counter.Add(1)
+		})
+	})
 	if accessLogger != nil {
 		r.Use(accesslog.NewMiddleware(accessLogger))
 	}
@@ -144,10 +167,17 @@ func (gw *Gateway) buildRouter(version string) {
 }
 
 func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
+	ok := gw.handle(w, r)
+	if !ok {
+		failures.Add(1)
+	}
+}
+
+func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 	source, _ := gw.router.Execute(r).(*entities.Source)
 	if source == nil {
 		response.JSON(w, 404, types.ErrorResponse{Message: "not found"})
-		return
+		return false
 	}
 
 	ctx := ucontext.WithContext(r.Context(), &ucontext.UContext{
@@ -171,21 +201,21 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 		if _, ok := err.(*http.MaxBytesError); ok {
 			code := http.StatusRequestEntityTooLarge
 			http.Error(w, http.StatusText(code), code)
-			return
+			return false
 		}
 	}
 
 	plugins, err := listSourcePlugins(ctx, gw.db, source.ID)
 	if err != nil {
 		response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
-		return
+		return false
 	}
 
 	for _, p := range plugins {
 		executor, err := p.Plugin()
 		if err != nil {
 			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
-			return
+			return false
 		}
 		result, err := executor.ExecuteInbound(&plugin.Inbound{
 			Request:  r,
@@ -195,38 +225,36 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			gw.log.Errorf("failed to execute plugin: %v", err)
 			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
-			return
+			return false
 		}
 		if result.Terminated {
-			return
+			return false
 		}
 		body = result.Payload
 	}
 
 	var event entities.Event
 	if err := json.Unmarshal(body, &event); err != nil {
-		utils.JsonResponse(400, w, types.ErrorResponse{
-			Message: err.Error(),
-		})
-		return
+		response.JSON(w, 400, types.ErrorResponse{Message: err.Error()})
+		return false
 	}
 
 	event.ID = utils.KSUID()
 	event.IngestedAt = types.Time{Time: time.Now()}
 	event.WorkspaceId = source.WorkspaceId
 	if err := event.Validate(); err != nil {
-		utils.JsonResponse(400, w, types.ErrorResponse{
+		response.JSON(w, 400, types.ErrorResponse{
 			Message: "Request Validation",
 			Error:   err,
 		})
-		return
+		return false
 	}
 
 	err = gw.ingestEvent(ctx, source.Async, &event)
 	if err != nil {
 		gw.log.Errorf("failed to ingest event: %v", err)
 		response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
-		return
+		return false
 	}
 	if gw.metrics.Enabled {
 		gw.metrics.EventTotalCounter.Add(1)
@@ -234,11 +262,12 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 
 	if source.Response != nil {
 		exit(w, source.Response.Code, source.Response.Body, headers{"Content-Type": source.Response.ContentType})
-		return
+		return true
 	}
 
 	// default response
 	exit(w, int(gw.cfg.Response.Code), gw.cfg.Response.Body, headers{"Content-Type": gw.cfg.Response.ContentType})
+	return true
 }
 
 func (gw *Gateway) ingestEvent(ctx context.Context, async bool, event *entities.Event) error {

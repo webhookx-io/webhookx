@@ -15,6 +15,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/pool"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
+	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
@@ -24,7 +25,13 @@ import (
 	"go.uber.org/zap"
 	"maps"
 	"runtime"
+	"sync/atomic"
 	"time"
+)
+
+var (
+	counter  atomic.Int64
+	failures atomic.Int64
 )
 
 type Worker struct {
@@ -48,6 +55,15 @@ type WorkerOptions struct {
 	RequeueJobInterval time.Duration
 	PoolSize           int
 	PoolConcurrency    int
+}
+
+func init() {
+	stats.Register(stats.ProviderFunc(func() map[string]interface{} {
+		return map[string]interface{}{
+			"outbound.requests":        counter.Load(),
+			"outbound.failed_requests": failures.Load(),
+		}
+	}))
 }
 
 func NewWorker(
@@ -331,6 +347,11 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	result := buildAttemptResult(request, response)
 	result.AttemptedAt = types.NewTime(startAt)
 	result.Exhausted = data.Attempt >= len(endpoint.Retry.Config.Attempts)
+
+	counter.Add(1)
+	if result.Status == entities.AttemptStatusFailure {
+		failures.Add(1)
+	}
 
 	if w.metrics.Enabled {
 		w.metrics.AttemptTotalCounter.Add(1)

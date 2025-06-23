@@ -10,6 +10,7 @@ import (
 	"github.com/webhookx-io/webhookx/utils"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"strconv"
 	"time"
 )
 
@@ -166,6 +167,28 @@ func (q *RedisTaskQueue) Delete(ctx context.Context, task *TaskMessage) error {
 
 func (q *RedisTaskQueue) Size(ctx context.Context) (int64, error) {
 	return q.c.ZCard(ctx, q.queue).Result()
+}
+
+func (q *RedisTaskQueue) Stats() map[string]interface{} {
+	stats := make(map[string]interface{})
+
+	size, _ := q.Size(context.TODO())
+	stats["queue.size"] = size
+
+	now := time.Now()
+	res, _ := q.c.ZRangeByScoreWithScores(context.TODO(), constants.TaskQueueName, &redis.ZRangeBy{
+		Min:    "0",
+		Max:    strconv.FormatInt(now.UnixMilli(), 10),
+		Offset: 0,
+		Count:  1,
+	}).Result()
+
+	if len(res) > 0 {
+		seconds := (now.UnixMilli() - int64(res[0].Score)) / 1000
+		stats["queue.backlog_latency"] = seconds
+	}
+
+	return stats
 }
 
 // process re-enqueue invisible tasks that reach the visibility timeout

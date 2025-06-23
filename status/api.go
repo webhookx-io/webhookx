@@ -6,6 +6,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/accesslog"
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
+	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/status/health"
 	"github.com/webhookx-io/webhookx/utils"
@@ -17,7 +18,6 @@ import (
 )
 
 type API struct {
-	startAt        time.Time
 	debugEndpoints bool
 	tracer         *tracing.Tracer
 	accessLogger   accesslog.AccessLogger
@@ -25,15 +25,40 @@ type API struct {
 }
 
 func (api *API) Index(w http.ResponseWriter, r *http.Request) {
-	var stats runtime.MemStats
-	runtime.ReadMemStats(&stats)
+	var mstats runtime.MemStats
+	runtime.ReadMemStats(&mstats)
+
+	data := stats.Collect()
+
+	startedAt := data.Time("started_at")
 
 	resp := StatusResponse{
-		UpTime: time.Since(api.startAt).Round(time.Second).String(),
-		Memory: MemoryStatus{
-			Alloc: fmt.Sprintf("%.2f MiB", BytesToMiB(stats.Alloc)),
-			Sys:   fmt.Sprintf("%.2f MiB", BytesToMiB(stats.Sys)),
-			GC:    int64(stats.NumGC),
+		UpTime: time.Since(startedAt).Round(time.Second).String(),
+		Runtime: RuntimeStats{
+			Go:         runtime.Version(),
+			Goroutines: runtime.NumGoroutine(),
+		},
+		Memory: MemoryStats{
+			Alloc:       fmt.Sprintf("%.2f MiB", BytesToMiB(mstats.Alloc)),
+			Sys:         fmt.Sprintf("%.2f MiB", BytesToMiB(mstats.Sys)),
+			HeapAlloc:   fmt.Sprintf("%.2f MiB", BytesToMiB(mstats.HeapAlloc)),
+			HeapObjects: int64(mstats.HeapObjects),
+			GC:          int64(mstats.NumGC),
+		},
+		Database: DatabaseStats{
+			TotalConnections:  data.Int("database.total_connections"),
+			ActiveConnections: data.Int("database.active_connections"),
+		},
+		InboundRequests:        data.Int64("gateway.requests"),
+		InboundFailedRequests:  data.Int64("gateway.failed_requests"),
+		OutboundRequests:       data.Int64("outbound.requests"),
+		OutboundFailedRequests: data.Int64("outbound.failed_requests"),
+		Queue: QueueStats{
+			Size:           data.Int64("queue.size"),
+			BacklogLatency: data.Int64("queue.backlog_latency"),
+		},
+		Event: EventStats{
+			Pending: data.Int64("eventqueue.size"),
 		},
 	}
 

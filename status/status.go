@@ -59,7 +59,6 @@ func (a *Status) Start() {
 		}
 	}()
 
-	a.api.startAt = time.Now()
 	a.log.Infow(fmt.Sprintf(`listening on address "%s"`, a.cfg.Listen))
 }
 

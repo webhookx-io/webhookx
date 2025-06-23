@@ -28,7 +28,7 @@ func (api *API) GetEvent(w http.ResponseWriter, r *http.Request) {
 	api.assert(err)
 
 	if event == nil {
-		api.json(404, w, ErrorResponse{Message: MsgNotFound})
+		api.json(404, w, types.ErrorResponse{Message: MsgNotFound})
 		return
 	}
 
@@ -62,7 +62,7 @@ func (api *API) RetryEvent(w http.ResponseWriter, r *http.Request) {
 	event, err := api.DB.EventsWS.Get(r.Context(), id)
 	api.assert(err)
 	if event == nil {
-		api.json(404, w, ErrorResponse{Message: MsgNotFound})
+		api.json(404, w, types.ErrorResponse{Message: MsgNotFound})
 		return
 	}
 
@@ -70,7 +70,7 @@ func (api *API) RetryEvent(w http.ResponseWriter, r *http.Request) {
 	endpoint, err := api.DB.EndpointsWS.Get(r.Context(), endpointId)
 	api.assert(err)
 	if endpoint == nil {
-		api.json(400, w, ErrorResponse{Message: "endpoint not found"})
+		api.json(400, w, types.ErrorResponse{Message: "endpoint not found"})
 		return
 	}
 

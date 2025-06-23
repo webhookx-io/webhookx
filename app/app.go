@@ -16,10 +16,13 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/plugins"
 	"github.com/webhookx-io/webhookx/proxy"
+	"github.com/webhookx-io/webhookx/status"
+	"github.com/webhookx-io/webhookx/status/health"
 	"github.com/webhookx-io/webhookx/worker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.opentelemetry.io/otel"
@@ -31,6 +34,7 @@ import (
 var (
 	ErrApplicationStarted = errors.New("already started")
 	ErrApplicationStopped = errors.New("already stopped")
+	Indicators            []*health.Indicator
 )
 
 func init() {
@@ -52,6 +56,7 @@ type Application struct {
 	bus        *eventbus.EventBus
 	metrics    *metrics.Metrics
 
+	status  *status.Status
 	admin   *admin.Admin
 	gateway *proxy.Gateway
 	worker  *worker.Worker
@@ -121,6 +126,7 @@ func (app *Application) initialize() error {
 		return err
 	}
 	app.db = db
+	stats.Register(db)
 
 	app.metrics, err = metrics.New(cfg.Metrics)
 	if err != nil {
@@ -131,6 +137,7 @@ func (app *Application) initialize() error {
 	queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
 		Client: client,
 	}, log, app.metrics)
+	stats.Register(queue)
 
 	app.dispatcher = dispatcher.NewDispatcher(log, queue, db, app.metrics, app.bus)
 
@@ -173,6 +180,46 @@ func (app *Application) initialize() error {
 			}
 		}
 		app.gateway = proxy.NewGateway(&cfg.Proxy, db, app.dispatcher, app.metrics, app.tracer, app.bus, accessLogger)
+	}
+
+	if cfg.Status.IsEnabled() {
+		var accessLogger accesslog.AccessLogger
+		if cfg.AccessLog.Enabled() {
+			accessLogger, err = accesslog.NewAccessLogger("status", accesslog.Options{
+				File:   cfg.AccessLog.File,
+				Format: string(cfg.AccessLog.Format),
+			})
+			if err != nil {
+				return err
+			}
+		}
+		indicators := make([]*health.Indicator, 0)
+		indicators = append(indicators, &health.Indicator{
+			Name: "db",
+			Check: func() error {
+				return db.Ping()
+			},
+		})
+		indicators = append(indicators, &health.Indicator{
+			Name: "redis",
+			Check: func() error {
+				resp := client.Ping(context.TODO())
+				if resp.Err() != nil {
+					return resp.Err()
+				}
+				if resp.Val() != "PONG" {
+					return errors.New("invalid response from redis: " + resp.Val())
+				}
+				return nil
+			},
+		})
+		indicators = append(indicators, Indicators...)
+		opts := status.Options{
+			AccessLog:  accessLogger,
+			Config:     cfg,
+			Indicators: indicators,
+		}
+		app.status = status.NewStatus(cfg.Status, app.tracer, opts)
 	}
 
 	return nil
@@ -220,6 +267,13 @@ func (app *Application) Start() error {
 
 	app.log.Infof("starting WebhookX %s", config.VERSION)
 
+	now := time.Now()
+	stats.Register(stats.ProviderFunc(func() map[string]interface{} {
+		return map[string]interface{}{
+			"started_at": now,
+		}
+	}))
+
 	if err := app.bus.Start(); err != nil {
 		return err
 	}
@@ -231,6 +285,9 @@ func (app *Application) Start() error {
 	}
 	if app.gateway != nil {
 		app.gateway.Start()
+	}
+	if app.status != nil {
+		app.status.Start()
 	}
 
 	app.started = true
@@ -271,6 +328,9 @@ func (app *Application) Stop() error {
 	}
 	if app.gateway != nil {
 		_ = app.gateway.Stop()
+	}
+	if app.status != nil {
+		_ = app.status.Stop()
 	}
 	if app.tracer != nil {
 		_ = app.tracer.Stop()

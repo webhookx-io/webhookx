@@ -53,13 +53,17 @@ const (
 	WorkspaceEndpointsKey CacheKey = "workspaces_endpoints"
 )
 
+type Header struct {
+	Name  string
+	Value string
+}
+
 var (
-	DefaultResponseHeaders = map[string]string{
-		"Content-Type": "application/json",
-		"Server":       "WebhookX/" + config.VERSION,
+	DefaultResponseHeaders = []Header{
+		{Name: "Server", Value: "WebhookX/" + config.VERSION},
 	}
-	DefaultDelivererRequestHeaders = map[string]string{
-		"User-Agent":   "WebhookX/" + config.VERSION,
-		"Content-Type": "application/json; charset=utf-8",
+	DefaultDelivererRequestHeaders = []Header{
+		{Name: "User-Agent", Value: "WebhookX/" + config.VERSION},
+		{Name: "Content-Type", Value: "application/json; charset=utf-8"},
 	}
 )

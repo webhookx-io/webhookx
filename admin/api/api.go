@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
@@ -10,16 +9,15 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/accesslog"
 	"github.com/webhookx-io/webhookx/pkg/declarative"
 	"github.com/webhookx-io/webhookx/pkg/errs"
+	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
+	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
+	"github.com/webhookx-io/webhookx/pkg/types"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 	"net/http"
 	"net/http/pprof"
 	"strconv"
-)
-
-const (
-	ApplicationJsonType = "application/json"
 )
 
 type API struct {
@@ -55,24 +53,7 @@ func (api *API) query(r *http.Request, name string) string {
 }
 
 func (api *API) json(code int, w http.ResponseWriter, data interface{}) {
-	w.Header().Set("Content-Type", ApplicationJsonType)
-	w.WriteHeader(code)
-
-	if data == nil {
-		return
-	}
-
-	bytes, err := json.Marshal(data)
-	if err != nil {
-		panic(err)
-	}
-	_, _ = w.Write(bytes)
-}
-
-func (api *API) text(code int, w http.ResponseWriter, body string) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(code)
-	_, _ = w.Write([]byte(body))
+	response.JSON(w, code, data)
 }
 
 func (api *API) bindQuery(r *http.Request, q *query.Query) {
@@ -91,13 +72,13 @@ func (api *API) bindQuery(r *http.Request, q *query.Query) {
 
 func (api *API) error(code int, w http.ResponseWriter, err error) {
 	if e, ok := err.(*errs.ValidateError); ok {
-		api.json(code, w, ErrorResponse{
+		api.json(code, w, types.ErrorResponse{
 			Message: "Request Validation",
 			Error:   e,
 		})
 		return
 	}
-	api.json(code, w, ErrorResponse{Message: err.Error()})
+	api.json(code, w, types.ErrorResponse{Message: err.Error()})
 }
 
 func (api *API) notfound(w http.ResponseWriter) {
@@ -120,7 +101,7 @@ func (api *API) Handler() http.Handler {
 	if api.tracer != nil {
 		r.Use(otelhttp.NewMiddleware("api.admin"))
 	}
-	r.Use(panicRecovery)
+	r.Use(middlewares.PanicRecovery)
 	r.Use(api.contextMiddleware)
 
 	r.HandleFunc("/", api.Index).Methods("GET")

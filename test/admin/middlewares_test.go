@@ -55,7 +55,7 @@ var _ = Describe("middlewares", Ordered, func() {
 			resp, err := adminClient.R().Get("/")
 			assert.NoError(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 500, resp.StatusCode())
-			assert.Equal(GinkgoT(), `{"message": "internal error"}`, string(resp.Body()))
+			assert.Equal(GinkgoT(), `{"message":"internal error"}`, string(resp.Body()))
 		})
 	})
 

@@ -3,7 +3,7 @@ package middlewares
 import (
 	"errors"
 	"fmt"
-	"github.com/webhookx-io/webhookx/db/dao"
+	"github.com/webhookx-io/webhookx/db/errs"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"go.uber.org/zap"
@@ -23,8 +23,8 @@ func PanicRecovery(h http.Handler) http.Handler {
 					err = errors.New(fmt.Sprint(e))
 				}
 
-				if errors.Is(err, dao.ErrConstraintViolation) {
-					response.JSON(w, 400, types.ErrorResponse{Message: err.Error()})
+				if e, ok := err.(*errs.DBError); ok {
+					response.JSON(w, 400, types.ErrorResponse{Message: e.Error()})
 					return
 				}
 
@@ -33,7 +33,6 @@ func PanicRecovery(h http.Handler) http.Handler {
 				buf = buf[:n]
 
 				zap.S().Errorf("panic recovered: %v\n %s", err, buf)
-
 				response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
 			}
 		}()

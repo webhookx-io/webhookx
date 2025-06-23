@@ -1,0 +1,97 @@
+openapi: 3.0.3
+
+info:
+  title: WebhookX Status API
+  contact:
+    name: WebhookX
+    url: https://github.com/webhookx-io/webhookx
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  version: 0.7.0
+
+servers:
+  - url: http://localhost:8082
+
+paths:
+  /:
+    get:
+      summary: Retrieve the status of instance
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                {
+                  "uptime": "1s",
+                  "runtime": {
+                    "go": "go1.24.3",
+                    "goroutines": 1438
+                  },
+                  "memory": {
+                    "alloc": "4.42 MiB",
+                    "sys": "23.14 MiB",
+                    "heap_alloc": "4.42 MiB",
+                    "heap_objects": 13983,
+                    "gc": 2
+                  },
+                  "database": {
+                    "total_connections": 1,
+                    "active_connections": 0
+                  },
+                  "inbound_requests": 0,
+                  "inbound_failed_requests": 0,
+                  "outbound_requests": 0,
+                  "outbound_failed_requests": 0,
+                  "queue": {
+                    "size": 0,
+                    "backlog_latency_secs": 0
+                  },
+                  "event": {
+                    "pending": 0
+                  }
+                }
+
+  /health:
+    get:
+      summary: Retrieve the health status
+      responses:
+        '200':
+          description: '200'
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                {
+                  "status": "UP",
+                  "components": {
+                    "db": {
+                      "status": "UP"
+                    },
+                    "redis": {
+                      "status": "UP"
+                    }
+                  }
+                }
+        '503':
+          description: '503'
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                {
+                  "status": "DOWN",
+                  "components": {
+                    "db": {
+                      "status": "DOWN"
+                    },
+                    "redis": {
+                      "status": "UP"
+                    }
+                  }
+                }

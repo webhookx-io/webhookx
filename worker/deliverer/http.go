@@ -51,8 +51,8 @@ func (d *HTTPDeliverer) Deliver(ctx context.Context, req *Request) (res *Respons
 	}
 
 	req.Request = request
-	for name, value := range constants.DefaultDelivererRequestHeaders {
-		request.Header.Add(name, value)
+	for _, header := range constants.DefaultDelivererRequestHeaders {
+		request.Header.Add(header.Name, header.Value)
 	}
 	for name, value := range req.Headers {
 		request.Header.Add(name, value)

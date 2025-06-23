@@ -27,9 +27,11 @@ services:
       WEBHOOKX_PROXY_LISTEN: 0.0.0.0:8081
       WEBHOOKX_PROXY_QUEUE_REDIS_HOST: redis
       WEBHOOKX_PROXY_QUEUE_REDIS_PORT: 6379
+      WEBHOOKX_STATUS_LISTEN: 0.0.0.0:8082
     ports:
       - "8080:8080"
       - "8081:8081"
+      - "8082:8082"
     depends_on:
       webhookx-database:
         condition: service_healthy

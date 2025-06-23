@@ -109,6 +109,12 @@ func ProxyTLSClient() *resty.Client {
 	return c
 }
 
+func StatusClient() *resty.Client {
+	c := resty.New()
+	c.SetBaseURL("http://localhost:8082")
+	return c
+}
+
 func DB() *db.DB {
 	cfg, err := config.Init()
 	if err != nil {

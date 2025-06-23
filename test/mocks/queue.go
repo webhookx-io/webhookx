@@ -21,6 +21,7 @@ import (
 type MockTaskQueue struct {
 	ctrl     *gomock.Controller
 	recorder *MockTaskQueueMockRecorder
+	isgomock struct{}
 }
 
 // MockTaskQueueMockRecorder is the mock recorder for MockTaskQueue.
@@ -96,4 +97,18 @@ func (m *MockTaskQueue) Size(ctx context.Context) (int64, error) {
 func (mr *MockTaskQueueMockRecorder) Size(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Size", reflect.TypeOf((*MockTaskQueue)(nil).Size), ctx)
+}
+
+// Stats mocks base method.
+func (m *MockTaskQueue) Stats() map[string]any {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Stats")
+	ret0, _ := ret[0].(map[string]any)
+	return ret0
+}
+
+// Stats indicates an expected call of Stats.
+func (mr *MockTaskQueueMockRecorder) Stats() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stats", reflect.TypeOf((*MockTaskQueue)(nil).Stats))
 }

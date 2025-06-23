@@ -5,6 +5,7 @@ import (
 	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"net/http"
 )
@@ -25,7 +26,7 @@ func (api *API) GetSource(w http.ResponseWriter, r *http.Request) {
 	api.assert(err)
 
 	if source == nil {
-		api.json(404, w, ErrorResponse{Message: MsgNotFound})
+		api.json(404, w, types.ErrorResponse{Message: MsgNotFound})
 		return
 	}
 
@@ -58,7 +59,7 @@ func (api *API) UpdateSource(w http.ResponseWriter, r *http.Request) {
 	source, err := api.DB.SourcesWS.Get(r.Context(), id)
 	api.assert(err)
 	if source == nil {
-		api.json(404, w, ErrorResponse{Message: MsgNotFound})
+		api.json(404, w, types.ErrorResponse{Message: MsgNotFound})
 		return
 	}
 

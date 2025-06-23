@@ -41,12 +41,12 @@ func (a *Admin) Start() {
 		tls := a.cfg.TLS
 		if tls.Enabled() {
 			if err := a.s.ListenAndServeTLS(tls.Cert, tls.Key); err != nil && err != http.ErrServerClosed {
-				zap.S().Errorf("Failed to start Admin : %v", err)
+				zap.S().Errorf("Failed to start admin HTTPS server: %v", err)
 				os.Exit(1)
 			}
 		} else {
 			if err := a.s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				zap.S().Errorf("Failed to start Admin : %v", err)
+				zap.S().Errorf("Failed to start admin HTTP server: %v", err)
 				os.Exit(1)
 			}
 		}

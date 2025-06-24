@@ -50,7 +50,7 @@ type SourceDAO interface {
 
 type AttemptDetailDAO interface {
 	BaseDAO[entities.AttemptDetail]
-	Insert(ctx context.Context, attemptDetail *entities.AttemptDetail) error
+	BatchInsert(ctx context.Context, entities []*entities.AttemptDetail) error
 }
 
 type PluginDAO interface {

@@ -60,6 +60,7 @@ func (dao *attemptDao) UpdateStatusToQueued(ctx context.Context, ids []string) e
 			"id":     ids,
 			"status": entities.AttemptStatusInit,
 		}).MustSql()
+	dao.debugSQL(sql, args)
 	_, err := dao.DB(ctx).ExecContext(ctx, sql, args...)
 	return err
 }
@@ -76,8 +77,8 @@ func (dao *attemptDao) UpdateErrorCode(ctx context.Context, id string, status en
 	return err
 }
 
-func (dao *attemptDao) ListUnqueued(ctx context.Context, limit int) (list []*entities.Attempt, err error) {
-	sql := "SELECT * FROM attempts WHERE status = 'INIT' and created_at <= now() AT TIME ZONE 'UTC' - INTERVAL '60 SECOND' limit $1"
+func (dao *attemptDao) ListUnqueuedForUpdate(ctx context.Context, limit int) (list []*entities.Attempt, err error) {
+	sql := "SELECT * FROM attempts WHERE status = 'INIT' and created_at <= now() AT TIME ZONE 'UTC' - INTERVAL '60 SECOND' limit $1 FOR UPDATE SKIP LOCKED"
 	err = dao.UnsafeDB(ctx).SelectContext(ctx, &list, sql, limit)
 	return
 }

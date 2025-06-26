@@ -6,14 +6,12 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
-	"github.com/webhookx-io/webhookx/pkg/accesslog"
+	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/declarative"
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
-	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 	"net/http"
 	"net/http/pprof"
@@ -21,24 +19,32 @@ import (
 )
 
 type API struct {
-	cfg          *config.Config
-	log          *zap.SugaredLogger
-	DB           *db.DB
-	dispatcher   *dispatcher.Dispatcher
-	tracer       *tracing.Tracer
-	declarative  *declarative.Declarative
-	accessLogger accesslog.AccessLogger
+	cfg         *config.Config
+	log         *zap.SugaredLogger
+	DB          *db.DB
+	dispatcher  *dispatcher.Dispatcher
+	declarative *declarative.Declarative
+	bus         eventbus.Bus
+	middlewares []mux.MiddlewareFunc
 }
 
-func NewAPI(cfg *config.Config, db *db.DB, dispatcher *dispatcher.Dispatcher, tracer *tracing.Tracer, accessLogger accesslog.AccessLogger) *API {
+type Options struct {
+	Config      *config.Config
+	DB          *db.DB
+	Dispatcher  *dispatcher.Dispatcher
+	Middlewares []mux.MiddlewareFunc
+	EventBus    eventbus.Bus
+}
+
+func NewAPI(opts Options) *API {
 	return &API{
-		cfg:          cfg,
-		log:          zap.S(),
-		DB:           db,
-		dispatcher:   dispatcher,
-		tracer:       tracer,
-		declarative:  declarative.NewDeclarative(db),
-		accessLogger: accessLogger,
+		cfg:         opts.Config,
+		log:         zap.S(),
+		DB:          opts.DB,
+		dispatcher:  opts.Dispatcher,
+		declarative: declarative.NewDeclarative(opts.DB),
+		bus:         opts.EventBus,
+		middlewares: opts.Middlewares,
 	}
 }
 
@@ -81,10 +87,6 @@ func (api *API) error(code int, w http.ResponseWriter, err error) {
 	api.json(code, w, types.ErrorResponse{Message: err.Error()})
 }
 
-func (api *API) notfound(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNotFound)
-}
-
 func (api *API) assert(err error) {
 	if err != nil {
 		panic(err)
@@ -95,11 +97,8 @@ func (api *API) assert(err error) {
 func (api *API) Handler() http.Handler {
 	r := mux.NewRouter()
 
-	if api.accessLogger != nil {
-		r.Use(accesslog.NewMiddleware(api.accessLogger))
-	}
-	if api.tracer != nil {
-		r.Use(otelhttp.NewMiddleware("api.admin"))
+	for _, m := range api.middlewares {
+		r.Use(m)
 	}
 	r.Use(middlewares.PanicRecovery)
 	r.Use(api.contextMiddleware)

@@ -5,10 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
+	"github.com/redis/go-redis/v9"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
@@ -19,6 +23,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/service"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.opentelemetry.io/otel/trace"
@@ -39,23 +44,31 @@ type Worker struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	opts WorkerOptions
+	opts Options
 
 	log *zap.SugaredLogger
 
-	queue     taskqueue.TaskQueue
 	deliverer deliverer.Deliverer
-	DB        *db.DB
+	db        *db.DB
 	tracer    *tracing.Tracer
 	pool      *pool.Pool
 	metrics   *metrics.Metrics
+	srv       *service.Service
 }
 
-type WorkerOptions struct {
+type Options struct {
 	RequeueJobBatch    int
 	RequeueJobInterval time.Duration
 	PoolSize           int
 	PoolConcurrency    int
+
+	DB          *db.DB
+	Deliverer   deliverer.Deliverer
+	Metrics     *metrics.Metrics
+	Tracer      *tracing.Tracer
+	EventBus    eventbus.Bus
+	Srv         *service.Service
+	RedisClient *redis.Client
 }
 
 func init() {
@@ -68,15 +81,7 @@ func init() {
 	}))
 }
 
-func NewWorker(
-	opts WorkerOptions,
-	db *db.DB,
-	deliverer deliverer.Deliverer,
-	queue taskqueue.TaskQueue,
-	metrics *metrics.Metrics,
-	tracer *tracing.Tracer,
-	bus eventbus.Bus) *Worker {
-
+func NewWorker(opts Options) *Worker {
 	opts.RequeueJobBatch = utils.DefaultIfZero(opts.RequeueJobBatch, constants.RequeueBatch)
 	opts.RequeueJobInterval = utils.DefaultIfZero(opts.RequeueJobInterval, constants.RequeueInterval)
 	opts.PoolSize = utils.DefaultIfZero(opts.PoolSize, 10000)
@@ -87,19 +92,26 @@ func NewWorker(
 		ctx:       ctx,
 		cancel:    cancel,
 		opts:      opts,
-		queue:     queue,
 		log:       zap.S().Named("worker"),
-		deliverer: deliverer,
-		DB:        db,
+		deliverer: opts.Deliverer,
+		db:        opts.DB,
 		pool:      pool.NewPool(opts.PoolSize, opts.PoolConcurrency),
-		metrics:   metrics,
-		tracer:    tracer,
+		metrics:   opts.Metrics,
+		tracer:    opts.Tracer,
+		srv:       opts.Srv,
 	}
 
+	worker.registerEventHandler(opts.EventBus)
+
+	return worker
+}
+
+func (w *Worker) registerEventHandler(bus eventbus.Bus) {
+	rs := redsync.New(goredis.NewPool(w.opts.RedisClient))
 	bus.Subscribe("plugin.crud", func(data interface{}) {
 		plugin := entities.Plugin{}
 		if err := json.Unmarshal(data.(*eventbus.CrudData).Data, &plugin); err != nil {
-			zap.S().Errorf("failed to unmarshal event data: %s", err)
+			w.log.Errorf("failed to unmarshal event data: %s", err)
 			return
 		}
 
@@ -107,12 +119,54 @@ func NewWorker(
 			cacheKey := constants.EndpointPluginsKey.Build(*plugin.EndpointId)
 			err := mcache.Invalidate(context.TODO(), cacheKey)
 			if err != nil {
-				zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
+				w.log.Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
 			}
 		}
 	})
+	bus.ClusteringSubscribe(eventbus.EventEventFanout, func(data []byte) {
+		eventData := &eventbus.EventFanoutData{}
+		if err := json.Unmarshal(data, eventData); err != nil {
+			w.log.Errorf("failed to unmarshal event: %s", err)
+			return
+		}
+		bus.Broadcast(eventbus.EventEventFanout, eventData)
+	})
+	bus.Subscribe(eventbus.EventEventFanout, func(data interface{}) {
+		ctx := context.TODO()
+		fanoutData := data.(*eventbus.EventFanoutData)
+		mux := rs.NewMutex("lock:event.fanout:" + fanoutData.EventId)
+		if err := mux.TryLock(); err != nil {
+			w.log.Errorf("failed to acquire distributed lock '%s' %s", mux.Name(), err)
+			return
+		}
+		defer func() { _, _ = mux.Unlock() }()
 
-	return worker
+		q := query.AttemptQuery{}
+		q.IDs = fanoutData.AttemptIds
+		q.Status = utils.Pointer(entities.AttemptStatusInit)
+
+		attempts, err := w.db.Attempts.List(ctx, &q)
+		if err != nil {
+			w.log.Errorf("failed to list attempts: id=%s err=%s", fanoutData.EventId, err)
+			return
+		}
+
+		if len(attempts) == 0 {
+			return
+		}
+
+		event, err := w.db.Events.Get(ctx, fanoutData.EventId)
+		if err != nil {
+			w.log.Errorf("failed to get event: id=%s err=%s", fanoutData.EventId, err)
+			return
+		}
+
+		for _, e := range attempts {
+			e.Event = event
+		}
+
+		w.srv.ScheduleAttempts(ctx, attempts)
+	})
 }
 
 func (w *Worker) run() {
@@ -128,7 +182,7 @@ func (w *Worker) run() {
 			return
 		case <-ticker.C:
 			for {
-				tasks, err := w.queue.Get(context.TODO(), options)
+				tasks, err := w.srv.GetTasks(context.TODO(), options)
 				if err != nil {
 					w.log.Errorf("failed to fetch tasks from queue: %v", err)
 					break
@@ -151,11 +205,11 @@ func (w *Worker) run() {
 							defer span.End()
 							ctx = tracingCtx
 						}
-						task.Data = &MessageData{}
+						task.Data = &taskqueue.MessageData{}
 						err = task.UnmarshalData(task.Data)
 						if err != nil {
 							w.log.Errorf("failed to unmarshal task: %v", err)
-							_ = w.queue.Delete(ctx, task)
+							_ = w.srv.DeleteTask(ctx, task)
 							return
 						}
 
@@ -166,7 +220,7 @@ func (w *Worker) run() {
 							return
 						}
 
-						_ = w.queue.Delete(ctx, task)
+						_ = w.srv.DeleteTask(ctx, task)
 					})
 					if err != nil {
 						if errors.Is(err, pool.ErrPoolTernimated) {
@@ -209,55 +263,45 @@ func (w *Worker) Stop() error {
 }
 
 func (w *Worker) processRequeue() {
-	batch := w.opts.RequeueJobBatch
-	ctx := context.Background()
+	batchSize := w.opts.RequeueJobBatch
+	ctx := context.TODO()
+
+	var done bool
 	for {
-		attempts, err := w.DB.Attempts.ListUnqueued(ctx, batch)
+		err := w.db.TX(ctx, func(ctx context.Context) error {
+			attempts, err := w.db.Attempts.ListUnqueuedForUpdate(ctx, batchSize)
+			if err != nil {
+				return err
+			}
+
+			if len(attempts) > 0 {
+				for _, attempt := range attempts {
+					event, err := w.db.Events.Get(ctx, attempt.EventId)
+					if err != nil {
+						return err
+					}
+					attempt.Event = event
+				}
+				w.srv.ScheduleAttempts(ctx, attempts)
+				return nil
+			}
+
+			if len(attempts) < batchSize {
+				done = true
+			}
+
+			return nil
+		})
+
 		if err != nil {
-			w.log.Errorf("failed to query unqueued attempts: %v", err)
-			break
-		}
-		if len(attempts) == 0 {
-			break
+			w.log.Error(err)
+			return
 		}
 
-		tasks := make([]*taskqueue.TaskMessage, 0, len(attempts))
-		for _, attempt := range attempts {
-			event, err := w.DB.Events.Get(ctx, attempt.EventId)
-			if err != nil {
-				w.log.Errorf("failed to get event: %v", err)
-				break
-			}
-			task := &taskqueue.TaskMessage{
-				ID:          attempt.ID,
-				ScheduledAt: attempt.ScheduledAt.Time,
-				Data: &MessageData{
-					EventID:    attempt.EventId,
-					EndpointId: attempt.EndpointId,
-					Attempt:    attempt.AttemptNumber,
-					Event:      string(event.Data),
-				},
-			}
-			tasks = append(tasks, task)
-		}
-
-		for _, task := range tasks {
-			err := w.queue.Add(ctx, []*taskqueue.TaskMessage{task})
-			if err != nil {
-				w.log.Warnf("failed to add task to queue: %v", err)
-				continue
-			}
-			err = w.DB.Attempts.UpdateStatusToQueued(ctx, []string{task.ID})
-			if err != nil {
-				w.log.Warnf("failed to update attempt status: %v", err)
-			}
-		}
-
-		if len(attempts) < batch {
+		if done {
 			break
 		}
 	}
-
 }
 
 func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) error {
@@ -266,36 +310,36 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		defer span.End()
 		ctx = tracingCtx
 	}
-	data := task.Data.(*MessageData)
+	data := task.Data.(*taskqueue.MessageData)
 
 	// verify endpoint
 	cacheKey := constants.EndpointCacheKey.Build(data.EndpointId)
-	endpoint, err := mcache.Load(ctx, cacheKey, nil, w.DB.Endpoints.Get, data.EndpointId)
+	endpoint, err := mcache.Load(ctx, cacheKey, nil, w.db.Endpoints.Get, data.EndpointId)
 	if err != nil {
 		return err
 	}
 	if endpoint == nil {
-		return w.DB.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeEndpointNotFound)
+		return w.db.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeEndpointNotFound)
 	}
 	if !endpoint.Enabled {
-		return w.DB.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeEndpointDisabled)
+		return w.db.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeEndpointDisabled)
 	}
 
 	if data.Event == "" { // backward compatibility
 		// verify event
 		cacheKey = constants.EventCacheKey.Build(data.EventID)
 		opts := &mcache.LoadOptions{DisableLRU: true}
-		event, err := mcache.Load(ctx, cacheKey, opts, w.DB.Events.Get, data.EventID)
+		event, err := mcache.Load(ctx, cacheKey, opts, w.db.Events.Get, data.EventID)
 		if err != nil {
 			return err
 		}
 		if event == nil {
-			return w.DB.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeUnknown)
+			return w.db.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeUnknown)
 		}
 		data.Event = string(event.Data)
 	}
 
-	plugins, err := listEndpointPlugins(ctx, w.DB, endpoint.ID)
+	plugins, err := listEndpointPlugins(ctx, w.db, endpoint.ID)
 	if err != nil {
 		return err
 	}
@@ -366,7 +410,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		w.metrics.AttemptResponseDurationHistogram.Observe(response.Latancy.Seconds())
 	}
 
-	err = w.DB.Attempts.UpdateDelivery(ctx, task.ID, result)
+	err = w.db.Attempts.UpdateDelivery(ctx, task.ID, result)
 	if err != nil {
 		return err
 	}
@@ -384,7 +428,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 			attemptDetail.ResponseBody = utils.Pointer(string(response.ResponseBody))
 		}
 		attemptDetail.WorkspaceId = endpoint.WorkspaceId
-		err = w.DB.AttemptDetails.Insert(ctx, attemptDetail)
+		err = w.db.AttemptDetails.Insert(ctx, attemptDetail)
 		if err != nil {
 			w.log.Errorf("failed to insert attempt detail: %v", err)
 		}
@@ -408,32 +452,16 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		AttemptNumber: data.Attempt + 1,
 		ScheduledAt:   types.NewTime(finishAt.Add(time.Second * time.Duration(delay))),
 		TriggerMode:   entities.AttemptTriggerModeAutomatic,
+		Event:         &entities.Event{ID: data.EventID, Data: json.RawMessage(data.Event)},
 	}
 	nextAttempt.WorkspaceId = endpoint.WorkspaceId
 
-	err = w.DB.Attempts.Insert(ctx, nextAttempt)
+	err = w.db.Attempts.Insert(ctx, nextAttempt)
 	if err != nil {
 		return err
 	}
 
-	task = &taskqueue.TaskMessage{
-		ID:          nextAttempt.ID,
-		ScheduledAt: nextAttempt.ScheduledAt.Time,
-		Data: &MessageData{
-			EventID:    data.EventID,
-			EndpointId: data.EndpointId,
-			Attempt:    nextAttempt.AttemptNumber,
-		},
-	}
-
-	err = w.queue.Add(ctx, []*taskqueue.TaskMessage{task})
-	if err != nil {
-		w.log.Warnf("failed to add task to queue: %v", err)
-	}
-	err = w.DB.Attempts.UpdateStatusToQueued(ctx, []string{nextAttempt.ID})
-	if err != nil {
-		w.log.Warnf("failed to update attempt status: %v", err)
-	}
+	w.srv.ScheduleAttempts(ctx, []*entities.Attempt{nextAttempt})
 	return nil
 }
 

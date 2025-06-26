@@ -89,7 +89,6 @@ var _ = Describe("tracing proxy", Ordered, func() {
 					"api.proxy":                 entrypoint,
 					"proxy.handle":              router,
 					"dispatcher.dispatch":       {},
-					"dao.endpoints.list":        {},
 					"db.transaction":            {},
 					"dao.attempts.batch_insert": {},
 					"taskqueue.redis.add":       {},

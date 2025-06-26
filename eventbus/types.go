@@ -3,7 +3,8 @@ package eventbus
 import "encoding/json"
 
 const (
-	EventCRUD = "crud"
+	EventCRUD        = "crud"
+	EventEventFanout = "event.fanout"
 )
 
 type Bus interface {
@@ -21,6 +22,8 @@ type Message struct {
 	Data  json.RawMessage `json:"data"`
 }
 
+type Callback func(data interface{})
+
 type CrudData struct {
 	Entity   string          `json:"entity"`
 	ID       string          `json:"id"`
@@ -29,4 +32,7 @@ type CrudData struct {
 	Data     json.RawMessage `json:"data"`
 }
 
-type Callback func(data interface{})
+type EventFanoutData struct {
+	EventId    string   `json:"event_id"`
+	AttemptIds []string `json:"attempt_ids"`
+}

@@ -1,0 +1,87 @@
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: webhookx
+      POSTGRES_USER: webhookx
+      POSTGRES_HOST_AUTH_METHOD: trust
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 3s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:6.2
+    command: "--appendonly yes --appendfsync everysec"
+
+  webhookx-migration:
+    image: "webhookx/webhookx:0.8.0"
+    container_name: webhookx-migration
+    environment:
+      WEBHOOKX_DATABASE_HOST: postgres
+      WEBHOOKX_DATABASE_USERNAME: webhookx
+      WEBHOOKX_DATABASE_DATABASE: webhookx
+      WEBHOOKX_DATABASE_PORT: 5432
+    command: webhookx migrations up
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  webhookx-cp:
+    image: "webhookx/webhookx:0.8.0"
+    environment:
+      WEBHOOKX_DATABASE_HOST: postgres
+      WEBHOOKX_DATABASE_USERNAME: webhookx
+      WEBHOOKX_DATABASE_DATABASE: webhookx
+      WEBHOOKX_DATABASE_PORT: 5432
+      WEBHOOKX_ADMIN_LISTEN: 0.0.0.0:8080
+      WEBHOOKX_ROLE: cp
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      webhookx-migration:
+        condition: service_started
+
+  webhookx-dp-gateway:
+    image: "webhookx/webhookx:0.8.0"
+    environment:
+      WEBHOOKX_DATABASE_HOST: postgres
+      WEBHOOKX_DATABASE_USERNAME: webhookx
+      WEBHOOKX_DATABASE_DATABASE: webhookx
+      WEBHOOKX_DATABASE_PORT: 5432
+      WEBHOOKX_REDIS_HOST: redis
+      WEBHOOKX_REDIS_PORT: 6379
+      WEBHOOKX_PROXY_LISTEN: 0.0.0.0:8081
+      WEBHOOKX_PROXY_QUEUE_REDIS_HOST: redis
+      WEBHOOKX_PROXY_QUEUE_REDIS_PORT: 6379
+      WEBHOOKX_ROLE: dp_proxy
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      webhookx-migration:
+        condition: service_started
+
+  webhookx-dp-worker:
+    image: "webhookx/webhookx:0.8.0"
+    environment:
+      WEBHOOKX_DATABASE_HOST: postgres
+      WEBHOOKX_DATABASE_USERNAME: webhookx
+      WEBHOOKX_DATABASE_DATABASE: webhookx
+      WEBHOOKX_DATABASE_PORT: 5432
+      WEBHOOKX_REDIS_HOST: redis
+      WEBHOOKX_REDIS_PORT: 6379
+      WEBHOOKX_ROLE: dp_worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      webhookx-migration:
+        condition: service_started

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/utils"
@@ -51,7 +52,17 @@ func (api *API) CreateEvent(w http.ResponseWriter, r *http.Request) {
 
 	event.IngestedAt = types.Time{Time: time.Now()}
 	event.WorkspaceId = ucontext.GetWorkspaceID(r.Context())
-	err := api.dispatcher.Dispatch(r.Context(), &event)
+	attempts, err := api.dispatcher.Dispatch(r.Context(), []*entities.Event{&event})
+	api.assert(err)
+
+	ids := make([]string, len(attempts))
+	for i, attempt := range attempts {
+		ids[i] = attempt.ID
+	}
+	err = api.bus.ClusteringBroadcast(eventbus.EventEventFanout, &eventbus.EventFanoutData{
+		EventId:    event.ID,
+		AttemptIds: ids,
+	})
 	api.assert(err)
 
 	api.json(201, w, event)
@@ -74,7 +85,17 @@ func (api *API) RetryEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = api.dispatcher.DispatchEndpoint(r.Context(), event, []*entities.Endpoint{endpoint})
+	attempts, err := api.dispatcher.DispatchEndpoint(r.Context(), event, []*entities.Endpoint{endpoint})
+	api.assert(err)
+
+	ids := make([]string, len(attempts))
+	for i, attempt := range attempts {
+		ids[i] = attempt.ID
+	}
+	err = api.bus.ClusteringBroadcast(eventbus.EventEventFanout, &eventbus.EventFanoutData{
+		EventId:    event.ID,
+		AttemptIds: ids,
+	})
 	api.assert(err)
 
 	api.json(200, w, nil)

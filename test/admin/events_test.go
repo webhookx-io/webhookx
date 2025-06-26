@@ -192,7 +192,7 @@ var _ = Describe("/events", Ordered, func() {
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 1, len(attempts))
 				assert.Equal(GinkgoT(), entities.AttemptTriggerModeManual, attempts[0].TriggerMode)
-				assert.Equal(GinkgoT(), entities.AttemptStatusQueued, attempts[0].Status)
+				assert.Equal(GinkgoT(), entities.AttemptStatusInit, attempts[0].Status)
 			})
 
 			Context("errors", func() {

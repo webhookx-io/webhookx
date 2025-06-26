@@ -1,4 +1,4 @@
-package worker
+package taskqueue
 
 type MessageData struct {
 	EventID    string `json:"event_id"`

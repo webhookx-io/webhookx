@@ -21,10 +21,13 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/plugins"
 	"github.com/webhookx-io/webhookx/proxy"
+	"github.com/webhookx-io/webhookx/proxy/middlewares"
+	"github.com/webhookx-io/webhookx/service"
 	"github.com/webhookx-io/webhookx/status"
 	"github.com/webhookx-io/webhookx/status/health"
 	"github.com/webhookx-io/webhookx/worker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"sync"
@@ -49,12 +52,10 @@ type Application struct {
 
 	stop chan struct{}
 
-	log        *zap.SugaredLogger
-	db         *db.DB
-	dispatcher *dispatcher.Dispatcher
-	cache      cache.Cache
-	bus        *eventbus.EventBus
-	metrics    *metrics.Metrics
+	log     *zap.SugaredLogger
+	db      *db.DB
+	bus     *eventbus.EventBus
+	metrics *metrics.Metrics
 
 	status  *status.Status
 	admin   *admin.Admin
@@ -79,6 +80,7 @@ func New(cfg *config.Config) (*Application, error) {
 
 func (app *Application) initialize() error {
 	cfg := app.cfg
+	cfg.OverrideByRole(cfg.Role)
 
 	log, err := log.NewZapLogger(&cfg.Log)
 	if err != nil {
@@ -89,12 +91,14 @@ func (app *Application) initialize() error {
 
 	// cache
 	client := cfg.Redis.GetClient()
-	app.cache = cache.NewRedisCache(client)
-
+	var c cache.Cache
+	if cfg.Role != config.RoleCP {
+		c = cache.NewRedisCache(client)
+	}
 	mcache.Set(mcache.NewMCache(&mcache.Options{
 		L1Size: 1000,
 		L1TTL:  time.Second * 10,
-		L2:     app.cache,
+		L2:     c,
 	}))
 
 	sqlDB, err := db.NewSqlDB(cfg.Database)
@@ -133,53 +137,100 @@ func (app *Application) initialize() error {
 		return err
 	}
 
-	// queue
-	queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
-		Client: client,
-	}, log, app.metrics)
-	stats.Register(queue)
+	registry := dispatcher.NewRegistry(db)
+	app.bus.Subscribe("endpoint.crud", func(v interface{}) {
+		data := v.(*eventbus.CrudData)
+		registry.Unregister(data.WID)
+	})
 
-	app.dispatcher = dispatcher.NewDispatcher(log, queue, db, app.metrics, app.bus)
+	dispatcher := dispatcher.NewDispatcher(dispatcher.Options{
+		DB:       db,
+		Metrics:  app.metrics,
+		Registry: registry,
+	})
+
+	var svc *service.Service
+	if cfg.Worker.Enabled || cfg.Proxy.IsEnabled() {
+		// queue
+		queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
+			Client: client,
+		}, log, app.metrics)
+		stats.Register(queue)
+		svc = service.NewService(service.Options{
+			DB:        db,
+			TaskQueue: queue,
+		})
+	}
 
 	// worker
 	if cfg.Worker.Enabled {
-		opts := worker.WorkerOptions{
+		opts := worker.Options{
 			PoolSize:        int(cfg.Worker.Pool.Size),
 			PoolConcurrency: int(cfg.Worker.Pool.Concurrency),
+			Deliverer:       deliverer.NewHTTPDeliverer(&cfg.Worker.Deliverer),
+			DB:              db,
+			Srv:             svc,
+			Tracer:          tracer,
+			Metrics:         app.metrics,
+			EventBus:        app.bus,
+			RedisClient:     client,
 		}
-		deliverer := deliverer.NewHTTPDeliverer(&cfg.Worker.Deliverer)
-		app.worker = worker.NewWorker(opts, db, deliverer, queue, app.metrics, tracer, app.bus)
+		app.worker = worker.NewWorker(opts)
 	}
 
 	// admin
 	if cfg.Admin.IsEnabled() {
-		var accessLogger accesslog.AccessLogger
+		opts := api.Options{
+			Config:     cfg,
+			DB:         db,
+			Dispatcher: dispatcher,
+			EventBus:   app.bus,
+		}
 		if cfg.AccessLog.Enabled() {
-			accessLogger, err = accesslog.NewAccessLogger("admin", accesslog.Options{
+			accessLogger, err := accesslog.NewAccessLogger("admin", accesslog.Options{
 				File:   cfg.AccessLog.File,
 				Format: string(cfg.AccessLog.Format),
 			})
 			if err != nil {
 				return err
 			}
+			opts.Middlewares = append(opts.Middlewares, accesslog.NewMiddleware(accessLogger))
 		}
-		api := api.NewAPI(cfg, db, app.dispatcher, app.tracer, accessLogger)
+		if app.tracer != nil {
+			opts.Middlewares = append(opts.Middlewares, otelhttp.NewMiddleware("api.admin"))
+		}
+		api := api.NewAPI(opts)
 		app.admin = admin.NewAdmin(cfg.Admin, api.Handler())
 	}
 
 	// gateway
 	if cfg.Proxy.IsEnabled() {
-		var accessLogger accesslog.AccessLogger
+		opts := proxy.Options{
+			Cfg:        &cfg.Proxy,
+			DB:         db,
+			Dispatcher: dispatcher,
+			Metrics:    app.metrics,
+			Tracer:     tracer,
+			EventBus:   app.bus,
+			Srv:        svc,
+		}
 		if cfg.AccessLog.Enabled() {
-			accessLogger, err = accesslog.NewAccessLogger("proxy", accesslog.Options{
+			accessLogger, err := accesslog.NewAccessLogger("proxy", accesslog.Options{
 				File:   cfg.AccessLog.File,
 				Format: string(cfg.AccessLog.Format),
 			})
 			if err != nil {
 				return err
 			}
+			opts.Middlewares = append(opts.Middlewares, accesslog.NewMiddleware(accessLogger))
 		}
-		app.gateway = proxy.NewGateway(&cfg.Proxy, db, app.dispatcher, app.metrics, app.tracer, app.bus, accessLogger)
+		if app.tracer != nil {
+			opts.Middlewares = append(opts.Middlewares, otelhttp.NewMiddleware("api.proxy"))
+		}
+		if app.metrics.Enabled {
+			opts.Middlewares = append(opts.Middlewares, middlewares.NewMetricsMiddleware(app.metrics).Handle)
+		}
+		app.gateway = proxy.NewGateway(opts)
 	}
 
 	if cfg.Status.IsEnabled() {

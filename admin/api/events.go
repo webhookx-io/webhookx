@@ -37,6 +37,7 @@ func (api *API) GetEvent(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	var event entities.Event
+	event.ID = utils.KSUID()
 
 	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
 		api.error(400, w, err)
@@ -48,7 +49,6 @@ func (api *API) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event.ID = utils.KSUID()
 	event.IngestedAt = types.Time{Time: time.Now()}
 	event.WorkspaceId = ucontext.GetWorkspaceID(r.Context())
 	err := api.dispatcher.Dispatch(r.Context(), &event)

@@ -79,6 +79,49 @@ var _ = Describe("/events", Ordered, func() {
 		})
 	})
 
+	Context("POST", func() {
+		It("creates an event", func() {
+			resp, err := adminClient.R().
+				SetBody(`{
+				    "event_type": "foo.bar",
+				    "data": {"key":"value"}
+				}`).
+				SetResult(entities.Event{}).
+				Post("/workspaces/default/events")
+			assert.Nil(GinkgoT(), err)
+
+			assert.Equal(GinkgoT(), 201, resp.StatusCode())
+
+			result := resp.Result().(*entities.Event)
+			assert.NotEmpty(GinkgoT(), result.ID)
+			assert.Equal(GinkgoT(), "foo.bar", result.EventType)
+			assert.Equal(GinkgoT(), `{"key":"value"}`, string(result.Data))
+		})
+
+		Context("errors", func() {
+			It("returns HTTP 400 for invalid json", func() {
+				resp, err := adminClient.R().
+					SetBody("").
+					SetResult(entities.Event{}).
+					Post("/workspaces/default/events")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+			})
+
+			It("returns HTTP 400 for missing required fields", func() {
+				resp, err := adminClient.R().
+					SetBody(`{}`).
+					SetResult(entities.Event{}).
+					Post("/workspaces/default/events")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"data":"required field missing","event_type":"required field missing"}}}`,
+					string(resp.Body()))
+			})
+		})
+	})
+
 	Context("/{id}", func() {
 		Context("GET", func() {
 			var entity *entities.Event
@@ -152,7 +195,22 @@ var _ = Describe("/events", Ordered, func() {
 				assert.Equal(GinkgoT(), entities.AttemptStatusQueued, attempts[0].Status)
 			})
 
+			Context("errors", func() {
+				It("return HTTP 404", func() {
+					resp, err := adminClient.R().Post("/workspaces/default/events/notfound/retry")
+					assert.NoError(GinkgoT(), err)
+					assert.Equal(GinkgoT(), 404, resp.StatusCode())
+					assert.Equal(GinkgoT(), "{\"message\":\"Not found\"}", string(resp.Body()))
+				})
+				It("return HTTP 400", func() {
+					resp, err := adminClient.R().Post("/workspaces/default/events/" + eventId + "/retry?endpoint_id=notfound")
+					assert.NoError(GinkgoT(), err)
+					assert.Equal(GinkgoT(), 400, resp.StatusCode())
+					assert.Equal(GinkgoT(), "{\"message\":\"endpoint not found\"}", string(resp.Body()))
+				})
+			})
 		})
+
 	})
 
 })

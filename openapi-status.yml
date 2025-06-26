@@ -26,17 +26,19 @@ paths:
                 type: object
               example:
                 {
-                  "uptime": "1s",
+                  "uptime": "8s",
                   "runtime": {
                     "go": "go1.24.3",
-                    "goroutines": 1438
+                    "goroutines": 1434
                   },
                   "memory": {
-                    "alloc": "4.42 MiB",
+                    "alloc": "3.52 MiB",
                     "sys": "23.14 MiB",
-                    "heap_alloc": "4.42 MiB",
-                    "heap_objects": 13983,
-                    "gc": 2
+                    "heap_alloc": "3.52 MiB",
+                    "heap_idle": "6.11 MiB",
+                    "heap_inuse": "5.92 MiB",
+                    "heap_objects": 21667,
+                    "gc": 1
                   },
                   "database": {
                     "total_connections": 1,
@@ -45,6 +47,7 @@ paths:
                   "inbound_requests": 0,
                   "inbound_failed_requests": 0,
                   "outbound_requests": 0,
+                  "outbound_processing_requests": 0,
                   "outbound_failed_requests": 0,
                   "queue": {
                     "size": 0,

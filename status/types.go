@@ -11,22 +11,25 @@ type HealthResult struct {
 }
 
 type StatusResponse struct {
-	UpTime                 string        `json:"uptime"`
-	Runtime                RuntimeStats  `json:"runtime"`
-	Memory                 MemoryStats   `json:"memory"`
-	Database               DatabaseStats `json:"database"`
-	InboundRequests        int64         `json:"inbound_requests"`
-	InboundFailedRequests  int64         `json:"inbound_failed_requests"`
-	OutboundRequests       int64         `json:"outbound_requests"`
-	OutboundFailedRequests int64         `json:"outbound_failed_requests"`
-	Queue                  QueueStats    `json:"queue"`
-	Event                  EventStats    `json:"event"`
+	UpTime                     string        `json:"uptime"`
+	Runtime                    RuntimeStats  `json:"runtime"`
+	Memory                     MemoryStats   `json:"memory"`
+	Database                   DatabaseStats `json:"database"`
+	InboundRequests            int64         `json:"inbound_requests"`
+	InboundFailedRequests      int64         `json:"inbound_failed_requests"`
+	OutboundRequests           int64         `json:"outbound_requests"`
+	OutboundProcessingRequests int64         `json:"outbound_processing_requests"`
+	OutboundFailedRequests     int64         `json:"outbound_failed_requests"`
+	Queue                      QueueStats    `json:"queue"`
+	Event                      EventStats    `json:"event"`
 }
 
 type MemoryStats struct {
 	Alloc       string `json:"alloc"`
 	Sys         string `json:"sys"`
 	HeapAlloc   string `json:"heap_alloc"`
+	HeapIdle    string `json:"heap_idle"`
+	HeapInuse   string `json:"heap_inuse"`
 	HeapObjects int64  `json:"heap_objects"`
 	GC          int64  `json:"gc"`
 }

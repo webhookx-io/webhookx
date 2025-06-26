@@ -59,6 +59,10 @@ func (a *Status) Start() {
 	}()
 
 	a.log.Infow(fmt.Sprintf(`listening on address "%s"`, a.cfg.Listen))
+
+	if a.cfg.DebugEndpoints {
+		a.log.Infow("serving debug endpoints at /debug", "pprof", "/debug/pprof/")
+	}
 }
 
 func (a *Status) Stop() error {

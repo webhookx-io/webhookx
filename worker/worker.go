@@ -30,8 +30,9 @@ import (
 )
 
 var (
-	counter  atomic.Int64
-	failures atomic.Int64
+	counter    atomic.Int64
+	failures   atomic.Int64
+	processing atomic.Int64
 )
 
 type Worker struct {
@@ -60,8 +61,9 @@ type WorkerOptions struct {
 func init() {
 	stats.Register(stats.ProviderFunc(func() map[string]interface{} {
 		return map[string]interface{}{
-			"outbound.requests":        counter.Load(),
-			"outbound.failed_requests": failures.Load(),
+			"outbound.requests":            counter.Load(),
+			"outbound.failed_requests":     failures.Load(),
+			"outbound.processing_requests": processing.Load(),
 		}
 	}))
 }
@@ -139,6 +141,9 @@ func (w *Worker) run() {
 				var errs []error
 				for _, task := range tasks {
 					err = w.pool.SubmitFn(time.Second*5, func() {
+						processing.Add(1)
+						defer processing.Add(-1)
+
 						// TODO: start trace with task Context
 						ctx := context.TODO()
 						if w.tracer != nil {

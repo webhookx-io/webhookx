@@ -51,15 +51,13 @@ func (dao *attemptDao) UpdateDelivery(ctx context.Context, id string, result *At
 	return err
 }
 
-func (dao *attemptDao) UpdateStatus(ctx context.Context, id string, status entities.AttemptStatus) error {
-	_, err := dao.update(ctx, id, map[string]interface{}{
-		"status": status,
-	})
-	return err
-}
-
-func (dao *attemptDao) UpdateStatusBatch(ctx context.Context, status entities.AttemptStatus, ids []string) error {
-	sql, args := psql.Update("attempts").Set("status", status).Where(sq.Eq{"id": ids}).MustSql()
+func (dao *attemptDao) UpdateStatusToQueued(ctx context.Context, ids []string) error {
+	sql, args := psql.Update("attempts").
+		Set("status", entities.AttemptStatusQueued).
+		Where(sq.Eq{
+			"id":     ids,
+			"sattus": entities.AttemptStatusInit,
+		}).MustSql()
 	_, err := dao.DB(ctx).ExecContext(ctx, sql, args...)
 	return err
 }

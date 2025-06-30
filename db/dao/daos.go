@@ -37,8 +37,7 @@ type EventDAO interface {
 
 type AttemptDAO interface {
 	BaseDAO[entities.Attempt]
-	UpdateStatus(ctx context.Context, id string, status entities.AttemptStatus) error
-	UpdateStatusBatch(ctx context.Context, status entities.AttemptStatus, ids []string) error
+	UpdateStatusToQueued(ctx context.Context, ids []string) error
 	UpdateErrorCode(ctx context.Context, id string, status entities.AttemptStatus, code entities.AttemptErrorCode) error
 	UpdateDelivery(ctx context.Context, id string, result *AttemptResult) error
 	ListUnqueued(ctx context.Context, limit int) (list []*entities.Attempt, err error)

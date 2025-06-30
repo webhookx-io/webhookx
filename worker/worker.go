@@ -247,7 +247,7 @@ func (w *Worker) processRequeue() {
 				w.log.Warnf("failed to add task to queue: %v", err)
 				continue
 			}
-			err = w.DB.Attempts.UpdateStatus(ctx, task.ID, entities.AttemptStatusQueued)
+			err = w.DB.Attempts.UpdateStatusToQueued(ctx, []string{task.ID})
 			if err != nil {
 				w.log.Warnf("failed to update attempt status: %v", err)
 			}
@@ -430,7 +430,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	if err != nil {
 		w.log.Warnf("failed to add task to queue: %v", err)
 	}
-	err = w.DB.Attempts.UpdateStatus(ctx, nextAttempt.ID, entities.AttemptStatusQueued)
+	err = w.DB.Attempts.UpdateStatusToQueued(ctx, []string{nextAttempt.ID})
 	if err != nil {
 		w.log.Warnf("failed to update attempt status: %v", err)
 	}

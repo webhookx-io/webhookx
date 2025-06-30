@@ -56,7 +56,7 @@ func (dao *attemptDao) UpdateStatusToQueued(ctx context.Context, ids []string) e
 		Set("status", entities.AttemptStatusQueued).
 		Where(sq.Eq{
 			"id":     ids,
-			"sattus": entities.AttemptStatusInit,
+			"status": entities.AttemptStatusInit,
 		}).MustSql()
 	_, err := dao.DB(ctx).ExecContext(ctx, sql, args...)
 	return err

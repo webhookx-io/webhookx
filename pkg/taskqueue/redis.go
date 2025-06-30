@@ -40,7 +40,8 @@ var (
 
 	requeueScript = redis.NewScript(`
 		redis.replicate_commands()
-		local now = redis.call('TIME')[1]
+		local time = redis.call('TIME')
+		local now = time[1] * 1000 + math.floor(time[2] / 1000)
 		local tasks = redis.call('ZRANGEBYSCORE', KEYS[1], 0, now)
 		local n = 0
 		if tasks then
@@ -86,7 +87,7 @@ func NewRedisQueue(opts RedisTaskQueueOptions, logger *zap.SugaredLogger, metric
 	}
 	q.process()
 
-	if metrics.Enabled {
+	if metrics != nil && metrics.Enabled {
 		go q.monitoring()
 	}
 
@@ -127,7 +128,7 @@ func (q *RedisTaskQueue) Get(ctx context.Context, opts *GetOptions) ([]*TaskMess
 	keys := []string{q.queue, q.queueData, q.invisibleQueue}
 	argv := []interface{}{
 		opts.Count,
-		q.visibilityTimeout.Milliseconds() / 1000,
+		q.visibilityTimeout.Milliseconds(),
 	}
 	res, err := getMultiScript.Run(ctx, q.c, keys, argv...).Result()
 	if err != nil {

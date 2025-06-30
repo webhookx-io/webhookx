@@ -11,7 +11,7 @@ const (
 	TaskQueueName               = "webhookx:queue"
 	TaskQueueInvisibleQueueName = "webhookx:queue_invisible"
 	TaskQueueDataName           = "webhookx:queue_data"
-	TaskQueueVisibilityTimeout  = time.Second * 60
+	TaskQueueVisibilityTimeout  = time.Second * 65
 )
 
 // Redis Queue

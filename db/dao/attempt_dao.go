@@ -47,6 +47,7 @@ func (dao *attemptDao) UpdateDelivery(ctx context.Context, id string, result *At
 		"status":       result.Status,
 		"error_code":   result.ErrorCode,
 		"exhausted":    result.Exhausted,
+		"updated_at":   sq.Expr("NOW()"),
 	})
 	return err
 }
@@ -54,6 +55,7 @@ func (dao *attemptDao) UpdateDelivery(ctx context.Context, id string, result *At
 func (dao *attemptDao) UpdateStatusToQueued(ctx context.Context, ids []string) error {
 	sql, args := psql.Update("attempts").
 		Set("status", entities.AttemptStatusQueued).
+		Set("updated_at", sq.Expr("NOW()")).
 		Where(sq.Eq{
 			"id":     ids,
 			"status": entities.AttemptStatusInit,
@@ -69,6 +71,7 @@ func (dao *attemptDao) UpdateErrorCode(ctx context.Context, id string, status en
 	_, err := dao.update(ctx, id, map[string]interface{}{
 		"status":     status,
 		"error_code": code,
+		"updated_at": sq.Expr("NOW()"),
 	})
 	return err
 }

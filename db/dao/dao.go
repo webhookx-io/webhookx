@@ -14,14 +14,12 @@ import (
 	"github.com/webhookx-io/webhookx/db/transaction"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
-	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"reflect"
 	"strings"
-	"time"
 )
 
 var (
@@ -318,7 +316,7 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 			id = v.Interface().(string)
 		case "created_at": // ignore
 		case "updated_at":
-			builder = builder.Set(column, types.NewTime(time.Now()))
+			builder = builder.Set(column, sq.Expr("NOW()"))
 		default:
 			builder = builder.Set(column, v.Interface())
 		}
@@ -337,14 +335,13 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 }
 
 func (dao *DAO[T]) Upsert(ctx context.Context, fields []string, entity *T) error {
-	now := time.Now()
 	columns := make([]string, 0)
 	values := make([]interface{}, 0)
 	EachField(entity, func(f reflect.StructField, v reflect.Value, column string) {
 		switch column {
 		case "created_at", "updated_at":
 			columns = append(columns, column)
-			values = append(values, types.NewTime(now))
+			values = append(values, sq.Expr("NOW()"))
 		default:
 			columns = append(columns, column)
 			value := v.Interface()

@@ -157,7 +157,7 @@ func (d *Dispatcher) sendToQueue(ctx context.Context, attempts []*entities.Attem
 		d.log.Warnf("failed to add tasks to queue: %v", err)
 		return
 	}
-	err = d.db.Attempts.UpdateStatusBatch(ctx, entities.AttemptStatusQueued, ids)
+	err = d.db.Attempts.UpdateStatusToQueued(ctx, ids)
 	if err != nil {
 		d.log.Warnf("failed to update attempts status: %v", err)
 	}

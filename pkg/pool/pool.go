@@ -21,7 +21,7 @@ type Pool struct {
 
 	tasks    chan Task
 	wait     sync.WaitGroup
-	handling int64
+	handling atomic.Int64
 }
 
 func NewPool(size int, workers int) *Pool {
@@ -79,15 +79,15 @@ func (p *Pool) consume() {
 		case <-p.ctx.Done():
 			return
 		case t := <-p.tasks:
-			atomic.AddInt64(&p.handling, 1)
+			p.handling.Add(1)
 			t.Execute()
-			atomic.AddInt64(&p.handling, -1)
+			p.handling.Add(-1)
 		}
 	}
 }
 
 func (p *Pool) GetHandling() int64 {
-	return atomic.LoadInt64(&p.handling)
+	return p.handling.Load()
 }
 
 func (p *Pool) Shutdown() {

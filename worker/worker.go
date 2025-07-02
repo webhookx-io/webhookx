@@ -134,6 +134,10 @@ func (w *Worker) registerEventHandler(bus eventbus.Bus) {
 	bus.Subscribe(eventbus.EventEventFanout, func(data interface{}) {
 		ctx := context.TODO()
 		fanoutData := data.(*eventbus.EventFanoutData)
+		if len(fanoutData.AttemptIds) == 0 {
+			return
+		}
+
 		mux := rs.NewMutex("lock:event.fanout:" + fanoutData.EventId)
 		if err := mux.TryLock(); err != nil {
 			w.log.Errorf("failed to acquire distributed lock '%s' %s", mux.Name(), err)
@@ -144,7 +148,6 @@ func (w *Worker) registerEventHandler(bus eventbus.Bus) {
 		q := query.AttemptQuery{}
 		q.IDs = fanoutData.AttemptIds
 		q.Status = utils.Pointer(entities.AttemptStatusInit)
-
 		attempts, err := w.db.Attempts.List(ctx, &q)
 		if err != nil {
 			w.log.Errorf("failed to list attempts: id=%s err=%s", fanoutData.EventId, err)
@@ -264,11 +267,10 @@ func (w *Worker) Stop() error {
 
 func (w *Worker) processRequeue() {
 	batchSize := w.opts.RequeueJobBatch
-	ctx := context.TODO()
 
 	var done bool
 	for {
-		err := w.db.TX(ctx, func(ctx context.Context) error {
+		err := w.db.TX(context.TODO(), func(ctx context.Context) error {
 			attempts, err := w.db.Attempts.ListUnqueuedForUpdate(ctx, batchSize)
 			if err != nil {
 				return err

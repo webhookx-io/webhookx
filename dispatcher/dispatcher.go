@@ -82,7 +82,6 @@ func (d *Dispatcher) Dispatch(ctx context.Context, events []*entities.Event) ([]
 		if d.opts.Metrics.Enabled {
 			d.opts.Metrics.EventPersistCounter.Add(float64(n))
 		}
-		//go d.sendToQueue(context.WithoutCancel(ctx), attempts)
 	}
 	return attempts, err
 }

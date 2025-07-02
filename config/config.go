@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/creasty/defaults"
-	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/pkg/envconfig"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -15,7 +14,6 @@ import (
 var (
 	VERSION = "dev"
 	COMMIT  = "unknown"
-	NODE    = uuid.NewV4().String()
 )
 
 type Role string
@@ -80,9 +78,8 @@ func (cfg Config) Validate() error {
 	if err := cfg.Tracing.Validate(); err != nil {
 		return err
 	}
-
 	if !slices.Contains([]Role{RoleAll, RoleCP, RoleDPWorker, RoleDPProxy}, cfg.Role) {
-		return fmt.Errorf("invalid role: %s", cfg.Role)
+		return fmt.Errorf("invalid role: '%s'", cfg.Role)
 	}
 
 	return nil

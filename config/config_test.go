@@ -338,6 +338,26 @@ func TestStatusConfig(t *testing.T) {
 	}
 }
 
+func TestRole(t *testing.T) {
+	cfg, err := Init()
+	assert.Nil(t, err)
+
+	cfg.Role = "all"
+	assert.Nil(t, cfg.Validate())
+
+	cfg.Role = "cp"
+	assert.Nil(t, cfg.Validate())
+
+	cfg.Role = "dp_worker"
+	assert.Nil(t, cfg.Validate())
+
+	cfg.Role = "dp_proxy"
+	assert.Nil(t, cfg.Validate())
+
+	cfg.Role = ""
+	assert.Equal(t, errors.New("invalid role: ''"), cfg.Validate())
+}
+
 func TestConfig(t *testing.T) {
 	cfg, err := Init()
 	assert.Nil(t, err)

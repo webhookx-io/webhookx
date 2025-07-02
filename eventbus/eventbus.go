@@ -7,7 +7,6 @@ import (
 	"fmt"
 	evbus "github.com/asaskevich/EventBus"
 	"github.com/lib/pq"
-	"github.com/webhookx-io/webhookx/config"
 	"go.uber.org/zap"
 	"sync"
 	"time"
@@ -108,7 +107,7 @@ func (bus *EventBus) ClusteringBroadcast(channel string, data interface{}) error
 	msg := Message{
 		Event: channel,
 		Time:  time.Now().UnixMilli(),
-		Node:  config.NODE,
+		Node:  bus.nodeID,
 		Data:  bytes,
 	}
 	bytes, err = json.Marshal(msg)

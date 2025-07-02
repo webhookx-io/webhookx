@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
@@ -45,6 +46,8 @@ func init() {
 }
 
 type Application struct {
+	nodeID string
+
 	cfg *config.Config
 
 	mux     sync.Mutex
@@ -66,8 +69,9 @@ type Application struct {
 
 func New(cfg *config.Config) (*Application, error) {
 	app := &Application{
-		cfg:  cfg,
-		stop: make(chan struct{}),
+		nodeID: uuid.NewV4().String(),
+		cfg:    cfg,
+		stop:   make(chan struct{}),
 	}
 
 	err := app.initialize()
@@ -300,7 +304,7 @@ func (app *Application) DB() *db.DB {
 }
 
 func (app *Application) NodeID() string {
-	return config.NODE
+	return app.nodeID
 }
 
 func (app *Application) Config() *config.Config {

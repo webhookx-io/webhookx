@@ -14,7 +14,7 @@ func (api *API) PagePlugin(w http.ResponseWriter, r *http.Request) {
 	var q query.PluginQuery
 	q.Order("id", query.DESC)
 	api.bindQuery(r, &q.Query)
-	list, total, err := api.DB.PluginsWS.Page(r.Context(), &q)
+	list, total, err := api.db.PluginsWS.Page(r.Context(), &q)
 	api.assert(err)
 
 	api.json(200, w, NewPagination(total, list))
@@ -22,7 +22,7 @@ func (api *API) PagePlugin(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) GetPlugin(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	plugin, err := api.DB.PluginsWS.Get(r.Context(), id)
+	plugin, err := api.db.PluginsWS.Get(r.Context(), id)
 	api.assert(err)
 
 	if plugin == nil {
@@ -50,7 +50,7 @@ func (api *API) CreatePlugin(w http.ResponseWriter, r *http.Request) {
 	p, err := model.Plugin()
 	api.assert(err)
 	model.Config = utils.Must(p.MarshalConfig())
-	err = api.DB.PluginsWS.Insert(r.Context(), &model)
+	err = api.db.PluginsWS.Insert(r.Context(), &model)
 	api.assert(err)
 
 	api.json(201, w, model)
@@ -58,7 +58,7 @@ func (api *API) CreatePlugin(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) UpdatePlugin(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	model, err := api.DB.PluginsWS.Get(r.Context(), id)
+	model, err := api.db.PluginsWS.Get(r.Context(), id)
 	api.assert(err)
 	if model == nil {
 		api.json(404, w, types.ErrorResponse{Message: MsgNotFound})
@@ -81,7 +81,7 @@ func (api *API) UpdatePlugin(w http.ResponseWriter, r *http.Request) {
 	model.Config = utils.Must(p.MarshalConfig())
 
 	model.ID = id
-	err = api.DB.PluginsWS.Update(r.Context(), model)
+	err = api.db.PluginsWS.Update(r.Context(), model)
 	api.assert(err)
 
 	api.json(200, w, model)
@@ -89,7 +89,7 @@ func (api *API) UpdatePlugin(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) DeletePlugin(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	_, err := api.DB.PluginsWS.Delete(r.Context(), id)
+	_, err := api.db.PluginsWS.Delete(r.Context(), id)
 	api.assert(err)
 
 	w.WriteHeader(204)

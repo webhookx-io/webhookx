@@ -12,7 +12,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/types"
-	"go.uber.org/zap"
 	"net/http"
 	"net/http/pprof"
 	"strconv"
@@ -20,8 +19,7 @@ import (
 
 type API struct {
 	cfg         *config.Config
-	log         *zap.SugaredLogger
-	DB          *db.DB
+	db          *db.DB
 	dispatcher  *dispatcher.Dispatcher
 	declarative *declarative.Declarative
 	bus         eventbus.Bus
@@ -39,8 +37,7 @@ type Options struct {
 func NewAPI(opts Options) *API {
 	return &API{
 		cfg:         opts.Config,
-		log:         zap.S(),
-		DB:          opts.DB,
+		db:          opts.DB,
 		dispatcher:  opts.Dispatcher,
 		declarative: declarative.NewDeclarative(opts.DB),
 		bus:         opts.EventBus,

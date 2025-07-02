@@ -18,10 +18,10 @@ func (api *API) contextMiddleware(next http.Handler) http.Handler {
 			wid = "default"
 		}
 
-		workspace, err = api.DB.Workspaces.GetWorkspace(r.Context(), wid)
+		workspace, err = api.db.Workspaces.GetWorkspace(r.Context(), wid)
 		api.assert(err)
 		if workspace == nil {
-			workspace, err = api.DB.Workspaces.Get(r.Context(), wid)
+			workspace, err = api.db.Workspaces.Get(r.Context(), wid)
 			api.assert(err)
 		}
 

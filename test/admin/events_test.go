@@ -96,6 +96,8 @@ var _ = Describe("/events", Ordered, func() {
 			assert.NotEmpty(GinkgoT(), result.ID)
 			assert.Equal(GinkgoT(), "foo.bar", result.EventType)
 			assert.Equal(GinkgoT(), `{"key":"value"}`, string(result.Data))
+			assert.True(GinkgoT(), result.CreatedAt.Unix() > 0)
+			assert.True(GinkgoT(), result.UpdatedAt.Unix() > 0)
 		})
 
 		Context("errors", func() {

@@ -14,7 +14,7 @@ func (api *API) PageSource(w http.ResponseWriter, r *http.Request) {
 	var q query.SourceQuery
 	q.Order("id", query.DESC)
 	api.bindQuery(r, &q.Query)
-	list, total, err := api.DB.SourcesWS.Page(r.Context(), &q)
+	list, total, err := api.db.SourcesWS.Page(r.Context(), &q)
 	api.assert(err)
 
 	api.json(200, w, NewPagination(total, list))
@@ -22,7 +22,7 @@ func (api *API) PageSource(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) GetSource(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	source, err := api.DB.SourcesWS.Get(r.Context(), id)
+	source, err := api.db.SourcesWS.Get(r.Context(), id)
 	api.assert(err)
 
 	if source == nil {
@@ -48,7 +48,7 @@ func (api *API) CreateSource(w http.ResponseWriter, r *http.Request) {
 	}
 
 	source.WorkspaceId = ucontext.GetWorkspaceID(r.Context())
-	err := api.DB.SourcesWS.Insert(r.Context(), &source)
+	err := api.db.SourcesWS.Insert(r.Context(), &source)
 	api.assert(err)
 
 	api.json(201, w, source)
@@ -56,7 +56,7 @@ func (api *API) CreateSource(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) UpdateSource(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	source, err := api.DB.SourcesWS.Get(r.Context(), id)
+	source, err := api.db.SourcesWS.Get(r.Context(), id)
 	api.assert(err)
 	if source == nil {
 		api.json(404, w, types.ErrorResponse{Message: MsgNotFound})
@@ -74,7 +74,7 @@ func (api *API) UpdateSource(w http.ResponseWriter, r *http.Request) {
 	}
 
 	source.ID = id
-	err = api.DB.SourcesWS.Update(r.Context(), source)
+	err = api.db.SourcesWS.Update(r.Context(), source)
 	api.assert(err)
 
 	api.json(200, w, source)
@@ -82,7 +82,7 @@ func (api *API) UpdateSource(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) DeleteSource(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	_, err := api.DB.SourcesWS.Delete(r.Context(), id)
+	_, err := api.db.SourcesWS.Delete(r.Context(), id)
 	api.assert(err)
 
 	w.WriteHeader(204)

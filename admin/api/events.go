@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
@@ -17,7 +18,7 @@ func (api *API) PageEvent(w http.ResponseWriter, r *http.Request) {
 	q.Order("id", query.DESC)
 	api.bindQuery(r, &q.Query)
 
-	list, total, err := api.DB.EventsWS.Page(r.Context(), &q)
+	list, total, err := api.db.EventsWS.Page(r.Context(), &q)
 	api.assert(err)
 
 	api.json(200, w, NewPagination(total, list))
@@ -25,7 +26,7 @@ func (api *API) PageEvent(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) GetEvent(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	event, err := api.DB.EventsWS.Get(r.Context(), id)
+	event, err := api.db.EventsWS.Get(r.Context(), id)
 	api.assert(err)
 
 	if event == nil {
@@ -52,25 +53,30 @@ func (api *API) CreateEvent(w http.ResponseWriter, r *http.Request) {
 
 	event.IngestedAt = types.Time{Time: time.Now()}
 	event.WorkspaceId = ucontext.GetWorkspaceID(r.Context())
-	attempts, err := api.dispatcher.Dispatch(r.Context(), []*entities.Event{&event})
+	attempts, err := api.dispatcher.Dispatch(context.WithoutCancel(r.Context()), []*entities.Event{&event})
 	api.assert(err)
 
-	ids := make([]string, len(attempts))
-	for i, attempt := range attempts {
-		ids[i] = attempt.ID
+	if len(attempts) > 0 {
+		ids := make([]string, len(attempts))
+		for i, attempt := range attempts {
+			ids[i] = attempt.ID
+		}
+		err = api.bus.ClusteringBroadcast(eventbus.EventEventFanout, &eventbus.EventFanoutData{
+			EventId:    event.ID,
+			AttemptIds: ids,
+		})
+		api.assert(err)
 	}
-	err = api.bus.ClusteringBroadcast(eventbus.EventEventFanout, &eventbus.EventFanoutData{
-		EventId:    event.ID,
-		AttemptIds: ids,
-	})
+
+	dbEvent, err := api.db.EventsWS.Get(r.Context(), event.ID)
 	api.assert(err)
 
-	api.json(201, w, event)
+	api.json(201, w, dbEvent)
 }
 
 func (api *API) RetryEvent(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	event, err := api.DB.EventsWS.Get(r.Context(), id)
+	event, err := api.db.EventsWS.Get(r.Context(), id)
 	api.assert(err)
 	if event == nil {
 		api.json(404, w, types.ErrorResponse{Message: MsgNotFound})
@@ -78,7 +84,7 @@ func (api *API) RetryEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	endpointId := r.URL.Query().Get("endpoint_id")
-	endpoint, err := api.DB.EndpointsWS.Get(r.Context(), endpointId)
+	endpoint, err := api.db.EndpointsWS.Get(r.Context(), endpointId)
 	api.assert(err)
 	if endpoint == nil {
 		api.json(400, w, types.ErrorResponse{Message: "endpoint not found"})

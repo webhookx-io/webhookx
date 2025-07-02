@@ -65,6 +65,7 @@ type Application struct {
 	gateway *proxy.Gateway
 	worker  *worker.Worker
 	tracer  *tracing.Tracer
+	srv     *service.Service
 }
 
 func New(cfg *config.Config) (*Application, error) {
@@ -153,14 +154,13 @@ func (app *Application) initialize() error {
 		Registry: registry,
 	})
 
-	var svc *service.Service
 	if cfg.Worker.Enabled || cfg.Proxy.IsEnabled() {
 		// queue
 		queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
 			Client: client,
 		}, log, app.metrics)
 		stats.Register(queue)
-		svc = service.NewService(service.Options{
+		app.srv = service.NewService(service.Options{
 			DB:        db,
 			TaskQueue: queue,
 		})
@@ -173,7 +173,7 @@ func (app *Application) initialize() error {
 			PoolConcurrency: int(cfg.Worker.Pool.Concurrency),
 			Deliverer:       deliverer.NewHTTPDeliverer(&cfg.Worker.Deliverer),
 			DB:              db,
-			Srv:             svc,
+			Srv:             app.srv,
 			Tracer:          tracer,
 			Metrics:         app.metrics,
 			EventBus:        app.bus,
@@ -216,7 +216,7 @@ func (app *Application) initialize() error {
 			Metrics:    app.metrics,
 			Tracer:     tracer,
 			EventBus:   app.bus,
-			Srv:        svc,
+			Srv:        app.srv,
 		}
 		if cfg.AccessLog.Enabled() {
 			accessLogger, err := accesslog.NewAccessLogger("proxy", accesslog.Options{

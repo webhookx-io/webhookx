@@ -342,7 +342,7 @@ func TestRole(t *testing.T) {
 	cfg, err := Init()
 	assert.Nil(t, err)
 
-	cfg.Role = "all"
+	cfg.Role = "standalone"
 	assert.Nil(t, cfg.Validate())
 
 	cfg.Role = "cp"

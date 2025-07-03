@@ -31,16 +31,17 @@ redis:
 #------------------------------------------------------------------------------
 # Cluster
 #------------------------------------------------------------------------------
-#role: all                          # This allows some nodes in the cluster to run as the control plane
+#role: standalone                   # Enables cluster mode.
+                                    # This allows some nodes in the cluster to run as the control plane
                                     # and others to run as the data plane.
                                     #
                                     # supported values are:
                                     #
-                                    # - `all`: this node is all-in-one node.
-                                    # - `cp`: this node runs as control plane.
+                                    # - `standalone`: disable cluster mode.
+                                    # - `cp`: this node runs as the control plane.
                                     #   It connects to the database to provide entity management.
-                                    # - `dp_proxy`: this node runs as Proxy data plane.
-                                    # - `dp_worker`: this node runs as Worker data plane.
+                                    # - `dp_proxy`: this node runs as the Proxy data plane.
+                                    # - `dp_worker`: this node runs as the Worker data plane.
 
 #------------------------------------------------------------------------------
 # ADMIN

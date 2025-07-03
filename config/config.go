@@ -19,10 +19,10 @@ var (
 type Role string
 
 const (
-	RoleAll      Role = "all"
-	RoleCP       Role = "cp"
-	RoleDPWorker Role = "dp_worker"
-	RoleDPProxy  Role = "dp_proxy"
+	RoleStandalone Role = "standalone"
+	RoleCP         Role = "cp"
+	RoleDPWorker   Role = "dp_worker"
+	RoleDPProxy    Role = "dp_proxy"
 )
 
 type Config struct {
@@ -36,7 +36,7 @@ type Config struct {
 	Worker    WorkerConfig    `yaml:"worker" json:"worker" envconfig:"WORKER"`
 	Metrics   MetricsConfig   `yaml:"metrics" json:"metrics" envconfig:"METRICS"`
 	Tracing   TracingConfig   `yaml:"tracing" json:"tracing" envconfig:"TRACING"`
-	Role      Role            `yaml:"role" json:"role" envconfig:"ROLE" default:"all"`
+	Role      Role            `yaml:"role" json:"role" envconfig:"ROLE" default:"standalone"`
 }
 
 func (cfg Config) String() string {
@@ -78,7 +78,7 @@ func (cfg Config) Validate() error {
 	if err := cfg.Tracing.Validate(); err != nil {
 		return err
 	}
-	if !slices.Contains([]Role{RoleAll, RoleCP, RoleDPWorker, RoleDPProxy}, cfg.Role) {
+	if !slices.Contains([]Role{RoleStandalone, RoleCP, RoleDPWorker, RoleDPProxy}, cfg.Role) {
 		return fmt.Errorf("invalid role: '%s'", cfg.Role)
 	}
 

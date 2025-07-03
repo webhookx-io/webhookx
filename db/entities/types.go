@@ -7,14 +7,31 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/types"
 )
 
-type Metadata map[string]string
-
-func (m *Metadata) Scan(src interface{}) error {
-	return json.Unmarshal(src.([]byte), m)
+type Metadata struct {
+	items map[string]string
 }
 
-func (m *Metadata) Value() (driver.Value, error) {
-	return json.Marshal(m)
+func (m *Metadata) Scan(src interface{}) error {
+	return json.Unmarshal(src.([]byte), &m.items)
+}
+
+func (m Metadata) Value() (driver.Value, error) {
+	return m.MarshalJSON()
+}
+
+func (m *Metadata) UnmarshalJSON(data []byte) error {
+	m.items = make(map[string]string)
+	if err := json.Unmarshal(data, &m.items); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m Metadata) MarshalJSON() ([]byte, error) {
+	if m.items == nil {
+		return []byte(`{}`), nil
+	}
+	return json.Marshal(m.items)
 }
 
 type BaseModel struct {

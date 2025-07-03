@@ -14,6 +14,7 @@ type Endpoint struct {
 	Request     RequestConfig `json:"request" db:"request"`
 	Retry       Retry         `json:"retry" db:"retry"`
 	Events      Strings       `json:"events" db:"events"`
+	Metadata    Metadata      `json:"metadata" db:"metadata"`
 
 	BaseModel `yaml:"-"`
 }

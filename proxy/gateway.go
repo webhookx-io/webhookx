@@ -14,7 +14,6 @@ import (
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
-	"github.com/webhookx-io/webhookx/pkg/accesslog"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/loglimiter"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
@@ -29,8 +28,8 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/proxy/middlewares"
 	"github.com/webhookx-io/webhookx/proxy/router"
+	"github.com/webhookx-io/webhookx/service"
 	"github.com/webhookx-io/webhookx/utils"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
@@ -61,7 +60,7 @@ type Gateway struct {
 	log *zap.SugaredLogger
 	s   *http.Server
 
-	router        *router.Router // TODO: happens-before
+	router        atomic.Value
 	routerVersion string
 
 	db *db.DB
@@ -71,9 +70,21 @@ type Gateway struct {
 	queue   queue.Queue
 	metrics *metrics.Metrics
 	tracer  *tracing.Tracer
-	bus     *eventbus.EventBus
+	bus     eventbus.Bus
 
 	limiter *loglimiter.Limiter
+	srv     *service.Service
+}
+
+type Options struct {
+	Cfg         *config.ProxyConfig
+	Middlewares []mux.MiddlewareFunc
+	DB          *db.DB
+	Dispatcher  *dispatcher.Dispatcher
+	Metrics     *metrics.Metrics
+	Tracer      *tracing.Tracer
+	EventBus    eventbus.Bus
+	Srv         *service.Service
 }
 
 func init() {
@@ -85,34 +96,30 @@ func init() {
 	}))
 }
 
-func NewGateway(cfg *config.ProxyConfig,
-	db *db.DB,
-	dispatcher *dispatcher.Dispatcher,
-	metrics *metrics.Metrics,
-	tracer *tracing.Tracer,
-	bus *eventbus.EventBus,
-	accessLogger accesslog.AccessLogger) *Gateway {
+func NewGateway(opts Options) *Gateway {
 	var q queue.Queue
-	switch cfg.Queue.Type {
+	switch opts.Cfg.Queue.Type {
 	case "redis":
 		q, _ = redis.NewRedisQueue(redis.RedisQueueOptions{
-			Client: cfg.Queue.Redis.GetClient(),
-		}, zap.S(), metrics)
+			Client: opts.Cfg.Queue.Redis.GetClient(),
+		}, zap.S(), opts.Metrics)
 		stats.Register(q)
 	}
 
 	gw := &Gateway{
-		cfg:        cfg,
+		cfg:        opts.Cfg,
 		log:        zap.S().Named("proxy"),
-		router:     router.NewRouter(nil),
-		db:         db,
-		dispatcher: dispatcher,
+		db:         opts.DB,
+		dispatcher: opts.Dispatcher,
 		queue:      q,
-		metrics:    metrics,
-		tracer:     tracer,
-		bus:        bus,
+		metrics:    opts.Metrics,
+		tracer:     opts.Tracer,
+		bus:        opts.EventBus,
 		limiter:    loglimiter.NewLimiter(time.Second),
+		srv:        opts.Srv,
 	}
+
+	gw.router.Store(router.NewRouter(nil))
 
 	r := mux.NewRouter()
 	r.Use(func(h http.Handler) http.Handler {
@@ -121,24 +128,19 @@ func NewGateway(cfg *config.ProxyConfig,
 			counter.Add(1)
 		})
 	})
-	if accessLogger != nil {
-		r.Use(accesslog.NewMiddleware(accessLogger))
+
+	for _, m := range opts.Middlewares {
+		r.Use(m)
 	}
 	r.Use(middlewares.PanicRecovery)
-	if metrics.Enabled {
-		r.Use(middlewares.NewMetricsMiddleware(metrics).Handle)
-	}
-	if gw.tracer != nil {
-		r.Use(otelhttp.NewMiddleware("api.proxy"))
-	}
 	r.PathPrefix("/").HandlerFunc(gw.Handle)
 
 	gw.s = &http.Server{
 		Handler: r,
-		Addr:    cfg.Listen,
+		Addr:    gw.cfg.Listen,
 
-		ReadTimeout:  time.Duration(cfg.TimeoutRead) * time.Second,
-		WriteTimeout: time.Duration(cfg.TimeoutWrite) * time.Second,
+		ReadTimeout:  time.Duration(gw.cfg.TimeoutRead) * time.Second,
+		WriteTimeout: time.Duration(gw.cfg.TimeoutWrite) * time.Second,
 	}
 
 	return gw
@@ -162,7 +164,7 @@ func (gw *Gateway) buildRouter(version string) {
 		}
 		routes = append(routes, &route)
 	}
-	gw.router = router.NewRouter(routes)
+	gw.router.Store(router.NewRouter(routes))
 	gw.routerVersion = version
 }
 
@@ -174,7 +176,8 @@ func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
-	source, _ := gw.router.Execute(r).(*entities.Source)
+	router := gw.router.Load().(*router.Router)
+	source, _ := router.Execute(r).(*entities.Source)
 	if source == nil {
 		response.JSON(w, 404, types.ErrorResponse{Message: "not found"})
 		return false
@@ -289,12 +292,15 @@ func (gw *Gateway) ingestEvent(ctx context.Context, async bool, event *entities.
 		return gw.queue.Enqueue(ctx, &msg)
 	}
 
-	return gw.dispatcher.Dispatch(ctx, event)
+	return gw.dispatch(ctx, []*entities.Event{event})
 }
 
 // Start starts an HTTP server
 func (gw *Gateway) Start() {
 	gw.ctx, gw.cancel = context.WithCancel(context.Background())
+
+	// warm-up
+	gw.dispatcher.WarmUp()
 
 	gw.buildRouter("init")
 
@@ -402,7 +408,7 @@ func (gw *Gateway) listenQueue() {
 				events = append(events, &event)
 			}
 
-			err = gw.dispatcher.DispatchBatch(ctx, events)
+			err = gw.dispatch(ctx, events)
 			if err != nil {
 				gw.log.Warnf("failed to dispatch event in batch: %v", err)
 				continue
@@ -410,6 +416,15 @@ func (gw *Gateway) listenQueue() {
 			_ = gw.queue.Delete(ctx, messages)
 		}
 	}
+}
+
+func (gw *Gateway) dispatch(ctx context.Context, events []*entities.Event) error {
+	attempts, err := gw.dispatcher.Dispatch(ctx, events)
+	if err != nil {
+		return err
+	}
+	gw.srv.ScheduleAttempts(ctx, attempts)
+	return nil
 }
 
 type headers map[string]string

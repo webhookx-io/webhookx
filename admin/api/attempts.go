@@ -18,7 +18,7 @@ func (api *API) PageAttempt(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("endpoint_id") != "" {
 		q.EndpointId = utils.Pointer(r.URL.Query().Get("endpoint_id"))
 	}
-	list, total, err := api.DB.AttemptsWS.Page(r.Context(), &q)
+	list, total, err := api.db.AttemptsWS.Page(r.Context(), &q)
 	api.assert(err)
 
 	api.json(200, w, NewPagination(total, list))
@@ -26,7 +26,7 @@ func (api *API) PageAttempt(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) GetAttempt(w http.ResponseWriter, r *http.Request) {
 	id := api.param(r, "id")
-	attempt, err := api.DB.AttemptsWS.Get(r.Context(), id)
+	attempt, err := api.db.AttemptsWS.Get(r.Context(), id)
 	api.assert(err)
 
 	if attempt == nil {
@@ -35,7 +35,7 @@ func (api *API) GetAttempt(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if attempt.AttemptedAt != nil {
-		detail, err := api.DB.AttemptDetailsWS.Get(r.Context(), attempt.ID)
+		detail, err := api.db.AttemptDetailsWS.Get(r.Context(), attempt.ID)
 		api.assert(err)
 		if detail != nil {
 			if detail.RequestHeaders != nil {

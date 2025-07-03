@@ -48,6 +48,9 @@ func (c *MCache) InvalidateL1(ctx context.Context, key string) error {
 }
 
 func (c *MCache) InvalidateL2(ctx context.Context, key string) error {
+	if c.l2 == nil {
+		return nil
+	}
 	return c.l2.Remove(ctx, key)
 }
 

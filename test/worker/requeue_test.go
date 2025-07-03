@@ -11,6 +11,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
+	"github.com/webhookx-io/webhookx/service"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/test/mocks"
@@ -32,6 +33,8 @@ var _ = Describe("processRequeue", Ordered, func() {
 	endpoint := factory.Endpoint()
 
 	BeforeAll(func() {
+		cfg, err := config.Init()
+		assert.NoError(GinkgoT(), err)
 		db = helper.InitDB(true, nil)
 
 		// setup MockTaskQueue
@@ -39,13 +42,24 @@ var _ = Describe("processRequeue", Ordered, func() {
 		queue = mocks.NewMockTaskQueue(ctrl)
 		queue.EXPECT().Get(gomock.Any(), gomock.Any()).AnyTimes()
 		queue.EXPECT().Delete(gomock.Any(), gomock.Any()).AnyTimes()
-		queue.EXPECT().Add(gomock.Any(), gomock.Any()).Times(10)
+		queue.EXPECT().Add(gomock.Any(), gomock.Any()).Times(1)
 
 		metrics, err := metrics.New(config.MetricsConfig{})
 		assert.NoError(GinkgoT(), err)
-		w = worker.NewWorker(worker.WorkerOptions{
+		srv := service.NewService(service.Options{
+			DB:        db,
+			TaskQueue: queue,
+		})
+		w = worker.NewWorker(worker.Options{
 			RequeueJobInterval: time.Second,
-		}, db, deliverer.NewHTTPDeliverer(&config.WorkerDeliverer{}), queue, metrics, tracer, mocks.MockBus{})
+			DB:                 db,
+			Deliverer:          deliverer.NewHTTPDeliverer(&config.WorkerDeliverer{}),
+			Metrics:            metrics,
+			Tracer:             tracer,
+			EventBus:           mocks.MockBus{},
+			Srv:                srv,
+			RedisClient:        cfg.Redis.GetClient(),
+		})
 
 		// data
 		ws := utils.Must(db.Workspaces.GetDefault(context.TODO()))

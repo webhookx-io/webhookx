@@ -2,18 +2,27 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/creasty/defaults"
-	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/pkg/envconfig"
 	"gopkg.in/yaml.v3"
 	"io"
 	"os"
+	"slices"
 )
 
 var (
 	VERSION = "dev"
 	COMMIT  = "unknown"
-	NODE    = uuid.NewV4().String()
+)
+
+type Role string
+
+const (
+	RoleStandalone Role = "standalone"
+	RoleCP         Role = "cp"
+	RoleDPWorker   Role = "dp_worker"
+	RoleDPProxy    Role = "dp_proxy"
 )
 
 type Config struct {
@@ -27,6 +36,7 @@ type Config struct {
 	Worker    WorkerConfig    `yaml:"worker" json:"worker" envconfig:"WORKER"`
 	Metrics   MetricsConfig   `yaml:"metrics" json:"metrics" envconfig:"METRICS"`
 	Tracing   TracingConfig   `yaml:"tracing" json:"tracing" envconfig:"TRACING"`
+	Role      Role            `yaml:"role" json:"role" envconfig:"ROLE" default:"standalone"`
 }
 
 func (cfg Config) String() string {
@@ -67,6 +77,9 @@ func (cfg Config) Validate() error {
 	}
 	if err := cfg.Tracing.Validate(); err != nil {
 		return err
+	}
+	if !slices.Contains([]Role{RoleStandalone, RoleCP, RoleDPWorker, RoleDPProxy}, cfg.Role) {
+		return fmt.Errorf("invalid role: '%s'", cfg.Role)
 	}
 
 	return nil
@@ -109,4 +122,25 @@ func InitWithFile(filename string) (*Config, error) {
 	}
 
 	return &cfg, nil
+}
+
+func (cfg *Config) OverrideByRole(role Role) {
+	switch role {
+	case RoleCP:
+		if cfg.Admin.Listen == "" {
+			cfg.Admin.Listen = "127.0.0.1:8080"
+		}
+		cfg.Proxy.Listen = ""
+		cfg.Worker.Enabled = false
+	case RoleDPProxy:
+		if cfg.Proxy.Listen == "" {
+			cfg.Proxy.Listen = "127.0.0.1:8081"
+		}
+		cfg.Admin.Listen = ""
+		cfg.Worker.Enabled = false
+	case RoleDPWorker:
+		cfg.Admin.Listen = ""
+		cfg.Proxy.Listen = ""
+		cfg.Worker.Enabled = true
+	}
 }

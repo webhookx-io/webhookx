@@ -23,7 +23,7 @@ const (
 )
 
 const (
-	RequeueBatch    = 100
+	RequeueBatch    = 20
 	RequeueInterval = time.Second * 60
 )
 

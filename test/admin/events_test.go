@@ -96,6 +96,8 @@ var _ = Describe("/events", Ordered, func() {
 			assert.NotEmpty(GinkgoT(), result.ID)
 			assert.Equal(GinkgoT(), "foo.bar", result.EventType)
 			assert.Equal(GinkgoT(), `{"key":"value"}`, string(result.Data))
+			assert.True(GinkgoT(), result.CreatedAt.Unix() > 0)
+			assert.True(GinkgoT(), result.UpdatedAt.Unix() > 0)
 		})
 
 		Context("errors", func() {
@@ -192,7 +194,7 @@ var _ = Describe("/events", Ordered, func() {
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 1, len(attempts))
 				assert.Equal(GinkgoT(), entities.AttemptTriggerModeManual, attempts[0].TriggerMode)
-				assert.Equal(GinkgoT(), entities.AttemptStatusQueued, attempts[0].Status)
+				assert.Equal(GinkgoT(), entities.AttemptStatusInit, attempts[0].Status)
 			})
 
 			Context("errors", func() {

@@ -6,9 +6,10 @@ import (
 )
 
 func Schedule(ctx context.Context, fn func(), interval time.Duration) {
-	ticker := time.NewTicker(interval)
-
 	go func() {
+		fn()
+
+		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for {
 			select {

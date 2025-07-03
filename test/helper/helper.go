@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/hex"
 	"github.com/go-resty/resty/v2"
+	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
@@ -124,16 +125,16 @@ func DB() *db.DB {
 	if err != nil {
 		return nil
 	}
-	log1, err := log.NewZapLogger(&cfg.Log)
+	logger, err := log.NewZapLogger(&cfg.Log)
 	if err != nil {
 		return nil
 	}
 	eventbus := eventbus.NewEventBus(
-		config.NODE,
+		uuid.NewV4().String(),
 		cfg.Database.GetDSN(),
-		log1, sqlDB)
+		logger, sqlDB)
 
-	db, err := db.NewDB(sqlDB, log1, eventbus)
+	db, err := db.NewDB(sqlDB, logger, eventbus)
 	if err != nil {
 		return nil
 	}

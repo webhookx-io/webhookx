@@ -74,6 +74,7 @@ var _ = Describe("admin", Ordered, func() {
 				assert.Equal(GinkgoT(), "secret", endpoint.Request.Headers["x-apikey"])
 				assert.EqualValues(GinkgoT(), "fixed", endpoint.Retry.Strategy)
 				assert.EqualValues(GinkgoT(), []int64{0, 3600, 3600}, endpoint.Retry.Config.Attempts)
+				assert.EqualValues(GinkgoT(), map[string]string{"key1": "value1", "key2": "value2"}, endpoint.Metadata)
 
 				source, err := db.Sources.Select(context.TODO(), "name", "default-source")
 				assert.NoError(GinkgoT(), err)

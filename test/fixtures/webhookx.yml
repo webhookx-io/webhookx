@@ -11,6 +11,9 @@ endpoints:
       config:
         attempts: [0, 3600, 3600]
     events: [ "charge.succeeded" ]
+    metadata:
+      key1: value1
+      key2: value2
     plugins:
       - name: webhookx-signature
         config:

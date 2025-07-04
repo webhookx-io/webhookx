@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"github.com/lib/pq"
+	"github.com/webhookx-io/webhookx/pkg/serializer"
 	"github.com/webhookx-io/webhookx/pkg/types"
 )
 
@@ -32,6 +33,14 @@ func (m Metadata) MarshalJSON() ([]byte, error) {
 		return []byte(`{}`), nil
 	}
 	return json.Marshal(m.items)
+}
+
+func (m Metadata) GobEncode() ([]byte, error) {
+	return serializer.Gob.Serialize(m.items)
+}
+
+func (m *Metadata) GobDecode(data []byte) error {
+	return serializer.Gob.Deserialize(data, &m.items)
 }
 
 type BaseModel struct {

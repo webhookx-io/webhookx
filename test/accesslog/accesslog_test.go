@@ -24,7 +24,7 @@ func parse(line string) (map[string]string, error) {
 	var buffer bytes.Buffer
 	buffer.WriteString(`(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\s`) // 1 - TimeStamp
 	buffer.WriteString(`\[([^\]]+)\]\s`)                                 // 2 - Name
-	buffer.WriteString(`([\w:]+)`)                                       // 3 - IP
+	buffer.WriteString(`([\w:\.]+)`)                                     // 3 - IP
 	buffer.WriteString(`\s-\s`)                                          // - - Spaces
 	buffer.WriteString(`(\S+)\s`)                                        // 4 - Username
 	buffer.WriteString(`"(\S*)\s?`)                                      // 5 - RequestMethod

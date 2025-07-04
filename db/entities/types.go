@@ -43,6 +43,14 @@ func (m *Metadata) GobDecode(data []byte) error {
 	return serializer.Gob.Deserialize(data, &m.items)
 }
 
+func (m *Metadata) ToMap() map[string]string {
+	return m.items
+}
+
+func (m *Metadata) SetMap(data map[string]string) {
+	m.items = data
+}
+
 type BaseModel struct {
 	CreatedAt   types.Time `db:"created_at" json:"created_at"`
 	UpdatedAt   types.Time `db:"updated_at" json:"updated_at"`

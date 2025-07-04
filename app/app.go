@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
+	openapi "github.com/webhookx-io/webhookx/admin/openapi"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/dispatcher"
@@ -31,8 +34,6 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
 var (
@@ -203,6 +204,14 @@ func (app *Application) initialize() error {
 		if app.tracer != nil {
 			opts.Middlewares = append(opts.Middlewares, otelhttp.NewMiddleware("api.admin"))
 		}
+
+		// OpenAPI validator
+		openAPIRouter, err := openapi.NewOpenAPIValidator()
+		if err != nil {
+			return fmt.Errorf("failed to create OpenAPI validator: %w", err)
+		}
+		opts.Middlewares = append(opts.Middlewares, openAPIRouter.Middleware())
+
 		api := api.NewAPI(opts)
 		app.admin = admin.NewAdmin(cfg.Admin, api.Handler())
 	}

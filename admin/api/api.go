@@ -1,6 +1,11 @@
 package api
 
 import (
+	"net/http"
+	"net/http/pprof"
+	"strconv"
+
+	"github.com/getkin/kin-openapi/routers"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
@@ -102,6 +107,10 @@ func (api *API) Handler() http.Handler {
 		r.Use(m)
 	}
 	r.Use(middlewares.PanicRecovery)
+	if api.openAPIRouter != nil {
+		r.Use(middlewares.OpenAPIValidator(api.openAPIRouter))
+	}
+
 	r.Use(api.contextMiddleware)
 
 	r.HandleFunc("/", api.Index).Methods("GET")

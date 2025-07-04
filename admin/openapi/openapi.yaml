@@ -1,0 +1,168 @@
+openapi: 3.0.3
+info:
+  title: Admin API
+  description: API for managing the admin panel
+  version: 0.1.0
+servers:
+  - url: /api/admin
+
+paths:
+  /workspace/{workspace}/endpoints:
+    get:
+      tags:
+        - admin
+      operationId: listEndpoints
+      summary: List endpoints by pagination
+      description: Retrieve a paginated list of endpoints for the specified workspace.
+      parameters:
+        - name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page_no
+          in: query
+          schema:
+            type: integer
+            default: 1
+            description: Page number for pagination.
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            description: Page number for pagination.
+      responses:
+        "200":
+          description: A list of endpoints.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    description: Total number of endpoints.
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Endpoint"
+
+    post:
+      tags:
+        - admin
+      summary: Create an endpoint
+      description: Create a new endpoint in the specified workspace.
+      parameters:
+        - name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Endpoint"
+      responses:
+        "201":
+          description: Endpoint created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Endpoint"
+
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        column:
+          type: string
+          description: Field to order by.
+        direction:
+          type: string
+          enum: [ASC, DESC]
+          description: Direction of the order (ascending or descending).
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of items.
+        data:
+          type: array
+          items:
+            type: object
+          description: List of items in the current page.
+    Endpoint:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the endpoint.
+        name:
+          type: string
+          description: Name of the endpoint.
+        enabled:
+          type: boolean
+          description: Whether the endpoint is enabled.
+        request:
+          $ref: "#/components/schemas/Request"
+        retry:
+          $ref: "#/components/schemas/Retry"
+        events:
+          type: array
+          items:
+            type: string
+          description: List of events associated with the endpoint.
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the endpoint was created.
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the endpoint was last updated.
+    Request:
+      type: object
+      required:
+        - url
+        - method
+      properties:
+        url:
+          type: string
+          description: URL of the request.
+        method:
+          type: string
+          enum: [GET, POST, PUT, DELETE, PATCH]
+          description: HTTP method of the request.
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: Headers to include in the request.
+        timeout:
+          type: integer
+          description: Timeout for the request in seconds.
+          default: 10000
+          minimum: 0
+    Retry:
+      type: object
+      properties:
+        strategy:
+          type: string
+          enum: [fixed]
+          default: fixed
+          description: Retry strategy to use.
+        config:
+          $ref: "#/components/schemas/StrategyConfig"
+    StrategyConfig:
+      properties:
+        attempts:
+          type: array
+          default: [0, 60, 3600]
+          items:
+            type: integer
+            description: Number of retry attempts.

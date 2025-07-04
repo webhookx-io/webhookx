@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"time"
 
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
@@ -40,7 +41,7 @@ type AttemptDAO interface {
 	UpdateStatusToQueued(ctx context.Context, ids []string) error
 	UpdateErrorCode(ctx context.Context, id string, status entities.AttemptStatus, code entities.AttemptErrorCode) error
 	UpdateDelivery(ctx context.Context, id string, result *AttemptResult) error
-	ListUnqueuedForUpdate(ctx context.Context, limit int) (list []*entities.Attempt, err error)
+	ListUnqueuedForUpdate(ctx context.Context, maxScheduledAt time.Time, limit int) (list []*entities.Attempt, err error)
 }
 
 type SourceDAO interface {

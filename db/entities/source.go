@@ -28,6 +28,7 @@ type Source struct {
 	Methods  Strings         `json:"methods" db:"methods"`
 	Async    bool            `json:"async" db:"async"`
 	Response *CustomResponse `json:"response" db:"response"`
+	Metadata Metadata        `json:"metadata" db:"metadata" default:"{}"`
 
 	BaseModel `yaml:"-"`
 }

@@ -17,6 +17,8 @@ endpoints:
           - 3
     events:
       - foo.bar
+    metadata:
+      k: v
     plugins:
       - id: 2q6ItZRVNB0EyVr6j8Pxa7VTohU
         name: webhookx-signature
@@ -25,6 +27,8 @@ endpoints:
         source_id: null
         config:
           signing_secret: test
+        metadata:
+          k: v
 sources:
   - id: 2q6ItgNdNEIvoJ2wffn5G5j8HYC
     name: null
@@ -34,4 +38,6 @@ sources:
       - POST
     async: false
     response: null
+    metadata:
+      k: v
     plugins: []

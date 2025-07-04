@@ -13,8 +13,20 @@ func (m *Metadata) Scan(src interface{}) error {
 	return json.Unmarshal(src.([]byte), m)
 }
 
-func (m *Metadata) Value() (driver.Value, error) {
+func (m Metadata) Value() (driver.Value, error) {
+	if m == nil {
+		return []byte(`{}`), nil
+	}
 	return json.Marshal(m)
+}
+
+func (m *Metadata) UnmarshalJSON(data []byte) error {
+	v := make(map[string]string)
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	*m = v
+	return nil
 }
 
 type BaseModel struct {

@@ -663,6 +663,11 @@ components:
           type: integer
           example: 1
 
+    Metadata:
+      type: object
+      additionalProperties:
+        type: string
+
     Workspace:
       type: object
       properties:
@@ -672,6 +677,8 @@ components:
           type: string
         description:
           type: string
+        metadata:
+          $ref: "#/components/schemas/Metadata"
         created_at:
           type: integer
         updated_at:
@@ -728,6 +735,8 @@ components:
           items:
             type: string
             example: foo.bar
+        metadata:
+          $ref: "#/components/schemas/Metadata"
         created_at:
           type: integer
         updated_at:
@@ -842,6 +851,8 @@ components:
               type: string
             body:
               type: string
+        metadata:
+          $ref: "#/components/schemas/Metadata"
         created_at:
           type: integer
         updated_at:
@@ -867,6 +878,8 @@ components:
           nullable: true
         config:
           type: object
+        metadata:
+          $ref: "#/components/schemas/Metadata"
         created_at:
           type: integer
         updated_at:

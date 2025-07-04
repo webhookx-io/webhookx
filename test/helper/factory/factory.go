@@ -40,7 +40,7 @@ func WithEndpointName(name string) EndpointOption {
 
 func WithEndpointMetadata(metadata map[string]string) EndpointOption {
 	return func(e *entities.Endpoint) {
-		e.Metadata.SetMap(metadata)
+		e.Metadata = metadata
 	}
 }
 
@@ -98,7 +98,7 @@ func WithSourcePath(path string) SourceOption {
 
 func WithSourceMetadata(metadata map[string]string) SourceOption {
 	return func(e *entities.Source) {
-		e.Metadata.SetMap(metadata)
+		e.Metadata = metadata
 	}
 }
 
@@ -160,7 +160,7 @@ func WithPluginName(name string) PluginOption {
 
 func WithPluginMetadata(metadata map[string]string) PluginOption {
 	return func(e *entities.Plugin) {
-		e.Metadata.SetMap(metadata)
+		e.Metadata = metadata
 	}
 }
 

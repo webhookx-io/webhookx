@@ -18,7 +18,7 @@ type Plugin struct {
 	EndpointId *string             `json:"endpoint_id" db:"endpoint_id" yaml:"endpoint_id"`
 	SourceId   *string             `json:"source_id" db:"source_id" yaml:"source_id"`
 	Config     PluginConfiguration `json:"config" db:"config"`
-	Metadata   Metadata            `json:"metadata" db:"metadata"`
+	Metadata   Metadata            `json:"metadata" db:"metadata" default:"{}"`
 
 	BaseModel `yaml:"-"`
 }

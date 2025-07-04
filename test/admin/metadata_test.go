@@ -46,12 +46,11 @@ var _ = Describe("metadata", Ordered, func() {
 				Get("/workspaces/default/endpoints/" + endpoint.ID)
 			assert.Nil(GinkgoT(), err)
 			result := resp.Result().(*entities.Endpoint)
-			assert.Equal(GinkgoT(), map[string]string{}, result.Metadata.ToMap())
+			assert.EqualValues(GinkgoT(), map[string]string{}, result.Metadata)
 		})
 
 		It("retrieve a endpoint with non-empty metadata", func() {
-			endpoint := factory.Endpoint()
-			endpoint.Metadata.SetMap(map[string]string{"k1": "v1", "k2": "v2"})
+			endpoint := factory.Endpoint(factory.WithEndpointMetadata(map[string]string{"k1": "v1", "k2": "v2"}))
 			endpoint.WorkspaceId = ws.ID
 			assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), &endpoint))
 
@@ -60,7 +59,7 @@ var _ = Describe("metadata", Ordered, func() {
 				Get("/workspaces/default/endpoints/" + endpoint.ID)
 			assert.Nil(GinkgoT(), err)
 			result := resp.Result().(*entities.Endpoint)
-			assert.Equal(GinkgoT(), map[string]string{"k1": "v1", "k2": "v2"}, result.Metadata.ToMap())
+			assert.EqualValues(GinkgoT(), map[string]string{"k1": "v1", "k2": "v2"}, result.Metadata)
 		})
 
 		It("creates a endpoint with metadata", func() {
@@ -81,12 +80,12 @@ var _ = Describe("metadata", Ordered, func() {
 
 			result := resp.Result().(*entities.Endpoint)
 			assert.NotNil(GinkgoT(), result.ID)
-			assert.Equal(GinkgoT(), map[string]string{"key": "value"}, result.Metadata.ToMap())
+			assert.EqualValues(GinkgoT(), map[string]string{"key": "value"}, result.Metadata)
 
 			e, err := db.Endpoints.Get(context.TODO(), result.ID)
 			assert.Nil(GinkgoT(), err)
 			assert.NotNil(GinkgoT(), e)
-			assert.Equal(GinkgoT(), map[string]string{"key": "value"}, e.Metadata.ToMap())
+			assert.EqualValues(GinkgoT(), map[string]string{"key": "value"}, e.Metadata)
 		})
 
 		It("updates a endpoint's metadata", func() {
@@ -106,18 +105,17 @@ var _ = Describe("metadata", Ordered, func() {
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
 			result := resp.Result().(*entities.Endpoint)
-			assert.Equal(GinkgoT(), map[string]string{"key1": "value1", "key2": "value2"}, result.Metadata.ToMap())
+			assert.EqualValues(GinkgoT(), map[string]string{"key1": "value1", "key2": "value2"}, result.Metadata)
 
 			e, err := db.Endpoints.Get(context.TODO(), result.ID)
 			assert.Nil(GinkgoT(), err)
 			assert.NotNil(GinkgoT(), e)
-			assert.Equal(GinkgoT(), map[string]string{"key1": "value1", "key2": "value2"}, e.Metadata.ToMap())
+			assert.EqualValues(GinkgoT(), map[string]string{"key1": "value1", "key2": "value2"}, e.Metadata)
 		})
 
 		It("updates a endpoint's metadata that has existing keys", func() {
-			endpoint := factory.EndpointP()
+			endpoint := factory.EndpointP(factory.WithEndpointMetadata(map[string]string{"key1": "value1", "key2": "value2"}))
 			endpoint.WorkspaceId = ws.ID
-			endpoint.Metadata.SetMap(map[string]string{"key1": "value1", "key2": "value2"})
 			assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 
 			// override metadata
@@ -132,18 +130,17 @@ var _ = Describe("metadata", Ordered, func() {
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
 			result := resp.Result().(*entities.Endpoint)
-			assert.Equal(GinkgoT(), map[string]string{"key3": "value3"}, result.Metadata.ToMap())
+			assert.EqualValues(GinkgoT(), map[string]string{"key3": "value3"}, result.Metadata)
 
 			e, err := db.Endpoints.Get(context.TODO(), result.ID)
 			assert.Nil(GinkgoT(), err)
 			assert.NotNil(GinkgoT(), e)
-			assert.Equal(GinkgoT(), map[string]string{"key3": "value3"}, e.Metadata.ToMap())
+			assert.EqualValues(GinkgoT(), map[string]string{"key3": "value3"}, e.Metadata)
 		})
 
 		It("updates a endpoint's metadata to be empty", func() {
-			endpoint := factory.EndpointP()
+			endpoint := factory.EndpointP(factory.WithEndpointMetadata(map[string]string{"key1": "value1", "key2": "value2"}))
 			endpoint.WorkspaceId = ws.ID
-			endpoint.Metadata.SetMap(map[string]string{"key1": "value1", "key2": "value2"})
 			assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 
 			resp, err := adminClient.R().
@@ -155,12 +152,12 @@ var _ = Describe("metadata", Ordered, func() {
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
 			result := resp.Result().(*entities.Endpoint)
-			assert.Equal(GinkgoT(), map[string]string{}, result.Metadata.ToMap())
+			assert.EqualValues(GinkgoT(), map[string]string{}, result.Metadata)
 
 			e, err := db.Endpoints.Get(context.TODO(), result.ID)
 			assert.Nil(GinkgoT(), err)
 			assert.NotNil(GinkgoT(), e)
-			assert.Equal(GinkgoT(), map[string]string{}, e.Metadata.ToMap())
+			assert.EqualValues(GinkgoT(), map[string]string{}, e.Metadata)
 		})
 
 		Context("errors", func() {

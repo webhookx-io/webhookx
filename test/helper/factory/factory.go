@@ -38,6 +38,12 @@ func WithEndpointName(name string) EndpointOption {
 	}
 }
 
+func WithEndpointMetadata(metadata map[string]string) EndpointOption {
+	return func(e *entities.Endpoint) {
+		e.Metadata.SetMap(metadata)
+	}
+}
+
 func Endpoint(opts ...EndpointOption) entities.Endpoint {
 	e := defaultEndpoint()
 	for _, opt := range opts {
@@ -87,6 +93,12 @@ func WithSourceAsync(async bool) SourceOption {
 func WithSourcePath(path string) SourceOption {
 	return func(e *entities.Source) {
 		e.Path = path
+	}
+}
+
+func WithSourceMetadata(metadata map[string]string) SourceOption {
+	return func(e *entities.Source) {
+		e.Metadata.SetMap(metadata)
 	}
 }
 
@@ -143,6 +155,12 @@ func WithPluginSourceID(sourceID string) PluginOption {
 func WithPluginName(name string) PluginOption {
 	return func(e *entities.Plugin) {
 		e.Name = name
+	}
+}
+
+func WithPluginMetadata(metadata map[string]string) PluginOption {
+	return func(e *entities.Plugin) {
+		e.Metadata.SetMap(metadata)
 	}
 }
 

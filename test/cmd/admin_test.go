@@ -223,11 +223,13 @@ var _ = Describe("admin", Ordered, func() {
 
 				endpoint := factory.EndpointWS(ws.ID,
 					factory.WithEndpointID("2q6ItdkHcFz8jQaXxrGp35xsShS"),
+					factory.WithEndpointMetadata(map[string]string{"k": "v"}),
 				)
 				assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), &endpoint))
 
 				source := factory.SourceWS(ws.ID,
 					factory.WithSourceID("2q6ItgNdNEIvoJ2wffn5G5j8HYC"),
+					factory.WithSourceMetadata(map[string]string{"k": "v"}),
 				)
 				assert.NoError(GinkgoT(), db.Sources.Insert(context.TODO(), &source))
 
@@ -236,7 +238,8 @@ var _ = Describe("admin", Ordered, func() {
 					factory.WithPluginID("2q6ItZRVNB0EyVr6j8Pxa7VTohU"),
 					factory.WithPluginEndpointID(endpoint.ID),
 					factory.WithPluginName("webhookx-signature"),
-					factory.WithPluginConfig(&webhookx_signature.Config{SigningSecret: "test"}))
+					factory.WithPluginConfig(&webhookx_signature.Config{SigningSecret: "test"}),
+					factory.WithPluginMetadata(map[string]string{"k": "v"}))
 				assert.NoError(GinkgoT(), db.Plugins.Insert(context.TODO(), &plugin))
 
 				output, err := executeCommand(cmd.NewRootCmd(), "admin", "dump")

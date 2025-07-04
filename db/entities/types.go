@@ -6,6 +6,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/webhookx-io/webhookx/pkg/serializer"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"gopkg.in/yaml.v3"
 )
 
 type Metadata struct {
@@ -49,6 +50,14 @@ func (m *Metadata) ToMap() map[string]string {
 
 func (m *Metadata) SetMap(data map[string]string) {
 	m.items = data
+}
+
+func (m Metadata) MarshalYAML() (interface{}, error) {
+	return m.items, nil
+}
+
+func (m *Metadata) UnmarshalYAML(node *yaml.Node) error {
+	return node.Decode(&m.items)
 }
 
 type BaseModel struct {

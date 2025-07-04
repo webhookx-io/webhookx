@@ -271,7 +271,8 @@ func (w *Worker) processRequeue() {
 	var done bool
 	for {
 		err := w.db.TX(context.TODO(), func(ctx context.Context) error {
-			attempts, err := w.db.Attempts.ListUnqueuedForUpdate(ctx, batchSize)
+			maxScheduledAt := time.Now().Add(constants.TaskQueueMaxPreloadDuration)
+			attempts, err := w.db.Attempts.ListUnqueuedForUpdate(ctx, maxScheduledAt, batchSize)
 			if err != nil {
 				return err
 			}

@@ -33,6 +33,13 @@ var _ = Describe("admin", Ordered, func() {
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
 		})
+
+		It("404", func() {
+			resp, err := adminClient.R().Get("/notfound")
+			assert.Nil(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 404, resp.StatusCode())
+			assert.Equal(GinkgoT(), `{"message":"not found"}`, string(resp.Body()))
+		})
 	})
 
 	Context("tls listen", func() {

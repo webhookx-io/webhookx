@@ -1,0 +1,280 @@
+openapi: 3.0.3
+info:
+  title: Admin API
+  description: API for managing the admin panel
+  version: 0.1.0
+
+paths:
+  /workspaces/{workspace}/endpoints:
+    get:
+      tags:
+        - admin
+      operationId: ListEndpoints
+      summary: List endpoints by pagination
+      description: Retrieve a paginated list of endpoints for the specified workspace.
+      parameters:
+        - name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page_no
+          in: query
+          schema:
+            type: integer
+            default: 1
+            description: Page number for pagination.
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            description: Page number for pagination.
+      responses:
+        "200":
+          description: A list of endpoints.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    description: Total number of endpoints.
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Endpoint"
+
+    post:
+      tags:
+        - admin
+      summary: Create an endpoint
+      description: Create a new endpoint in the specified workspace.
+      parameters:
+        - name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEndpoint"
+      responses:
+        "201":
+          description: Endpoint created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Endpoint"
+
+  /workspaces/{workspace}/endpoints/{id}:
+    get:
+      tags:
+        - admin
+      operationId: GetEndpoint
+      summary: Get an endpoint by ID
+      description: Retrieve details of a specific endpoint by its ID in the specified workspace.
+      parameters:
+        - name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Endpoint details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Endpoint"
+    put:
+      tags:
+        - admin
+      operationId: UpdateEndpoint
+      summary: Update an endpoint by ID
+      description: Update the details of a specific endpoint by its ID in the specified workspace.
+      parameters:
+        - name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Endpoint"
+      responses:
+        "200":
+          description: Endpoint updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Endpoint"
+    delete:
+      tags:
+        - admin
+      operationId: DeleteEndpoint
+      summary: Delete an endpoint by ID
+      description: Delete a specific endpoint by its ID in the specified workspace.
+      parameters:
+        - name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Endpoint deleted successfully.
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        column:
+          type: string
+          description: Field to order by.
+        direction:
+          type: string
+          enum: [ASC, DESC]
+          description: Direction of the order (ascending or descending).
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of items.
+        data:
+          type: array
+          items:
+            type: object
+          description: List of items in the current page.
+    Endpoint:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the endpoint.
+        name:
+          nullable: true
+          type: string
+          description: Name of the endpoint.
+        enabled:
+          type: boolean
+          description: Whether the endpoint is enabled.
+        request:
+          $ref: "#/components/schemas/Request"
+        retry:
+          $ref: "#/components/schemas/Retry"
+        events:
+          type: array
+          items:
+            type: string
+          description: List of events associated with the endpoint.
+        metadata:
+          default: {}
+          nullable: true
+          type: object
+          additionalProperties:
+            type: string
+          description: Additional metadata for the endpoint.
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the endpoint was created.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when the endpoint was last updated.
+    Request:
+      type: object
+      required:
+        - url
+        - method
+      properties:
+        url:
+          type: string
+          description: URL of the request.
+        method:
+          type: string
+          enum: [GET, POST, PUT, DELETE, PATCH]
+          description: HTTP method of the request.
+        headers:
+          nullable: true
+          type: object
+          additionalProperties:
+            type: string
+          description: Headers to include in the request.
+        timeout:
+          type: integer
+          description: Timeout for the request in seconds.
+          default: 10000
+          minimum: 0
+    Retry:
+      type: object
+      properties:
+        strategy:
+          type: string
+          enum: [fixed]
+          default: fixed
+          description: Retry strategy to use.
+        config:
+          $ref: "#/components/schemas/StrategyConfig"
+    StrategyConfig:
+      properties:
+        attempts:
+          type: array
+          default: [0, 60, 3600]
+          items:
+            type: integer
+            description: Number of retry attempts.
+    CreateEndpoint:
+      type: object
+      required: [request]
+      properties:
+        name:
+          nullable: true
+          type: string
+          description: Name of the endpoint.
+        enabled:
+          type: boolean
+          description: Whether the endpoint is enabled.
+          default: true
+        request:
+          $ref: "#/components/schemas/Request"
+        retry:
+          $ref: "#/components/schemas/Retry"
+        events:
+          type: array
+          items:
+            type: string
+          description: List of events associated with the endpoint.
+        metadata:
+          default: {}
+          nullable: true
+          type: object
+          additionalProperties:
+            type: string
+          description: Additional metadata for the endpoint.

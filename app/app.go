@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
+	"time"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
@@ -17,6 +20,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
@@ -31,8 +35,6 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
 var (
@@ -203,6 +205,14 @@ func (app *Application) initialize() error {
 		if app.tracer != nil {
 			opts.Middlewares = append(opts.Middlewares, otelhttp.NewMiddleware("api.admin"))
 		}
+
+		// OpenAPI validator
+		openAPIRouter, err := admin.NewOpenAPIRouter()
+		if err != nil {
+			return fmt.Errorf("failed to create OpenAPI router: %w", err)
+		}
+		opts.Middlewares = append(opts.Middlewares, openapi.NewOpenAPIMiddleware(openAPIRouter))
+
 		api := api.NewAPI(opts)
 		app.admin = admin.NewAdmin(cfg.Admin, api.Handler())
 	}

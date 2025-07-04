@@ -94,6 +94,10 @@ func (api *API) assert(err error) {
 func (api *API) Handler() http.Handler {
 	r := mux.NewRouter()
 
+	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response.JSON(w, 404, types.ErrorResponse{Message: "not found"})
+	})
+
 	for _, m := range api.middlewares {
 		r.Use(m)
 	}

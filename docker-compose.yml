@@ -13,7 +13,10 @@ services:
         condition: service_healthy
 
   webhookx:
-    image: "webhookx/webhookx:0.7.0"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # image: "webhookx/webhookx:0.7.0"
     container_name: webhookx
     environment:
       WEBHOOKX_DATABASE_HOST: webhookx-database

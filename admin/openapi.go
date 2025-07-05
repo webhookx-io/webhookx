@@ -11,11 +11,11 @@ import (
 // OpenAPISpec contains the OpenAPI specification for the admin API.
 //
 //go:embed openapi.yaml
-var OpenAPISpec []byte
+var AdminAPISpec []byte
 
 func NewOpenAPIRouter() (routers.Router, error) {
 	loader := openapi3.NewLoader()
-	doc, err := loader.LoadFromData(OpenAPISpec)
+	doc, err := loader.LoadFromData(AdminAPISpec)
 	if err != nil {
 		return nil, err
 	}

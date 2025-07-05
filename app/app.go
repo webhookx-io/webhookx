@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
-	openapi "github.com/webhookx-io/webhookx/admin/openapi"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/dispatcher"
@@ -20,6 +20,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
@@ -206,11 +207,11 @@ func (app *Application) initialize() error {
 		}
 
 		// OpenAPI validator
-		openAPIRouter, err := openapi.NewOpenAPIValidator()
+		openAPIRouter, err := admin.NewOpenAPIRouter()
 		if err != nil {
-			return fmt.Errorf("failed to create OpenAPI validator: %w", err)
+			return fmt.Errorf("failed to create OpenAPI router: %w", err)
 		}
-		opts.Middlewares = append(opts.Middlewares, openAPIRouter.Middleware())
+		opts.Middlewares = append(opts.Middlewares, openapi.NewOpenAPIMiddleware(openAPIRouter))
 
 		api := api.NewAPI(opts)
 		app.admin = admin.NewAdmin(cfg.Admin, api.Handler())

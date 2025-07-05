@@ -3,11 +3,9 @@ info:
   title: Admin API
   description: API for managing the admin panel
   version: 0.1.0
-servers:
-  - url: /api/admin
 
 paths:
-  /workspace/{workspace}/endpoints:
+  /workspaces/{workspace}/endpoints:
     get:
       tags:
         - admin
@@ -98,16 +96,21 @@ components:
           description: List of items in the current page.
     Endpoint:
       type: object
+      required:
+        - name
+        - request
       properties:
         id:
           type: string
           description: Unique identifier for the endpoint.
         name:
+          nullable: true
           type: string
           description: Name of the endpoint.
         enabled:
           type: boolean
           description: Whether the endpoint is enabled.
+          default: true
         request:
           $ref: "#/components/schemas/Request"
         retry:
@@ -139,6 +142,7 @@ components:
           enum: [GET, POST, PUT, DELETE, PATCH]
           description: HTTP method of the request.
         headers:
+          nullable: true
           type: object
           additionalProperties:
             type: string

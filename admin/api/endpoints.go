@@ -2,12 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
-	"net/http"
 )
 
 func (api *API) PageEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -38,11 +39,6 @@ func (api *API) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 	endpoint.Init()
 	defaults.Set(&endpoint)
 	if err := json.NewDecoder(r.Body).Decode(&endpoint); err != nil {
-		api.error(400, w, err)
-		return
-	}
-
-	if err := endpoint.Validate(); err != nil {
 		api.error(400, w, err)
 		return
 	}

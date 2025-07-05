@@ -28,6 +28,14 @@ func NewValidateError(err error) *ValidateError {
 	}
 }
 
+func NewValidateFieldsError(err error, fields map[string]interface{}) *ValidateError {
+	return &ValidateError{
+		err:     err,
+		Message: err.Error(),
+		Fields:  fields,
+	}
+}
+
 func (e *ValidateError) Error() string {
 	return e.err.Error()
 }

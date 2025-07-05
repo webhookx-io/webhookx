@@ -2,7 +2,7 @@ package openapi
 
 import (
 	_ "embed"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -10,8 +10,13 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
+	"github.com/webhookx-io/webhookx/pkg/errs"
+	"github.com/webhookx-io/webhookx/pkg/http/response"
+	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
 )
+
+var requestValidateErr = errors.New("request validation")
 
 type middleware struct {
 	router routers.Router
@@ -32,18 +37,6 @@ func NewOpenAPIMiddleware(router routers.Router) func(http.Handler) http.Handler
 func (m *middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.Handler) {
 	route, pathParams, err := m.router.FindRoute(r)
 	if err != nil {
-		// if err == routers.ErrPathNotFound {
-		// 	w.WriteHeader(http.StatusNotFound)
-		// 	w.Write([]byte(err.Error()))
-		// 	return
-		// }
-		// if err == routers.ErrMethodNotAllowed {
-		// 	w.WriteHeader(http.StatusMethodNotAllowed)
-		// 	w.Write([]byte(err.Error()))
-		// 	return
-		// }
-		// w.WriteHeader(http.StatusInternalServerError)
-		// w.Write([]byte(fmt.Sprintf("internal error: %s", err.Error())))
 		next.ServeHTTP(w, r)
 		return
 	}
@@ -61,13 +54,18 @@ func (m *middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http
 	case openapi3.MultiError:
 		issues := convertError(err, "@body")
 		jsonIssues := utils.ConvertJSONPaths(issues)
-		bytes, _ := json.Marshal(jsonIssues)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(bytes)
+		validateErr := errs.NewValidateFieldsError(requestValidateErr, jsonIssues)
+
+		response.JSON(w, 400, types.ErrorResponse{
+			Message: "Request Validation",
+			Error:   validateErr,
+		})
 		return
 	default:
-		w.Write([]byte(err.Error()))
-		w.WriteHeader(http.StatusBadRequest)
+		response.JSON(w, 400, types.ErrorResponse{
+			Message: "Request Validation",
+			Error:   err,
+		})
 		return
 	}
 

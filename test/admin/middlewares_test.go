@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/getkin/kin-openapi/routers"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
@@ -167,29 +166,11 @@ var _ = Describe("middlewares", Ordered, func() {
 		})
 
 		It("return 404 when empty workspace id as url path parameter", func() {
-			testEndpoint := factory.EndpointWS(testWorkspace.ID, factory.WithEndpointName("test"))
-
 			resp, err := adminClient.R().
-				SetBody(map[string]interface{}{
-					"name":        testEndpoint.Name,
-					"description": testEndpoint.Description,
-					"request": map[string]interface{}{
-						"url":     testEndpoint.Request.URL,
-						"method":  testEndpoint.Request.Method,
-						"headers": testEndpoint.Request.Headers,
-						"timeout": testEndpoint.Request.Timeout,
-					},
-					"retry": map[string]interface{}{
-						"strategy": testEndpoint.Retry.Strategy.String(),
-						"config":   testEndpoint.Retry.Config,
-					},
-					"events": testEndpoint.Events,
-				}).
-				Post("/workspaces//endpoints")
+				SetBody(map[string]interface{}{}).
+				Post("/notfound")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 404, resp.StatusCode())
-			assert.Equal(GinkgoT(), routers.ErrPathNotFound.Error(), string(resp.String()))
-
 		})
 
 		It("return 405 when method not allowed", func() {

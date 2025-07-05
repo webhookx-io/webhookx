@@ -9,7 +9,7 @@ paths:
     get:
       tags:
         - admin
-      operationId: listEndpoints
+      operationId: ListEndpoints
       summary: List endpoints by pagination
       description: Retrieve a paginated list of endpoints for the specified workspace.
       parameters:
@@ -71,6 +71,86 @@ paths:
               schema:
                 $ref: "#/components/schemas/Endpoint"
 
+  /workspaces/{workspace}/endpoints/{id}:
+    get:
+      tags:
+        - admin
+      operationId: GetEndpoint
+      summary: Get an endpoint by ID
+      description: Retrieve details of a specific endpoint by its ID in the specified workspace.
+      parameters:
+        - name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Endpoint details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Endpoint"
+    put:
+      tags:
+        - admin
+      operationId: UpdateEndpoint
+      summary: Update an endpoint by ID
+      description: Update the details of a specific endpoint by its ID in the specified workspace.
+      parameters:
+        - name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Endpoint"
+      responses:
+        "200":
+          description: Endpoint updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Endpoint"
+    delete:
+      tags:
+        - admin
+      operationId: DeleteEndpoint
+      summary: Delete an endpoint by ID
+      description: Delete a specific endpoint by its ID in the specified workspace.
+      parameters:
+        - name: workspace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Endpoint deleted successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
 components:
   schemas:
     Order:
@@ -97,7 +177,6 @@ components:
     Endpoint:
       type: object
       required:
-        - name
         - request
       properties:
         id:

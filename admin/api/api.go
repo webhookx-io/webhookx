@@ -5,10 +5,6 @@ import (
 	"net/http/pprof"
 	"strconv"
 
-	"net/http"
-	"net/http/pprof"
-	"strconv"
-
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"

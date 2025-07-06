@@ -1,10 +1,6 @@
 package api
 
 import (
-	"net/http"
-	"net/http/pprof"
-	"strconv"
-
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
@@ -16,6 +12,10 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/types"
+
+	"net/http"
+	"net/http/pprof"
+	"strconv"
 )
 
 type API struct {
@@ -103,7 +103,6 @@ func (api *API) Handler() http.Handler {
 		r.Use(m)
 	}
 	r.Use(middlewares.PanicRecovery)
-
 	r.Use(api.contextMiddleware)
 
 	r.HandleFunc("/", api.Index).Methods("GET")

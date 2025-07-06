@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sync"
-	"time"
-
 	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
@@ -35,6 +32,8 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
+	"sync"
+	"time"
 )
 
 var (

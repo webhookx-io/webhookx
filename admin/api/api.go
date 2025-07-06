@@ -12,7 +12,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/types"
-
 	"net/http"
 	"net/http/pprof"
 	"strconv"

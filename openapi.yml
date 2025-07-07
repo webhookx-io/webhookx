@@ -665,6 +665,7 @@ components:
 
     Metadata:
       type: object
+      default: {}
       additionalProperties:
         type: string
 
@@ -691,28 +692,46 @@ components:
         id:
           type: string
         name:
+          nullable: true
           type: string
         description:
+          nullable: true
           type: string
         enabled:
           type: boolean
+          default: true
         request:
           type: object
+          default:
+            method: POST
+            timeout: 10000
           properties:
             url:
               type: string
+              minLength: 1
             method:
               type: string
-              enum: [GET, POST,PUT,DELETE,PATCH]
+              enum: [ GET, POST, PUT, DELETE, PATCH ]
+              default: POST
             headers:
               type: object
+              nullable: true
+              additionalProperties:
+                type: string
             timeout:
               type: integer
+              minimum: 0
+              maximum: 60000
+              default: 10000
           required:
             - url
             - method
         retry:
           type: object
+          default:
+            strategy: fixed
+            config:
+              attempts: [0, 60, 3600]
           properties:
             strategy:
               type: string

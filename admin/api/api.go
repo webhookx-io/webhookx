@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
@@ -74,6 +75,16 @@ func (api *API) bindQuery(r *http.Request, q *query.Query) {
 }
 
 func (api *API) error(code int, w http.ResponseWriter, err error) {
+	switch err := err.(type) {
+	case nil:
+	case openapi3.MultiError:
+		response.JSON(w, 400, types.ErrorResponse{
+			Message: "Request Validation",
+			Error:   err,
+		})
+		return
+	}
+
 	if e, ok := err.(*errs.ValidateError); ok {
 		api.json(code, w, types.ErrorResponse{
 			Message: "Request Validation",

@@ -11,6 +11,7 @@ import (
 
 func defaultEndpoint() entities.Endpoint {
 	var entity entities.Endpoint
+	// TODO replace with entities.NewEndpoint()
 	entity.Init()
 	defaults.Set(&entity)
 

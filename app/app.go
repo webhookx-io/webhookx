@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/getkin/kin-openapi/openapi3"
 	uuid "github.com/satori/go.uuid"
+	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
@@ -43,6 +46,21 @@ var (
 
 func init() {
 	plugins.LoadPlugins()
+	loader := openapi3.NewLoader()
+	b, err := webhookx.OpenAPI.ReadFile("openapi.yml")
+	if err != nil {
+		panic(err)
+	}
+	doc, err := loader.LoadFromData(b)
+	if err != nil {
+		panic(err)
+	}
+	endpiont, err := doc.Components.Schemas.JSONLookup("Endpoint")
+	if err != nil {
+		panic(err)
+	}
+	entities.RegisterSchema("endpoint", endpiont.(*openapi3.Schema))
+	// TODO others
 }
 
 type Application struct {

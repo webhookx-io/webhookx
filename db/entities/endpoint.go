@@ -3,6 +3,7 @@ package entities
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -24,8 +25,34 @@ func (m *Endpoint) Init() {
 	m.Enabled = true
 }
 
+func NewEndpoint() *Endpoint {
+	entity := new(Endpoint)
+	entity.ID = utils.KSUID()
+	// New an endpoint with default values set according to the jsonschema definition
+	// TODO
+	data := make(map[string]interface{})
+	schema := schemaRegistry["endpoint"]
+	schema.VisitJSON(data,
+		openapi3.MultiErrors(),
+		openapi3.DisableReadOnlyValidation(),
+		openapi3.VisitAsRequest(),
+		openapi3.DefaultsSet(func() {}),
+	)
+	b, _ := json.Marshal(data)
+	json.Unmarshal(b, entity)
+
+	return entity
+}
+
 func (m *Endpoint) Validate() error {
-	return utils.Validate(m)
+	schema := schemaRegistry["endpoint"]
+	b, _ := json.Marshal(m)
+	var generic map[string]interface{}
+	json.Unmarshal(b, &generic)
+	return schema.VisitJSON(generic,
+		openapi3.MultiErrors(),
+		openapi3.DisableReadOnlyValidation(),
+	)
 }
 
 type RequestConfig struct {

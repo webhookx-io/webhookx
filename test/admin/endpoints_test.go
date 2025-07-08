@@ -12,6 +12,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
+	"time"
 )
 
 var _ = Describe("/endpoints", Ordered, func() {
@@ -39,6 +40,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 
 	Context("POST", func() {
 		It("creates an endpoint", func() {
+			now := time.Now()
 			resp, err := adminClient.R().
 				SetBody(map[string]interface{}{
 					"request": map[string]interface{}{
@@ -66,6 +68,10 @@ var _ = Describe("/endpoints", Ordered, func() {
 			e, err := db.Endpoints.Get(context.TODO(), result.ID)
 			assert.Nil(GinkgoT(), err)
 			assert.NotNil(GinkgoT(), e)
+
+			assert.True(GinkgoT(), now.UnixMilli() <= e.UpdatedAt.UnixMilli())
+			assert.True(GinkgoT(), now.UnixMilli() <= e.UpdatedAt.UnixMilli())
+			assert.Equal(GinkgoT(), e.CreatedAt, e.UpdatedAt)
 		})
 
 		Context("errors", func() {

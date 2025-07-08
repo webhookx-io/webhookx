@@ -69,9 +69,9 @@ var _ = Describe("/endpoints", Ordered, func() {
 			assert.Nil(GinkgoT(), err)
 			assert.NotNil(GinkgoT(), e)
 
-			assert.True(GinkgoT(), now.Unix() < e.UpdatedAt.Unix())
-			assert.True(GinkgoT(), now.Unix() < e.UpdatedAt.Unix())
-			assert.Equal(GinkgoT(), e.CreatedAt.Unix(), e.UpdatedAt.Unix())
+			assert.True(GinkgoT(), now.UnixMilli() <= e.UpdatedAt.UnixMilli())
+			assert.True(GinkgoT(), now.UnixMilli() <= e.UpdatedAt.UnixMilli())
+			assert.Equal(GinkgoT(), e.CreatedAt, e.UpdatedAt)
 		})
 
 		Context("errors", func() {

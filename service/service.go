@@ -34,7 +34,7 @@ func (s *Service) ScheduleAttempts(ctx context.Context, attempts []*entities.Att
 		return
 	}
 
-	maxScheduleAt := time.Now().Add(constants.TaskQueueMaxPreloadDuration)
+	maxScheduleAt := time.Now().Add(constants.TaskQueuePreScheduleTimeWindow)
 	tasks := make([]*taskqueue.TaskMessage, 0)
 	ids := make([]string, 0)
 	for _, attempt := range attempts {

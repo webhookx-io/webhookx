@@ -64,7 +64,7 @@ var _ = Describe("delivery", Ordered, func() {
 					    "data": {"key": "value"}
 					}`).
 					Post("/")
-				return err == nil && resp.StatusCode() == 200
+				return err == nil && resp.StatusCode() == 200 && resp.Header().Get("X-Webhookx-Event-Id") != ""
 			}, time.Second*5, time.Second)
 
 			var event *entities.Event

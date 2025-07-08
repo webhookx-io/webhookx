@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"go.uber.org/zap"
+	"time"
 )
 
 type Service struct {
@@ -32,20 +34,23 @@ func (s *Service) ScheduleAttempts(ctx context.Context, attempts []*entities.Att
 		return
 	}
 
+	maxScheduleAt := time.Now().Add(constants.TaskQueuePreScheduleTimeWindow)
 	tasks := make([]*taskqueue.TaskMessage, 0)
 	ids := make([]string, 0)
 	for _, attempt := range attempts {
-		tasks = append(tasks, &taskqueue.TaskMessage{
-			ID:          attempt.ID,
-			ScheduledAt: attempt.ScheduledAt.Time,
-			Data: &taskqueue.MessageData{
-				EventID:    attempt.EventId,
-				EndpointId: attempt.EndpointId,
-				Attempt:    attempt.AttemptNumber,
-				Event:      string(attempt.Event.Data),
-			},
-		})
-		ids = append(ids, attempt.ID)
+		if attempt.ScheduledAt.Before(maxScheduleAt) {
+			tasks = append(tasks, &taskqueue.TaskMessage{
+				ID:          attempt.ID,
+				ScheduledAt: attempt.ScheduledAt.Time,
+				Data: &taskqueue.MessageData{
+					EventID:    attempt.EventId,
+					EndpointId: attempt.EndpointId,
+					Attempt:    attempt.AttemptNumber,
+					Event:      string(attempt.Event.Data),
+				},
+			})
+			ids = append(ids, attempt.ID)
+		}
 	}
 
 	if len(tasks) == 0 {

@@ -11,6 +11,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"go.opentelemetry.io/otel/trace"
+	"time"
 )
 
 type attemptDao struct {
@@ -77,8 +78,8 @@ func (dao *attemptDao) UpdateErrorCode(ctx context.Context, id string, status en
 	return err
 }
 
-func (dao *attemptDao) ListUnqueuedForUpdate(ctx context.Context, limit int) (list []*entities.Attempt, err error) {
-	sql := "SELECT * FROM attempts WHERE status = 'INIT' and created_at <= now() AT TIME ZONE 'UTC' - INTERVAL '60 SECOND' limit $1 FOR UPDATE SKIP LOCKED"
-	err = dao.UnsafeDB(ctx).SelectContext(ctx, &list, sql, limit)
+func (dao *attemptDao) ListUnqueuedForUpdate(ctx context.Context, maxScheduledAt time.Time, limit int) (list []*entities.Attempt, err error) {
+	sql := "SELECT * FROM attempts WHERE status = 'INIT' AND created_at <= now() - INTERVAL '30 SECOND' AND scheduled_at < $1 limit $2 FOR UPDATE SKIP LOCKED"
+	err = dao.UnsafeDB(ctx).SelectContext(ctx, &list, sql, maxScheduledAt, limit)
 	return
 }

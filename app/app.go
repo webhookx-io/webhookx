@@ -303,6 +303,10 @@ func (app *Application) DB() *db.DB {
 	return app.db
 }
 
+func (app *Application) Worker() *worker.Worker {
+	return app.worker
+}
+
 func (app *Application) NodeID() string {
 	return app.nodeID
 }

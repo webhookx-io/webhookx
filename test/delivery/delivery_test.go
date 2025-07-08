@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"context"
+	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"strconv"
 	"testing"
@@ -250,6 +251,75 @@ var _ = Describe("delivery", Ordered, func() {
 			assert.NoError(GinkgoT(), err)
 			// Disable endpoint will not create request
 			assert.Nil(GinkgoT(), attemptDetail)
+		})
+	})
+
+	Context("schedule task", func() {
+		var proxyClient *resty.Client
+
+		var app *app.Application
+		var db *db.DB
+
+		BeforeAll(func() {
+			endpoint := factory.Endpoint()
+			endpoint.Retry.Config.Attempts = []int64{int64(constants.TaskQueuePreScheduleTimeWindow.Seconds()) + 3}
+			entitiesConfig := helper.EntitiesConfig{
+				Endpoints: []*entities.Endpoint{&endpoint},
+				Sources:   []*entities.Source{factory.SourceP()},
+			}
+			db = helper.InitDB(true, &entitiesConfig)
+			proxyClient = helper.ProxyClient()
+
+			app = utils.Must(helper.Start(map[string]string{
+				"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
+				"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
+				"WEBHOOKX_WORKER_ENABLED": "true",
+			}))
+		})
+
+		AfterAll(func() {
+			app.Stop()
+		})
+
+		It("scheudle task when conditions met", func() {
+			assert.Eventually(GinkgoT(), func() bool {
+				resp, err := proxyClient.R().
+					SetBody(`{
+					    "event_type": "foo.bar",
+					    "data": {"key": "value"}
+					}`).
+					Post("/")
+				return err == nil && resp.StatusCode() == 200
+			}, time.Second*5, time.Second)
+
+			time.Sleep(time.Second)
+
+			var attempt *entities.Attempt
+			assert.Eventually(GinkgoT(), func() bool {
+				list, err := db.Attempts.List(context.TODO(), &query.AttemptQuery{})
+				if err != nil || len(list) == 0 {
+					return false
+				}
+				attempt = list[0]
+				return attempt.Status == entities.AttemptStatusInit // should not be enqueued
+			}, time.Second*5, time.Second)
+
+			result, err := db.DB.Exec("UPDATE attempts set scheduled_at = $1, created_at = created_at - INTERVAL '30 SECOND' where id = $2", time.Now(), attempt.ID)
+			assert.NoError(GinkgoT(), err)
+			row, err := result.RowsAffected()
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), int64(1), row)
+
+			time.Sleep(time.Second)
+
+			app.Worker().ProcessRequeue() // load db data that meets the conditions into task queue
+
+			assert.Eventually(GinkgoT(), func() bool {
+				model, err := db.Attempts.Get(context.TODO(), attempt.ID)
+				assert.NoError(GinkgoT(), err)
+				return model.Status == entities.AttemptStatusSuccess
+			}, time.Second*5, time.Second)
+
 		})
 	})
 

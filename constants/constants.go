@@ -60,6 +60,7 @@ type Header struct {
 }
 
 var (
+	HeaderEventId          = "X-Webhookx-Event-Id"
 	DefaultResponseHeaders = []Header{
 		{Name: "Server", Value: "WebhookX/" + config.VERSION},
 	}

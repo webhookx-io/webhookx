@@ -264,12 +264,18 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	if source.Response != nil {
-		exit(w, source.Response.Code, source.Response.Body, headers{"Content-Type": source.Response.ContentType})
+		exit(w, source.Response.Code, source.Response.Body, headers{
+			"Content-Type":          source.Response.ContentType,
+			constants.HeaderEventId: event.ID,
+		})
 		return true
 	}
 
 	// default response
-	exit(w, int(gw.cfg.Response.Code), gw.cfg.Response.Body, headers{"Content-Type": gw.cfg.Response.ContentType})
+	exit(w, int(gw.cfg.Response.Code), gw.cfg.Response.Body, headers{
+		"Content-Type":          gw.cfg.Response.ContentType,
+		constants.HeaderEventId: event.ID,
+	})
 	return true
 }
 

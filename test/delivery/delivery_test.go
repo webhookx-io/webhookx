@@ -262,7 +262,7 @@ var _ = Describe("delivery", Ordered, func() {
 
 		BeforeAll(func() {
 			endpoint := factory.Endpoint()
-			endpoint.Retry.Config.Attempts = []int64{int64(constants.TaskQueuePreScheduleTimeWindow.Seconds())}
+			endpoint.Retry.Config.Attempts = []int64{int64(constants.TaskQueuePreScheduleTimeWindow.Seconds()) + 3}
 			entitiesConfig := helper.EntitiesConfig{
 				Endpoints: []*entities.Endpoint{&endpoint},
 				Sources:   []*entities.Source{factory.SourceP()},

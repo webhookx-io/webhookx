@@ -250,7 +250,7 @@ func (w *Worker) Start() error {
 
 	go w.run()
 
-	schedule.Schedule(w.ctx, w.processRequeue, w.opts.RequeueJobInterval)
+	schedule.Schedule(w.ctx, w.ProcessRequeue, w.opts.RequeueJobInterval)
 	return nil
 }
 
@@ -265,7 +265,7 @@ func (w *Worker) Stop() error {
 	return nil
 }
 
-func (w *Worker) processRequeue() {
+func (w *Worker) ProcessRequeue() {
 	batchSize := w.opts.RequeueJobBatch
 
 	var done bool
@@ -286,7 +286,6 @@ func (w *Worker) processRequeue() {
 					attempt.Event = event
 				}
 				w.srv.ScheduleAttempts(ctx, attempts)
-				return nil
 			}
 
 			if len(attempts) < batchSize {

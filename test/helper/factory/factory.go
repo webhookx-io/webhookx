@@ -102,6 +102,12 @@ func WithSourceMetadata(metadata map[string]string) SourceOption {
 	}
 }
 
+func WithSourceResponse(response *entities.CustomResponse) SourceOption {
+	return func(e *entities.Source) {
+		e.Response = response
+	}
+}
+
 func Source(opts ...SourceOption) entities.Source {
 	e := defaultSource()
 	for _, opt := range opts {

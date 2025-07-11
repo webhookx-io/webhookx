@@ -42,11 +42,6 @@ func (api *API) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := endpoint.Validate(); err != nil {
-		api.error(400, w, err)
-		return
-	}
-
 	endpoint.WorkspaceId = ucontext.GetWorkspaceID(r.Context())
 	err := api.db.EndpointsWS.Insert(r.Context(), &endpoint)
 	api.assert(err)

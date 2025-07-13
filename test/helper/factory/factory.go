@@ -10,9 +10,9 @@ import (
 // Endpoint
 
 func defaultEndpoint() entities.Endpoint {
-	var entity entities.Endpoint
-	entity.Init()
-	defaults.Set(&entity)
+	entity, _ := entities.NewEntity(func(e *entities.Endpoint) {
+		e.ID = utils.KSUID()
+	})
 
 	entity.Request = entities.RequestConfig{
 		URL:    "http://localhost:9999/anything",

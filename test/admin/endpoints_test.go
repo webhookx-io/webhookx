@@ -89,10 +89,36 @@ var _ = Describe("/endpoints", Ordered, func() {
 					SetBody(map[string]interface{}{}).
 					SetResult(entities.Endpoint{}).
 					Post("/workspaces/default/endpoints")
+
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"Request Validation","error":{"message":"request validation","fields":{"request":{"method":"required field missing","url":"required field missing"}}}}`,
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"@body":{"request":{"method":["property \"method\" is missing"],"url":["property \"url\" is missing"]}}}}}`,
+					string(resp.Body()))
+			})
+
+			It("returns HTTP 400 for request fields invalid", func() {
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"request": map[string]interface{}{
+							"url":     "https://example.com",
+							"method":  "INVALID",
+							"timeout": "123456",
+						},
+						"retry": map[string]interface{}{
+							"strategy": "invalid",
+							"config": map[string]interface{}{
+								"attempts": []int64{0, 30, 60},
+							},
+						},
+					}).
+					SetResult(entities.Endpoint{}).
+					Post("/workspaces/default/endpoints")
+
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"@body":{"request":{"method":["value is not one of the allowed values [\"GET\",\"POST\",\"PUT\",\"DELETE\",\"PATCH\"]"],"timeout":["value must be an integer"]},"retry":{"strategy":["value is not one of the allowed values [\"fixed\"]"]}}}}}`,
 					string(resp.Body()))
 			})
 

@@ -115,4 +115,70 @@ var _ = Describe("middlewares", Ordered, func() {
 			assert.Equal(GinkgoT(), `{"message":"invalid workspace: 2sw5MaDfC17ZzGqfewJKMf7Ow15"}`, string(resp.Body()))
 		})
 	})
+
+	Context("openapi validator middleware", func() {
+		var app *app.Application
+		var db *db.DB
+		var adminClient *resty.Client
+		var testWorkspace *entities.Workspace
+
+		BeforeAll(func() {
+			db = helper.InitDB(true, nil)
+
+			// test workspace
+			testWorkspace = factory.Workspace("test")
+			assert.NoError(GinkgoT(), db.Workspaces.Insert(context.TODO(), testWorkspace))
+
+			adminClient = helper.AdminClient()
+
+			app = utils.Must(helper.Start(map[string]string{
+				"WEBHOOKX_ADMIN_LISTEN": "0.0.0.0:8080",
+			}))
+		})
+
+		AfterAll(func() {
+			app.Stop()
+		})
+
+		It("sanity endpoints validate body", func() {
+			testEndpoint := factory.EndpointWS(testWorkspace.ID, factory.WithEndpointName("test"))
+
+			resp, err := adminClient.R().
+				SetBody(map[string]interface{}{
+					"name":        testEndpoint.Name,
+					"description": testEndpoint.Description,
+					"request": map[string]interface{}{
+						"url":     testEndpoint.Request.URL,
+						"method":  testEndpoint.Request.Method,
+						"headers": testEndpoint.Request.Headers,
+						"timeout": testEndpoint.Request.Timeout,
+					},
+					"retry": map[string]interface{}{
+						"strategy": testEndpoint.Retry.Strategy.String(),
+						"config":   testEndpoint.Retry.Config,
+					},
+					"events": testEndpoint.Events,
+				}).
+				Post("/workspaces/test/endpoints")
+			assert.Nil(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 201, resp.StatusCode())
+		})
+
+		It("return 404 when empty workspace id as url path parameter", func() {
+			resp, err := adminClient.R().
+				SetBody(map[string]interface{}{}).
+				Post("/notfound")
+			assert.Nil(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 404, resp.StatusCode())
+		})
+
+		It("return 405 when method not allowed", func() {
+			testEndpoint := factory.EndpointWS(testWorkspace.ID, factory.WithEndpointName("test"))
+			resp, err := adminClient.R().
+				SetBody(&testEndpoint).
+				Options("/workspaces/test/endpoints")
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 405, resp.StatusCode())
+		})
+	})
 })

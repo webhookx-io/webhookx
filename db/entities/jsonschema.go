@@ -53,7 +53,7 @@ func NewEntity[T any](defaultSet func(*T)) (T, map[string]interface{}) {
 		panic(fmt.Errorf("type is not schema for entity %s", getStructName(entity)))
 	}
 
-	schema.VisitJSON(jsonObject,
+	_ = schema.VisitJSON(jsonObject,
 		openapi3.MultiErrors(),
 		openapi3.VisitAsRequest(),
 		openapi3.DisableReadOnlyValidation(),
@@ -65,7 +65,7 @@ func NewEntity[T any](defaultSet func(*T)) (T, map[string]interface{}) {
 	)
 
 	b, _ := json.Marshal(jsonObject)
-	json.Unmarshal(b, &entity)
+	_ = json.Unmarshal(b, &entity)
 	return entity, jsonObject
 }
 
@@ -81,7 +81,7 @@ func Validate[T any](entity T) error {
 
 	b, _ := json.Marshal(entity)
 	generic := make(map[string]interface{})
-	json.Unmarshal(b, &generic)
+	_ = json.Unmarshal(b, &generic)
 
 	err = schema.VisitJSON(generic,
 		openapi3.MultiErrors(),
@@ -142,7 +142,7 @@ func UnmarshalAndValidate[T any](r io.ReadCloser, entity *T, defaultSet func(*T)
 		panic(fmt.Errorf("type is not schema for entity %s", getStructName(entity)))
 	}
 
-	schema.VisitJSON(jsonObject,
+	_ = schema.VisitJSON(jsonObject,
 		openapi3.MultiErrors(),
 		openapi3.VisitAsRequest(),
 		openapi3.DisableReadOnlyValidation(),
@@ -154,7 +154,7 @@ func UnmarshalAndValidate[T any](r io.ReadCloser, entity *T, defaultSet func(*T)
 	)
 
 	b, _ := json.Marshal(jsonObject)
-	json.Unmarshal(b, entity)
+	_ = json.Unmarshal(b, entity)
 
 	if err := json.NewDecoder(r).Decode(&jsonObject); err != nil {
 		return err

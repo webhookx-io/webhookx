@@ -38,6 +38,28 @@ var _ = Describe("/endpoints", Ordered, func() {
 		app.Stop()
 	})
 
+	Context("New Endpoint", func() {
+		It("new a default endpoint", func() {
+			endpoint := entities.NewEntity(func(a *entities.Endpoint) {
+				a.ID = utils.KSUID()
+			})
+			assert.NotEmpty(GinkgoT(), endpoint)
+			assert.Equal(GinkgoT(), endpoint.Request.Timeout, int64(10000))
+		})
+
+		It("new a entity is not a schema", func() {
+			type Example struct {
+				Name string `json:"name"`
+			}
+
+			assert.Panics(GinkgoT(), func() {
+				entities.NewEntity(func(a *Example) {
+					a.Name = "example"
+				})
+			})
+		})
+	})
+
 	Context("POST", func() {
 		It("creates an endpoint", func() {
 			now := time.Now()
@@ -308,6 +330,30 @@ var _ = Describe("/endpoints", Ordered, func() {
 				assert.Equal(GinkgoT(), entity.ID, result.ID)
 				assert.Equal(GinkgoT(), "https://foo.com", result.Request.URL)
 				assert.Equal(GinkgoT(), "PUT", result.Request.Method)
+			})
+
+			It("errors", func() {
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"request": map[string]interface{}{
+							"url":    "",
+							"method": "PUT",
+						},
+						"retry": map[string]interface{}{
+							"strategy": "",
+							"config": map[string]interface{}{
+								"attempts": []int64{0, 30, 60},
+							},
+						},
+					}).
+					SetResult(entities.Endpoint{}).
+					Put("/workspaces/default/endpoints/" + entity.ID)
+
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"@body":{"request":{"url":["property \"url\" is missing"]},"retry":{"strategy":["value is not one of the allowed values [\"fixed\"]"]}}}}}`,
+					resp.String())
 			})
 		})
 

@@ -82,7 +82,7 @@ func Validate[T any](entity T) error {
 		return fmt.Errorf("type is not schema for entity %s", getStructName(entity))
 	}
 
-	b, _ := json.Marshal(entity)
+	b, _ := json.Marshal(&entity)
 	generic := make(map[string]interface{})
 	_ = json.Unmarshal(b, &generic)
 

@@ -10,7 +10,7 @@ import (
 // Endpoint
 
 func defaultEndpoint() entities.Endpoint {
-	entity, _ := entities.NewEntity(func(e *entities.Endpoint) {
+	entity := entities.NewEntity(func(e *entities.Endpoint) {
 		e.ID = utils.KSUID()
 	})
 

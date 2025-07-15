@@ -17,7 +17,15 @@ type HTTPDeliverer struct {
 }
 
 func NewHTTPDeliverer(cfg *config.WorkerDeliverer) *HTTPDeliverer {
-	client := &http.Client{}
+	client := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConns:          1000,
+			MaxIdleConnsPerHost:   1000,
+			IdleConnTimeout:       30 * time.Second,
+			TLSHandshakeTimeout:   5 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+	}
 	return &HTTPDeliverer{
 		defaultTimeout: time.Duration(cfg.Timeout) * time.Millisecond,
 		client:         client,

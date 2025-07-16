@@ -100,9 +100,14 @@ func NewGateway(opts Options) *Gateway {
 	var q queue.Queue
 	switch opts.Cfg.Queue.Type {
 	case "redis":
-		q, _ = redis.NewRedisQueue(redis.RedisQueueOptions{
-			Client: opts.Cfg.Queue.Redis.GetClient(),
-		}, zap.S(), opts.Metrics)
+		q, _ = redis.NewRedisQueue(redis.Options{
+			StreamName:        constants.QueueRedisQueueName,
+			ConsumerGroupName: constants.QueueRedisGroupName,
+			ConsumerName:      constants.QueueRedisConsumerName,
+			VisibilityTimeout: constants.QueueRedisVisibilityTimeout,
+			Listeners:         runtime.GOMAXPROCS(0),
+			Client:            opts.Cfg.Queue.Redis.GetClient(),
+		}, zap.S())
 		stats.Register(q)
 	}
 
@@ -285,11 +290,11 @@ func (gw *Gateway) ingestEvent(ctx context.Context, async bool, event *entities.
 		}
 
 		msg := queue.Message{
-			Data:        bytes,
+			Value:       bytes,
 			Time:        time.Now(),
 			WorkspaceID: event.WorkspaceId,
 		}
-		return gw.queue.Enqueue(ctx, &msg)
+		return gw.queue.WriteMessage(ctx, &msg)
 	}
 
 	return gw.dispatch(ctx, []*entities.Event{event})
@@ -304,6 +309,10 @@ func (gw *Gateway) Start() {
 
 	gw.buildRouter("init")
 
+	if gw.queue != nil {
+		gw.queue.StartListen(gw.ctx, gw.HandleMessages)
+	}
+
 	schedule.Schedule(gw.ctx, func() {
 		version := store.GetDefault("router:version", "init").(string)
 		if gw.routerVersion == version {
@@ -311,6 +320,14 @@ func (gw *Gateway) Start() {
 		}
 		gw.buildRouter(version)
 	}, time.Second)
+
+	if gw.metrics.Enabled && gw.queue != nil {
+		schedule.Schedule(gw.ctx, func() {
+			stats := stats.Stats(gw.queue.Stats())
+			size := stats.Int64("eventqueue.size")
+			gw.metrics.EventPendingGauge.Set(float64(size))
+		}, gw.metrics.Interval)
+	}
 
 	gw.bus.Subscribe("source.crud", func(data interface{}) {
 		store.Set("router:version", utils.UUID())
@@ -350,14 +367,6 @@ func (gw *Gateway) Start() {
 		"tls", gw.cfg.TLS.Enabled(),
 	)
 
-	if gw.queue != nil {
-		listeners := runtime.GOMAXPROCS(0)
-		gw.log.Infof(`starting %d listeners`, listeners)
-		for i := 0; i < listeners; i++ {
-			go gw.listenQueue()
-		}
-	}
-
 }
 
 // Stop stops the HTTP server
@@ -374,48 +383,24 @@ func (gw *Gateway) Stop() error {
 	return nil
 }
 
-func (gw *Gateway) listenQueue() {
-	opts := &queue.Options{
-		Count:   20,
-		Block:   true,
-		Timeout: time.Second,
-	}
-	for {
-		select {
-		case <-gw.ctx.Done():
-			return
-		default:
-			ctx := context.TODO()
-			messages, err := gw.queue.Dequeue(ctx, opts)
-			if err != nil && gw.limiter.Allow(err.Error()) {
-				gw.log.Warnf("failed to dequeue: %v", err)
-				time.Sleep(time.Second)
-				continue
-			}
-			if len(messages) == 0 {
-				continue
-			}
-
-			events := make([]*entities.Event, 0, len(messages))
-			for _, message := range messages {
-				var event entities.Event
-				err = json.Unmarshal(message.Data, &event)
-				if err != nil {
-					gw.log.Warnf("faield to unmarshal message: %v", err)
-					continue
-				}
-				event.WorkspaceId = message.WorkspaceID
-				events = append(events, &event)
-			}
-
-			err = gw.dispatch(ctx, events)
-			if err != nil {
-				gw.log.Warnf("failed to dispatch event in batch: %v", err)
-				continue
-			}
-			_ = gw.queue.Delete(ctx, messages)
+func (gw *Gateway) HandleMessages(ctx context.Context, messages []*queue.Message) error {
+	events := make([]*entities.Event, 0, len(messages))
+	for _, message := range messages {
+		var event entities.Event
+		err := json.Unmarshal(message.Value, &event)
+		if err != nil {
+			gw.log.Warnf("faield to unmarshal message: %v", err)
+			continue
 		}
+		event.WorkspaceId = message.WorkspaceID
+		events = append(events, &event)
 	}
+
+	err := gw.dispatch(ctx, events)
+	if err != nil {
+		gw.log.Warnf("failed to dispatch event in batch: %v", err)
+	}
+	return err
 }
 
 func (gw *Gateway) dispatch(ctx context.Context, events []*entities.Event) error {

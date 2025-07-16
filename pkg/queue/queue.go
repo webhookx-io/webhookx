@@ -6,22 +6,23 @@ import (
 )
 
 type Message struct {
-	ID          string
-	Data        []byte
+	Value       []byte
 	Time        time.Time
 	WorkspaceID string
 }
 
-type Options struct {
-	Count   int64
-	Block   bool
-	Timeout time.Duration
-}
+type HandleFunc func(ctx context.Context, messages []*Message) error
 
 type Queue interface {
-	Enqueue(ctx context.Context, message *Message) error
-	Dequeue(ctx context.Context, opts *Options) ([]*Message, error)
-	Delete(ctx context.Context, message []*Message) error
-	Size(ctx context.Context) (int64, error)
+	Producer
+	Consumer
 	Stats() map[string]interface{}
+}
+
+type Producer interface {
+	WriteMessage(ctx context.Context, message *Message) error
+}
+
+type Consumer interface {
+	StartListen(ctx context.Context, handle HandleFunc)
 }

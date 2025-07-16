@@ -11,7 +11,7 @@ type Message struct {
 	WorkspaceID string
 }
 
-type HandleFunc func(ctx context.Context, messages []*Message) error
+type HandlerFunc func(ctx context.Context, messages []*Message) error
 
 type Queue interface {
 	Producer
@@ -20,9 +20,9 @@ type Queue interface {
 }
 
 type Producer interface {
-	WriteMessage(ctx context.Context, message *Message) error
+	Enqueue(ctx context.Context, message *Message) error
 }
 
 type Consumer interface {
-	StartListen(ctx context.Context, handle HandleFunc)
+	StartListen(ctx context.Context, handler HandlerFunc)
 }

@@ -294,7 +294,7 @@ func (gw *Gateway) ingestEvent(ctx context.Context, async bool, event *entities.
 			Time:        time.Now(),
 			WorkspaceID: event.WorkspaceId,
 		}
-		return gw.queue.WriteMessage(ctx, &msg)
+		return gw.queue.Enqueue(ctx, &msg)
 	}
 
 	return gw.dispatch(ctx, []*entities.Event{event})

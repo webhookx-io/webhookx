@@ -41,7 +41,7 @@ func NewRedisQueue(opts Options, logger *zap.SugaredLogger) (queue.Queue, error)
 	return q, nil
 }
 
-func (q *RedisQueue) WriteMessage(ctx context.Context, message *queue.Message) error {
+func (q *RedisQueue) Enqueue(ctx context.Context, message *queue.Message) error {
 	ctx, span := tracing.Start(ctx, "redis.queue.enqueue", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
@@ -117,15 +117,15 @@ func (q *RedisQueue) delete(ctx context.Context, xmessages []redis.XMessage) err
 	return err
 }
 
-func (q *RedisQueue) StartListen(ctx context.Context, handle queue.HandleFunc) {
+func (q *RedisQueue) StartListen(ctx context.Context, handler queue.HandlerFunc) {
 	q.log.Infof("starting %d listeners", q.opts.Listeners)
 	for i := 0; i < q.opts.Listeners; i++ {
-		go q.listen(ctx, handle)
+		go q.listen(ctx, handler)
 	}
 	go q.process(ctx)
 }
 
-func (q *RedisQueue) listen(ctx context.Context, handle queue.HandleFunc) {
+func (q *RedisQueue) listen(ctx context.Context, handler queue.HandlerFunc) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -146,7 +146,7 @@ func (q *RedisQueue) listen(ctx context.Context, handle queue.HandleFunc) {
 				messages = append(messages, toMessage(msg.Values))
 			}
 
-			err = handle(ctx, messages)
+			err = handler(ctx, messages)
 			if err != nil {
 				q.log.Warnf("failed to handle message: %v", err)
 				continue

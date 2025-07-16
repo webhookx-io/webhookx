@@ -17,15 +17,17 @@ type QueueType string
 const (
 	QueueTypeOff   QueueType = "off"
 	QueueTypeRedis QueueType = "redis"
+	QueueTypeKafka QueueType = "kafka"
 )
 
 type Queue struct {
 	Type  QueueType   `yaml:"type" json:"type" default:"redis"`
 	Redis RedisConfig `yaml:"redis" json:"redis"`
+	Kafka KafkaConfig `yaml:"kafka" json:"kafka"`
 }
 
 func (cfg Queue) Validate() error {
-	if !slices.Contains([]QueueType{QueueTypeRedis, QueueTypeOff}, cfg.Type) {
+	if !slices.Contains([]QueueType{QueueTypeRedis, QueueTypeOff, QueueTypeKafka}, cfg.Type) {
 		return fmt.Errorf("unknown type: %s", cfg.Type)
 	}
 	if cfg.Type == QueueTypeRedis {

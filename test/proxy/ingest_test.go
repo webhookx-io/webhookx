@@ -25,7 +25,16 @@ var _ = Describe("ingest", Ordered, func() {
 
 		entitiesConfig := helper.EntitiesConfig{
 			Endpoints: []*entities.Endpoint{factory.EndpointP()},
-			Sources:   []*entities.Source{factory.SourceP()},
+			Sources: []*entities.Source{
+				factory.SourceP(),
+				factory.SourceP(
+					factory.WithSourcePath("/custom-response"),
+					factory.WithSourceResponse(&entities.CustomResponse{
+						Code:        201,
+						ContentType: "application/xml",
+						Body:        "<message>ok</message>",
+					})),
+			},
 		}
 		entitiesConfig.Sources[0].Async = true
 
@@ -43,17 +52,17 @@ var _ = Describe("ingest", Ordered, func() {
 		})
 
 		It("sanity", func() {
-			assert.Eventually(GinkgoT(), func() bool {
-				resp, err := proxyClient.R().
-					SetBody(`{
+			resp, err := proxyClient.R().
+				SetBody(`{
 					    "event_type": "foo.bar",
 					    "data": {
 							"key": "value"
 						}
 					}`).
-					Post("/")
-				return err == nil && resp.StatusCode() == 200
-			}, time.Second*5, time.Second)
+				Post("/")
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 200, resp.StatusCode())
+			assert.NotEmpty(GinkgoT(), resp.Header().Get("X-Webhookx-Event-Id"))
 
 			var attempt *entities.Attempt
 			assert.Eventually(GinkgoT(), func() bool {
@@ -65,6 +74,23 @@ var _ = Describe("ingest", Ordered, func() {
 				return attempt.Status == entities.AttemptStatusQueued
 			}, time.Second*15, time.Second)
 		})
+
+		It("custom response", func() {
+			resp, err := proxyClient.R().
+				SetBody(`{
+					    "event_type": "foo.bar",
+					    "data": {
+							"key": "value"
+						}
+					}`).
+				Post("/custom-response")
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 201, resp.StatusCode())
+			assert.Equal(GinkgoT(), "application/xml", resp.Header().Get("Content-Type"))
+			assert.Equal(GinkgoT(), "<message>ok</message>", string(resp.Body()))
+			assert.NotEmpty(GinkgoT(), resp.Header().Get("X-Webhookx-Event-Id"))
+		})
+
 	})
 
 	Context("queue disabled", func() {

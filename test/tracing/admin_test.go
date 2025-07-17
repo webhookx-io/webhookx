@@ -63,17 +63,17 @@ var _ = Describe("tracing admin", Ordered, func() {
 					"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
 				}
 				entrypoint := map[string]string{
-					"http.method":                  "GET",
-					"http.scheme":                  "http",
-					"http.target":                  "/workspaces/default/attempts",
-					"http.status_code":             "200",
-					"http.response_content_length": "*",
-					"user_agent.original":          "*",
-					"net.host.name":                "localhost",
-					"net.host.port":                "8080",
-					"net.protocol.version":         "*",
-					"net.sock.peer.addr":           "*",
-					"net.sock.peer.port":           "*",
+					"http.request.method":       "GET",
+					"url.scheme":                "http",
+					"url.path":                  "/workspaces/default/attempts",
+					"http.response.status_code": "200",
+					"http.response.body.size":   "*",
+					"user_agent.original":       "*",
+					"server.address":            "localhost",
+					"server.port":               "8080",
+					"network.protocol.version":  "*",
+					"network.peer.address":      "*",
+					"network.peer.port":         "*",
 				}
 
 				expectedScopeSpans := map[string]map[string]string{

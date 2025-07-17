@@ -65,18 +65,18 @@ var _ = Describe("tracing proxy", Ordered, func() {
 				}
 
 				entrypoint := map[string]string{
-					"http.method":                  "POST",
-					"http.scheme":                  "http",
-					"http.target":                  "/",
-					"http.status_code":             "200",
-					"http.request_content_length":  "*",
-					"http.response_content_length": "*",
-					"user_agent.original":          "*",
-					"net.host.name":                "localhost",
-					"net.host.port":                "8081",
-					"net.protocol.version":         "*",
-					"net.sock.peer.addr":           "*",
-					"net.sock.peer.port":           "*",
+					"http.request.method":       "POST",
+					"url.scheme":                "http",
+					"url.path":                  "/",
+					"http.response.status_code": "200",
+					"http.request.body.size":    "*",
+					"http.response.body.size":   "*",
+					"user_agent.original":       "*",
+					"server.address":            "localhost",
+					"server.port":               "8081",
+					"network.protocol.version":  "*",
+					"network.peer.address":      "*",
+					"network.peer.port":         "*",
 				}
 				router := map[string]string{
 					"source.id":           "*",

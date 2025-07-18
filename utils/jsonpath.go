@@ -51,6 +51,19 @@ func mergePath(root map[string]interface{}, path string, value interface{}) {
 	}
 }
 
+func convertArrays(m map[string]interface{}) {
+	for k, v := range m {
+		switch val := v.(type) {
+		case map[string]interface{}:
+			if arr, ok := val[""].([]interface{}); ok && len(val) == 1 {
+				m[k] = arr
+			} else {
+				convertArrays(val)
+			}
+		}
+	}
+}
+
 func ConvertJSONPaths(input map[string][]interface{}) map[string]interface{} {
 	result := make(map[string]interface{})
 
@@ -75,17 +88,4 @@ func ConvertJSONPaths(input map[string][]interface{}) map[string]interface{} {
 	convertArrays(result)
 
 	return result
-}
-
-func convertArrays(m map[string]interface{}) {
-	for k, v := range m {
-		switch val := v.(type) {
-		case map[string]interface{}:
-			if arr, ok := val[""].([]interface{}); ok && len(val) == 1 {
-				m[k] = arr
-			} else {
-				convertArrays(val)
-			}
-		}
-	}
 }

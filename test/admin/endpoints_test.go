@@ -38,28 +38,6 @@ var _ = Describe("/endpoints", Ordered, func() {
 		app.Stop()
 	})
 
-	Context("New Endpoint", func() {
-		It("new a default endpoint", func() {
-			endpoint := entities.NewEntity(func(a *entities.Endpoint) {
-				a.ID = utils.KSUID()
-			})
-			assert.NotEmpty(GinkgoT(), endpoint)
-			assert.Equal(GinkgoT(), endpoint.Request.Timeout, int64(10000))
-		})
-
-		It("new a entity is not a schema", func() {
-			type Example struct {
-				Name string `json:"name"`
-			}
-
-			assert.Panics(GinkgoT(), func() {
-				entities.NewEntity(func(a *Example) {
-					a.Name = "example"
-				})
-			})
-		})
-	})
-
 	Context("POST", func() {
 		It("creates an endpoint", func() {
 			now := time.Now()

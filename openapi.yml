@@ -18,7 +18,7 @@ paths:
     get:
       summary: Get WebhookX information
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -33,25 +33,25 @@ paths:
   /workspaces:
     get:
       parameters:
-        - $ref: "#/components/parameters/page_no"
-        - $ref: "#/components/parameters/page_size"
+        - $ref: '#/components/parameters/page_no'
+        - $ref: '#/components/parameters/page_size'
       summary: Page workspaces
       tags:
         - Workspace
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: "#/components/schemas/Pagination"
+                  - $ref: '#/components/schemas/Pagination'
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: "#/components/schemas/Workspace"
+                          $ref: '#/components/schemas/Workspace'
     post:
       summary: Create a workspace
       tags:
@@ -60,14 +60,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Workspace"
+              $ref: '#/components/schemas/Workspace'
       responses:
-        "201":
+        '201':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Workspace"
+                $ref: '#/components/schemas/Workspace'
 
   /workspaces/{id}:
     get:
@@ -81,12 +81,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Workspace"
+                $ref: '#/components/schemas/Workspace'
     put:
       summary: Update a workspace
       tags:
@@ -101,14 +101,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Workspace"
+              $ref: '#/components/schemas/Workspace'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Workspace"
+                $ref: '#/components/schemas/Workspace'
     delete:
       summary: Delete a workspace
       tags:
@@ -120,34 +120,34 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: Deleted
 
   /workspaces/{ws_id}/endpoints:
     parameters:
-      - $ref: "#/components/parameters/workspace_id"
+      - $ref: '#/components/parameters/workspace_id'
 
     get:
       parameters:
-        - $ref: "#/components/parameters/page_no"
-        - $ref: "#/components/parameters/page_size"
+        - $ref: '#/components/parameters/page_no'
+        - $ref: '#/components/parameters/page_size'
       summary: Page endpoints
       tags:
         - Endpoint
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: "#/components/schemas/Pagination"
+                  - $ref: '#/components/schemas/Pagination'
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: "#/components/schemas/Endpoint"
+                          $ref: '#/components/schemas/Endpoint'
     post:
       tags:
         - Endpoint
@@ -156,18 +156,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Endpoint"
+              $ref: '#/components/schemas/Endpoint'
       responses:
-        "201":
+        '201':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Endpoint"
+                $ref: '#/components/schemas/Endpoint'
 
   /workspaces/{ws_id}/endpoints/{id}:
     parameters:
-      - $ref: "#/components/parameters/workspace_id"
+      - $ref: '#/components/parameters/workspace_id'
 
     get:
       summary: Retrieve a endpoint
@@ -180,12 +180,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Endpoint"
+                $ref: '#/components/schemas/Endpoint'
     put:
       summary: Update a endpoint
       tags:
@@ -200,14 +200,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Endpoint"
+              $ref: '#/components/schemas/Endpoint'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Endpoint"
+                $ref: '#/components/schemas/Endpoint'
 
     delete:
       summary: Delete a endpoint
@@ -220,17 +220,17 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: Deleted
 
   /workspaces/{ws_id}/attempts:
     parameters:
-      - $ref: "#/components/parameters/workspace_id"
+      - $ref: '#/components/parameters/workspace_id'
 
     get:
       parameters:
-        - $ref: "#/components/parameters/page_no"
-        - $ref: "#/components/parameters/page_size"
+        - $ref: '#/components/parameters/page_no'
+        - $ref: '#/components/parameters/page_size'
         - in: query
           name: event_id
           schema:
@@ -244,23 +244,23 @@ paths:
       tags:
         - Attempt
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: "#/components/schemas/Pagination"
+                  - $ref: '#/components/schemas/Pagination'
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: "#/components/schemas/Attempt"
+                          $ref: '#/components/schemas/Attempt'
 
   /workspaces/{ws_id}/attempts/{id}:
     parameters:
-      - $ref: "#/components/parameters/workspace_id"
+      - $ref: '#/components/parameters/workspace_id'
 
     get:
       summary: Retrieve a webhook attempt
@@ -273,38 +273,38 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Attempt"
+                $ref: '#/components/schemas/Attempt'
 
   /workspaces/{ws_id}/events:
     parameters:
-      - $ref: "#/components/parameters/workspace_id"
+      - $ref: '#/components/parameters/workspace_id'
 
     get:
       parameters:
-        - $ref: "#/components/parameters/page_no"
-        - $ref: "#/components/parameters/page_size"
+        - $ref: '#/components/parameters/page_no'
+        - $ref: '#/components/parameters/page_size'
       summary: Page events
       tags:
         - Event
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: "#/components/schemas/Pagination"
+                  - $ref: '#/components/schemas/Pagination'
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: "#/components/schemas/Event"
+                          $ref: '#/components/schemas/Event'
 
     post:
       summary: Create an event
@@ -314,18 +314,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Event"
+              $ref: '#/components/schemas/Event'
       responses:
-        "201":
+        '201':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Event"
+                $ref: '#/components/schemas/Event'
 
   /workspaces/{ws_id}/events/{id}:
     parameters:
-      - $ref: "#/components/parameters/workspace_id"
+      - $ref: '#/components/parameters/workspace_id'
 
     get:
       summary: Retrieve an event
@@ -338,16 +338,16 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Event"
+                $ref: '#/components/schemas/Event'
 
   /workspaces/{ws_id}/events/{id}/retry:
     parameters:
-      - $ref: "#/components/parameters/workspace_id"
+      - $ref: '#/components/parameters/workspace_id'
 
     post:
       summary: Manually retry an event
@@ -366,34 +366,34 @@ paths:
             type: string
 
       responses:
-        "200":
+        '200':
           description: OK
 
   /workspaces/{ws_id}/sources:
     parameters:
-      - $ref: "#/components/parameters/workspace_id"
+      - $ref: '#/components/parameters/workspace_id'
 
     get:
       parameters:
-        - $ref: "#/components/parameters/page_no"
-        - $ref: "#/components/parameters/page_size"
+        - $ref: '#/components/parameters/page_no'
+        - $ref: '#/components/parameters/page_size'
       summary: Page sources
       tags:
         - Source
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: "#/components/schemas/Pagination"
+                  - $ref: '#/components/schemas/Pagination'
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: "#/components/schemas/Source"
+                          $ref: '#/components/schemas/Source'
     post:
       summary: Create a source
       tags:
@@ -402,18 +402,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Source"
+              $ref: '#/components/schemas/Source'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Source"
+                $ref: '#/components/schemas/Source'
 
   /workspaces/{ws_id}/source/{id}:
     parameters:
-      - $ref: "#/components/parameters/workspace_id"
+      - $ref: '#/components/parameters/workspace_id'
 
     get:
       summary: Retrieve a source
@@ -426,12 +426,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Source"
+                $ref: '#/components/schemas/Source'
     put:
       summary: Update a source
       tags:
@@ -446,14 +446,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Source"
+              $ref: '#/components/schemas/Source'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Source"
+                $ref: '#/components/schemas/Source'
     delete:
       summary: Delete a source
       tags:
@@ -465,34 +465,34 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: Deleted
 
   /workspaces/{ws_id}/plugins:
     parameters:
-      - $ref: "#/components/parameters/workspace_id"
+      - $ref: '#/components/parameters/workspace_id'
 
     get:
       parameters:
-        - $ref: "#/components/parameters/page_no"
-        - $ref: "#/components/parameters/page_size"
+        - $ref: '#/components/parameters/page_no'
+        - $ref: '#/components/parameters/page_size'
       summary: Page plugins
       tags:
         - Plugin
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: "#/components/schemas/Pagination"
+                  - $ref: '#/components/schemas/Pagination'
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: "#/components/schemas/Plugin"
+                          $ref: '#/components/schemas/Plugin'
     post:
       summary: Create a plugin
       tags:
@@ -501,18 +501,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Plugin"
+              $ref: '#/components/schemas/Plugin'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Plugin"
+                $ref: '#/components/schemas/Plugin'
 
   /workspaces/{ws_id}/plugins/{id}:
     parameters:
-      - $ref: "#/components/parameters/workspace_id"
+      - $ref: '#/components/parameters/workspace_id'
 
     get:
       summary: Retrieve a plugin
@@ -525,12 +525,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Plugin"
+                $ref: '#/components/schemas/Plugin'
     put:
       summary: Update a plugin
       tags:
@@ -545,14 +545,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Plugin"
+              $ref: '#/components/schemas/Plugin'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Plugin"
+                $ref: '#/components/schemas/Plugin'
     delete:
       summary: Delete a plugin
       tags:
@@ -564,13 +564,13 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: Deleted
 
   /workspaces/{ws_id}/config/sync:
     post:
       parameters:
-        - $ref: "#/components/parameters/workspace_id"
+        - $ref: '#/components/parameters/workspace_id'
       summary: Sync declarative configuration
       tags:
         - Declarative
@@ -580,18 +580,18 @@ paths:
             schema:
               type: string
       responses:
-        "200":
+        '200':
           description: OK
 
   /workspaces/{ws_id}/config/dump:
     post:
       parameters:
-        - $ref: "#/components/parameters/workspace_id"
+        - $ref: '#/components/parameters/workspace_id'
       summary: Dump declarative configuration
       tags:
         - Declarative
       responses:
-        "200":
+        '200':
           description: OK
           content:
             text/plain:
@@ -604,7 +604,7 @@ paths:
       tags:
         - Debug
       responses:
-        "200":
+        '200':
           description: OK
           content:
             text/html:
@@ -636,7 +636,7 @@ paths:
                 trace,
               ]
       responses:
-        "200":
+        '200':
           description: OK
 
 components:
@@ -647,7 +647,7 @@ components:
       required: true
       schema:
         type: string
-        example: "default"
+        example: 'default'
       description: The workspace id
     page_no:
       in: query
@@ -691,7 +691,7 @@ components:
         description:
           type: string
         metadata:
-          $ref: "#/components/schemas/Metadata"
+          $ref: '#/components/schemas/Metadata'
         created_at:
           type: integer
         updated_at:
@@ -720,11 +720,9 @@ components:
           properties:
             url:
               type: string
-              minLength: 1
             method:
               type: string
               enum: [GET, POST, PUT, DELETE, PATCH]
-              minLength: 1
             headers:
               type: object
               nullable: true
@@ -768,8 +766,8 @@ components:
             example: foo.bar
         metadata:
           type: object
-          default: "{}"
-          $ref: "#/components/schemas/Metadata"
+          default: '{}'
+          $ref: '#/components/schemas/Metadata'
         created_at:
           type: integer
           readOnly: true
@@ -826,7 +824,7 @@ components:
               type: number
             latency:
               type: integer
-              description: "Latancy of response in milliseconds"
+              description: 'Latancy of response in milliseconds'
             headers:
               type: object
               nullable: true
@@ -849,7 +847,7 @@ components:
           type: object
         ingested_at:
           type: integer
-          description: "The time the event was ingested"
+          description: 'The time the event was ingested'
         created_at:
           type: integer
         updated_at:
@@ -872,7 +870,7 @@ components:
             type: string
         async:
           type: boolean
-          description: "Whether to ingest events asynchronously through the queue"
+          description: 'Whether to ingest events asynchronously through the queue'
         response:
           type: object
           properties:
@@ -883,7 +881,7 @@ components:
             body:
               type: string
         metadata:
-          $ref: "#/components/schemas/Metadata"
+          $ref: '#/components/schemas/Metadata'
         created_at:
           type: integer
         updated_at:
@@ -910,7 +908,7 @@ components:
         config:
           type: object
         metadata:
-          $ref: "#/components/schemas/Metadata"
+          $ref: '#/components/schemas/Metadata'
         created_at:
           type: integer
         updated_at:

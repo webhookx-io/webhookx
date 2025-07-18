@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
 // Endpoint
 
 func defaultEndpoint() entities.Endpoint {
-	entity := entities.NewEntity(func(e *entities.Endpoint) {
+	entity := openapi.NewEntity(func(e *entities.Endpoint) {
 		e.ID = utils.KSUID()
 	})
 

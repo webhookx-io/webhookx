@@ -12,7 +12,6 @@ import (
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
-	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
@@ -20,6 +19,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
@@ -46,7 +46,7 @@ var (
 
 func init() {
 	plugins.LoadPlugins()
-	entities.LoadOpenAPI(webhookx.OpenAPI)
+	openapi.LoadOpenAPI(webhookx.OpenAPI)
 }
 
 type Application struct {

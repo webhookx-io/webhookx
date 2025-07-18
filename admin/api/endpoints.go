@@ -35,8 +35,8 @@ func (api *API) GetEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 	var endpoint entities.Endpoint
-	err := entities.UnmarshalAndValidate(r.Body, &endpoint, func(t *entities.Endpoint) {
-		t.ID = utils.KSUID()
+	err := api.validate(r, &endpoint, func() {
+		endpoint.ID = utils.KSUID()
 	})
 	if err != nil {
 		api.error(400, w, err)
@@ -64,7 +64,7 @@ func (api *API) UpdateEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := entities.Validate(endpoint); err != nil {
+	if err := endpoint.Validate(); err != nil {
 		api.error(400, w, err)
 		return
 	}

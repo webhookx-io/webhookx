@@ -47,7 +47,7 @@ func TestConvertJSONPaths(t *testing.T) {
 				t.Fatalf("failed to unmarshal input: %v", err)
 			}
 			if got := ConvertJSONPaths(input); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ConvertJSONPaths() = %v, want %v", got, tt.want)
+				t.Fatalf("ConvertJSONPaths() = %v, want %v", got, tt.want)
 			} else {
 				t.Logf("got: %s", func() string {
 					b, _ := json.MarshalIndent(got, "", "  ")

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
@@ -11,6 +12,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"net/http"
 	"net/http/pprof"
@@ -88,6 +90,31 @@ func (api *API) assert(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (api *API) validate(r *http.Request, entity any, defaultSet func()) error {
+	generic := make(map[string]interface{})
+	entityName := openapi.GetStructName(entity)
+	if defaultSet != nil {
+		err := openapi.SchemaVisitJSON(entityName, generic, defaultSet)
+		api.assert(err)
+		b, _ := json.Marshal(&generic)
+		err = json.Unmarshal(b, &entity)
+		api.assert(err)
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&generic); err != nil {
+		return err
+	}
+
+	err := openapi.SchemaVisitJSON(entityName, generic, nil)
+	if err != nil {
+		return err
+	}
+	b, _ := json.Marshal(&generic)
+	err = json.Unmarshal(b, &entity)
+	api.assert(err)
+	return nil
 }
 
 // Handler returns a http.Handler

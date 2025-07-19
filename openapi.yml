@@ -45,13 +45,13 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: "#/components/schemas/Pagination"
+                  - $ref: '#/components/schemas/Pagination'
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: "#/components/schemas/Workspace"
+                          $ref: '#/components/schemas/Workspace'
     post:
       summary: Create a workspace
       tags:
@@ -141,13 +141,13 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: "#/components/schemas/Pagination"
+                  - $ref: '#/components/schemas/Pagination'
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: "#/components/schemas/Endpoint"
+                          $ref: '#/components/schemas/Endpoint'
     post:
       tags:
         - Endpoint
@@ -250,13 +250,13 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: "#/components/schemas/Pagination"
+                  - $ref: '#/components/schemas/Pagination'
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: "#/components/schemas/Attempt"
+                          $ref: '#/components/schemas/Attempt'
 
   /workspaces/{ws_id}/attempts/{id}:
     parameters:
@@ -298,13 +298,13 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: "#/components/schemas/Pagination"
+                  - $ref: '#/components/schemas/Pagination'
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: "#/components/schemas/Event"
+                          $ref: '#/components/schemas/Event'
 
     post:
       summary: Create an event
@@ -387,13 +387,13 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: "#/components/schemas/Pagination"
+                  - $ref: '#/components/schemas/Pagination'
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: "#/components/schemas/Source"
+                          $ref: '#/components/schemas/Source'
     post:
       summary: Create a source
       tags:
@@ -486,13 +486,13 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: "#/components/schemas/Pagination"
+                  - $ref: '#/components/schemas/Pagination'
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: "#/components/schemas/Plugin"
+                          $ref: '#/components/schemas/Plugin'
     post:
       summary: Create a plugin
       tags:
@@ -622,7 +622,19 @@ paths:
           required: true
           schema:
             type: string
-            enum: [allocs, block, goroutine, heap, mutex, threadcreate, cmdline, symbol, profile, trace]
+            enum:
+              [
+                allocs,
+                block,
+                goroutine,
+                heap,
+                mutex,
+                threadcreate,
+                cmdline,
+                symbol,
+                profile,
+                trace,
+              ]
       responses:
         '200':
           description: OK
@@ -665,6 +677,7 @@ components:
 
     Metadata:
       type: object
+      nullable: true
       additionalProperties:
         type: string
 
@@ -678,53 +691,68 @@ components:
         description:
           type: string
         metadata:
-          $ref: "#/components/schemas/Metadata"
+          $ref: '#/components/schemas/Metadata'
         created_at:
           type: integer
         updated_at:
           type: integer
 
-
     Endpoint:
       type: object
+      required:
+        - request
       properties:
         id:
           type: string
         name:
           type: string
+          nullable: true
         description:
           type: string
+          nullable: true
         enabled:
           type: boolean
+          default: true
         request:
           type: object
+          default:
+            timeout: 10000
           properties:
             url:
               type: string
             method:
               type: string
-              enum: [GET, POST,PUT,DELETE,PATCH]
+              enum: [GET, POST, PUT, DELETE, PATCH]
             headers:
               type: object
+              nullable: true
             timeout:
               type: integer
+              default: 10000
           required:
             - url
             - method
         retry:
           type: object
+          nullable: true
+          default:
+            strategy: fixed
+            config:
+              attempts: [0, 60, 3600]
           properties:
             strategy:
               type: string
+              enum:
+                - fixed
               default: fixed
             config:
               type: object
               properties:
                 attempts:
                   type: array
+                  default: [0, 60, 3600]
                   items:
                     type: integer
-                  default: [0, 60, 3600]
               required:
                 - attempts
           required:
@@ -732,18 +760,19 @@ components:
             - config
         events:
           type: array
+          nullable: true
           items:
             type: string
             example: foo.bar
         metadata:
-          $ref: "#/components/schemas/Metadata"
+          type: object
+          default: '{}'
+          $ref: '#/components/schemas/Metadata'
         created_at:
           type: integer
+          readOnly: true
         updated_at:
           type: integer
-      required:
-        - request
-        - events
 
     Attempt:
       type: object
@@ -795,7 +824,7 @@ components:
               type: number
             latency:
               type: integer
-              description: "Latancy of response in milliseconds"
+              description: 'Latancy of response in milliseconds'
             headers:
               type: object
               nullable: true
@@ -818,7 +847,7 @@ components:
           type: object
         ingested_at:
           type: integer
-          description: "The time the event was ingested"
+          description: 'The time the event was ingested'
         created_at:
           type: integer
         updated_at:
@@ -841,7 +870,7 @@ components:
             type: string
         async:
           type: boolean
-          description: "Whether to ingest events asynchronously through the queue"
+          description: 'Whether to ingest events asynchronously through the queue'
         response:
           type: object
           properties:
@@ -852,7 +881,7 @@ components:
             body:
               type: string
         metadata:
-          $ref: "#/components/schemas/Metadata"
+          $ref: '#/components/schemas/Metadata'
         created_at:
           type: integer
         updated_at:
@@ -879,7 +908,7 @@ components:
         config:
           type: object
         metadata:
-          $ref: "#/components/schemas/Metadata"
+          $ref: '#/components/schemas/Metadata'
         created_at:
           type: integer
         updated_at:

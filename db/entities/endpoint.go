@@ -3,7 +3,7 @@ package entities
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"github.com/webhookx-io/webhookx/utils"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 )
 
 type Endpoint struct {
@@ -19,17 +19,12 @@ type Endpoint struct {
 	BaseModel `yaml:"-"`
 }
 
-func (m *Endpoint) Init() {
-	m.ID = utils.KSUID()
-	m.Enabled = true
-}
-
 func (m *Endpoint) Validate() error {
-	return utils.Validate(m)
+	return openapi.Validate(m)
 }
 
 type RequestConfig struct {
-	URL     string            `json:"url" validate:"required"`
+	URL     string            `json:"url,omitempty" validate:"required"`
 	Method  string            `json:"method" validate:"required,oneof=GET POST PUT DELETE PATCH"`
 	Headers map[string]string `json:"headers"`
 	Timeout int64             `json:"timeout" default:"10000" validate:"gte=0"`

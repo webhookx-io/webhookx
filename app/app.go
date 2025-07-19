@@ -2,10 +2,12 @@ package app
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
 	uuid "github.com/satori/go.uuid"
+	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
@@ -17,6 +19,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
@@ -43,6 +46,7 @@ var (
 
 func init() {
 	plugins.LoadPlugins()
+	openapi.LoadOpenAPI(webhookx.OpenAPI)
 }
 
 type Application struct {
@@ -203,6 +207,7 @@ func (app *Application) initialize() error {
 		if app.tracer != nil {
 			opts.Middlewares = append(opts.Middlewares, otelhttp.NewMiddleware("api.admin"))
 		}
+
 		api := api.NewAPI(opts)
 		app.admin = admin.NewAdmin(cfg.Admin, api.Handler())
 	}

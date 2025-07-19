@@ -1,5 +1,9 @@
 package errs
 
+import "errors"
+
+var ErrRequestValidate = errors.New("request validation")
+
 type Error struct {
 	err error
 }
@@ -25,6 +29,14 @@ func NewValidateError(err error) *ValidateError {
 		err:     err,
 		Message: err.Error(),
 		Fields:  make(map[string]interface{}),
+	}
+}
+
+func NewValidateFieldsError(err error, fields map[string]interface{}) *ValidateError {
+	return &ValidateError{
+		err:     err,
+		Message: err.Error(),
+		Fields:  fields,
 	}
 }
 

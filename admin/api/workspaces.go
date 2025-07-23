@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/types"
@@ -36,13 +35,7 @@ func (api *API) GetWorkspace(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 	var workspace entities.Workspace
-	defaults.Set(&workspace)
-	if err := json.NewDecoder(r.Body).Decode(&workspace); err != nil {
-		api.error(400, w, err)
-		return
-	}
-
-	if err := workspace.Validate(); err != nil {
+	if err := validateEntity(r, entities.LookSchema("Workspace"), &workspace); err != nil {
 		api.error(400, w, err)
 		return
 	}

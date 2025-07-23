@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/types"
@@ -35,14 +34,7 @@ func (api *API) GetEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 	var endpoint entities.Endpoint
-	endpoint.Init()
-	defaults.Set(&endpoint)
-	if err := json.NewDecoder(r.Body).Decode(&endpoint); err != nil {
-		api.error(400, w, err)
-		return
-	}
-
-	if err := endpoint.Validate(); err != nil {
+	if err := validateEntity(r, entities.LookSchema("Endpoint"), &endpoint); err != nil {
 		api.error(400, w, err)
 		return
 	}

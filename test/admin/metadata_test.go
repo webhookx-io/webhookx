@@ -176,7 +176,9 @@ var _ = Describe("metadata", Ordered, func() {
 					Post("/workspaces/default/endpoints")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
-				assert.Equal(GinkgoT(), "{\"message\":\"json: cannot unmarshal number into Go struct field Endpoint.metadata of type string\"}", string(resp.Body()))
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"metadata":{"k":"value must be a string"}}}}`,
+					string(resp.Body()))
 			})
 		})
 	})

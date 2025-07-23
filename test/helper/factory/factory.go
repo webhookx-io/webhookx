@@ -10,9 +10,7 @@ import (
 // Endpoint
 
 func defaultEndpoint() entities.Endpoint {
-	var entity entities.Endpoint
-	entity.Init()
-	defaults.Set(&entity)
+	entity := entities.NewEndpoint()
 
 	entity.Request = entities.RequestConfig{
 		URL:    "http://localhost:9999/anything",
@@ -21,7 +19,7 @@ func defaultEndpoint() entities.Endpoint {
 	entity.Retry.Config.Attempts = []int64{0, 3, 3}
 	entity.Events = []string{"foo.bar"}
 
-	return entity
+	return *entity
 }
 
 type EndpointOption func(*entities.Endpoint)

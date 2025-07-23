@@ -1,9 +1,11 @@
 package api
 
 import (
+	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
@@ -12,6 +14,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/utils"
 	"net/http"
 	"net/http/pprof"
 	"strconv"
@@ -87,6 +90,48 @@ func (api *API) error(code int, w http.ResponseWriter, err error) {
 func (api *API) assert(err error) {
 	if err != nil {
 		panic(err)
+	}
+}
+
+func validateEntity(r *http.Request, schema *entities.JSONSchema, obj interface{}) error {
+	input := make(map[string]interface{})
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		return err
+	}
+
+	defaults := schema.Defaults()
+	defaults["id"] = utils.KSUID()
+	mergeMaps(defaults, input)
+
+	err = schema.Validate(defaults)
+	if err != nil {
+		return err
+	}
+
+	// bind to obj
+	b, err := json.Marshal(defaults)
+	if err != nil {
+		panic(err)
+	}
+	err = json.Unmarshal(b, obj)
+	if err != nil {
+		panic(err)
+	}
+	return nil
+}
+
+func mergeMaps(dst, src map[string]interface{}) {
+	for k, v := range src {
+		if map1, ok := v.(map[string]interface{}); ok {
+			if map2, ok := dst[k].(map[string]interface{}); ok {
+				mergeMaps(map2, map1)
+			} else {
+				dst[k] = map1
+			}
+		} else {
+			dst[k] = v
+		}
 	}
 }
 

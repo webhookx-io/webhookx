@@ -34,7 +34,7 @@ func (api *API) GetEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 	var endpoint entities.Endpoint
-	if err := validateEntity(r, entities.LookSchema("Endpoint"), &endpoint); err != nil {
+	if err := validateEntity(r, entities.LookupSchema("Endpoint"), &endpoint); err != nil {
 		api.error(400, w, err)
 		return
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/declarative"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
@@ -34,11 +35,17 @@ func (api *API) Sync(w http.ResponseWriter, r *http.Request) {
 			api.error(400, w, errors.New("malformed yaml content: "+err.Error()))
 			return
 		}
+		// restore r.Body
+		r.ContentLength = int64(len(body))
+		r.GetBody = func() (io.ReadCloser, error) {
+			return io.NopCloser(bytes.NewReader(body)), nil
+		}
+		r.Body, _ = r.GetBody()
 	}
 
 	var cfg declarative.Configuration
-	if err := json.Unmarshal(body, &cfg); err != nil {
-		api.error(400, w, errors.New("invalid yaml content: "+err.Error()))
+	if err := validateEntity(r, entities.LookupSchema("Configuration"), &cfg); err != nil {
+		api.error(400, w, err)
 		return
 	}
 

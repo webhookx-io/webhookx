@@ -35,7 +35,7 @@ func (api *API) GetWorkspace(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 	var workspace entities.Workspace
-	if err := validateEntity(r, entities.LookSchema("Workspace"), &workspace); err != nil {
+	if err := validateEntity(r, entities.LookupSchema("Workspace"), &workspace); err != nil {
 		api.error(400, w, err)
 		return
 	}

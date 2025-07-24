@@ -194,7 +194,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"Request Validation","error":{"message":"request validation","fields":{"name":"unknown plugin name 'unknown'"}}}`,
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"name":"value is not one of the allowed values [\"function\",\"wasm\",\"webhookx-signature\"]"}}}`,
 					string(resp.Body()))
 			})
 

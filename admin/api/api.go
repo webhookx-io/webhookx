@@ -95,22 +95,19 @@ func (api *API) assert(err error) {
 
 func validateEntity(r *http.Request, schema *entities.JSONSchema, obj interface{}) error {
 	input := make(map[string]interface{})
+	input["id"] = utils.KSUID()
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		return err
 	}
 
-	defaults := schema.Defaults()
-	defaults["id"] = utils.KSUID()
-	mergeMaps(defaults, input)
-
-	err = schema.Validate(defaults)
+	err = schema.Validate(input)
 	if err != nil {
 		return err
 	}
 
 	// bind to obj
-	b, err := json.Marshal(defaults)
+	b, err := json.Marshal(input)
 	if err != nil {
 		panic(err)
 	}

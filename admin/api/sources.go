@@ -34,7 +34,7 @@ func (api *API) GetSource(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateSource(w http.ResponseWriter, r *http.Request) {
 	var source entities.Source
-	if err := validateEntity(r, entities.LookSchema("Source"), &source); err != nil {
+	if err := validateEntity(r, entities.LookupSchema("Source"), &source); err != nil {
 		api.error(400, w, err)
 		return
 	}

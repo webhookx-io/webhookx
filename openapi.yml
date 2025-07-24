@@ -576,9 +576,12 @@ paths:
         - Declarative
       requestBody:
         content:
-          text/plain:
+          application/json:
             schema:
-              type: string
+              $ref: "#/components/schemas/Configuration"
+          application/x-yaml:
+            schema:
+              $ref: "#/components/schemas/Configuration"
       responses:
         "200":
           description: OK
@@ -906,8 +909,10 @@ components:
           type: string
         name:
           type: string
+          enum: ["function", "wasm", "webhookx-signature"]
         enabled:
           type: boolean
+          default: true
         endpoint_id:
           type: string
           nullable: true
@@ -916,11 +921,40 @@ components:
           nullable: true
         config:
           type: object
+          nullable: true
         metadata:
           $ref: "#/components/schemas/Metadata"
         created_at:
           type: integer
+          readOnly: true
         updated_at:
           type: integer
+          readOnly: true
       required:
         - name
+
+    Configuration:
+      type: object
+      properties:
+        endpoints:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/Endpoint"
+              - type: object
+                properties:
+                  plugins:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Plugin"
+        sources:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/Source"
+              - type: object
+                properties:
+                  plugins:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Plugin"

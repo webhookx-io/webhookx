@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/pkg/errs"
+	"strconv"
 )
 
 var validationErr = errors.New("request validation") // TODO duplicated
@@ -27,39 +28,114 @@ func SetDefaults(schema *openapi3.Schema, defaults map[string]interface{}) error
 }
 
 func Validate(schema *openapi3.Schema, value map[string]interface{}) error {
+	defaultsSet := false
 	err := schema.VisitJSON(value,
 		openapi3.MultiErrors(),
-		openapi3.VisitAsRequest(),
 		openapi3.DisableReadOnlyValidation(),
+		openapi3.VisitAsRequest(),
+		openapi3.DefaultsSet(func() { defaultsSet = true }),
 		// openapi3.SetSchemaErrorMessageCustomizer(customizeMessageErrorfunc),
 	)
 	if err != nil {
 		validateErr := errs.NewValidateError(validationErr)
-		for _, e := range err.(openapi3.MultiError) {
-			switch se := e.(type) {
-			case *openapi3.SchemaError:
-				node := validateErr.Fields
-				fields := se.JSONPointer()
-				for i, field := range fields {
-					if i < len(fields)-1 {
-						if node[field] == nil {
-							node[field] = make(map[string]interface{})
-						}
-						node = node[field].(map[string]interface{})
-					} else {
-						node[field] = formatError(se)
-					}
-				}
-			default:
-				// TODO ???
-				//const unknown = "@unknown"
-				//issues[unknown] = append(issues[unknown], err.Error())
-			}
-		}
+		test(err.(openapi3.MultiError), nil, validateErr.Fields)
+		convertArrays(validateErr.Fields)
 		return validateErr
 	}
 
+	if defaultsSet {
+		// todo
+	}
+
 	return nil
+}
+
+func test(errors openapi3.MultiError, parents []string, fields map[string]interface{}) {
+	for _, error := range errors {
+		switch e := error.(type) {
+		case *openapi3.SchemaError:
+			insertError(fields, 0, append(parents, e.JSONPointer()...), e)
+			if origin, ok := e.Origin.(openapi3.MultiError); ok {
+				test(origin, e.JSONPointer(), fields)
+			}
+		default:
+			// TODO ???
+			//const unknown = "@unknown"
+			//issues[unknown] = append(issues[unknown], err.Error())
+		}
+	}
+}
+
+func convertArrays(m map[string]interface{}) {
+	for k, v := range m {
+		if val, ok := v.(map[string]interface{}); ok {
+			if arr, ok := val[""].([]interface{}); ok && len(val) == 1 {
+				m[k] = arr
+				for _, arrv := range arr {
+					if arrvalue, ok := arrv.(map[string]interface{}); ok {
+						convertArrays(arrvalue)
+					}
+				}
+			} else {
+				convertArrays(val)
+			}
+		}
+	}
+}
+
+func insertError(current map[string]interface{}, i int, paths []string, err *openapi3.SchemaError) {
+	key := paths[i]
+	isIndex := false
+	index := 0
+
+	if i, err := strconv.Atoi(key); err == nil {
+		isIndex = true
+		index = i
+	}
+
+	if i == len(paths)-1 {
+		// is last
+		if isIndex {
+			ensureArray(current, "", index)
+			arr := current[""].([]interface{})
+			if err.Origin == nil {
+				arr[index] = formatError(err)
+			}
+		} else {
+			if err.Origin == nil {
+				current[key] = formatError(err)
+			}
+		}
+		return
+	}
+
+	if isIndex {
+		ensureArray(current, "", index)
+		arr := current[""].([]interface{})
+		if arr[index] == nil {
+			arr[index] = make(map[string]interface{})
+		}
+		insertError(arr[index].(map[string]interface{}), i+1, paths, err)
+	} else {
+		if current[key] == nil {
+			current[key] = make(map[string]interface{})
+		}
+		insertError(current[key].(map[string]interface{}), i+1, paths, err)
+	}
+}
+
+func ensureArray(m map[string]interface{}, key string, index int) {
+	if val, ok := m[key]; ok {
+		if arr, ok := val.([]interface{}); ok && len(arr) > index {
+			return
+		}
+	}
+
+	newArr := make([]interface{}, index+1)
+	if old, ok := m[key].([]interface{}); ok {
+		copy(newArr, old)
+	}
+	m[key] = newArr
 }
 
 func formatError(e *openapi3.SchemaError) string {

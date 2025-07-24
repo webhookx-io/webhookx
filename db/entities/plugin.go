@@ -13,12 +13,12 @@ import (
 
 type Plugin struct {
 	ID         string              `json:"id" db:"id"`
-	Name       string              `json:"name" db:"name" validate:"required,plugin-name"`
-	Enabled    bool                `json:"enabled" db:"enabled" default:"true"`
+	Name       string              `json:"name" db:"name"`
+	Enabled    bool                `json:"enabled" db:"enabled"`
 	EndpointId *string             `json:"endpoint_id" db:"endpoint_id" yaml:"endpoint_id"`
 	SourceId   *string             `json:"source_id" db:"source_id" yaml:"source_id"`
 	Config     PluginConfiguration `json:"config" db:"config"`
-	Metadata   Metadata            `json:"metadata" db:"metadata" default:"{}"`
+	Metadata   Metadata            `json:"metadata" db:"metadata"`
 
 	BaseModel `yaml:"-"`
 }
@@ -33,9 +33,12 @@ func init() {
 }
 
 func (m *Plugin) Validate() error {
-	if err := utils.Validate(m); err != nil {
+	v := utils.Must(utils.StructToMap(m))
+	if err := schemas["Plugin"].Validate(v); err != nil {
 		return err
 	}
+
+	// FIXME
 	r := plugin.GetRegistration(m.Name)
 	if r == nil {
 		return fmt.Errorf("unknown plugin name: '%s'", m.Name)

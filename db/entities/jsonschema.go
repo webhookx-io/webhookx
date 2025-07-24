@@ -7,12 +7,16 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/openapi"
 )
 
-var schemaNames = []string{"Endpoint", "Source", "Workspace"}
+var schemaNames = []string{"Endpoint", "Source", "Workspace", "Plugin", "Configuration"}
 var schemas map[string]*JSONSchema
 
 type JSONSchema struct {
 	defaultJSON string
 	schema      *openapi3.Schema
+}
+
+func (s *JSONSchema) Schema() *openapi3.Schema {
+	return s.schema
 }
 
 func (s *JSONSchema) Defaults() map[string]interface{} {
@@ -50,7 +54,7 @@ func RegisterSchema(name string, schema *openapi3.Schema) error {
 	return nil
 }
 
-func LookSchema(name string) *JSONSchema {
+func LookupSchema(name string) *JSONSchema {
 	return schemas[name]
 }
 

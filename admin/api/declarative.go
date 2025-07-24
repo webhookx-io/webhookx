@@ -44,7 +44,8 @@ func (api *API) Sync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var cfg declarative.Configuration
-	if err := validateEntity(r, entities.LookupSchema("Configuration"), &cfg); err != nil {
+	schema := entities.LookupSchema("Configuration")
+	if err := ValidateRequest(r, schema, nil, &cfg); err != nil {
 		api.error(400, w, err)
 		return
 	}

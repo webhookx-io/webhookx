@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
@@ -35,7 +34,9 @@ func (api *API) GetWorkspace(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 	var workspace entities.Workspace
-	if err := validateEntity(r, entities.LookupSchema("Workspace"), &workspace); err != nil {
+	schema := entities.LookupSchema("Workspace")
+	defaults := map[string]interface{}{"id": utils.KSUID()}
+	if err := ValidateRequest(r, schema, defaults, &workspace); err != nil {
 		api.error(400, w, err)
 		return
 	}
@@ -60,12 +61,10 @@ func (api *API) UpdateWorkspace(w http.ResponseWriter, r *http.Request) {
 	if workspace.Name != nil {
 		name = *workspace.Name
 	}
-	if err := json.NewDecoder(r.Body).Decode(workspace); err != nil {
-		api.error(400, w, err)
-		return
-	}
 
-	if err := workspace.Validate(); err != nil {
+	schema := entities.LookupSchema("Workspace")
+	defaults := utils.Must(utils.StructToMap(workspace))
+	if err := ValidateRequest(r, schema, defaults, &workspace); err != nil {
 		api.error(400, w, err)
 		return
 	}

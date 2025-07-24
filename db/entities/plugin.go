@@ -7,6 +7,7 @@ import (
 	"github.com/creasty/defaults"
 	"github.com/go-playground/validator/v10"
 	"github.com/webhookx-io/webhookx/pkg/errs"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -34,7 +35,7 @@ func init() {
 
 func (m *Plugin) Validate() error {
 	v := utils.Must(utils.StructToMap(m))
-	if err := schemas["Plugin"].Validate(v); err != nil {
+	if err := openapi.Validate(schemas["Plugin"], v); err != nil {
 		return err
 	}
 

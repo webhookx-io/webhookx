@@ -33,11 +33,6 @@ type Source struct {
 	BaseModel `yaml:"-"`
 }
 
-func (m *Source) Validate() error {
-	v := utils.Must(utils.StructToMap(m))
-	return schemas["Source"].Validate(v)
-}
-
 func (m *Source) Init() {
 	m.ID = utils.KSUID()
 	m.Enabled = true

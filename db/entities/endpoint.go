@@ -3,7 +3,6 @@ package entities
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 type Endpoint struct {
@@ -19,20 +18,6 @@ type Endpoint struct {
 	BaseModel `yaml:"-"`
 }
 
-// TODO ???
-func NewEndpoint() *Endpoint {
-	entity := new(Endpoint)
-	entity.ID = utils.KSUID()
-	defaults := schemas["Endpoint"].Defaults()
-	b, _ := json.Marshal(defaults)
-	json.Unmarshal(b, entity)
-	return entity
-}
-
-func (m *Endpoint) Validate() error {
-	v := utils.Must(utils.StructToMap(m))
-	return schemas["Endpoint"].Validate(v)
-}
 
 type RequestConfig struct {
 	URL     string  `json:"url"`

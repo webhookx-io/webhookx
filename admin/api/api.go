@@ -2,10 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
-	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
@@ -13,8 +13,8 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/types"
-	"github.com/webhookx-io/webhookx/utils"
 	"net/http"
 	"net/http/pprof"
 	"strconv"
@@ -93,25 +93,27 @@ func (api *API) assert(err error) {
 	}
 }
 
-func validateEntity(r *http.Request, schema *entities.JSONSchema, obj interface{}) error {
-	input := make(map[string]interface{})
-	input["id"] = utils.KSUID()
-	err := json.NewDecoder(r.Body).Decode(&input)
+func ValidateRequest(r *http.Request, schema *openapi3.Schema, defaults map[string]interface{}, target interface{}) error {
+	data := make(map[string]interface{})
+	if defaults != nil {
+		mergeMaps(data, defaults)
+	}
+	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
 		return err
 	}
 
-	err = schema.Validate(input)
+	err = openapi.Validate(schema, data)
 	if err != nil {
 		return err
 	}
 
-	// bind to obj
-	b, err := json.Marshal(input)
+	// bind to target
+	b, err := json.Marshal(data)
 	if err != nil {
 		panic(err)
 	}
-	err = json.Unmarshal(b, obj)
+	err = json.Unmarshal(b, target)
 	if err != nil {
 		panic(err)
 	}

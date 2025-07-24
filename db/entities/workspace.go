@@ -2,7 +2,6 @@ package entities
 
 import (
 	"github.com/webhookx-io/webhookx/pkg/types"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 type Workspace struct {
@@ -13,9 +12,4 @@ type Workspace struct {
 
 	CreatedAt types.Time `db:"created_at" json:"created_at"`
 	UpdatedAt types.Time `db:"updated_at" json:"updated_at"`
-}
-
-func (m *Workspace) Validate() error {
-	v := utils.Must(utils.StructToMap(m))
-	return schemas["Workspace"].Validate(v)
 }

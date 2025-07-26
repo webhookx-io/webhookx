@@ -909,7 +909,6 @@ components:
           type: string
         name:
           type: string
-          enum: ["function", "wasm", "webhookx-signature"]
         enabled:
           type: boolean
           default: true

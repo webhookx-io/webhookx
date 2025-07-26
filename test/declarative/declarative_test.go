@@ -100,7 +100,7 @@ var _ = Describe("Declarative", Ordered, func() {
 					Post("/workspaces/default/config/sync")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
-				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"endpoints":[{"plugins":[{"name":"value is not one of the allowed values [\"function\",\"wasm\",\"webhookx-signature\"]"}]}]}}}`, string(resp.Body()))
+				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"name":"unknown plugin name 'foo'"}}}`, string(resp.Body()))
 			})
 		})
 	})

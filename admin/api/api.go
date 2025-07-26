@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/json"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
@@ -11,6 +13,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"net/http"
 	"net/http/pprof"
@@ -87,6 +90,47 @@ func (api *API) error(code int, w http.ResponseWriter, err error) {
 func (api *API) assert(err error) {
 	if err != nil {
 		panic(err)
+	}
+}
+
+func ValidateRequest(r *http.Request, schema *openapi3.Schema, defaults map[string]interface{}, target interface{}) error {
+	data := make(map[string]interface{})
+	if defaults != nil {
+		mergeMaps(data, defaults)
+	}
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		return err
+	}
+
+	err = openapi.Validate(schema, data)
+	if err != nil {
+		return err
+	}
+
+	// bind to target
+	b, err := json.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+	err = json.Unmarshal(b, target)
+	if err != nil {
+		panic(err)
+	}
+	return nil
+}
+
+func mergeMaps(dst, src map[string]interface{}) {
+	for k, v := range src {
+		if map1, ok := v.(map[string]interface{}); ok {
+			if map2, ok := dst[k].(map[string]interface{}); ok {
+				mergeMaps(map2, map1)
+			} else {
+				dst[k] = map1
+			}
+		} else {
+			dst[k] = v
+		}
 	}
 }
 

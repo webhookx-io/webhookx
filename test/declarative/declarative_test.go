@@ -90,7 +90,9 @@ var _ = Describe("Declarative", Ordered, func() {
 					Post("/workspaces/default/config/sync")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
-				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"endpoints[0]":{"Endpoint":{"request":{"method":"required field missing","url":"required field missing"}}}}}}`, string(resp.Body()))
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"endpoints":[{"request":{"url":"required field missing"}}]}}}`,
+					string(resp.Body()))
 			})
 			It("should return 400 for unknown plugin", func() {
 				resp, err := adminClient.R().
@@ -98,7 +100,7 @@ var _ = Describe("Declarative", Ordered, func() {
 					Post("/workspaces/default/config/sync")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
-				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"endpoints[0]":{"plugins[0]":{"name":"unknown plugin name 'foo'"}}}}}`, string(resp.Body()))
+				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"name":"unknown plugin name 'foo'"}}}`, string(resp.Body()))
 			})
 		})
 	})

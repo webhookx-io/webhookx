@@ -930,8 +930,6 @@ components:
         updated_at:
           type: integer
           readOnly: true
-      required:
-        - name
 
     Configuration:
       type: object

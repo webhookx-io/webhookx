@@ -36,9 +36,17 @@ func Validate(schema *openapi3.Schema, value map[string]interface{}) error {
 		openapi3.DefaultsSet(func() { defaultsSet = true }),
 		// openapi3.SetSchemaErrorMessageCustomizer(customizeMessageErrorfunc),
 	)
+
 	if err != nil {
 		validateErr := errs.NewValidateError(validationErr)
-		test(err.(openapi3.MultiError), nil, validateErr.Fields)
+		switch e := err.(type) {
+		case openapi3.MultiError:
+			handleMultiError(e, nil, validateErr.Fields)
+		case *openapi3.SchemaError:
+			handleMultiError(openapi3.MultiError{e}, nil, validateErr.Fields)
+		default:
+			validateErr.Message = err.Error()
+		}
 		convertArrays(validateErr.Fields)
 		return validateErr
 	}
@@ -50,13 +58,27 @@ func Validate(schema *openapi3.Schema, value map[string]interface{}) error {
 	return nil
 }
 
-func test(errors openapi3.MultiError, parents []string, fields map[string]interface{}) {
-	for _, error := range errors {
+func decodeMultiError(err error) openapi3.MultiError {
+	if unwrapped := errors.Unwrap(err); unwrapped != nil {
+		if me, ok := unwrapped.(openapi3.MultiError); ok {
+			return me
+		}
+		return decodeMultiError(unwrapped)
+	}
+	return nil
+}
+
+func handleMultiError(me openapi3.MultiError, parents []string, fields map[string]interface{}) {
+	for _, error := range me {
 		switch e := error.(type) {
+		case openapi3.MultiError:
+			handleMultiError(e, parents, fields)
 		case *openapi3.SchemaError:
-			insertError(fields, 0, append(parents, e.JSONPointer()...), e)
-			if origin, ok := e.Origin.(openapi3.MultiError); ok {
-				test(origin, e.JSONPointer(), fields)
+			if !(e.SchemaField == "allOf" || e.SchemaField == "anyOf" || e.SchemaField == "oneOf") {
+				insertError(fields, 0, append(parents, e.JSONPointer()...), e)
+			}
+			if decoded := decodeMultiError(e); decoded != nil {
+				handleMultiError(decoded, e.JSONPointer(), fields)
 			}
 		default:
 			// TODO ???
@@ -84,6 +106,11 @@ func convertArrays(m map[string]interface{}) {
 }
 
 func insertError(current map[string]interface{}, i int, paths []string, err *openapi3.SchemaError) {
+	if len(paths) == 0 {
+		current[""] = err.Reason
+		return
+	}
+
 	key := paths[i]
 	isIndex := false
 	index := 0

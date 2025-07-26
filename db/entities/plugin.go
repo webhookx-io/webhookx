@@ -7,7 +7,6 @@ import (
 	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 type Plugin struct {
@@ -64,11 +63,6 @@ func (m *Plugin) UnmarshalJSON(data []byte) error {
 	}
 	type alias Plugin
 	return json.Unmarshal(data, (*alias)(m))
-}
-
-func (m *Plugin) Init() {
-	m.ID = utils.KSUID()
-	m.Enabled = true
 }
 
 func (m *Plugin) Plugin() (plugin.Plugin, error) {

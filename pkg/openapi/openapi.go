@@ -28,12 +28,11 @@ func SetDefaults(schema *openapi3.Schema, defaults map[string]interface{}) error
 }
 
 func Validate(schema *openapi3.Schema, value map[string]interface{}) error {
-	defaultsSet := false
 	err := schema.VisitJSON(value,
 		openapi3.MultiErrors(),
 		openapi3.DisableReadOnlyValidation(),
 		openapi3.VisitAsRequest(),
-		openapi3.DefaultsSet(func() { defaultsSet = true }),
+		openapi3.DefaultsSet(func() {}),
 		// openapi3.SetSchemaErrorMessageCustomizer(customizeMessageErrorfunc),
 	)
 
@@ -49,10 +48,6 @@ func Validate(schema *openapi3.Schema, value map[string]interface{}) error {
 		}
 		convertArrays(validateErr.Fields)
 		return validateErr
-	}
-
-	if defaultsSet {
-		// todo
 	}
 
 	return nil

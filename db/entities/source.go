@@ -3,7 +3,6 @@ package entities
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 type CustomResponse struct {
@@ -31,9 +30,4 @@ type Source struct {
 	Metadata Metadata        `json:"metadata" db:"metadata"`
 
 	BaseModel `yaml:"-"`
-}
-
-func (m *Source) Init() {
-	m.ID = utils.KSUID()
-	m.Enabled = true
 }

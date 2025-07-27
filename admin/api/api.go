@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/json"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
@@ -11,7 +13,9 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/utils"
 	"net/http"
 	"net/http/pprof"
 	"strconv"
@@ -88,6 +92,29 @@ func (api *API) assert(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func ValidateRequest(r *http.Request, schema *openapi3.Schema, defaults map[string]interface{}, target interface{}) error {
+	data := make(map[string]interface{})
+	if defaults != nil {
+		utils.MergeMap(data, defaults)
+	}
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		return err
+	}
+
+	err = openapi.Validate(schema, data)
+	if err != nil {
+		return err
+	}
+
+	err = utils.MapToStruct(data, target)
+	if err != nil {
+		panic(err)
+	}
+
+	return nil
 }
 
 // Handler returns a http.Handler

@@ -1,12 +1,11 @@
 package api
 
 import (
-	"encoding/json"
-	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
+	"github.com/webhookx-io/webhookx/utils"
 	"net/http"
 )
 
@@ -35,14 +34,9 @@ func (api *API) GetSource(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateSource(w http.ResponseWriter, r *http.Request) {
 	var source entities.Source
-	source.Init()
-	defaults.Set(&source)
-	if err := json.NewDecoder(r.Body).Decode(&source); err != nil {
-		api.error(400, w, err)
-		return
-	}
-
-	if err := source.Validate(); err != nil {
+	schema := entities.LookupSchema("Source")
+	defaults := map[string]interface{}{"id": utils.KSUID()}
+	if err := ValidateRequest(r, schema, defaults, &source); err != nil {
 		api.error(400, w, err)
 		return
 	}
@@ -63,12 +57,9 @@ func (api *API) UpdateSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(source); err != nil {
-		api.error(400, w, err)
-		return
-	}
-
-	if err := source.Validate(); err != nil {
+	schema := entities.LookupSchema("Source")
+	defaults := utils.Must(utils.StructToMap(source))
+	if err := ValidateRequest(r, schema, defaults, &source); err != nil {
 		api.error(400, w, err)
 		return
 	}

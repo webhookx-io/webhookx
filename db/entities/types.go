@@ -45,4 +45,13 @@ func (m Headers) Value() (driver.Value, error) {
 	return json.Marshal(m)
 }
 
+func (m *Headers) UnmarshalJSON(data []byte) error {
+	v := make(map[string]string)
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	*m = v
+	return nil
+}
+
 type Strings = pq.StringArray

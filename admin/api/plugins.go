@@ -1,8 +1,6 @@
 package api
 
 import (
-	"encoding/json"
-	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/types"
@@ -35,9 +33,9 @@ func (api *API) GetPlugin(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreatePlugin(w http.ResponseWriter, r *http.Request) {
 	var model entities.Plugin
-	model.Init()
-	api.assert(defaults.Set(&model))
-	if err := json.NewDecoder(r.Body).Decode(&model); err != nil {
+	schema := entities.LookupSchema("Plugin")
+	defaults := map[string]interface{}{"id": utils.KSUID()}
+	if err := ValidateRequest(r, schema, defaults, &model); err != nil {
 		api.error(400, w, err)
 		return
 	}
@@ -65,7 +63,9 @@ func (api *API) UpdatePlugin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(model); err != nil {
+	schema := entities.LookupSchema("Plugin")
+	defaults := utils.Must(utils.StructToMap(model))
+	if err := ValidateRequest(r, schema, defaults, &model); err != nil {
 		api.error(400, w, err)
 		return
 	}

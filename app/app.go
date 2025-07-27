@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	uuid "github.com/satori/go.uuid"
+	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
@@ -43,6 +45,7 @@ var (
 
 func init() {
 	plugins.LoadPlugins()
+	entities.LoadOpenAPI(webhookx.OpenAPI)
 }
 
 type Application struct {

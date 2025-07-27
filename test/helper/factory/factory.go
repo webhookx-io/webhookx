@@ -3,17 +3,33 @@ package factory
 import (
 	"encoding/json"
 	"github.com/creasty/defaults"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/utils"
 )
+
+func SetDefault(schema *openapi3.Schema, obj interface{}) {
+	def := map[string]interface{}{}
+	if err := openapi.SetDefaults(schema, def); err != nil {
+		panic(err)
+	}
+	defJSON, err := json.Marshal(def)
+	if err != nil {
+		panic(err)
+	}
+	if err := json.Unmarshal(defJSON, &obj); err != nil {
+		panic(err)
+	}
+}
 
 // Endpoint
 
 func defaultEndpoint() entities.Endpoint {
 	var entity entities.Endpoint
-	entity.Init()
-	defaults.Set(&entity)
+	SetDefault(entities.LookupSchema("Endpoint"), &entity)
 
+	entity.ID = utils.KSUID()
 	entity.Request = entities.RequestConfig{
 		URL:    "http://localhost:9999/anything",
 		Method: "POST",
@@ -67,9 +83,9 @@ func EndpointWS(wid string, opts ...EndpointOption) entities.Endpoint {
 
 func defaultSource() entities.Source {
 	var entity entities.Source
-	entity.Init()
-	defaults.Set(&entity)
+	SetDefault(entities.LookupSchema("Source"), &entity)
 
+	entity.ID = utils.KSUID()
 	entity.Path = "/"
 	entity.Methods = []string{"POST"}
 
@@ -131,8 +147,9 @@ func SourceWS(wid string, opts ...SourceOption) entities.Source {
 
 func defaultPlugin() entities.Plugin {
 	var entity entities.Plugin
-	entity.Init()
-	defaults.Set(&entity)
+	SetDefault(entities.LookupSchema("Plugin"), &entity)
+
+	entity.ID = utils.KSUID()
 	entity.Config = entities.PluginConfiguration("{}")
 
 	return entity
@@ -243,7 +260,7 @@ func EventWS(wid string, opts ...EventOption) entities.Event {
 
 func defaultWorkspace() entities.Workspace {
 	var entity entities.Workspace
-	defaults.Set(&entity)
+	SetDefault(entities.LookupSchema("Workspace"), &entity)
 
 	entity.ID = utils.KSUID()
 

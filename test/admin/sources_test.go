@@ -41,7 +41,8 @@ var _ = Describe("/sources", Ordered, func() {
 		It("creates a source", func() {
 			resp, err := adminClient.R().
 				SetBody(map[string]interface{}{
-					"path": "/v1",
+					"path":    "/v1",
+					"methods": []string{"POST"},
 				}).
 				SetResult(entities.Source{}).
 				Post("/workspaces/default/sources")
@@ -53,7 +54,7 @@ var _ = Describe("/sources", Ordered, func() {
 			assert.NotNil(GinkgoT(), result.ID)
 			assert.Equal(GinkgoT(), true, result.Enabled)
 			assert.Equal(GinkgoT(), "/v1", result.Path)
-			assert.True(GinkgoT(), nil == result.Methods)
+			assert.EqualValues(GinkgoT(), []string{"POST"}, result.Methods)
 			assert.Equal(GinkgoT(), false, result.Async)
 			assert.True(GinkgoT(), nil == result.Response)
 

@@ -31,7 +31,6 @@ func Validate(schema *openapi3.Schema, value map[string]interface{}) error {
 		openapi3.DisableReadOnlyValidation(),
 		openapi3.VisitAsRequest(),
 		openapi3.DefaultsSet(func() {}),
-		// openapi3.SetSchemaErrorMessageCustomizer(customizeMessageErrorfunc),
 	)
 
 	if err != nil {

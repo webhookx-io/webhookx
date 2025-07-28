@@ -13,6 +13,10 @@ type Configuration struct {
 	Sources   []*Source   `json:"sources"`
 }
 
+func (cfg *Configuration) SchemaName() string {
+	return "Configuration"
+}
+
 // Init initializes entities
 func (cfg *Configuration) Init() {
 	for _, m := range cfg.Sources {

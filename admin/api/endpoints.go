@@ -34,9 +34,8 @@ func (api *API) GetEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 	var endpoint entities.Endpoint
-	schema := entities.LookupSchema("Endpoint")
 	defaults := map[string]interface{}{"id": utils.KSUID()}
-	if err := ValidateRequest(r, schema, defaults, &endpoint); err != nil {
+	if err := ValidateRequest(r, defaults, &endpoint); err != nil {
 		api.error(400, w, err)
 		return
 	}
@@ -57,9 +56,8 @@ func (api *API) UpdateEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	schema := entities.LookupSchema("Endpoint")
 	defaults := utils.Must(utils.StructToMap(endpoint))
-	if err := ValidateRequest(r, schema, defaults, &endpoint); err != nil {
+	if err := ValidateRequest(r, defaults, endpoint); err != nil {
 		api.error(400, w, err)
 		return
 	}

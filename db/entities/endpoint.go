@@ -18,6 +18,9 @@ type Endpoint struct {
 	BaseModel `yaml:"-"`
 }
 
+func (m *Endpoint) SchemaName() string {
+	return "Endpoint"
+}
 
 type RequestConfig struct {
 	URL     string  `json:"url"`

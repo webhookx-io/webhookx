@@ -31,3 +31,7 @@ type Source struct {
 
 	BaseModel `yaml:"-"`
 }
+
+func (m *Source) SchemaName() string {
+	return "Source"
+}

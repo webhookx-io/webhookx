@@ -21,6 +21,10 @@ type Plugin struct {
 	BaseModel `yaml:"-"`
 }
 
+func (m *Plugin) SchemaName() string {
+	return "Plugin"
+}
+
 func (m *Plugin) Validate() error {
 	r := plugin.GetRegistration(m.Name)
 	if r == nil {

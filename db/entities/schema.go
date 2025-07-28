@@ -5,6 +5,10 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
+type Schema interface {
+	SchemaName() string
+}
+
 var spec *openapi3.T
 
 func LookupSchema(name string) *openapi3.Schema {

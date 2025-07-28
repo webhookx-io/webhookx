@@ -13,3 +13,7 @@ type Workspace struct {
 	CreatedAt types.Time `db:"created_at" json:"created_at"`
 	UpdatedAt types.Time `db:"updated_at" json:"updated_at"`
 }
+
+func (m *Workspace) SchemaName() string {
+	return "Workspace"
+}

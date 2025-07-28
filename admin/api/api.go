@@ -2,10 +2,10 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
@@ -94,7 +94,7 @@ func (api *API) assert(err error) {
 	}
 }
 
-func ValidateRequest(r *http.Request, schema *openapi3.Schema, defaults map[string]interface{}, target interface{}) error {
+func ValidateRequest(r *http.Request, defaults map[string]interface{}, target entities.Schema) error {
 	data := make(map[string]interface{})
 	if defaults != nil {
 		utils.MergeMap(data, defaults)
@@ -104,6 +104,7 @@ func ValidateRequest(r *http.Request, schema *openapi3.Schema, defaults map[stri
 		return err
 	}
 
+	schema := entities.LookupSchema(target.SchemaName())
 	err = openapi.Validate(schema, data)
 	if err != nil {
 		return err

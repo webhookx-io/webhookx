@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/declarative"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
@@ -44,8 +43,7 @@ func (api *API) Sync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var cfg declarative.Configuration
-	schema := entities.LookupSchema("Configuration")
-	if err := ValidateRequest(r, schema, nil, &cfg); err != nil {
+	if err := ValidateRequest(r, nil, &cfg); err != nil {
 		api.error(400, w, err)
 		return
 	}

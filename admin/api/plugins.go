@@ -33,9 +33,8 @@ func (api *API) GetPlugin(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreatePlugin(w http.ResponseWriter, r *http.Request) {
 	var model entities.Plugin
-	schema := entities.LookupSchema("Plugin")
 	defaults := map[string]interface{}{"id": utils.KSUID()}
-	if err := ValidateRequest(r, schema, defaults, &model); err != nil {
+	if err := ValidateRequest(r, defaults, &model); err != nil {
 		api.error(400, w, err)
 		return
 	}
@@ -63,9 +62,8 @@ func (api *API) UpdatePlugin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	schema := entities.LookupSchema("Plugin")
 	defaults := utils.Must(utils.StructToMap(model))
-	if err := ValidateRequest(r, schema, defaults, &model); err != nil {
+	if err := ValidateRequest(r, defaults, model); err != nil {
 		api.error(400, w, err)
 		return
 	}

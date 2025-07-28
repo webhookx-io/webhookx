@@ -34,9 +34,8 @@ func (api *API) GetSource(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateSource(w http.ResponseWriter, r *http.Request) {
 	var source entities.Source
-	schema := entities.LookupSchema("Source")
 	defaults := map[string]interface{}{"id": utils.KSUID()}
-	if err := ValidateRequest(r, schema, defaults, &source); err != nil {
+	if err := ValidateRequest(r, defaults, &source); err != nil {
 		api.error(400, w, err)
 		return
 	}
@@ -57,9 +56,8 @@ func (api *API) UpdateSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	schema := entities.LookupSchema("Source")
 	defaults := utils.Must(utils.StructToMap(source))
-	if err := ValidateRequest(r, schema, defaults, &source); err != nil {
+	if err := ValidateRequest(r, defaults, source); err != nil {
 		api.error(400, w, err)
 		return
 	}

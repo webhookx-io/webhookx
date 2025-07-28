@@ -34,9 +34,8 @@ func (api *API) GetWorkspace(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 	var workspace entities.Workspace
-	schema := entities.LookupSchema("Workspace")
 	defaults := map[string]interface{}{"id": utils.KSUID()}
-	if err := ValidateRequest(r, schema, defaults, &workspace); err != nil {
+	if err := ValidateRequest(r, defaults, &workspace); err != nil {
 		api.error(400, w, err)
 		return
 	}
@@ -62,9 +61,8 @@ func (api *API) UpdateWorkspace(w http.ResponseWriter, r *http.Request) {
 		name = *workspace.Name
 	}
 
-	schema := entities.LookupSchema("Workspace")
 	defaults := utils.Must(utils.StructToMap(workspace))
-	if err := ValidateRequest(r, schema, defaults, &workspace); err != nil {
+	if err := ValidateRequest(r, defaults, workspace); err != nil {
 		api.error(400, w, err)
 		return
 	}

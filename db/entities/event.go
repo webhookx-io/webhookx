@@ -15,6 +15,10 @@ type Event struct {
 	BaseModel
 }
 
+func (m *Event) SchemaName() string {
+	return "Event"
+}
+
 func (m *Event) Validate() error {
 	return utils.Validate(m)
 }

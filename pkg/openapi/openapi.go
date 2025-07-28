@@ -61,14 +61,14 @@ func decodeMultiError(err error) openapi3.MultiError {
 	return nil
 }
 
-func handleMultiError(me openapi3.MultiError, parents []string, fields map[string]interface{}) {
+func handleMultiError(me openapi3.MultiError, paths []string, fields map[string]interface{}) {
 	for _, error := range me {
 		switch e := error.(type) {
 		case openapi3.MultiError:
-			handleMultiError(e, parents, fields)
+			handleMultiError(e, paths, fields)
 		case *openapi3.SchemaError:
 			if e.SchemaField != "allOf" && e.SchemaField != "anyOf" && e.SchemaField != "oneOf" {
-				insertError(fields, 0, append(parents, e.JSONPointer()...), e)
+				insertError(fields, 0, append(paths, e.JSONPointer()...), e)
 			}
 			if decoded := decodeMultiError(e); decoded != nil {
 				handleMultiError(decoded, e.JSONPointer(), fields)

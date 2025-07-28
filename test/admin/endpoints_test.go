@@ -44,8 +44,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 			resp, err := adminClient.R().
 				SetBody(map[string]interface{}{
 					"request": map[string]interface{}{
-						"url":    "https://example.com",
-						"method": "POST",
+						"url": "https://example.com",
 					},
 				}).
 				SetResult(entities.Endpoint{}).
@@ -93,6 +92,22 @@ var _ = Describe("/endpoints", Ordered, func() {
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
 					`{"message":"Request Validation","error":{"message":"request validation","fields":{"request":{"url":"required field missing"}}}}`,
+					string(resp.Body()))
+			})
+
+			It("returns HTTP 400 for invalid request", func() {
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"request": map[string]interface{}{
+							"url": "",
+						},
+					}).
+					SetResult(entities.Endpoint{}).
+					Post("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"request":{"url":"minimum string length is 1"}}}}`,
 					string(resp.Body()))
 			})
 

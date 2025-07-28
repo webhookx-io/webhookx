@@ -832,8 +832,10 @@ components:
               nullable: true
         created_at:
           type: integer
+          readOnly: true
         updated_at:
           type: integer
+          readOnly: true
 
     Event:
       type: object
@@ -849,8 +851,10 @@ components:
           description: "The time the event was ingested"
         created_at:
           type: integer
+          readOnly: true
         updated_at:
           type: integer
+          readOnly: true
 
     Source:
       type: object

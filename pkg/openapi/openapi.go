@@ -74,9 +74,14 @@ func handleMultiError(me openapi3.MultiError, paths []string, fields map[string]
 				handleMultiError(decoded, e.JSONPointer(), fields)
 			}
 		default:
-			// ???
-			//const unknown = "@unknown"
-			//issues[unknown] = append(issues[unknown], err.Error())
+			const unknown = "@unknown"
+			var unknowns []string
+			if v, ok := fields[unknown]; !ok {
+				unknowns = make([]string, 0)
+			} else {
+				unknowns = v.([]string)
+			}
+			fields[unknown] = append(unknowns, e.Error())
 		}
 	}
 }

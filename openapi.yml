@@ -855,6 +855,9 @@ components:
         updated_at:
           type: integer
           readOnly: true
+      required:
+        - event_type
+        - data
 
     Source:
       type: object

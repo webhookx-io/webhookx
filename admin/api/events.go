@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/eventbus"
@@ -39,14 +38,8 @@ func (api *API) GetEvent(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	var event entities.Event
-	event.ID = utils.KSUID()
-
-	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
-		api.error(400, w, err)
-		return
-	}
-
-	if err := event.Validate(); err != nil {
+	defaults := map[string]interface{}{"id": utils.KSUID()}
+	if err := ValidateRequest(r, defaults, &event); err != nil {
 		api.error(400, w, err)
 		return
 	}

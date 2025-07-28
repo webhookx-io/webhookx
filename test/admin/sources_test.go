@@ -2,6 +2,7 @@ package admin
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
@@ -61,6 +62,21 @@ var _ = Describe("/sources", Ordered, func() {
 			e, err := db.Sources.Get(context.TODO(), result.ID)
 			assert.Nil(GinkgoT(), err)
 			assert.NotNil(GinkgoT(), e)
+		})
+
+		Context("errors", func() {
+			It("returns HTTP 400 for missing required fields", func() {
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{}).
+					SetResult(entities.Source{}).
+					Post("/workspaces/default/sources")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				fmt.Println(string(resp.Body()))
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"methods":"required field missing","path":"required field missing"}}}`,
+					string(resp.Body()))
+			})
 		})
 	})
 

@@ -186,6 +186,18 @@ var _ = Describe("/plugins", Ordered, func() {
 		})
 
 		Context("errors", func() {
+			It("return HTTP 400", func() {
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{"config": "string"}).
+					SetResult(entities.Plugin{}).
+					Post("/workspaces/default/plugins")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":"value must be an object"}}}`,
+					string(resp.Body()))
+			})
+
 			It("returns HTTP 400 for unkown plugin name", func() {
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{"name": "unknown"}).

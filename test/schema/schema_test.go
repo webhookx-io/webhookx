@@ -2,7 +2,6 @@ package delivery
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -191,7 +190,6 @@ var _ = Describe("schemas", Ordered, func() {
 				err := openapi.Validate(schema, test.data)
 				b, e := json.Marshal(err.(*errs.ValidateError).Fields)
 				assert.NoError(GinkgoT(), e)
-				fmt.Println(string(b))
 				assert.Equal(GinkgoT(), test.feildsJSON, string(b))
 			}
 		})

@@ -2,7 +2,6 @@ package admin
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
@@ -72,7 +71,6 @@ var _ = Describe("/sources", Ordered, func() {
 					Post("/workspaces/default/sources")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
-				fmt.Println(string(resp.Body()))
 				assert.Equal(GinkgoT(),
 					`{"message":"Request Validation","error":{"message":"request validation","fields":{"methods":"required field missing","path":"required field missing"}}}`,
 					string(resp.Body()))

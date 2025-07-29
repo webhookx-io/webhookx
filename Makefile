@@ -15,7 +15,7 @@ build:
 	CGO_ENABLED=0 go build -o webhookx ${LDFLAGS} ./cmd/main
 
 install: build
-	cp webhookx $(GOBIN)/webhookx
+	cp webhookx $(HOME)/go/bin/webhookx
 
 generate:
 	go generate ./...

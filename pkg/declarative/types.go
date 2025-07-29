@@ -9,8 +9,12 @@ import (
 
 // Configuration declarative configuration
 type Configuration struct {
-	Endpoints []*Endpoint `json:"endpoints" validate:"dive,required"`
-	Sources   []*Source   `json:"sources" validate:"dive,required"`
+	Endpoints []*Endpoint `json:"endpoints"`
+	Sources   []*Source   `json:"sources"`
+}
+
+func (cfg *Configuration) SchemaName() string {
+	return "Configuration"
 }
 
 // Init initializes entities
@@ -76,7 +80,7 @@ func (cfg *Configuration) Validate() error {
 
 type Endpoint struct {
 	entities.Endpoint `yaml:",inline"`
-	Plugins           []*entities.Plugin `json:"plugins" validate:"dive,required"`
+	Plugins           []*entities.Plugin `json:"plugins"`
 }
 
 func (m *Endpoint) UnmarshalJSON(data []byte) error {
@@ -90,7 +94,7 @@ func (m *Endpoint) UnmarshalJSON(data []byte) error {
 
 type Source struct {
 	entities.Source `yaml:",inline"`
-	Plugins         []*entities.Plugin `json:"plugins" validate:"dive,required"`
+	Plugins         []*entities.Plugin `json:"plugins"`
 }
 
 func (m *Source) UnmarshalJSON(data []byte) error {

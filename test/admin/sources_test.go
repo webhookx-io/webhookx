@@ -41,7 +41,8 @@ var _ = Describe("/sources", Ordered, func() {
 		It("creates a source", func() {
 			resp, err := adminClient.R().
 				SetBody(map[string]interface{}{
-					"path": "/v1",
+					"path":    "/v1",
+					"methods": []string{"POST"},
 				}).
 				SetResult(entities.Source{}).
 				Post("/workspaces/default/sources")
@@ -53,13 +54,27 @@ var _ = Describe("/sources", Ordered, func() {
 			assert.NotNil(GinkgoT(), result.ID)
 			assert.Equal(GinkgoT(), true, result.Enabled)
 			assert.Equal(GinkgoT(), "/v1", result.Path)
-			assert.True(GinkgoT(), nil == result.Methods)
+			assert.EqualValues(GinkgoT(), []string{"POST"}, result.Methods)
 			assert.Equal(GinkgoT(), false, result.Async)
 			assert.True(GinkgoT(), nil == result.Response)
 
 			e, err := db.Sources.Get(context.TODO(), result.ID)
 			assert.Nil(GinkgoT(), err)
 			assert.NotNil(GinkgoT(), e)
+		})
+
+		Context("errors", func() {
+			It("returns HTTP 400 for missing required fields", func() {
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{}).
+					SetResult(entities.Source{}).
+					Post("/workspaces/default/sources")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"methods":"required field missing","path":"required field missing"}}}`,
+					string(resp.Body()))
+			})
 		})
 	})
 

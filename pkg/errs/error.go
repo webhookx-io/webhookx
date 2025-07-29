@@ -1,5 +1,9 @@
 package errs
 
+import "errors"
+
+var ErrRequestValidation = errors.New("request validation")
+
 type Error struct {
 	err error
 }

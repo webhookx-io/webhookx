@@ -576,9 +576,12 @@ paths:
         - Declarative
       requestBody:
         content:
-          text/plain:
+          application/json:
             schema:
-              type: string
+              $ref: "#/components/schemas/Configuration"
+          application/x-yaml:
+            schema:
+              $ref: "#/components/schemas/Configuration"
       responses:
         "200":
           description: OK
@@ -667,6 +670,7 @@ components:
       type: object
       additionalProperties:
         type: string
+      default: {}
 
     Workspace:
       type: object
@@ -675,14 +679,18 @@ components:
           type: string
         name:
           type: string
+          nullable: true
         description:
           type: string
+          nullable: true
         metadata:
           $ref: "#/components/schemas/Metadata"
         created_at:
           type: integer
+          readOnly: true
         updated_at:
           type: integer
+          readOnly: true
 
 
     Endpoint:
@@ -692,58 +700,78 @@ components:
           type: string
         name:
           type: string
+          nullable: true
         description:
           type: string
+          nullable: true
         enabled:
           type: boolean
+          default: true
         request:
           type: object
+          default:
+            method: POST
+            headers: null
+            timeout: 10000
           properties:
             url:
               type: string
+              minLength: 1
+              example: https://example.com
             method:
               type: string
-              enum: [ GET, POST,PUT,DELETE,PATCH ]
+              enum: [ GET, POST, PUT, DELETE, PATCH ]
+              default: "POST"
             headers:
               type: object
+              nullable: true
+              additionalProperties:
+                type: string
+              default: null
             timeout:
               type: integer
+              minimum: 0
+              maximum: 60000
+              default: 10000
           required:
             - url
-            - method
         retry:
           type: object
+          default:
+            strategy: fixed
+            config:
+              attempts: [ 0, 60, 3600 ]
           properties:
             strategy:
               type: string
+              enum: [ fixed ]
               default: fixed
             config:
               type: object
+              default:
+                attempts: [ 0, 60, 3600 ]
               properties:
                 attempts:
                   type: array
+                  minItems: 1
                   items:
                     type: integer
+                    minimum: 0
                   default: [ 0, 60, 3600 ]
-              required:
-                - attempts
-          required:
-            - strategy
-            - config
         events:
           type: array
           items:
             type: string
             example: foo.bar
+          default: []
         metadata:
           $ref: "#/components/schemas/Metadata"
         created_at:
           type: integer
+          readOnly: true
         updated_at:
           type: integer
-      required:
-        - request
-        - events
+          readOnly: true
 
     Attempt:
       type: object
@@ -804,8 +832,10 @@ components:
               nullable: true
         created_at:
           type: integer
+          readOnly: true
         updated_at:
           type: integer
+          readOnly: true
 
     Event:
       type: object
@@ -821,8 +851,13 @@ components:
           description: "The time the event was ingested"
         created_at:
           type: integer
+          readOnly: true
         updated_at:
           type: integer
+          readOnly: true
+      required:
+        - event_type
+        - data
 
     Source:
       type: object
@@ -831,32 +866,45 @@ components:
           type: string
         name:
           type: string
+          nullable: true
         enabled:
           type: boolean
+          default: true
         path:
           type: string
         methods:
           type: array
           items:
             type: string
+            enum: [ GET, POST, PUT, DELETE, PATCH ]
+          minItems: 1
         async:
           type: boolean
           description: "Whether to ingest events asynchronously through the queue"
+          default: false
         response:
           type: object
+          nullable: true
           properties:
             code:
-              type: number
+              type: integer
+              minimum: 200
+              maximum: 599
             content_type:
               type: string
             body:
               type: string
+          required:
+            - code
+            - content_type
         metadata:
           $ref: "#/components/schemas/Metadata"
         created_at:
           type: integer
+          readOnly: true
         updated_at:
           type: integer
+          readOnly: true
       required:
         - path
         - methods
@@ -870,6 +918,7 @@ components:
           type: string
         enabled:
           type: boolean
+          default: true
         endpoint_id:
           type: string
           nullable: true
@@ -878,11 +927,38 @@ components:
           nullable: true
         config:
           type: object
+          nullable: true
         metadata:
           $ref: "#/components/schemas/Metadata"
         created_at:
           type: integer
+          readOnly: true
         updated_at:
           type: integer
-      required:
-        - name
+          readOnly: true
+
+    Configuration:
+      type: object
+      properties:
+        endpoints:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/Endpoint"
+              - type: object
+                properties:
+                  plugins:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Plugin"
+        sources:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/Source"
+              - type: object
+                properties:
+                  plugins:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Plugin"

@@ -33,3 +33,29 @@ func TestDefaultIfZero(t *testing.T) {
 		assert.Equal(t, test.Expected, v)
 	}
 }
+
+func TestMergeMap(t *testing.T) {
+	dst := map[string]interface{}{
+		"key": "v",
+		"map": map[string]interface{}{
+			"k1": "v1",
+			"k2": "v2",
+		},
+	}
+	src := map[string]interface{}{
+		"key": "value",
+		"map": map[string]interface{}{
+			"k2": "vv2",
+			"k3": "v3",
+		},
+	}
+	MergeMap(dst, src)
+	assert.EqualValues(t, map[string]interface{}{
+		"key": "value",
+		"map": map[string]interface{}{
+			"k1": "v1",
+			"k2": "vv2",
+			"k3": "v3",
+		},
+	}, dst)
+}

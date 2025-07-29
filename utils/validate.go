@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/webhookx-io/webhookx/pkg/errs"
@@ -52,8 +51,6 @@ func init() {
 	})
 }
 
-var validationErr = errors.New("request validation")
-
 func RegisterValidation(tag string, fn validator.Func) {
 	err := validate.RegisterValidation(tag, fn)
 	if err != nil {
@@ -70,7 +67,7 @@ func RegisterFormatter(tag string, fn func(fe validator.FieldError) string) {
 func Validate(v interface{}) error {
 	err := validate.Struct(v)
 	if err != nil {
-		validateErr := errs.NewValidateError(validationErr)
+		validateErr := errs.NewValidateError(errs.ErrRequestValidation)
 		for _, e := range err.(validator.ValidationErrors) {
 			fields := strings.Split(e.Namespace(), ".")
 			node := validateErr.Fields

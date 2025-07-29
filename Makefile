@@ -12,10 +12,10 @@ clean:
 	go clean -testcache
 
 build:
-	CGO_ENABLED=0 go build ${LDFLAGS}
+	CGO_ENABLED=0 go build -o webhookx ${LDFLAGS} ./cmd/main
 
-install:
-	go install ${LDFLAGS}
+install: build
+	cp webhookx $(GOBIN)/webhookx
 
 generate:
 	go generate ./...

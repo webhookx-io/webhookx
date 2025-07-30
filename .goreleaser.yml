@@ -17,6 +17,7 @@ builds:
     ldflags:
       - -X github.com/webhookx-io/webhookx/config.COMMIT={{ .ShortCommit }}
       - -X github.com/webhookx-io/webhookx/config.VERSION={{ .Tag }}
+    main: ./cmd/main
 
 checksum:
   name_template: 'checksums.txt'

@@ -250,7 +250,7 @@ func (w *Worker) Start() error {
 
 	go w.run()
 
-	schedule.Schedule(w.ctx, w.ProcessRequeue, w.opts.RequeueJobInterval)
+	schedule.ScheduleWithoutDelay(w.ctx, w.ProcessRequeue, w.opts.RequeueJobInterval)
 	return nil
 }
 

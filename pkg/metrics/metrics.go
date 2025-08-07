@@ -68,7 +68,7 @@ func New(cfg config.MetricsConfig) (*Metrics, error) {
 		if err != nil {
 			return nil, err
 		}
-		schedule.Schedule(m.ctx, m.collectRuntimeStats, m.Interval)
+		schedule.ScheduleWithoutDelay(m.ctx, m.collectRuntimeStats, m.Interval)
 		zap.S().Infof("enabled metric exports: %v", cfg.Exports)
 	}
 

@@ -37,6 +37,7 @@ type Config struct {
 	Metrics   MetricsConfig   `yaml:"metrics" json:"metrics" envconfig:"METRICS"`
 	Tracing   TracingConfig   `yaml:"tracing" json:"tracing" envconfig:"TRACING"`
 	Role      Role            `yaml:"role" json:"role" envconfig:"ROLE" default:"standalone"`
+	Anonymous bool            `yaml:"anonymous" json:"anonymous" envconfig:"ANONYMOUS"`
 }
 
 func (cfg Config) String() string {

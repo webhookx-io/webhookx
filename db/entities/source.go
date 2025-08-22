@@ -20,14 +20,15 @@ func (m CustomResponse) Value() (driver.Value, error) {
 }
 
 type Source struct {
-	ID       string          `json:"id" db:"id"`
-	Name     *string         `json:"name" db:"name"`
-	Enabled  bool            `json:"enabled" db:"enabled"`
-	Path     string          `json:"path" db:"path"`
-	Methods  Strings         `json:"methods" db:"methods"`
-	Async    bool            `json:"async" db:"async"`
-	Response *CustomResponse `json:"response" db:"response"`
-	Metadata Metadata        `json:"metadata" db:"metadata"`
+	ID        string          `json:"id" db:"id"`
+	Name      *string         `json:"name" db:"name"`
+	Enabled   bool            `json:"enabled" db:"enabled"`
+	Path      string          `json:"path" db:"path"`
+	Methods   Strings         `json:"methods" db:"methods"`
+	Async     bool            `json:"async" db:"async"`
+	Response  *CustomResponse `json:"response" db:"response"`
+	Metadata  Metadata        `json:"metadata" db:"metadata"`
+	RateLimit *RateLimit      `json:"rate_limit" yaml:"rate_limit" db:"rate_limit"`
 
 	BaseModel `yaml:"-"`
 }

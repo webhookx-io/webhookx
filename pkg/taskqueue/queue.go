@@ -34,5 +34,6 @@ type TaskQueue interface {
 	Get(ctx context.Context, opts *GetOptions) (tasks []*TaskMessage, err error)
 	Delete(ctx context.Context, task *TaskMessage) error
 	Size(ctx context.Context) (int64, error)
+	Schedule(ctx context.Context, task *TaskMessage) error
 	Stats() map[string]interface{}
 }

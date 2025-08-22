@@ -766,6 +766,8 @@ components:
           default: []
         metadata:
           $ref: "#/components/schemas/Metadata"
+        rate_limit:
+          $ref: "#/components/schemas/RateLimit"
         created_at:
           type: integer
           readOnly: true
@@ -899,6 +901,8 @@ components:
             - content_type
         metadata:
           $ref: "#/components/schemas/Metadata"
+        rate_limit:
+          $ref: "#/components/schemas/RateLimit"
         created_at:
           type: integer
           readOnly: true
@@ -962,3 +966,17 @@ components:
                     type: array
                     items:
                       $ref: "#/components/schemas/Plugin"
+
+    RateLimit:
+      type: object
+      nullable: true
+      properties:
+        quota:
+          type: integer
+          minimum: 0
+        interval:
+          type: integer
+          minimum: 1
+      required:
+        - quota
+        - interval

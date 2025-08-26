@@ -166,6 +166,17 @@ func (q *RedisTaskQueue) Delete(ctx context.Context, task *TaskMessage) error {
 	return err
 }
 
+func (q *RedisTaskQueue) Schedule(ctx context.Context, task *TaskMessage) error {
+	pipeline := q.c.Pipeline()
+	pipeline.ZAdd(ctx, q.queue, redis.Z{
+		Score:  float64(task.ScheduledAt.UnixMilli()),
+		Member: task.ID,
+	})
+	pipeline.ZRem(ctx, q.invisibleQueue, task.ID)
+	_, err := pipeline.Exec(ctx)
+	return err
+}
+
 func (q *RedisTaskQueue) Size(ctx context.Context) (int64, error) {
 	return q.c.ZCard(ctx, q.queue).Result()
 }

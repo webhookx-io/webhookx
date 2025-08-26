@@ -84,6 +84,20 @@ func (mr *MockTaskQueueMockRecorder) Get(ctx, opts any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTaskQueue)(nil).Get), ctx, opts)
 }
 
+// Schedule mocks base method.
+func (m *MockTaskQueue) Schedule(ctx context.Context, task *taskqueue.TaskMessage) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Schedule", ctx, task)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Schedule indicates an expected call of Schedule.
+func (mr *MockTaskQueueMockRecorder) Schedule(ctx, task any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Schedule", reflect.TypeOf((*MockTaskQueue)(nil).Schedule), ctx, task)
+}
+
 // Size mocks base method.
 func (m *MockTaskQueue) Size(ctx context.Context) (int64, error) {
 	m.ctrl.T.Helper()

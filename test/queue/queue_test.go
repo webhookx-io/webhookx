@@ -23,15 +23,13 @@ var _ = Describe("processRequeue", Ordered, func() {
 
 		client := cfg.Redis.GetClient()
 		client.Del(context.TODO(), "webhookx:test-queue")
-		client.Del(context.TODO(), "webhookx:test-queue_invisible")
 		client.Del(context.TODO(), "webhookx:test-queue_data")
 
 		queue = taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
-			QueueName:          "webhookx:test-queue",
-			InvisibleQueueName: "webhookx:test-queue_invisible",
-			QueueDataName:      "webhookx:test-queue_data",
-			VisibilityTimeout:  time.Second * 3,
-			Client:             client,
+			QueueName:         "webhookx:test-queue",
+			QueueDataName:     "webhookx:test-queue_data",
+			VisibilityTimeout: time.Second * 3,
+			Client:            client,
 		}, log, nil)
 	})
 
@@ -103,24 +101,19 @@ var _ = Describe("processRequeue", Ordered, func() {
 
 		size, err := queue.Size(context.TODO())
 		assert.Nil(GinkgoT(), err)
-		assert.EqualValues(GinkgoT(), 0, size)
+		assert.EqualValues(GinkgoT(), 1, size) // the message still in the queue waiting to be deleted
 
-		time.Sleep(time.Second * 2)
-
-		// this should be zero as we're not reach the timeout yet
-		size, err = queue.Size(context.TODO())
+		// asssert this message is unavailable
+		tasks, err = queue.Get(context.TODO(), &taskqueue.GetOptions{Count: 1})
 		assert.Nil(GinkgoT(), err)
-		assert.EqualValues(GinkgoT(), 0, size)
+		assert.Len(GinkgoT(), tasks, 0)
 
-		time.Sleep(time.Second * 3) // 5 seconds later
+		time.Sleep(time.Second * 4) // timeout is set to 3 seconds
 
+		// asssert this message is available now
 		tasks, err = queue.Get(context.TODO(), &taskqueue.GetOptions{Count: 1})
 		assert.Nil(GinkgoT(), err)
 		assert.Len(GinkgoT(), tasks, 1)
-
-		size, err = queue.Size(context.TODO())
-		assert.Nil(GinkgoT(), err)
-		assert.EqualValues(GinkgoT(), 0, size)
 	})
 })
 

@@ -9,7 +9,6 @@ import (
 // Task Queue
 const (
 	TaskQueueName                  = "webhookx:queue"
-	TaskQueueInvisibleQueueName    = "webhookx:queue_invisible"
 	TaskQueueDataName              = "webhookx:queue_data"
 	TaskQueueVisibilityTimeout     = time.Second * 65
 	TaskQueuePreScheduleTimeWindow = time.Minute * 3

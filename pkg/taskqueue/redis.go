@@ -17,48 +17,32 @@ import (
 var (
 	getMultiScript = redis.NewScript(`
 		redis.replicate_commands()
+		local key_queue = KEYS[1]
+		local key_queue_data = KEYS[2]
 		local time = redis.call('TIME')
 		local now = time[1] * 1000 + math.floor(time[2] / 1000)
-		local task_ids = redis.call('ZRANGEBYSCORE', KEYS[1], 0, now, 'LIMIT', 0, ARGV[1])
+		local task_ids = redis.call('ZRANGEBYSCORE', key_queue, 0, now, 'LIMIT', 0, ARGV[1])
 		local list = {}
+	
 		if task_ids and task_ids[1] then
+			local timeout = now + ARGV[2]
 			for i, task_id in ipairs(task_ids) do
-				local data = redis.call('HGET', KEYS[2], task_id)
+				local data = redis.call('HGET', key_queue_data, task_id)
 				if not data then
-					redis.call("ZREM", KEYS[1], task_id)
-					redis.call("ZREM", KEYS[3], task_id)
-				else
-					redis.call("ZREM", KEYS[1], task_id)
-					redis.call('ZADD', KEYS[3], now + ARGV[2], task_id)
-					list[i] = { task_id, data }
+					redis.call("ZREM", key_queue, task_id)
 				end
+				redis.call('ZADD', key_queue, timeout, task_id)
+				list[i] = { task_id, data }
 			end
 		end
 		
 		return list
-	`)
-
-	requeueScript = redis.NewScript(`
-		redis.replicate_commands()
-		local time = redis.call('TIME')
-		local now = time[1] * 1000 + math.floor(time[2] / 1000)
-		local tasks = redis.call('ZRANGEBYSCORE', KEYS[1], 0, now)
-		local n = 0
-		if tasks then
-			for _, id in ipairs(tasks) do
-				n = n + 1
-				redis.call("ZREM", KEYS[1], id)
-				redis.call('ZADD', KEYS[2], now, id)
-			end
-		end
-		return tasks
 	`)
 )
 
 // RedisTaskQueue use redis as queue implementation
 type RedisTaskQueue struct {
 	queue             string
-	invisibleQueue    string
 	queueData         string
 	visibilityTimeout time.Duration
 
@@ -68,24 +52,21 @@ type RedisTaskQueue struct {
 }
 
 type RedisTaskQueueOptions struct {
-	QueueName          string
-	InvisibleQueueName string
-	QueueDataName      string
-	VisibilityTimeout  time.Duration
-	Client             *redis.Client
+	QueueName         string
+	QueueDataName     string
+	VisibilityTimeout time.Duration
+	Client            *redis.Client
 }
 
 func NewRedisQueue(opts RedisTaskQueueOptions, logger *zap.SugaredLogger, metrics *metrics.Metrics) *RedisTaskQueue {
 	q := &RedisTaskQueue{
 		queue:             utils.DefaultIfZero(opts.QueueName, constants.TaskQueueName),
-		invisibleQueue:    utils.DefaultIfZero(opts.InvisibleQueueName, constants.TaskQueueInvisibleQueueName),
 		visibilityTimeout: utils.DefaultIfZero(opts.VisibilityTimeout, constants.TaskQueueVisibilityTimeout),
 		queueData:         utils.DefaultIfZero(opts.QueueDataName, constants.TaskQueueDataName),
 		c:                 opts.Client,
 		log:               logger.Named("queue.task"),
 		metrics:           metrics,
 	}
-	q.process()
 
 	if metrics != nil && metrics.Enabled {
 		go q.monitoring()
@@ -125,7 +106,7 @@ func (q *RedisTaskQueue) Get(ctx context.Context, opts *GetOptions) ([]*TaskMess
 	ctx, span := tracing.Start(ctx, "taskqueue.redis.get", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
-	keys := []string{q.queue, q.queueData, q.invisibleQueue}
+	keys := []string{q.queue, q.queueData}
 	argv := []interface{}{
 		opts.Count,
 		q.visibilityTimeout.Milliseconds(),
@@ -141,11 +122,13 @@ func (q *RedisTaskQueue) Get(ctx context.Context, opts *GetOptions) ([]*TaskMess
 		}
 		tasks := make([]*TaskMessage, 0, len(list))
 		for _, e := range list {
-			task := e.([]interface{})
-			tasks = append(tasks, &TaskMessage{
-				ID:   task[0].(string),
-				data: []byte((task[1].(string))),
-			})
+			array := e.([]interface{})
+			if len(array) == 2 {
+				tasks = append(tasks, &TaskMessage{
+					ID:   array[0].(string),
+					data: []byte((array[1].(string))),
+				})
+			}
 		}
 		return tasks, nil
 	default:
@@ -160,7 +143,6 @@ func (q *RedisTaskQueue) Delete(ctx context.Context, task *TaskMessage) error {
 	q.log.Debugf("deleting task %s", task.ID)
 	pipeline := q.c.Pipeline()
 	pipeline.HDel(ctx, q.queueData, task.ID)
-	pipeline.ZRem(ctx, q.invisibleQueue, task.ID)
 	pipeline.ZRem(ctx, q.queue, task.ID)
 	_, err := pipeline.Exec(ctx)
 	return err
@@ -196,28 +178,6 @@ func (q *RedisTaskQueue) Stats() map[string]interface{} {
 	}
 
 	return stats
-}
-
-// process re-enqueue invisible tasks that reach the visibility timeout
-func (q *RedisTaskQueue) process() {
-	go func() {
-		ticker := time.NewTicker(time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				keys := []string{q.invisibleQueue, q.queue}
-				res, err := requeueScript.Run(context.Background(), q.c, keys).Result()
-				if err != nil {
-					q.log.Errorf("failed to run requeue script: %s", err)
-					continue
-				}
-				if ids, ok := res.([]interface{}); ok && len(ids) > 0 {
-					q.log.Debugf("enqueued invisible tasks: %v", ids)
-				}
-			}
-		}
-	}()
 }
 
 func (q *RedisTaskQueue) monitoring() {

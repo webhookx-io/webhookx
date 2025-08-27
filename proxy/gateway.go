@@ -210,7 +210,7 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	if source.RateLimit != nil {
-		d := time.Duration(source.RateLimit.Interval) * time.Second
+		d := time.Duration(source.RateLimit.Period) * time.Second
 		res, err := gw.rateLimiter.Allow(ctx, source.ID, source.RateLimit.Quota, d)
 		if err != nil {
 			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})

@@ -335,7 +335,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		return w.db.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeEndpointDisabled)
 	}
 	if endpoint.RateLimit != nil {
-		d := time.Duration(endpoint.RateLimit.Interval) * time.Second
+		d := time.Duration(endpoint.RateLimit.Period) * time.Second
 		res, err := w.rateLimiter.Allow(ctx, endpoint.ID, endpoint.RateLimit.Quota, d)
 		if err != nil {
 			return err

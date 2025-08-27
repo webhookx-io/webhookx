@@ -348,8 +348,8 @@ var _ = Describe("delivery", Ordered, func() {
 		entitiesConfig := helper.EntitiesConfig{
 			Endpoints: []*entities.Endpoint{factory.EndpointP(func(o *entities.Endpoint) {
 				o.RateLimit = &entities.RateLimit{
-					Quota:    3,
-					Interval: interval,
+					Quota:  3,
+					Period: interval,
 				}
 			})},
 			Sources: []*entities.Source{factory.SourceP()},

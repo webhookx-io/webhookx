@@ -57,8 +57,8 @@ func (m *Headers) UnmarshalJSON(data []byte) error {
 type Strings = pq.StringArray
 
 type RateLimit struct {
-	Quota    int `json:"quota"`
-	Interval int `json:"interval"`
+	Quota  int `json:"quota"`
+	Period int `json:"period"`
 }
 
 func (m *RateLimit) Scan(src interface{}) error {

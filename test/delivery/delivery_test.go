@@ -343,13 +343,13 @@ var _ = Describe("delivery", Ordered, func() {
 
 		var app *app.Application
 		var db *db.DB
-		interval := 5
+		period := 5
 
 		entitiesConfig := helper.EntitiesConfig{
 			Endpoints: []*entities.Endpoint{factory.EndpointP(func(o *entities.Endpoint) {
 				o.RateLimit = &entities.RateLimit{
 					Quota:  3,
-					Period: interval,
+					Period: period,
 				}
 			})},
 			Sources: []*entities.Source{factory.SourceP()},
@@ -387,7 +387,7 @@ var _ = Describe("delivery", Ordered, func() {
 			}, time.Second*5, time.Second)
 
 			// wait for attempt to be retried after rate limiting is reset
-			time.Sleep(time.Second * time.Duration(interval) * 2)
+			time.Sleep(time.Second * time.Duration(period) * 2)
 
 			q := query.AttemptQuery{}
 			q.EndpointId = &entitiesConfig.Endpoints[0].ID

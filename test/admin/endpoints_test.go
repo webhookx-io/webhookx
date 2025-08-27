@@ -180,7 +180,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 					Post("/workspaces/default/endpoints")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
-				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"rate_limit":{"interval":"required field missing","quota":"required field missing"}}}}`, string(resp.Body()))
+				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"rate_limit":{"period":"required field missing","quota":"required field missing"}}}}`, string(resp.Body()))
 			})
 
 			It("return HTTP 400 for invalid rate_limit: invalid properties", func() {
@@ -190,8 +190,8 @@ var _ = Describe("/endpoints", Ordered, func() {
 							"url": "https://example.com",
 						},
 						"rate_limit": map[string]interface{}{
-							"quota":    -1,
-							"interval": 1,
+							"quota":  -1,
+							"period": 1,
 						},
 					}).
 					Post("/workspaces/default/endpoints")
@@ -205,14 +205,14 @@ var _ = Describe("/endpoints", Ordered, func() {
 							"url": "https://example.com",
 						},
 						"rate_limit": map[string]interface{}{
-							"quota":    0,
-							"interval": 0,
+							"quota":  0,
+							"period": 0,
 						},
 					}).
 					Post("/workspaces/default/endpoints")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
-				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"rate_limit":{"interval":"number must be at least 1"}}}}`, string(resp.Body()))
+				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"rate_limit":{"period":"number must be at least 1"}}}}`, string(resp.Body()))
 			})
 		})
 	})

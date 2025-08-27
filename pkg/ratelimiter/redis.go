@@ -3,6 +3,7 @@ package ratelimiter
 import (
 	"context"
 	"github.com/go-redis/redis_rate/v10"
+	"github.com/redis/go-redis/v9"
 	"time"
 )
 
@@ -10,14 +11,13 @@ type RedisLimiter struct {
 	limiter *redis_rate.Limiter
 }
 
-func NewRedisLimiter(limiter *redis_rate.Limiter) *RedisLimiter {
+func NewRedisLimiter(client *redis.Client) *RedisLimiter {
 	return &RedisLimiter{
-		limiter: limiter,
+		limiter: redis_rate.NewLimiter(client),
 	}
 }
 
-func (rl *RedisLimiter) Allow(ctx context.Context, key string, quota int, duration time.Duration) (Result, error) {
-	res := Result{}
+func (rl *RedisLimiter) Allow(ctx context.Context, key string, quota int, duration time.Duration) (res Result, err error) {
 	limit := redis_rate.Limit{
 		Rate:   quota,
 		Burst:  quota,

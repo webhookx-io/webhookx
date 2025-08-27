@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis_rate/v10"
 	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/admin"
@@ -224,7 +223,7 @@ func (app *Application) initialize() error {
 			Tracer:      tracer,
 			EventBus:    app.bus,
 			Srv:         app.srv,
-			RateLimiter: ratelimiter.NewRedisLimiter(redis_rate.NewLimiter(client)),
+			RateLimiter: ratelimiter.NewRedisLimiter(client),
 		}
 		if cfg.AccessLog.Enabled() {
 			accessLogger, err := accesslog.NewAccessLogger("proxy", accesslog.Options{

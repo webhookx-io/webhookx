@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis_rate/v10"
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/redis/go-redis/v9"
@@ -104,7 +103,7 @@ func NewWorker(opts Options) *Worker {
 		metrics:     opts.Metrics,
 		tracer:      opts.Tracer,
 		srv:         opts.Srv,
-		rateLimiter: ratelimiter.NewRedisLimiter(redis_rate.NewLimiter(opts.RedisClient)),
+		rateLimiter: ratelimiter.NewRedisLimiter(opts.RedisClient),
 	}
 
 	worker.registerEventHandler(opts.EventBus)

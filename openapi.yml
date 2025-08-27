@@ -970,13 +970,16 @@ components:
     RateLimit:
       type: object
       nullable: true
+      description: rate limiting uses the GCRA algorithm (a variant of the leaky bucket algorithm that supports bursts).
       properties:
         quota:
           type: integer
           minimum: 0
+          description: rate limiting quota.
         interval:
           type: integer
           minimum: 1
+          description: rate limiting interval, in seconds.
       required:
         - quota
         - interval

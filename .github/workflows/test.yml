@@ -31,12 +31,6 @@ jobs:
         fail_ci_if_error: true
         flags: unit
 
-    services:
-      httpbin:
-        image: kennethreitz/httpbin
-        ports:
-          - 9999:80
-
   integration-tests:
     runs-on: ubuntu-latest
 

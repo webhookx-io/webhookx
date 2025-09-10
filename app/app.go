@@ -20,6 +20,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/reports"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
@@ -363,6 +364,12 @@ func (app *Application) Start() error {
 	}
 	if app.status != nil {
 		app.status.Start()
+	}
+
+	if app.cfg.AnonymousReports {
+		reports.Start()
+	} else {
+		app.log.Info("anonymous reports is disabled")
 	}
 
 	app.started = true

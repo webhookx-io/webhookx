@@ -43,6 +43,8 @@ redis:
                                     # - `dp_proxy`: this node runs as the Proxy data plane.
                                     # - `dp_worker`: this node runs as the Worker data plane.
 
+anonymous_reports: true             # sends anonymous data such as software version to WebhookX.
+
 #------------------------------------------------------------------------------
 # ADMIN
 #------------------------------------------------------------------------------

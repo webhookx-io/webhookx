@@ -26,17 +26,18 @@ const (
 )
 
 type Config struct {
-	Log       LogConfig       `yaml:"log" json:"log" envconfig:"LOG"`
-	AccessLog AccessLogConfig `yaml:"access_log" json:"access_log" envconfig:"ACCESS_LOG"`
-	Database  DatabaseConfig  `yaml:"database" json:"database" envconfig:"DATABASE"`
-	Redis     RedisConfig     `yaml:"redis" json:"redis" envconfig:"REDIS"`
-	Admin     AdminConfig     `yaml:"admin" json:"admin" envconfig:"ADMIN"`
-	Status    StatusConfig    `yaml:"status" json:"status" envconfig:"STATUS"`
-	Proxy     ProxyConfig     `yaml:"proxy" json:"proxy" envconfig:"PROXY"`
-	Worker    WorkerConfig    `yaml:"worker" json:"worker" envconfig:"WORKER"`
-	Metrics   MetricsConfig   `yaml:"metrics" json:"metrics" envconfig:"METRICS"`
-	Tracing   TracingConfig   `yaml:"tracing" json:"tracing" envconfig:"TRACING"`
-	Role      Role            `yaml:"role" json:"role" envconfig:"ROLE" default:"standalone"`
+	Log              LogConfig       `yaml:"log" json:"log" envconfig:"LOG"`
+	AccessLog        AccessLogConfig `yaml:"access_log" json:"access_log" envconfig:"ACCESS_LOG"`
+	Database         DatabaseConfig  `yaml:"database" json:"database" envconfig:"DATABASE"`
+	Redis            RedisConfig     `yaml:"redis" json:"redis" envconfig:"REDIS"`
+	Admin            AdminConfig     `yaml:"admin" json:"admin" envconfig:"ADMIN"`
+	Status           StatusConfig    `yaml:"status" json:"status" envconfig:"STATUS"`
+	Proxy            ProxyConfig     `yaml:"proxy" json:"proxy" envconfig:"PROXY"`
+	Worker           WorkerConfig    `yaml:"worker" json:"worker" envconfig:"WORKER"`
+	Metrics          MetricsConfig   `yaml:"metrics" json:"metrics" envconfig:"METRICS"`
+	Tracing          TracingConfig   `yaml:"tracing" json:"tracing" envconfig:"TRACING"`
+	Role             Role            `yaml:"role" json:"role" envconfig:"ROLE" default:"standalone"`
+	AnonymousReports bool            `yaml:"anonymous_reports" json:"anonymous_reports" envconfig:"ANONYMOUS_REPORTS" default:"true"`
 }
 
 func (cfg Config) String() string {

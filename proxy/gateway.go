@@ -319,7 +319,7 @@ func (gw *Gateway) Start() {
 		gw.queue.StartListen(gw.ctx, gw.HandleMessages)
 	}
 
-	schedule.Schedule(gw.ctx, func() {
+	schedule.ScheduleWithoutDelay(gw.ctx, func() {
 		version := store.GetDefault("router:version", "init").(string)
 		if gw.routerVersion == version {
 			return
@@ -328,7 +328,7 @@ func (gw *Gateway) Start() {
 	}, time.Second)
 
 	if gw.metrics.Enabled && gw.queue != nil {
-		schedule.Schedule(gw.ctx, func() {
+		schedule.ScheduleWithoutDelay(gw.ctx, func() {
 			stats := stats.Stats(gw.queue.Stats())
 			size := stats.Int64("eventqueue.size")
 			gw.metrics.EventPendingGauge.Set(float64(size))

@@ -42,7 +42,7 @@ func NewRootCmd() *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "", false, "Verbose logging.")
 
 	cmd.AddCommand(newVersionCmd())
-	cmd.AddCommand(newMigrationsCmd())
+	cmd.AddCommand(newDatabaseCmd())
 	cmd.AddCommand(newStartCmd())
 	cmd.AddCommand(newAdminCmd())
 

@@ -2,8 +2,6 @@ package test
 
 import (
 	"github.com/stretchr/testify/suite"
-	"github.com/webhookx-io/webhookx/config"
-	"github.com/webhookx-io/webhookx/db/migrator"
 	"path/filepath"
 	"runtime"
 )
@@ -25,18 +23,4 @@ type BasicSuite struct {
 
 func (s *BasicSuite) SetupSuite() {
 
-}
-
-func (s *BasicSuite) ResetDatabase() error {
-	cfg, err := config.Init()
-	if err != nil {
-		return err
-	}
-
-	migrator := migrator.New(&cfg.Database)
-	err = migrator.Reset()
-	if err != nil {
-		return err
-	}
-	return migrator.Up()
 }

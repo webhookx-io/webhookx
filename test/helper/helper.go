@@ -231,7 +231,12 @@ func resetDB() error {
 		return err
 	}
 
-	migrator := migrator.New(&cfg.Database)
+	sqlDB, err := db.NewSqlDB(cfg.Database)
+	if err != nil {
+		return err
+	}
+
+	migrator := migrator.New(sqlDB, &migrator.Options{Quiet: true})
 	err = migrator.Reset()
 	if err != nil {
 		return err

@@ -12,6 +12,7 @@ import (
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/db/migrator"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
@@ -325,6 +326,18 @@ func (app *Application) Start() error {
 
 	if app.started {
 		return ErrApplicationStarted
+	}
+
+	migrator := migrator.New(app.db.DB.DB, nil)
+	dbStatus, err := migrator.Status()
+	if err != nil {
+		return err
+	}
+	if dbStatus.Dirty {
+		return fmt.Errorf("database is in a dirty state at version %d", dbStatus.Version)
+	}
+	if len(dbStatus.Pendings) > 0 {
+		return errors.New("database is not up to date. Run 'webhookx db up' before starting")
 	}
 
 	app.log.Infof("starting WebhookX %s", config.VERSION)

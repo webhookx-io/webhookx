@@ -17,11 +17,12 @@ var statusOutputInit = `1 init (⏳ pending)
 7 plugins_source_id (⏳ pending)
 8 metadata (⏳ pending)
 9 timestamp (⏳ pending)
+10 ratelimit (⏳ pending)
 Summary:
   Current version: 0
   Dirty: false
   Executed: 0
-  Pending: 9
+  Pending: 10
 `
 
 var statusOutputDone = `1 init (✅ executed)
@@ -33,23 +34,12 @@ var statusOutputDone = `1 init (✅ executed)
 7 plugins_source_id (✅ executed)
 8 metadata (✅ executed)
 9 timestamp (✅ executed)
+10 ratelimit (✅ executed)
 Summary:
-  Current version: 9
+  Current version: 10
   Dirty: false
-  Executed: 9
+  Executed: 10
   Pending: 0
-`
-
-var upOutput = `1/u init (13.461375ms)
-2/u attempts (16.181459ms)
-3/u create_attempt_details_table (19.496417ms)
-4/u plugins (22.744833ms)
-5/u fix_attempt_details (27.830041ms)
-6/u async_ingestion (44.369791ms)
-7/u plugins_source_id (48.999125ms)
-8/u metadata (54.387791ms)
-9/u timestamp (58.072125ms)
-database is up-to-date
 `
 
 var _ = Describe("db", Ordered, func() {
@@ -78,12 +68,12 @@ var _ = Describe("db", Ordered, func() {
 			assert.Nil(GinkgoT(), m.Reset())
 			output, err := executeCommand(cmd.NewRootCmd(), "db", "up")
 			assert.Nil(GinkgoT(), err)
-			assert.Contains(GinkgoT(), upOutput, output)
+			assert.Equal(GinkgoT(), "database is up-to-date\n", output)
 
 			// runs up again
 			output, err = executeCommand(cmd.NewRootCmd(), "db", "up")
 			assert.Nil(GinkgoT(), err)
-			assert.Contains(GinkgoT(), "database is up-to-date\n", output)
+			assert.Equal(GinkgoT(), "database is up-to-date\n", output)
 		})
 	})
 

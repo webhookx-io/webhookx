@@ -2,8 +2,10 @@ package delivery
 
 import (
 	"context"
+	"fmt"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
+	"net"
 	"strconv"
 	"testing"
 	"time"
@@ -20,6 +22,19 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
 )
+
+func waitForServer(addr string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		conn, err := net.DialTimeout("tcp", addr, time.Second)
+		if err == nil {
+			_ = conn.Close()
+			return nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return fmt.Errorf("server at %s not ready after %v", addr, timeout)
+}
 
 var _ = Describe("delivery", Ordered, func() {
 	Context("sanity", func() {
@@ -319,6 +334,67 @@ var _ = Describe("delivery", Ordered, func() {
 				assert.NoError(GinkgoT(), err)
 				return model.Status == entities.AttemptStatusSuccess
 			}, time.Second*5, time.Second)
+
+		})
+	})
+
+	Context("rate limit", func() {
+		var proxyClient *resty.Client
+
+		var app *app.Application
+		var db *db.DB
+		period := 5
+
+		entitiesConfig := helper.EntitiesConfig{
+			Endpoints: []*entities.Endpoint{factory.EndpointP(func(o *entities.Endpoint) {
+				o.RateLimit = &entities.RateLimit{
+					Quota:  3,
+					Period: period,
+				}
+			})},
+			Sources: []*entities.Source{factory.SourceP()},
+		}
+
+		BeforeAll(func() {
+			db = helper.InitDB(true, &entitiesConfig)
+			proxyClient = helper.ProxyClient()
+
+			app = utils.Must(helper.Start(map[string]string{
+				"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
+				"WEBHOOKX_WORKER_ENABLED": "true",
+			}))
+		})
+
+		AfterAll(func() {
+			app.Stop()
+		})
+
+		It("rate limiting", func() {
+			err := waitForServer("0.0.0.0:8081", time.Second)
+			assert.NoError(GinkgoT(), err)
+
+			for i := 1; i <= 4; i++ {
+				resp, err := proxyClient.R().
+					SetBody(`{"event_type": "foo.bar","data": {"key": "value"}}`).
+					Post("/")
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 200, resp.StatusCode())
+			}
+
+			assert.Eventually(GinkgoT(), func() bool {
+				matched, err := helper.FileHasLine("webhookx.log", "^.*rate limit.*$")
+				return err == nil && matched
+			}, time.Second*5, time.Second)
+
+			// wait for attempt to be retried after rate limiting is reset
+			time.Sleep(time.Second * time.Duration(period) * 2)
+
+			q := query.AttemptQuery{}
+			q.EndpointId = &entitiesConfig.Endpoints[0].ID
+			q.Status = utils.Pointer(entities.AttemptStatusSuccess)
+			count, err := db.Attempts.Count(context.TODO(), q.WhereMap())
+			assert.NoError(GinkgoT(), err)
+			assert.EqualValues(GinkgoT(), 4, count)
 
 		})
 	})

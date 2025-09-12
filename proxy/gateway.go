@@ -20,6 +20,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/queue/redis"
+	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/store"
@@ -35,9 +36,11 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"runtime"
+	"strconv"
 	"sync/atomic"
 	"time"
 )
@@ -72,8 +75,9 @@ type Gateway struct {
 	tracer  *tracing.Tracer
 	bus     eventbus.Bus
 
-	limiter *loglimiter.Limiter
-	srv     *service.Service
+	limiter     *loglimiter.Limiter
+	srv         *service.Service
+	rateLimiter ratelimiter.RateLimiter
 }
 
 type Options struct {
@@ -85,6 +89,7 @@ type Options struct {
 	Tracer      *tracing.Tracer
 	EventBus    eventbus.Bus
 	Srv         *service.Service
+	RateLimiter ratelimiter.RateLimiter
 }
 
 func init() {
@@ -112,16 +117,17 @@ func NewGateway(opts Options) *Gateway {
 	}
 
 	gw := &Gateway{
-		cfg:        opts.Cfg,
-		log:        zap.S().Named("proxy"),
-		db:         opts.DB,
-		dispatcher: opts.Dispatcher,
-		queue:      q,
-		metrics:    opts.Metrics,
-		tracer:     opts.Tracer,
-		bus:        opts.EventBus,
-		limiter:    loglimiter.NewLimiter(time.Second),
-		srv:        opts.Srv,
+		cfg:         opts.Cfg,
+		log:         zap.S().Named("proxy"),
+		db:          opts.DB,
+		dispatcher:  opts.Dispatcher,
+		queue:       q,
+		metrics:     opts.Metrics,
+		tracer:      opts.Tracer,
+		bus:         opts.EventBus,
+		limiter:     loglimiter.NewLimiter(time.Second),
+		srv:         opts.Srv,
+		rateLimiter: opts.RateLimiter,
 	}
 
 	gw.router.Store(router.NewRouter(nil))
@@ -188,7 +194,7 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 
-	ctx := ucontext.WithContext(r.Context(), &ucontext.UContext{
+	ctx := ucontext.WithContext(context.WithoutCancel(r.Context()), &ucontext.UContext{
 		WorkspaceID: source.WorkspaceId,
 	})
 
@@ -201,6 +207,25 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 		span.SetAttributes(semconv.HTTPRoute(source.Path))
 		defer span.End()
 		ctx = tracingCtx
+	}
+
+	if source.RateLimit != nil {
+		d := time.Duration(source.RateLimit.Period) * time.Second
+		res, err := gw.rateLimiter.Allow(ctx, source.ID, source.RateLimit.Quota, d)
+		if err != nil {
+			gw.log.Errorf("failed to execute rate limiting: %v", err)
+			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
+			return false
+		}
+		w.Header().Set("X-RateLimit-Limit", strconv.Itoa(source.RateLimit.Quota))
+		w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(res.Remaining))
+		w.Header().Set("X-RateLimit-Reset", strconv.Itoa(int(math.Ceil(res.Reset.Seconds()))))
+		if !res.Allowed {
+			w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(res.RetryAfter.Seconds()))))
+			gw.log.Debugw("rate limit exceeded", "source", source.ID)
+			response.JSON(w, 429, types.ErrorResponse{Message: "rate limit exceeded"})
+			return false
+		}
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, gw.cfg.MaxRequestBodySize)

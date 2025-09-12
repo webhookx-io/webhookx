@@ -75,3 +75,7 @@ func (s *Service) GetTasks(ctx context.Context, opts *taskqueue.GetOptions) ([]*
 func (s *Service) DeleteTask(ctx context.Context, task *taskqueue.TaskMessage) error {
 	return s.queue.Delete(ctx, task)
 }
+
+func (s *Service) ScheduleTask(ctx context.Context, task *taskqueue.TaskMessage) error {
+	return s.queue.Schedule(ctx, task)
+}

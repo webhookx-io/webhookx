@@ -63,6 +63,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 
 			assert.Equal(GinkgoT(), entities.RetryStrategyFixed, result.Retry.Strategy)
 			assert.Equal(GinkgoT(), []int64{0, 60, 3600}, result.Retry.Config.Attempts)
+			assert.Nil(GinkgoT(), result.RateLimit)
 
 			e, err := db.Endpoints.Get(context.TODO(), result.ID)
 			assert.Nil(GinkgoT(), err)
@@ -166,6 +167,52 @@ var _ = Describe("/endpoints", Ordered, func() {
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.JSONEq(GinkgoT(), expected, string(resp.Body()))
+			})
+
+			It("return HTTP 400 for invalid rate_limit: missing required properties", func() {
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"request": map[string]interface{}{
+							"url": "https://example.com",
+						},
+						"rate_limit": map[string]interface{}{},
+					}).
+					Post("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"rate_limit":{"period":"required field missing","quota":"required field missing"}}}}`, string(resp.Body()))
+			})
+
+			It("return HTTP 400 for invalid rate_limit: invalid properties", func() {
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"request": map[string]interface{}{
+							"url": "https://example.com",
+						},
+						"rate_limit": map[string]interface{}{
+							"quota":  -1,
+							"period": 1,
+						},
+					}).
+					Post("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"rate_limit":{"quota":"number must be at least 0"}}}}`, string(resp.Body()))
+
+				resp, err = adminClient.R().
+					SetBody(map[string]interface{}{
+						"request": map[string]interface{}{
+							"url": "https://example.com",
+						},
+						"rate_limit": map[string]interface{}{
+							"quota":  0,
+							"period": 0,
+						},
+					}).
+					Post("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"rate_limit":{"period":"number must be at least 1"}}}}`, string(resp.Body()))
 			})
 		})
 	})

@@ -20,6 +20,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
 	"github.com/webhookx-io/webhookx/pkg/reports"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
@@ -215,13 +216,14 @@ func (app *Application) initialize() error {
 	// gateway
 	if cfg.Proxy.IsEnabled() {
 		opts := proxy.Options{
-			Cfg:        &cfg.Proxy,
-			DB:         db,
-			Dispatcher: dispatcher,
-			Metrics:    app.metrics,
-			Tracer:     tracer,
-			EventBus:   app.bus,
-			Srv:        app.srv,
+			Cfg:         &cfg.Proxy,
+			DB:          db,
+			Dispatcher:  dispatcher,
+			Metrics:     app.metrics,
+			Tracer:      tracer,
+			EventBus:    app.bus,
+			Srv:         app.srv,
+			RateLimiter: ratelimiter.NewRedisLimiter(client),
 		}
 		if cfg.AccessLog.Enabled() {
 			accessLogger, err := accesslog.NewAccessLogger("proxy", accesslog.Options{

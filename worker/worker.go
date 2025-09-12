@@ -18,6 +18,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/pool"
+	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
@@ -40,6 +41,8 @@ var (
 	processing atomic.Int64
 )
 
+var ErrRateLimitExceeded = errors.New("rate limit exceeded")
+
 type Worker struct {
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -48,12 +51,13 @@ type Worker struct {
 
 	log *zap.SugaredLogger
 
-	deliverer deliverer.Deliverer
-	db        *db.DB
-	tracer    *tracing.Tracer
-	pool      *pool.Pool
-	metrics   *metrics.Metrics
-	srv       *service.Service
+	deliverer   deliverer.Deliverer
+	db          *db.DB
+	tracer      *tracing.Tracer
+	pool        *pool.Pool
+	metrics     *metrics.Metrics
+	srv         *service.Service
+	rateLimiter ratelimiter.RateLimiter
 }
 
 type Options struct {
@@ -89,16 +93,17 @@ func NewWorker(opts Options) *Worker {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	worker := &Worker{
-		ctx:       ctx,
-		cancel:    cancel,
-		opts:      opts,
-		log:       zap.S().Named("worker"),
-		deliverer: opts.Deliverer,
-		db:        opts.DB,
-		pool:      pool.NewPool(opts.PoolSize, opts.PoolConcurrency),
-		metrics:   opts.Metrics,
-		tracer:    opts.Tracer,
-		srv:       opts.Srv,
+		ctx:         ctx,
+		cancel:      cancel,
+		opts:        opts,
+		log:         zap.S().Named("worker"),
+		deliverer:   opts.Deliverer,
+		db:          opts.DB,
+		pool:        pool.NewPool(opts.PoolSize, opts.PoolConcurrency),
+		metrics:     opts.Metrics,
+		tracer:      opts.Tracer,
+		srv:         opts.Srv,
+		rateLimiter: ratelimiter.NewRedisLimiter(opts.RedisClient),
 	}
 
 	worker.registerEventHandler(opts.EventBus)
@@ -218,6 +223,9 @@ func (w *Worker) run() {
 
 						err = w.handleTask(ctx, task)
 						if err != nil {
+							if errors.Is(ErrRateLimitExceeded, err) {
+								return
+							}
 							// TODO: delete task when causes error too many times (maxReceiveCount)
 							w.log.Errorf("failed to handle task: %v", err)
 							return
@@ -325,6 +333,22 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	}
 	if !endpoint.Enabled {
 		return w.db.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeEndpointDisabled)
+	}
+	if endpoint.RateLimit != nil {
+		d := time.Duration(endpoint.RateLimit.Period) * time.Second
+		res, err := w.rateLimiter.Allow(ctx, endpoint.ID, endpoint.RateLimit.Quota, d)
+		if err != nil {
+			return err
+		}
+		if !res.Allowed {
+			task.ScheduledAt = time.Now().Add(d)
+			w.log.Debugw("rate limit exceeded", "endpoint", endpoint.ID, "task", task.ID, "next", task.ScheduledAt)
+			err := w.srv.ScheduleTask(ctx, task)
+			if err != nil {
+				return err
+			}
+			return ErrRateLimitExceeded
+		}
 	}
 
 	if data.Event == "" { // backward compatibility

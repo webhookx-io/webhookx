@@ -766,6 +766,8 @@ components:
           default: []
         metadata:
           $ref: "#/components/schemas/Metadata"
+        rate_limit:
+          $ref: "#/components/schemas/RateLimit"
         created_at:
           type: integer
           readOnly: true
@@ -899,6 +901,8 @@ components:
             - content_type
         metadata:
           $ref: "#/components/schemas/Metadata"
+        rate_limit:
+          $ref: "#/components/schemas/RateLimit"
         created_at:
           type: integer
           readOnly: true
@@ -962,3 +966,20 @@ components:
                     type: array
                     items:
                       $ref: "#/components/schemas/Plugin"
+
+    RateLimit:
+      type: object
+      nullable: true
+      description: The rate limit that uses GCRA algorithm (a variant of the leaky bucket algorithm that supports bursts).
+      properties:
+        quota:
+          type: integer
+          minimum: 0
+          description: Rate limiting quota that allowed in every period.
+        period:
+          type: integer
+          minimum: 1
+          description: Rate limiting period in seconds.
+      required:
+        - quota
+        - period

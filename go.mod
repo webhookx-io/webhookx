@@ -1,6 +1,6 @@
 module github.com/webhookx-io/webhookx
 
-go 1.24.5
+go 1.25.1
 
 require (
 	github.com/Masterminds/squirrel v1.5.4

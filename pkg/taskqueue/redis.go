@@ -102,6 +102,14 @@ func (q *RedisTaskQueue) Add(ctx context.Context, tasks []*TaskMessage) error {
 	return err
 }
 
+func (q *RedisTaskQueue) Schedule(ctx context.Context, task *TaskMessage) error {
+	q.log.Debugf("scheduling task %s at %s", task.ID, task.ScheduledAt)
+	return q.c.ZAdd(ctx, q.queue, redis.Z{
+		Score:  float64(task.ScheduledAt.UnixMilli()),
+		Member: task.ID,
+	}).Err()
+}
+
 func (q *RedisTaskQueue) Get(ctx context.Context, opts *GetOptions) ([]*TaskMessage, error) {
 	ctx, span := tracing.Start(ctx, "taskqueue.redis.get", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()

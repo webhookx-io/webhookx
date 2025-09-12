@@ -10,6 +10,7 @@ require (
 	github.com/getkin/kin-openapi v0.132.0
 	github.com/go-kit/kit v0.13.0
 	github.com/go-playground/validator/v10 v10.26.0
+	github.com/go-redis/redis_rate/v10 v10.0.1
 	github.com/go-redsync/redsync/v4 v4.13.0
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/golang-migrate/migrate/v4 v4.18.3

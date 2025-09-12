@@ -55,3 +55,16 @@ func (m *Headers) UnmarshalJSON(data []byte) error {
 }
 
 type Strings = pq.StringArray
+
+type RateLimit struct {
+	Quota    int `json:"quota"`
+	Interval int `json:"interval"`
+}
+
+func (m *RateLimit) Scan(src interface{}) error {
+	return json.Unmarshal(src.([]byte), m)
+}
+
+func (m RateLimit) Value() (driver.Value, error) {
+	return json.Marshal(m)
+}

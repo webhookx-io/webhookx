@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-redis/redis_rate/v10"
 	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/admin"
@@ -20,6 +21,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/cache"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
 	"github.com/webhookx-io/webhookx/pkg/reports"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
@@ -215,13 +217,14 @@ func (app *Application) initialize() error {
 	// gateway
 	if cfg.Proxy.IsEnabled() {
 		opts := proxy.Options{
-			Cfg:        &cfg.Proxy,
-			DB:         db,
-			Dispatcher: dispatcher,
-			Metrics:    app.metrics,
-			Tracer:     tracer,
-			EventBus:   app.bus,
-			Srv:        app.srv,
+			Cfg:         &cfg.Proxy,
+			DB:          db,
+			Dispatcher:  dispatcher,
+			Metrics:     app.metrics,
+			Tracer:      tracer,
+			EventBus:    app.bus,
+			Srv:         app.srv,
+			RateLimiter: ratelimiter.NewRedisLimiter(redis_rate.NewLimiter(client)),
 		}
 		if cfg.AccessLog.Enabled() {
 			accessLogger, err := accesslog.NewAccessLogger("proxy", accesslog.Options{

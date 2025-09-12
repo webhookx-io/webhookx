@@ -19,6 +19,7 @@ endpoints:
       - foo.bar
     metadata:
       k: v
+    rate_limit: null
     plugins:
       - id: 2q6ItZRVNB0EyVr6j8Pxa7VTohU
         name: webhookx-signature
@@ -40,4 +41,5 @@ sources:
     response: null
     metadata:
       k: v
+    rate_limit: null
     plugins: []

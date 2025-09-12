@@ -1,0 +1,3 @@
+ALTER TABLE IF EXISTS ONLY "sources" DROP COLUMN IF EXISTS "rate_limit";
+ALTER TABLE IF EXISTS ONLY "endpoints" DROP COLUMN IF EXISTS "rate_limit";
+

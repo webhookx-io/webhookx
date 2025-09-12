@@ -341,8 +341,8 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 			return err
 		}
 		if !res.Allowed {
-			w.log.Debugf("endpoint %s rate limit exceeded to %s", endpoint.ID, task.ID)
 			task.ScheduledAt = time.Now().Add(d)
+			w.log.Debugw("rate limit exceeded", "endpoint", endpoint.ID, "task", task.ID, "next", task.ScheduledAt)
 			err := w.srv.ScheduleTask(ctx, task)
 			if err != nil {
 				return err

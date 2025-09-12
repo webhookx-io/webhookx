@@ -213,6 +213,7 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 		d := time.Duration(source.RateLimit.Period) * time.Second
 		res, err := gw.rateLimiter.Allow(ctx, source.ID, source.RateLimit.Quota, d)
 		if err != nil {
+			gw.log.Errorf("failed to execute rate limiting: %v", err)
 			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
 			return false
 		}
@@ -221,7 +222,7 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 		w.Header().Set("X-RateLimit-Reset", strconv.Itoa(int(math.Ceil(res.Reset.Seconds()))))
 		if !res.Allowed {
 			w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(res.RetryAfter.Seconds()))))
-			gw.log.Debugf("source rate limit exceeded: %s", source.ID)
+			gw.log.Debugw("rate limit exceeded", "source", source.ID)
 			response.JSON(w, 429, types.ErrorResponse{Message: "rate limit exceeded"})
 			return false
 		}

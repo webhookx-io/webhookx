@@ -975,11 +975,11 @@ components:
         quota:
           type: integer
           minimum: 0
-          description: rate limiting quota per period.
+          description: Rate limiting quota that allowed in every period.
         period:
           type: integer
           minimum: 1
-          description: rate limiting period, in seconds.
+          description: Rate limiting period in seconds.
       required:
         - quota
         - period

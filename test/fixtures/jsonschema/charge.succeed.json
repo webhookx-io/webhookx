@@ -1,0 +1,22 @@
+{
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "string"
+        },
+        "amount": {
+            "type": "integer",
+            "minimum": 1
+        },
+        "currency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 6
+        }
+    },
+    "required": [
+        "id",
+        "amount",
+        "currency"
+    ]
+}

@@ -5,6 +5,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"reflect"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -49,6 +50,15 @@ func init() {
 	RegisterFormatter("max", func(fe validator.FieldError) string {
 		return fmt.Sprintf("length must be at most %s", fe.Param())
 	})
+	RegisterFormatter("url", func(fe validator.FieldError) string {
+		return "value must be a valid url"
+	})
+	RegisterFormatter("file", func(fe validator.FieldError) string {
+		return "value must be a valid exist file"
+	})
+	RegisterFormatter("json", func(fe validator.FieldError) string {
+		return "value must be a valid json string"
+	})
 }
 
 func RegisterValidation(tag string, fn validator.Func) {
@@ -64,15 +74,31 @@ func RegisterFormatter(tag string, fn func(fe validator.FieldError) string) {
 	formatters[tag] = fn
 }
 
+const fieldPlacehoder = "#field%d"
+
 func Validate(v interface{}) error {
 	err := validate.Struct(v)
 	if err != nil {
 		validateErr := errs.NewValidateError(errs.ErrRequestValidation)
 		for _, e := range err.(validator.ValidationErrors) {
-			fields := strings.Split(e.Namespace(), ".")
+			namespace := e.Namespace()
+			placeholders := make(map[string]string)
+			if strings.ContainsAny(namespace, "[]") {
+				re := regexp.MustCompile(`\w+\[[^\]]+\]`)
+				matches := re.FindAllString(namespace, -1)
+				for i, field := range matches {
+					idx := fmt.Sprintf(fieldPlacehoder, i)
+					placeholders[idx] = field
+					namespace = strings.Replace(namespace, field, idx, 1)
+				}
+			}
+			fields := strings.Split(namespace, ".")
 			node := validateErr.Fields
 			for i := 1; i < len(fields); i++ {
 				fieldName := fields[i]
+				if actualField, ok := placeholders[fieldName]; ok {
+					fieldName = actualField
+				}
 				if i < len(fields)-1 {
 					if node[fieldName] == nil {
 						node[fieldName] = make(map[string]interface{})

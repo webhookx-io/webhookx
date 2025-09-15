@@ -1,6 +1,7 @@
 package declarative
 
 import (
+	"fmt"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -39,6 +40,44 @@ endpoints:
     plugins:
       - name: foo
 `
+
+	invalidSourcePluginJSONSchemaJSONYAML = `
+sources:
+  - name: default-source
+    path: /
+    methods: ["POST"]
+    plugins:
+      - name: "jsonschema-validator"
+        config:
+          schemas:
+            charge.succeed:
+              json: '%s'
+`
+
+	invalidSourcePluginJSONSchemaFileYAML = `
+sources:
+  - name: default-source
+    path: /
+    methods: ["POST"]
+    plugins:
+      - name: "jsonschema-validator"
+        config:
+          schemas:
+            charge.succeed:
+              file: "%s"
+`
+	invalidSourcePluginJSONSchemaURLYAML = `
+sources:
+  - name: default-source
+    path: /
+    methods: ["POST"]
+    plugins:
+      - name: "jsonschema-validator"
+        config:
+          schemas:
+            charge.succeed:
+              url: "http://localhost/charge.succeed.json"
+`
 )
 
 var _ = Describe("Declarative", Ordered, func() {
@@ -65,6 +104,7 @@ var _ = Describe("Declarative", Ordered, func() {
 			resp, err := adminClient.R().
 				SetBody(string(yaml)).
 				Post("/workspaces/default/config/sync")
+			fmt.Print(string(resp.Body()))
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
 		})
@@ -101,6 +141,62 @@ var _ = Describe("Declarative", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"name":"unknown plugin name 'foo'"}}}`, string(resp.Body()))
+			})
+
+			It("should return 400 for invalid jsonschema-validator plugin config json string", func() {
+				resp, err := adminClient.R().
+					SetBody(fmt.Sprintf(invalidSourcePluginJSONSchemaJSONYAML, "invalid jsonstring")).
+					Post("/workspaces/default/config/sync")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"schemas[charge.succeed]":{"json":"value must be a valid json string"}}}}}`,
+					string(resp.Body()))
+			})
+
+			It("should return 400 for invalid jsonschema-validator plugin config jsonschema", func() {
+				resp, err := adminClient.R().
+					SetBody(fmt.Sprintf(invalidSourcePluginJSONSchemaJSONYAML, `{"type":"invalidObject"}`)).
+					Post("/workspaces/default/config/sync")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"schemas[charge.succeed]":{"json":"invalid jsonschema: unsupported 'type' value \"invalidObject\""}}}}}`,
+					string(resp.Body()))
+			})
+
+			It("should return 400 for invalid jsonschema-validator plugin config file", func() {
+				resp, err := adminClient.R().
+					SetBody(fmt.Sprintf(invalidSourcePluginJSONSchemaFileYAML, "./notexist.json")).
+					Post("/workspaces/default/config/sync")
+
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"schemas[charge.succeed]":{"file":"value must be a valid exist file"}}}}}`,
+					string(resp.Body()))
+			})
+
+			It("should return 400 for invalid jsonschema-validator config file content", func() {
+				resp, err := adminClient.R().
+					SetBody(fmt.Sprintf(invalidSourcePluginJSONSchemaFileYAML, "../fixtures/jsonschema/invalid.json")).
+					Post("/workspaces/default/config/sync")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"schemas[charge.succeed]":{"file":"the content must be a valid json string"}}}}}`,
+					string(resp.Body()))
+			})
+
+			It("should return 400 for invalid source plugin config url", func() {
+				resp, err := adminClient.R().
+					SetBody(invalidSourcePluginJSONSchemaURLYAML).
+					Post("/workspaces/default/config/sync")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"schemas[charge.succeed]":{"url":"failed to fetch schema: Get \"http://localhost/charge.succeed.json\": dial tcp [::1]:80: connect: connection refused"}}}}}`,
+					string(resp.Body()))
 			})
 		})
 	})

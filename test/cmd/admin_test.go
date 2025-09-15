@@ -95,10 +95,13 @@ var _ = Describe("admin", Ordered, func() {
 
 				plugins, err = db.Plugins.ListSourcePlugin(context.TODO(), source.ID)
 				assert.NoError(GinkgoT(), err)
-				assert.Equal(GinkgoT(), 1, len(plugins))
+				assert.Equal(GinkgoT(), 2, len(plugins))
 				assert.Equal(GinkgoT(), "function", plugins[0].Name)
 				assert.Equal(GinkgoT(), true, plugins[0].Enabled)
 				assert.Equal(GinkgoT(), `{"function": "function handle() {}"}`, string(plugins[0].Config))
+				assert.Equal(GinkgoT(), `jsonschema-validator`, plugins[1].Name)
+				assert.Equal(GinkgoT(), true, plugins[1].Enabled)
+				assert.Equal(GinkgoT(), `{"schemas": {"charge.succeeded": {"url": "", "file": "", "json": "{\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" },\n      \"amount\": { \"type\": \"integer\", \"minimum\": 1 },\n      \"currency\": { \"type\": \"string\", \"minLength\": 3, \"maxLength\": 6 }\n  },\n  \"required\": [\"id\", \"amount\", \"currency\"]\n}\n"}}}`, string(plugins[1].Config))
 			})
 
 			It("entities not defined in the declarative configuration should be deleted", func() {

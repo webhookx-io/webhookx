@@ -1,6 +1,8 @@
 package dao
 
 import (
+	"errors"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/webhookx-io/webhookx/utils"
 	"reflect"
 	"strings"
@@ -29,4 +31,9 @@ func EachField(entity interface{}, fn func(field reflect.StructField, value refl
 			fn(field, value, column)
 		}
 	}
+}
+
+func is23505(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }

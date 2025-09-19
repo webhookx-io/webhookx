@@ -293,19 +293,22 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 		gw.metrics.EventTotalCounter.Add(1)
 	}
 
+	headers := Headers{}
+	headers["Content-Type"] = gw.cfg.Response.ContentType
+
+	if event.Key == nil {
+		// returns X-Webhookx-Event-Id header only when key is not present
+		headers[constants.HeaderEventId] = event.ID
+	}
+
 	if source.Response != nil {
-		exit(w, source.Response.Code, source.Response.Body, headers{
-			"Content-Type":          source.Response.ContentType,
-			constants.HeaderEventId: event.ID,
-		})
+		headers["Content-Type"] = source.Response.ContentType
+		exit(w, source.Response.Code, source.Response.Body, headers)
 		return true
 	}
 
 	// default response
-	exit(w, int(gw.cfg.Response.Code), gw.cfg.Response.Body, headers{
-		"Content-Type":          gw.cfg.Response.ContentType,
-		constants.HeaderEventId: event.ID,
-	})
+	exit(w, int(gw.cfg.Response.Code), gw.cfg.Response.Body, headers)
 	return true
 }
 
@@ -443,9 +446,9 @@ func (gw *Gateway) dispatch(ctx context.Context, events []*entities.Event) error
 	return nil
 }
 
-type headers map[string]string
+type Headers map[string]string
 
-func exit(w http.ResponseWriter, status int, body string, headers headers) {
+func exit(w http.ResponseWriter, status int, body string, headers Headers) {
 	for _, header := range constants.DefaultResponseHeaders {
 		w.Header().Set(header.Name, header.Value)
 	}

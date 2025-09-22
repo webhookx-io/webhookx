@@ -49,12 +49,12 @@ func (dao *eventDao) BatchInsertIgnoreConflict(ctx context.Context, events []*en
 				var id string
 				if e := dao.DB(ctx).GetContext(ctx, &id, statement, args...); e != nil {
 					if is23505(e) {
-						continue // the event id is duplicated
+						continue // ignore error when id is duplicated
 					}
-					if errors.Is(e, sql.ErrNoRows) { // the event key is duplicated
+					if errors.Is(e, sql.ErrNoRows) { // ignore error when key is duplicated
 						continue
 					}
-					return nil, e // otherwise, return e
+					return nil, e // otherwise, return error
 				}
 				inserteds = append(inserteds, id)
 			}

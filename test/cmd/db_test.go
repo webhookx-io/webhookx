@@ -18,7 +18,7 @@ var statusOutputInit = `1 init (⏳ pending)
 8 metadata (⏳ pending)
 9 timestamp (⏳ pending)
 10 ratelimit (⏳ pending)
-11 event_x (⏳ pending)
+11 event_key (⏳ pending)
 Summary:
   Current version: 0
   Dirty: false
@@ -36,7 +36,7 @@ var statusOutputDone = `1 init (✅ executed)
 8 metadata (✅ executed)
 9 timestamp (✅ executed)
 10 ratelimit (✅ executed)
-11 event_x (✅ executed)
+11 event_key (✅ executed)
 Summary:
   Current version: 11
   Dirty: false

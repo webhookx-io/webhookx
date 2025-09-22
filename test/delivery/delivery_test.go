@@ -420,7 +420,7 @@ var _ = Describe("delivery", Ordered, func() {
 			app.Stop()
 		})
 
-		It("sanity", func() {
+		It("should de-duplicate events by key", func() {
 			err := waitForServer("0.0.0.0:8081", time.Second)
 			assert.NoError(GinkgoT(), err)
 			for i := 1; i <= 2; i++ {

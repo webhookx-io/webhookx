@@ -296,8 +296,8 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 	headers := Headers{}
 	headers["Content-Type"] = gw.cfg.Response.ContentType
 
-	if event.Key == nil {
-		// returns X-Webhookx-Event-Id header only if key is not present
+	if event.UniqueId == nil {
+		// returns X-Webhookx-Event-Id header only if unique_id is not present
 		headers[constants.HeaderEventId] = event.ID
 	}
 

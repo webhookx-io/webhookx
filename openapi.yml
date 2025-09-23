@@ -851,6 +851,11 @@ components:
         ingested_at:
           type: integer
           description: "The time the event was ingested"
+        unique_id:
+          type: string
+          nullable: true
+          maxLength: 50
+          description: "The unique id used to de-duplication"
         created_at:
           type: integer
           readOnly: true

@@ -396,7 +396,7 @@ var _ = Describe("delivery", Ordered, func() {
 		})
 	})
 
-	Context("idempotence key", func() {
+	Context("unique_id", func() {
 		var proxyClient *resty.Client
 
 		var app *app.Application
@@ -420,12 +420,12 @@ var _ = Describe("delivery", Ordered, func() {
 			app.Stop()
 		})
 
-		It("should de-duplicate events by key", func() {
+		It("should de-duplicate events by unique_id", func() {
 			err := waitForServer("0.0.0.0:8081", time.Second)
 			assert.NoError(GinkgoT(), err)
 			for i := 1; i <= 2; i++ {
 				resp, err := proxyClient.R().
-					SetBody(`{"event_type": "foo.bar","data": {"key": "value"}, "key":"key1"}`).
+					SetBody(`{"event_type": "foo.bar","data": {"key": "value"}, "unique_id":"key1"}`).
 					Post("/")
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 200, resp.StatusCode())

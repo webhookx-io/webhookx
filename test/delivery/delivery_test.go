@@ -71,31 +71,26 @@ var _ = Describe("delivery", Ordered, func() {
 		})
 
 		It("sanity", func() {
+			err := waitForServer("0.0.0.0:8081", time.Second)
+			assert.NoError(GinkgoT(), err)
 			now := time.Now()
-			assert.Eventually(GinkgoT(), func() bool {
-				resp, err := proxyClient.R().
-					SetBody(`{
-					    "event_type": "foo.bar",
-					    "data": {"key": "value"}
-					}`).
-					Post("/")
-				return err == nil && resp.StatusCode() == 200
-			}, time.Second*5, time.Second)
 
-			var event *entities.Event
-			assert.Eventually(GinkgoT(), func() bool {
-				list, err := db.Events.List(context.TODO(), &query.EventQuery{})
-				if err != nil || len(list) != 1 {
-					return false
-				}
-				event = list[0]
-				return true
-			}, time.Second*5, time.Second)
+			resp, err := proxyClient.R().
+				SetBody(`{"event_type": "foo.bar","data": {"key": "value"}}`).
+				Post("/")
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 200, resp.StatusCode())
+			eventId := resp.Header().Get(constants.HeaderEventId)
+			event, err := db.Events.Get(context.TODO(), eventId)
+			assert.NoError(GinkgoT(), err)
+			assert.NotNil(GinkgoT(), event)
 			assert.True(GinkgoT(), event.IngestedAt.UnixMilli() >= now.UnixMilli())
 
 			var attempt *entities.Attempt
 			assert.Eventually(GinkgoT(), func() bool {
-				list, err := db.Attempts.List(context.TODO(), &query.AttemptQuery{})
+				q := query.AttemptQuery{}
+				q.EventId = &eventId
+				list, err := db.Attempts.List(context.TODO(), &q)
 				if err != nil || len(list) == 0 {
 					return false
 				}
@@ -133,6 +128,8 @@ var _ = Describe("delivery", Ordered, func() {
 			assert.Regexp(GinkgoT(), "v1=[0-9a-f]{64}", attemptDetail.RequestHeaders["Webhookx-Signature"])
 			timestamp := attemptDetail.RequestHeaders["Webhookx-Timestamp"]
 			assert.True(GinkgoT(), utils.Must(strconv.ParseInt(timestamp, 10, 0)) >= attempt.AttemptedAt.Unix())
+			assert.Equal(GinkgoT(), attempt.EventId, attemptDetail.RequestHeaders["Webhookx-Event-Id"])
+			assert.Equal(GinkgoT(), attempt.ID, attemptDetail.RequestHeaders["Webhookx-Delivery-Id"])
 			assert.Equal(GinkgoT(), `{"key": "value"}`, *attemptDetail.RequestBody)
 		})
 	})
@@ -399,6 +396,45 @@ var _ = Describe("delivery", Ordered, func() {
 		})
 	})
 
+	Context("unique_id", func() {
+		var proxyClient *resty.Client
+
+		var app *app.Application
+		var db *db.DB
+
+		entitiesConfig := helper.EntitiesConfig{
+			Endpoints: []*entities.Endpoint{factory.EndpointP()},
+			Sources:   []*entities.Source{factory.SourceP()},
+		}
+
+		BeforeAll(func() {
+			db = helper.InitDB(true, &entitiesConfig)
+			proxyClient = helper.ProxyClient()
+
+			app = utils.Must(helper.Start(map[string]string{
+				"WEBHOOKX_PROXY_LISTEN": "0.0.0.0:8081",
+			}))
+		})
+
+		AfterAll(func() {
+			app.Stop()
+		})
+
+		It("should de-duplicate events by unique_id", func() {
+			err := waitForServer("0.0.0.0:8081", time.Second)
+			assert.NoError(GinkgoT(), err)
+			for i := 1; i <= 2; i++ {
+				resp, err := proxyClient.R().
+					SetBody(`{"event_type": "foo.bar","data": {"key": "value"}, "unique_id":"key1"}`).
+					Post("/")
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 200, resp.StatusCode())
+			}
+			n, err := db.Events.Count(context.TODO(), nil)
+			assert.NoError(GinkgoT(), err)
+			assert.EqualValues(GinkgoT(), 1, n)
+		})
+	})
 })
 
 func TestProxy(t *testing.T) {

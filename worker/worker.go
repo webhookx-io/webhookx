@@ -398,6 +398,9 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		}
 	}
 
+	outbound.Headers["Webhookx-Event-Id"] = data.EventID
+	outbound.Headers["Webhookx-Delivery-Id"] = task.ID
+
 	request := &deliverer.Request{
 		Request: nil,
 		URL:     outbound.URL,

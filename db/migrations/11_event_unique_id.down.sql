@@ -1,0 +1,1 @@
+ALTER TABLE IF EXISTS ONLY "events" DROP COLUMN IF EXISTS "unique_id";

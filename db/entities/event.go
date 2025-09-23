@@ -11,6 +11,7 @@ type Event struct {
 	EventType  string          `json:"event_type" db:"event_type" validate:"required"`
 	Data       json.RawMessage `json:"data" validate:"required"`
 	IngestedAt types.Time      `json:"ingested_at" db:"ingested_at"`
+	UniqueId   *string         `json:"unique_id" db:"unique_id" validate:"omitempty,max=50"`
 
 	BaseModel
 }

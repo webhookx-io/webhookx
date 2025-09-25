@@ -14,7 +14,6 @@ import (
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
-	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/loglimiter"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
@@ -257,14 +256,6 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 			RawBody:  body,
 		})
 		if err != nil {
-			if validateErr, ok := err.(*errs.ValidateError); ok {
-				response.JSON(w, 400, types.ErrorResponse{
-					Message: "Request Validation",
-					Error:   validateErr,
-				})
-				return false
-			}
-
 			gw.log.Errorf("failed to execute plugin: %v", err)
 			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
 			return false

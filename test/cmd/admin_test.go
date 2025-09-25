@@ -101,7 +101,8 @@ var _ = Describe("admin", Ordered, func() {
 				assert.Equal(GinkgoT(), `{"function": "function handle() {}"}`, string(plugins[0].Config))
 				assert.Equal(GinkgoT(), `jsonschema-validator`, plugins[1].Name)
 				assert.Equal(GinkgoT(), true, plugins[1].Enabled)
-				assert.Equal(GinkgoT(), `{"schemas": {"charge.succeeded": {"url": "", "file": "", "json": "{\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" },\n      \"amount\": { \"type\": \"integer\", \"minimum\": 1 },\n      \"currency\": { \"type\": \"string\", \"minLength\": 3, \"maxLength\": 6 }\n  },\n  \"required\": [\"id\", \"amount\", \"currency\"]\n}\n"}}}`, string(plugins[1].Config))
+
+				assert.Equal(GinkgoT(), `{"schemas": {"charge.succeeded": {"schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" },\n      \"amount\": { \"type\": \"integer\", \"minimum\": 1 },\n      \"currency\": { \"type\": \"string\", \"minLength\": 3, \"maxLength\": 6 }\n  },\n  \"required\": [\"id\", \"amount\", \"currency\"]\n}\n"}}, "draft_version": 6, "default_schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" }\n  },\n  \"required\": [\"id\"]\n}\n"}`, string(plugins[1].Config))
 			})
 
 			It("entities not defined in the declarative configuration should be deleted", func() {

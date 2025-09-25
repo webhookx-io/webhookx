@@ -39,11 +39,18 @@ sources:
           function: "function handle() {}"
       - name: "jsonschema-validator"
         config:
+          draft_version: 6
+          default_schema: |
+            {
+              "type": "object",
+              "properties": {
+                  "id": { "type": "string" }
+              },
+              "required": ["id"]
+            }
           schemas:
             charge.succeeded:
-              #file: "../fixtures/jsonschema/charge.succeed.json"
-              #url: "https://raw.githubusercontent.com/cchenggit/webhookx/refs/heads/feat/plugin-jsonschema-validator/test/fixtures/jsonschema/charge.succeed.json"
-              json: |
+              schema: |
                 {
                   "type": "object",
                   "properties": {

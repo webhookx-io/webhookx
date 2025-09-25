@@ -15,7 +15,7 @@ type JSONSchema struct {
 func New(schemaDef []byte) *JSONSchema {
 	return &JSONSchema{
 		schemaDef: string(schemaDef),
-		hex:       utils.Hash256(string(schemaDef)),
+		hex:       utils.Sha256(string(schemaDef)),
 	}
 }
 

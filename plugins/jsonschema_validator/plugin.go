@@ -6,72 +6,22 @@ import (
 	"errors"
 	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
-	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/webhookx-io/webhookx/pkg/errs"
+	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
+	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/plugins/jsonschema_validator/jsonschema"
 	"github.com/webhookx-io/webhookx/utils"
-	"io"
-	"net/http"
-	"os"
-	"time"
 )
 
 type Config struct {
-	Schemas map[string]*SchemaResource `json:"schemas" validate:"dive,required"`
+	DraftVersion  int                `json:"draft_version" validate:"required,oneof=6"`
+	DefaultSchema string             `json:"default_schema" validate:"omitempty,json,max=1048576"`
+	Schemas       map[string]*Schema `json:"schemas" validate:"dive"`
 }
 
-type EventTypeSchema struct {
-	EventType  string `json:"event_type" validate:"required,max=100"`
-	JSONSchema string `json:"jsonschema" validate:"required,jsonschema,max=1048576"`
-}
-
-type SchemaResource struct {
-	JSONString string `json:"json" validate:"omitempty,json,max=1048576"`
-	File       string `json:"file" validate:"omitempty,file"`
-	URL        string `json:"url" validate:"omitempty,url"`
-}
-
-var cache, _ = lru.New[string, []byte](128)
-
-func (s *SchemaResource) Resource() ([]byte, string, error) {
-	// priority: json > file > url
-	if s.JSONString != "" {
-		return []byte(s.JSONString), "json", nil
-	}
-	if s.File != "" {
-		bytes, ok := cache.Get(s.File)
-		if ok {
-			return bytes, "file", nil
-		}
-		bytes, err := os.ReadFile(s.File)
-		if err != nil {
-			return nil, "file", fmt.Errorf("failed to read schema: %w", err)
-		}
-		cache.Add(s.File, bytes)
-		return bytes, "file", nil
-	}
-	if s.URL != "" {
-		bytes, ok := cache.Get(s.URL)
-		if ok {
-			return bytes, "url", nil
-		}
-		client := &http.Client{
-			Timeout: time.Second * 2,
-		}
-		resp, err := client.Get(s.URL)
-		if err != nil {
-			return nil, "url", fmt.Errorf("failed to fetch schema: %w", err)
-		}
-		defer func() { _ = resp.Body.Close() }()
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, "url", fmt.Errorf("failed to read schema from response: %w", err)
-		}
-		cache.Add(s.URL, body)
-		return body, "url", nil
-	}
-	return nil, "json", errors.New("no schema defined")
+type Schema struct {
+	Schema string `json:"schema" validate:"omitempty,json,max=1048576"`
 }
 
 type SchemaValidatorPlugin struct {
@@ -90,6 +40,19 @@ func New(config []byte) (plugin.Plugin, error) {
 	return p, nil
 }
 
+func unmarshalAndValidateSchema(schema string) (*openapi3.Schema, error) {
+	openapiSchema := &openapi3.Schema{}
+	err := openapiSchema.UnmarshalJSON([]byte(schema))
+	if err != nil {
+		return nil, fmt.Errorf("value must be a valid jsonschema")
+	}
+	err = openapiSchema.Validate(context.Background(), openapi3.EnableSchemaFormatValidation())
+	if err != nil {
+		return openapiSchema, err
+	}
+	return openapiSchema, nil
+}
+
 func (p *SchemaValidatorPlugin) ValidateConfig() error {
 	err := utils.Validate(p.Config)
 	if err != nil {
@@ -97,40 +60,42 @@ func (p *SchemaValidatorPlugin) ValidateConfig() error {
 	}
 
 	e := errs.NewValidateError(errors.New("request validation"))
+
+	var defaultErr error
+	if p.Config.DefaultSchema != "" {
+		_, err := unmarshalAndValidateSchema(p.Config.DefaultSchema)
+		if err != nil {
+			defaultErr = err
+			e.Fields = map[string]interface{}{
+				"default_schema": err.Error(),
+			}
+		}
+	}
+
 	for event, schema := range p.Config.Schemas {
 		field := fmt.Sprintf("schemas[%s]", event)
-		if schema == nil {
-			e.Fields[field] = fmt.Errorf("schema is empty")
-			return e
-		}
-		schemaBytes, invalidField, err := schema.Resource()
-		if err != nil {
-			e.Fields[field] = map[string]string{
-				invalidField: err.Error(),
+		if schema == nil || schema.Schema == "" {
+			if defaultErr != nil {
+				e.Fields[field] = map[string]string{
+					"schema": "invalid due to reusing the default_schema definition",
+				}
 			}
-			return e
-		}
-		openapiSchema := &openapi3.Schema{}
-		err = openapiSchema.UnmarshalJSON(schemaBytes)
-		if err != nil {
-			e.Fields[field] = map[string]string{
-				invalidField: "the content must be a valid json string",
+		} else {
+			_, err = unmarshalAndValidateSchema(schema.Schema)
+			if err != nil {
+				e.Fields[field] = map[string]string{
+					"schema": err.Error(),
+				}
 			}
-			return e
 		}
-		err = openapiSchema.Validate(context.Background(), openapi3.EnableSchemaFormatValidation())
-		if err != nil {
-			e.Fields[field] = map[string]string{
-				invalidField: fmt.Sprintf("invalid jsonschema: %v", err),
-			}
-			return e
-		}
+	}
+	if len(e.Fields) > 0 {
+		return e
 	}
 	return nil
 }
 
 func (p *SchemaValidatorPlugin) ExecuteInbound(inbound *plugin.Inbound) (res plugin.InboundResult, err error) {
-	// parse body to get event type
 	var event map[string]any
 	body := inbound.RawBody
 	if err = json.Unmarshal(body, &event); err != nil {
@@ -149,24 +114,34 @@ func (p *SchemaValidatorPlugin) ExecuteInbound(inbound *plugin.Inbound) (res plu
 		return
 	}
 
-	schemaResource, ok := p.Config.Schemas[eventType]
-	if !ok || schemaResource == nil {
+	schema, ok := p.Config.Schemas[eventType]
+	if !ok {
 		res.Payload = body
 		return
 	}
-
-	bytes, _, err := schemaResource.Resource()
-	if err != nil {
-		return
+	if schema == nil || schema.Schema == "" {
+		if p.Config.DefaultSchema == "" {
+			res.Payload = body
+			return
+		}
+		schema = &Schema{
+			Schema: p.Config.DefaultSchema,
+		}
 	}
-	validator := jsonschema.New(bytes)
-	err = validator.Validate(&jsonschema.ValidatorContext{
+
+	validator := jsonschema.New([]byte(schema.Schema))
+	e := validator.Validate(&jsonschema.ValidatorContext{
 		HTTPRequest: &jsonschema.HTTPRequest{
 			R:    inbound.Request,
 			Data: data.(map[string]any),
 		},
 	})
-	if err != nil {
+	if e != nil {
+		response.JSON(inbound.Response, 400, types.ErrorResponse{
+			Message: "Request Validation",
+			Error:   e,
+		})
+		res.Terminated = true
 		return
 	}
 	res.Payload = body

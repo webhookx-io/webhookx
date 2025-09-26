@@ -9,6 +9,8 @@ on:
       - main
     paths-ignore:
       - '**/*.md'
+      - '**/*.png'
+      - '**/*.gif'
 
 jobs:
   unit-tests:

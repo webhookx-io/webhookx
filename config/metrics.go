@@ -6,10 +6,22 @@ import (
 )
 
 type MetricsConfig struct {
-	Attributes    Map           `yaml:"attributes" json:"attributes"`
-	Exports       []Export      `yaml:"exports" json:"exports"`
-	PushInterval  uint32        `yaml:"push_interval" json:"push_interval" default:"10" envconfig:"PUSH_INTERVAL"`
-	Opentelemetry Opentelemetry `yaml:"opentelemetry" json:"opentelemetry"`
+	Attributes    Map                  `yaml:"attributes" json:"attributes"`
+	Exports       []Export             `yaml:"exports" json:"exports"`
+	PushInterval  uint32               `yaml:"push_interval" json:"push_interval" default:"10" envconfig:"PUSH_INTERVAL"`
+	Opentelemetry OpentelemetryMetrics `yaml:"opentelemetry" json:"opentelemetry"`
+}
+
+type OpentelemetryMetrics struct {
+	Protocol OtlpProtocol `yaml:"protocol" json:"protocol" envconfig:"PROTOCOL" default:"http/protobuf"`
+	Endpoint string       `yaml:"endpoint" json:"endpoint" envconfig:"ENDPOINT" default:"http://localhost:4318/v1/metrics"`
+}
+
+func (cfg OpentelemetryMetrics) Validate() error {
+	if !slices.Contains([]OtlpProtocol{OtlpProtocolGRPC, OtlpProtocolHTTP}, cfg.Protocol) {
+		return fmt.Errorf("invalid protocol: %s", cfg.Protocol)
+	}
+	return nil
 }
 
 func (cfg *MetricsConfig) Validate() error {

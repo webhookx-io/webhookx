@@ -8,7 +8,7 @@ info:
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
-  version: 0.8.0
+  version: 0.9.0
 
 servers:
   - url: http://localhost:8082

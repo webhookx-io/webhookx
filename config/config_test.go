@@ -176,7 +176,7 @@ func TestMetricsConfig(t *testing.T) {
 				Attributes:   nil,
 				Exports:      nil,
 				PushInterval: 1,
-				Opentelemetry: Opentelemetry{
+				Opentelemetry: OpentelemetryMetrics{
 					Protocol: "http/protobuf",
 				},
 			},
@@ -188,7 +188,7 @@ func TestMetricsConfig(t *testing.T) {
 				Attributes:   nil,
 				Exports:      []Export{"unknown"},
 				PushInterval: 1,
-				Opentelemetry: Opentelemetry{
+				Opentelemetry: OpentelemetryMetrics{
 					Protocol: "http/protobuf",
 				},
 			},
@@ -200,7 +200,7 @@ func TestMetricsConfig(t *testing.T) {
 				Attributes:   nil,
 				Exports:      nil,
 				PushInterval: 1,
-				Opentelemetry: Opentelemetry{
+				Opentelemetry: OpentelemetryMetrics{
 					Protocol: "unknown",
 				},
 			},
@@ -212,7 +212,7 @@ func TestMetricsConfig(t *testing.T) {
 				Attributes:   nil,
 				Exports:      nil,
 				PushInterval: 61,
-				Opentelemetry: Opentelemetry{
+				Opentelemetry: OpentelemetryMetrics{
 					Protocol: "http/protobuf",
 				},
 			},
@@ -237,7 +237,7 @@ func TestTracingConfig(t *testing.T) {
 			cfg: TracingConfig{
 				Enabled:      true,
 				SamplingRate: 0,
-				Opentelemetry: Opentelemetry{
+				Opentelemetry: OpentelemetryTracing{
 					Protocol: "http/protobuf",
 					Endpoint: "http://localhost:4318/v1/traces",
 				},
@@ -249,7 +249,7 @@ func TestTracingConfig(t *testing.T) {
 			cfg: TracingConfig{
 				Enabled:      true,
 				SamplingRate: 1.1,
-				Opentelemetry: Opentelemetry{
+				Opentelemetry: OpentelemetryTracing{
 					Protocol: "http/protobuf",
 					Endpoint: "http://localhost:4318/v1/traces",
 				},
@@ -259,7 +259,7 @@ func TestTracingConfig(t *testing.T) {
 		{
 			desc: "invalid protocol",
 			cfg: TracingConfig{
-				Opentelemetry: Opentelemetry{
+				Opentelemetry: OpentelemetryTracing{
 					Protocol: "unknown",
 				},
 			},

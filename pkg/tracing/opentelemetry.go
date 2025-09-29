@@ -64,7 +64,7 @@ func SetupOTEL(o *config.TracingConfig) (trace.TracerProvider, error) {
 	return tracerProvider, err
 }
 
-func setupHTTPExporter(c config.Opentelemetry) (*otlptrace.Exporter, error) {
+func setupHTTPExporter(c config.OpentelemetryTracing) (*otlptrace.Exporter, error) {
 	endpoint, err := url.Parse(c.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid collector endpoint %q: %w", c.Endpoint, err)
@@ -86,7 +86,7 @@ func setupHTTPExporter(c config.Opentelemetry) (*otlptrace.Exporter, error) {
 	return otlptrace.New(context.Background(), otlptracehttp.NewClient(opts...))
 }
 
-func setupGRPCExporter(c config.Opentelemetry) (*otlptrace.Exporter, error) {
+func setupGRPCExporter(c config.OpentelemetryTracing) (*otlptrace.Exporter, error) {
 	host, port, err := net.SplitHostPort(c.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid collector endpoint %q: %w", c.Endpoint, err)

@@ -33,7 +33,7 @@ func newGRPCExporter(endpoint string) (metric.Exporter, error) {
 	return otlpmetricgrpc.New(context.Background(), opts...)
 }
 
-func SetupOpentelemetry(attributes map[string]string, cfg config.Opentelemetry, metrics *Metrics) error {
+func SetupOpentelemetry(attributes map[string]string, cfg config.OpentelemetryMetrics, metrics *Metrics) error {
 	var err error
 	var exporter metric.Exporter
 	switch cfg.Protocol {

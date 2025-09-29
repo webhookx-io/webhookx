@@ -2,9 +2,7 @@
 
 [![release](https://img.shields.io/github/v/release/webhookx-io/webhookx?color=green)](https://github.com/webhookx-io/webhookx/releases) [![test-workflow](https://github.com/webhookx-io/webhookx/actions/workflows/test.yml/badge.svg)](https://github.com/webhookx-io/webhookx/actions/workflows/test.yml) [![lint-workflow](https://github.com/webhookx-io/webhookx/actions/workflows/lint.yml/badge.svg)](https://github.com/webhookx-io/webhookx/actions/workflows/lint.yml) [![codecov](https://codecov.io/gh/webhookx-io/webhookx/graph/badge.svg?token=O4AQNRBJRF)](https://codecov.io/gh/webhookx-io/webhookx) [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go) 
 
-[![Join Slack](https://img.shields.io/badge/Slack-4285F4?logo=slack&logoColor=white)](https://join.slack.com/t/webhookx/shared_invite/zt-2o4b6hv45-mWm6_WUcQP9qEf1nOxhrrg) [![Twitter](https://img.shields.io/twitter/follow/WebhookX.svg?style=social)](https://twitter.com/intent/follow?screen_name=WebhookX)
-
-
+[![Join Slack](https://img.shields.io/badge/Join_WebhookX_👋-green?logo=slack&label=Slack)](https://join.slack.com/t/webhookx/shared_invite/zt-3ekjrpig4-1T~kOq8aUh7XXA5xiSGtXw) [![Twitter](https://img.shields.io/twitter/follow/WebhookX.svg?style=social)](https://twitter.com/intent/follow?screen_name=WebhookX)
 
 
 WebhookX is an open-source webhooks gateway for message receiving, processing, and delivering.

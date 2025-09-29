@@ -13,7 +13,7 @@ require (
 	github.com/go-redis/redis_rate/v10 v10.0.1
 	github.com/go-redsync/redsync/v4 v4.13.0
 	github.com/go-resty/resty/v2 v2.16.5
-	github.com/golang-migrate/migrate/v4 v4.18.3
+	github.com/golang-migrate/migrate/v4 v4.19.0
 	github.com/gorilla/mux v1.8.1
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/jackc/pgx/v5 v5.7.5
@@ -100,7 +100,6 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.62.0
 	go.opentelemetry.io/otel/trace v1.38.0
 	go.opentelemetry.io/proto/otlp v1.7.1 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/net v0.43.0 // indirect

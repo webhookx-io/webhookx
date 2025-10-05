@@ -10,7 +10,7 @@ endpoints:
       strategy: fixed
       config:
         attempts: [0, 3600, 3600]
-    events: [ "charge.succeeded" ]
+    events: ["charge.succeeded"]
     plugins:
       - name: webhookx-signature
         config:
@@ -25,8 +25,23 @@ endpoints:
 sources:
   - name: default-source
     path: /
-    methods: [ "POST" ]
+    methods: ["POST"]
     response:
       code: 200
       content_type: application/json
       body: '{"message": "OK"}'
+    plugins:
+      - name: "jsonschema-validator"
+        config:
+          schemas:
+            charge.succeeded:
+              json: |
+                {
+                  "type": "object",
+                  "properties": {
+                      "id": { "type": "string" },
+                      "amount": { "type": "integer", "minimum": 1 },
+                      "currency": { "type": "string", "minLength": 3, "maxLength": 6 }
+                  },
+                  "required": ["id", "amount", "currency"]
+                }

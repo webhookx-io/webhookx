@@ -425,6 +425,9 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	result := buildAttemptResult(request, response)
 	result.AttemptedAt = types.NewTime(startAt)
 	result.Exhausted = data.Attempt >= len(endpoint.Retry.Config.Attempts)
+	if response.ACL.Denied {
+		result.Exhausted = true
+	}
 
 	counter.Add(1)
 	if result.Status == entities.AttemptStatusFailure {
@@ -506,6 +509,8 @@ func buildAttemptResult(request *deliverer.Request, response *deliverer.Response
 	if response.Error != nil {
 		if errors.Is(response.Error, context.DeadlineExceeded) {
 			result.ErrorCode = utils.Pointer(entities.AttemptErrorCodeTimeout)
+		} else if response.ACL.Denied {
+			result.ErrorCode = utils.Pointer(entities.AttemptErrorCodeDenied)
 		} else {
 			result.ErrorCode = utils.Pointer(entities.AttemptErrorCodeUnknown)
 		}

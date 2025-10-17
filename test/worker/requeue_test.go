@@ -50,10 +50,12 @@ var _ = Describe("processRequeue", Ordered, func() {
 			DB:        db,
 			TaskQueue: queue,
 		})
+		d, err := deliverer.NewHTTPDeliverer(&config.WorkerDeliverer{})
+		assert.NoError(GinkgoT(), err)
 		w = worker.NewWorker(worker.Options{
 			RequeueJobInterval: time.Second,
 			DB:                 db,
-			Deliverer:          deliverer.NewHTTPDeliverer(&config.WorkerDeliverer{}),
+			Deliverer:          d,
 			Metrics:            metrics,
 			Tracer:             tracer,
 			EventBus:           mocks.MockBus{},

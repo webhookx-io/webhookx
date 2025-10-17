@@ -43,6 +43,7 @@ const (
 	AttemptErrorCodeTimeout          AttemptErrorCode = "TIMEOUT"
 	AttemptErrorCodeUnknown          AttemptErrorCode = "UNKNOWN"
 	AttemptErrorCodeEndpointDisabled AttemptErrorCode = "ENDPOINT_DISABLED"
+	AttemptErrorCodeDenied           AttemptErrorCode = "DENIED"
 	AttemptErrorCodeEndpointNotFound AttemptErrorCode = "ENDPOINT_NOT_FOUND"
 )
 

@@ -174,10 +174,14 @@ func (app *Application) initialize() error {
 
 	// worker
 	if cfg.Worker.Enabled {
+		httpDeliverer, err := deliverer.NewHTTPDeliverer(&cfg.Worker.Deliverer)
+		if err != nil {
+			return err
+		}
 		opts := worker.Options{
 			PoolSize:        int(cfg.Worker.Pool.Size),
 			PoolConcurrency: int(cfg.Worker.Pool.Concurrency),
-			Deliverer:       deliverer.NewHTTPDeliverer(&cfg.Worker.Deliverer),
+			Deliverer:       httpDeliverer,
 			DB:              db,
 			Srv:             app.srv,
 			Tracer:          tracer,

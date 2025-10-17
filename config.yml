@@ -71,6 +71,13 @@ status:
 worker:
   enabled: false
   deliverer:
+    #http_proxy:                    # The HTTP proxy URL used by the deliverer for outbound requests.
+                                    # Example: http://proxy:port
+                                    # TODO HTTP CONNECT Proxy over TLS
+    https_proxy:
+    https_proxy_cert:
+    https_proxy_key:
+    https_proxy_ca_file:
     timeout: 60000
   pool:
     size: 10000                     # pool size, default to 10000.

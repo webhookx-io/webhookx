@@ -1,7 +1,8 @@
 package config
 
 type WorkerDeliverer struct {
-	Timeout int64 `yaml:"timeout" json:"timeout" default:"60000"`
+	Timeout   int64  `yaml:"timeout" json:"timeout" default:"60000"`
+	HTTPProxy string `yaml:"http_proxy" json:"http_proxy"`
 }
 
 type Pool struct {

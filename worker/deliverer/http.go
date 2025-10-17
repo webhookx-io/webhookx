@@ -3,10 +3,16 @@ package deliverer
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/constants"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"net/url"
+	"os"
 	"time"
 )
 
@@ -25,6 +31,41 @@ func NewHTTPDeliverer(cfg *config.WorkerDeliverer) *HTTPDeliverer {
 			TLSHandshakeTimeout:   5 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 		},
+	}
+	if cfg.HTTPProxy != "" {
+		u, err := url.Parse(cfg.HTTPProxy)
+		if err != nil {
+			return nil, fmt.Errorf("invalid http proxy url '%s': %s", cfg.HTTPProxy, err)
+		}
+		if u.Scheme == "" || u.Host == "" {
+			return nil, fmt.Errorf("invalid http proxy url: '%s'", cfg.HTTPProxy)
+		}
+		transport.Proxy = http.ProxyURL(u)
+		transport.DialContext = nil
+		// todo
+		cert, err := tls.LoadX509KeyPair(CertFile, KeyFile)
+		if err != nil {
+			return nil, err
+		}
+		if cfg.ProxyCAFile != "" {
+			caPEM, err := os.ReadFile(cfg.ProxyCAFile)
+			if err != nil {
+				return nil, err
+			}
+			cp := x509.NewCertPool()
+			if !cp.AppendCertsFromPEM(caPEM) {
+				return nil, err
+			}
+			tlsConfig.RootCAs = cp
+		}
+		client = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					Certificates: []tls.Certificate{cert},
+					//InsecureSkipVerify:
+				},
+			}
+		}
 	}
 	return &HTTPDeliverer{
 		defaultTimeout: time.Duration(cfg.Timeout) * time.Millisecond,

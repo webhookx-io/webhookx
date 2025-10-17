@@ -20,8 +20,13 @@ type Request struct {
 	Timeout time.Duration
 }
 
+type AclResult struct {
+	Denied bool
+}
+
 type Response struct {
 	Request      *Request
+	ACL          AclResult
 	StatusCode   int
 	Header       http.Header
 	ResponseBody []byte

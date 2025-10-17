@@ -15,7 +15,8 @@ func Test(t *testing.T) {
 		cfg := config.WorkerDeliverer{
 			Timeout: 10 * 1000,
 		}
-		deliverer := NewHTTPDeliverer(&cfg)
+		deliverer, err := NewHTTPDeliverer(&cfg)
+		assert.NoError(t, err)
 
 		req := &Request{
 			URL:     "http://localhost:9999/anything",
@@ -30,7 +31,7 @@ func Test(t *testing.T) {
 		assert.NoError(t, res.Error)
 		assert.Equal(t, res.StatusCode, 200)
 		data := make(map[string]interface{})
-		err := json.Unmarshal(res.ResponseBody, &data)
+		err = json.Unmarshal(res.ResponseBody, &data)
 		assert.NoError(t, err)
 		assert.Equal(t, data["data"], `{"foo": "bar"}`)
 		headers := data["headers"].(map[string]interface{})
@@ -41,7 +42,8 @@ func Test(t *testing.T) {
 		cfg := config.WorkerDeliverer{
 			Timeout: 10 * 1000,
 		}
-		deliverer := NewHTTPDeliverer(&cfg)
+		deliverer, err := NewHTTPDeliverer(&cfg)
+		assert.NoError(t, err)
 
 		req := &Request{
 			URL:     "http://localhost:9999/anything",

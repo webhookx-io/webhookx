@@ -3,12 +3,16 @@ package deliverer
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/constants"
 	"io"
+	"net"
 	"net/http"
 	"time"
 )
+
+type key struct{}
 
 // HTTPDeliverer delivers via HTTP
 type HTTPDeliverer struct {
@@ -16,20 +20,50 @@ type HTTPDeliverer struct {
 	client         *http.Client
 }
 
-func NewHTTPDeliverer(cfg *config.WorkerDeliverer) *HTTPDeliverer {
-	client := &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConns:          1000,
-			MaxIdleConnsPerHost:   1000,
-			IdleConnTimeout:       30 * time.Second,
-			TLSHandshakeTimeout:   5 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-		},
+func restrictedDialFunc(acl *ACL) func(context.Context, string, string) (net.Conn, error) {
+	dialer := &net.Dialer{}
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, err
+		}
+
+		ips, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, ip := range ips {
+			if acl.Allow(host, ip) {
+				return dialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+			}
+		}
+
+		if res, ok := ctx.Value(key{}).(*Response); ok {
+			res.ACL.Denied = true
+		}
+
+		return nil, fmt.Errorf("request to %s (IP=%s) denied by ACL", host, ips[0])
 	}
+}
+
+func NewHTTPDeliverer(cfg *config.WorkerDeliverer) (*HTTPDeliverer, error) {
+	transport := &http.Transport{
+		MaxIdleConns:          1000,
+		MaxIdleConnsPerHost:   1000,
+		IdleConnTimeout:       30 * time.Second,
+		TLSHandshakeTimeout:   5 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		DialContext:           restrictedDialFunc(NewACL(AclOptions{Rules: cfg.ACL.Deny})),
+	}
+	client := &http.Client{
+		Transport: transport,
+	}
+
 	return &HTTPDeliverer{
 		defaultTimeout: time.Duration(cfg.Timeout) * time.Millisecond,
 		client:         client,
-	}
+	}, nil
 }
 
 func timing(fn func()) time.Duration {
@@ -52,6 +86,7 @@ func (d *HTTPDeliverer) Deliver(ctx context.Context, req *Request) (res *Respons
 		Request: req,
 	}
 
+	ctx = context.WithValue(ctx, key{}, res)
 	request, err := http.NewRequestWithContext(ctx, req.Method, req.URL, bytes.NewBuffer(req.Payload))
 	if err != nil {
 		res.Error = err

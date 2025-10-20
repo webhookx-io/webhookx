@@ -16,6 +16,7 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
+	"net"
 	"net/netip"
 	"time"
 )
@@ -26,7 +27,7 @@ func (fn ResolverFunc) LookupNetIP(ctx context.Context, network, host string) ([
 	return fn(ctx, network, host)
 }
 
-var _ = Describe("acl", Ordered, func() {
+var _ = Describe("network acl", Ordered, func() {
 	Context("acl", func() {
 		var proxyClient *resty.Client
 
@@ -53,6 +54,10 @@ var _ = Describe("acl", Ordered, func() {
 		var resolver = deliverer.DefaultResolver
 
 		BeforeAll(func() {
+			ips, _ := net.DefaultResolver.LookupNetIP(context.Background(), "ip", "localhost")
+			for _, ip := range ips {
+				fmt.Println(ip.String())
+			}
 			deliverer.DefaultResolver = ResolverFunc(func(ctx context.Context, network, host string) ([]netip.Addr, error) {
 				if host == "suspicious.webhookx.io" {
 					return []netip.Addr{netip.MustParseAddr("127.0.0.1")}, nil

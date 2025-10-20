@@ -2,6 +2,8 @@ package delivery
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
@@ -90,6 +92,7 @@ var _ = Describe("acl", Ordered, func() {
 				q := query.AttemptQuery{}
 				q.EventId = &eventId
 				list, err := db.Attempts.List(context.TODO(), &q)
+				fmt.Println(string(utils.Must(json.Marshal(list))))
 				if err != nil || len(list) == 0 {
 					return false
 				}

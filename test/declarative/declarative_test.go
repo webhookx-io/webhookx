@@ -100,7 +100,6 @@ var _ = Describe("Declarative", Ordered, func() {
 			resp, err := adminClient.R().
 				SetBody(string(yaml)).
 				Post("/workspaces/default/config/sync")
-			fmt.Print(string(resp.Body()))
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
 		})

@@ -74,8 +74,8 @@ worker:
     timeout: 60000                  # Sets the timeout (in milliseconds) for requests.
     acl:                            # Access-control list (ACL) is used to limit the access of outbound traffic.
       deny: [ '@default' ]          # `deny` defines a set of rules that restrict access.
-                                    # a rule is a string of IPv4, IPv6, CIDR, hostname, and preset group.
-                                    # here are the preset groups:
+                                    # a rule is a string of IPv4, IPv6, CIDR, hostname, or pre-configured group name.
+                                    # here are the pre-configured groups:
                                     # - @default: [ '@private', '@loopback', '@linklocal', '@reserved' ]
                                     # - @private: [ '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16' ]
                                     # - @loopback: [ '127.0.0.0/8', '::1/128' ]

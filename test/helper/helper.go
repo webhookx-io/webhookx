@@ -27,11 +27,12 @@ var (
 )
 
 var defaultEnvs = map[string]string{
-	"NO_COLOR":                 "true",
-	"WEBHOOKX_LOG_LEVEL":       "debug",
-	"WEBHOOKX_LOG_FORMAT":      "text",
-	"WEBHOOKX_LOG_FILE":        "webhookx.log",
-	"WEBHOOKX_ACCESS_LOG_FILE": "webhookx.log",
+	"NO_COLOR":                           "true",
+	"WEBHOOKX_LOG_LEVEL":                 "debug",
+	"WEBHOOKX_LOG_FORMAT":                "text",
+	"WEBHOOKX_LOG_FILE":                  "webhookx.log",
+	"WEBHOOKX_ACCESS_LOG_FILE":           "webhookx.log",
+	"WEBHOOKX_WORKER_DELIVERER_ACL_DENY": "",
 }
 
 func setEnvs(envs map[string]string) error {

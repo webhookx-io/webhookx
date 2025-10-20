@@ -9,10 +9,17 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/netip"
 	"time"
 )
 
-type key struct{}
+type Resolver interface {
+	LookupNetIP(ctx context.Context, network, host string) ([]netip.Addr, error)
+}
+
+var DefaultResolver Resolver = net.DefaultResolver
+
+type contextKey struct{}
 
 // HTTPDeliverer delivers via HTTP
 type HTTPDeliverer struct {
@@ -28,7 +35,7 @@ func restrictedDialFunc(acl *ACL) func(context.Context, string, string) (net.Con
 			return nil, err
 		}
 
-		ips, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
+		ips, err := DefaultResolver.LookupNetIP(ctx, "ip", host)
 		if err != nil {
 			return nil, err
 		}
@@ -39,7 +46,7 @@ func restrictedDialFunc(acl *ACL) func(context.Context, string, string) (net.Con
 			}
 		}
 
-		if res, ok := ctx.Value(key{}).(*Response); ok {
+		if res, ok := ctx.Value(contextKey{}).(*Response); ok {
 			res.ACL.Denied = true
 		}
 
@@ -47,7 +54,7 @@ func restrictedDialFunc(acl *ACL) func(context.Context, string, string) (net.Con
 	}
 }
 
-func NewHTTPDeliverer(cfg *config.WorkerDeliverer) (*HTTPDeliverer, error) {
+func NewHTTPDeliverer(cfg *config.WorkerDeliverer) *HTTPDeliverer {
 	transport := &http.Transport{
 		MaxIdleConns:          1000,
 		MaxIdleConnsPerHost:   1000,
@@ -63,7 +70,7 @@ func NewHTTPDeliverer(cfg *config.WorkerDeliverer) (*HTTPDeliverer, error) {
 	return &HTTPDeliverer{
 		defaultTimeout: time.Duration(cfg.Timeout) * time.Millisecond,
 		client:         client,
-	}, nil
+	}
 }
 
 func timing(fn func()) time.Duration {
@@ -86,7 +93,7 @@ func (d *HTTPDeliverer) Deliver(ctx context.Context, req *Request) (res *Respons
 		Request: req,
 	}
 
-	ctx = context.WithValue(ctx, key{}, res)
+	ctx = context.WithValue(ctx, contextKey{}, res)
 	request, err := http.NewRequestWithContext(ctx, req.Method, req.URL, bytes.NewBuffer(req.Payload))
 	if err != nil {
 		res.Error = err

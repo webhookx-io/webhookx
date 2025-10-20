@@ -12,6 +12,16 @@ type WorkerDeliverer struct {
 	ACL     ACLConfig `yaml:"acl" json:"acl"`
 }
 
+func (cfg *WorkerDeliverer) Validate() error {
+	if cfg.Timeout < 0 {
+		return fmt.Errorf("deliverer.timeout cannot be negative")
+	}
+	if err := cfg.ACL.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 type Pool struct {
 	Size        uint32 `yaml:"size" json:"size" default:"10000"`
 	Concurrency uint32 `yaml:"concurrency" json:"concurrency"`
@@ -37,25 +47,25 @@ func (acl *ACLConfig) Validate() error {
 }
 
 func validateRule(rule string) error {
+	groups := []string{"@default", "@private", "@loopback", "@linklocal", "@reserved"}
+	if slices.Contains(groups, rule) {
+		return nil
+	}
 	if _, err := netip.ParseAddr(rule); err == nil {
 		return nil
 	}
 	if _, err := netip.ParsePrefix(rule); err == nil {
 		return nil
 	}
-	regex := regexp.MustCompile(`^(\*\.)?[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$`)
-	if matched := regex.MatchString(rule); matched {
+	r := regexp.MustCompile(`^(\*\.)?[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$`)
+	if matched := r.MatchString(rule); matched {
 		return nil
 	}
-	presets := []string{"@default", "@private", "@loopback", "@linklocal", "@reserved"}
-	if slices.Contains(presets, rule) {
-		return nil
-	}
-	return fmt.Errorf("invalid rule: '%s'", rule)
+	return fmt.Errorf("invalid rule '%s': requires IP, CIDR, hostname, or pre-configured name", rule)
 }
 
 func (cfg *WorkerConfig) Validate() error {
-	if err := cfg.Deliverer.ACL.Validate(); err != nil {
+	if err := cfg.Deliverer.Validate(); err != nil {
 		return err
 	}
 	return nil

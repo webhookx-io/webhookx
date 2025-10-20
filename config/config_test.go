@@ -358,6 +358,67 @@ func TestRole(t *testing.T) {
 	assert.Equal(t, errors.New("invalid role: ''"), cfg.Validate())
 }
 
+func TestWorkerConfig(t *testing.T) {
+	tests := []struct {
+		desc        string
+		cfg         WorkerConfig
+		validateErr error
+	}{
+		{
+			desc: "sanity",
+			cfg: WorkerConfig{
+				Enabled: false,
+				Deliverer: WorkerDeliverer{
+					Timeout: 0,
+					ACL: ACLConfig{
+						Deny: []string{"@default", "0.0.0.0", "0.0.0.0/32", "*.example.com", "foo.example.com", "::1/128"},
+					},
+				},
+				Pool: Pool{},
+			},
+			validateErr: nil,
+		},
+		{
+			desc: "invalid deliverer configuration: negative timeout",
+			cfg: WorkerConfig{
+				Deliverer: WorkerDeliverer{
+					Timeout: -1,
+					ACL:     ACLConfig{},
+				},
+			},
+			validateErr: errors.New("deliverer.timeout cannot be negative"),
+		},
+		{
+			desc: "invalid deliverer configuration: invalid acl configuration 1",
+			cfg: WorkerConfig{
+				Deliverer: WorkerDeliverer{
+					Timeout: 0,
+					ACL: ACLConfig{
+						Deny: []string{"default"},
+					},
+				},
+			},
+			validateErr: errors.New("invalid rule 'default': requires IP, CIDR, hostname, or pre-configured name"),
+		},
+		{
+			desc: "invalid deliverer configuration: invalid acl configuration 2",
+			cfg: WorkerConfig{
+				Deliverer: WorkerDeliverer{
+					Timeout: 0,
+					ACL: ACLConfig{
+						Deny: []string{"*"},
+					},
+				},
+			},
+			validateErr: errors.New("invalid rule '*': requires IP, CIDR, hostname, or pre-configured name"),
+		},
+	}
+	for _, test := range tests {
+		actual := test.cfg.Validate()
+		assert.Equal(t, test.validateErr, actual, "expected %v got %v", test.validateErr, actual)
+	}
+}
+
 func TestConfig(t *testing.T) {
 	cfg, err := Init()
 	assert.Nil(t, err)

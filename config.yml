@@ -71,9 +71,9 @@ status:
 worker:
   enabled: false                    # Whether to enable the Worker.
   deliverer:
-    timeout: 60000                  # Sets the timeout (in milliseconds) for requests.
+    timeout: 60000                  # Sets the request timeout (in milliseconds) for delivery requests.
     acl:                            # Access Control List (ACL) defines rules to control outbound network access.
-                                    # A rule is a string of IPv4, IPv6, CIDR, hostname, or pre-configured group name.
+                                    # A rule is a string of IPv4, IPv6, CIDR, hostname, or pre-configured group.
                                     # A hostname can contain a wildcard prefix (*.) represents its subdomains, and Unicode
                                     # characters need to be converted to Punycode.
                                     # The list of pre-configured groups:

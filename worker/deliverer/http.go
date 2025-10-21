@@ -50,7 +50,7 @@ func restrictedDialFunc(acl *ACL) func(context.Context, string, string) (net.Con
 			res.ACL.Denied = true
 		}
 
-		return nil, fmt.Errorf("request to %s (IP=%s) denied by ACL", host, ips[0])
+		return nil, fmt.Errorf("request to %s(ip=%s) is denied", addr, ips[0])
 	}
 }
 

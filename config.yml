@@ -73,21 +73,24 @@ worker:
   deliverer:
     timeout: 60000                  # Sets the timeout (in milliseconds) for requests.
     acl:                            # Access Control List (ACL) defines rules to control outbound network access.
-                                    # a rule is a string of IPv4, IPv6, CIDR, hostname, or pre-configured group name.
-                                    # available pre-configured groups:
+                                    # A rule is a string of IPv4, IPv6, CIDR, hostname, or pre-configured group name.
+                                    # A hostname can contain a wildcard prefix (*.) represents its subdomains, and Unicode
+                                    # characters need to be converted to Punycode.
+                                    # The list of pre-configured groups:
                                     # - @default: [ '@private', '@loopback', '@linklocal', '@reserved' ]
                                     # - @private: [ '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16' ]
                                     # - @loopback: [ '127.0.0.0/8', '::1/128' ]
                                     # - @linklocal: [ '169.254.0.0/16', 'fe80::/10' ]
                                     # - @reserved: [ '0.0.0.0/8', '100.64.0.0/10', '192.0.0.0/24', '224.0.0.0/4', '240.0.0.0/4', 'fc00::/7' ]
                                     #
-      deny: [ '@default' ]          # `deny` defines a list of rules that deny access.
-                                    # Example:
+      deny:                         # `deny` defines a list of rules that deny access.
+        - '@default'                # Example:
                                     # deny:
                                     #   - '@default'
                                     #   - '23.215.0.136'
                                     #   - '2606:2800:220:1:248:1893:25c8:1946'
                                     #   - '*.example.com'
+                                    #
   pool:
     size: 10000                     # pool size, default to 10000.
     concurrency: 0                  # pool concurrency, default to 100 * CPUs

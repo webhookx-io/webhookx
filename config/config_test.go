@@ -412,6 +412,18 @@ func TestWorkerConfig(t *testing.T) {
 			},
 			validateErr: errors.New("invalid rule '*': requires IP, CIDR, hostname, or pre-configured name"),
 		},
+		{
+			desc: "invalid deliverer configuration: unicode hostname",
+			cfg: WorkerConfig{
+				Deliverer: WorkerDeliverer{
+					Timeout: 0,
+					ACL: ACLConfig{
+						Deny: []string{"тест.example.com"},
+					},
+				},
+			},
+			validateErr: errors.New("invalid rule 'тест.example.com': requires IP, CIDR, hostname, or pre-configured name"),
+		},
 	}
 	for _, test := range tests {
 		actual := test.cfg.Validate()

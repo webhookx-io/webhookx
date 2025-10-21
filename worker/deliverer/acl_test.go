@@ -92,6 +92,13 @@ func TestAllow(t *testing.T) {
 			ip:       "1.1.1.1",
 			allow:    true,
 		},
+		{
+			scenario: "deny punycode domian",
+			rules:    []string{"@default", "xn--6qq79v.com"},
+			hostname: "xn--6qq79v.com",
+			ip:       "1.1.1.1",
+			allow:    false,
+		},
 	}
 
 	for _, test := range tests {

@@ -44,6 +44,10 @@ var _ = Describe("network acl", Ordered, func() {
 					o.Events = []string{"test3"}
 					o.Request.URL = "http://suspicious.webhookx.io"
 				}),
+				factory.EndpointP(func(o *entities.Endpoint) {
+					o.Events = []string{"unicode-test"}
+					o.Request.URL = "http://тест.foo.com"
+				}),
 			},
 			Sources: []*entities.Source{factory.SourceP()},
 		}
@@ -64,7 +68,7 @@ var _ = Describe("network acl", Ordered, func() {
 			app = utils.Must(helper.Start(map[string]string{
 				"WEBHOOKX_PROXY_LISTEN":              "0.0.0.0:8081",
 				"WEBHOOKX_WORKER_ENABLED":            "true",
-				"WEBHOOKX_WORKER_DELIVERER_ACL_DENY": "@default,*.example.com",
+				"WEBHOOKX_WORKER_DELIVERER_ACL_DENY": "@default,*.example.com,xn--e1aybc.foo.com",
 			}))
 
 		})
@@ -116,6 +120,35 @@ var _ = Describe("network acl", Ordered, func() {
 
 			resp, err := proxyClient.R().
 				SetBody(`{"event_type": "test2","data": {"key": "value"}}`).
+				Post("/")
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 200, resp.StatusCode())
+			eventId := resp.Header().Get(constants.HeaderEventId)
+
+			var attempt *entities.Attempt
+			assert.Eventually(GinkgoT(), func() bool {
+				q := query.AttemptQuery{}
+				q.EventId = &eventId
+				list, err := db.Attempts.List(context.TODO(), &q)
+				if err != nil || len(list) == 0 {
+					return false
+				}
+				attempt = list[0]
+				return attempt.Status == entities.AttemptStatusFailure
+			}, time.Second*5, time.Second)
+
+			// attempt.request
+			assert.Equal(GinkgoT(), entities.AttemptErrorCodeDenied, *attempt.ErrorCode)
+			assert.Equal(GinkgoT(), true, attempt.Exhausted)
+			assert.Nil(GinkgoT(), attempt.Response)
+		})
+
+		It("request denied by unicode hostname", func() {
+			err := waitForServer("0.0.0.0:8081", time.Second)
+			assert.NoError(GinkgoT(), err)
+
+			resp, err := proxyClient.R().
+				SetBody(`{"event_type": "unicode-test","data": {"key": "value"}}`).
 				Post("/")
 			assert.NoError(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())

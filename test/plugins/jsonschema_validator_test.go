@@ -53,7 +53,7 @@ var _ = Describe("jsonschema-validator", Ordered, func() {
 				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
 				factory.WithPluginName("jsonschema-validator"),
 				factory.WithPluginConfig(jsonschema_validator.Config{
-					DraftVersion:  6,
+					Draft:         "6",
 					DefaultSchema: jsonString,
 					Schemas: map[string]*jsonschema_validator.Schema{
 						"charge.succeeded": {

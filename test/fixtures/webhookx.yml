@@ -39,7 +39,7 @@ sources:
           function: "function handle() {}"
       - name: "jsonschema-validator"
         config:
-          draft_version: 6
+          draft: "6"
           default_schema: |
             {
               "type": "object",

@@ -33,7 +33,7 @@ sources:
     plugins:
       - name: "jsonschema-validator"
         config:
-          draft_version: 6
+          draft: "6"
           schemas:
             charge.succeeded:
               schema: |

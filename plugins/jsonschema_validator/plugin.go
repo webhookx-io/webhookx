@@ -15,7 +15,7 @@ import (
 )
 
 type Config struct {
-	DraftVersion  int                `json:"draft_version" validate:"required,oneof=6"`
+	Draft         string             `json:"draft" validate:"required,oneof=6 default:6"`
 	DefaultSchema string             `json:"default_schema" validate:"omitempty,json,max=1048576"`
 	Schemas       map[string]*Schema `json:"schemas" validate:"dive"`
 }

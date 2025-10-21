@@ -65,7 +65,7 @@ sources:
     plugins:
       - name: "jsonschema-validator"
         config:
-          draft_version: 6
+          draft: "6"
           default_schema: |
             %s
           schemas:
@@ -148,7 +148,7 @@ var _ = Describe("Declarative", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"default_schema":"value must be a valid json string","draft_version":"required field missing","schemas[charge.succeed]":{"schema":"value must be a valid json string"}}}}}`,
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"default_schema":"value must be a valid json string","draft":"required field missing","schemas[charge.succeed]":{"schema":"value must be a valid json string"}}}}}`,
 					string(resp.Body()))
 			})
 

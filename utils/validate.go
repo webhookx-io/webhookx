@@ -50,12 +50,6 @@ func init() {
 	RegisterFormatter("max", func(fe validator.FieldError) string {
 		return fmt.Sprintf("length must be at most %s", fe.Param())
 	})
-	RegisterFormatter("url", func(fe validator.FieldError) string {
-		return "value must be a valid url"
-	})
-	RegisterFormatter("file", func(fe validator.FieldError) string {
-		return "value must be a valid exist file"
-	})
 	RegisterFormatter("json", func(fe validator.FieldError) string {
 		return "value must be a valid json string"
 	})

@@ -76,6 +76,9 @@ func NewACL(opts AclOptions) *ACL {
 }
 
 func (acl *ACL) Allow(host string, addr netip.Addr) bool {
+	if addr.Is4In6() {
+		addr = addr.Unmap()
+	}
 	if len(acl.IP) > 0 {
 		for _, ip := range acl.IP {
 			if ip == addr {

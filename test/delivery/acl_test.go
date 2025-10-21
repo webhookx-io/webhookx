@@ -2,8 +2,6 @@ package delivery
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +14,6 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
-	"net"
 	"net/netip"
 	"time"
 )
@@ -54,10 +51,6 @@ var _ = Describe("network acl", Ordered, func() {
 		var resolver = deliverer.DefaultResolver
 
 		BeforeAll(func() {
-			ips, _ := net.DefaultResolver.LookupNetIP(context.Background(), "ip", "localhost")
-			for _, ip := range ips {
-				fmt.Println(ip.String())
-			}
 			deliverer.DefaultResolver = ResolverFunc(func(ctx context.Context, network, host string) ([]netip.Addr, error) {
 				if host == "suspicious.webhookx.io" {
 					return []netip.Addr{netip.MustParseAddr("127.0.0.1")}, nil
@@ -97,7 +90,6 @@ var _ = Describe("network acl", Ordered, func() {
 				q := query.AttemptQuery{}
 				q.EventId = &eventId
 				list, err := db.Attempts.List(context.TODO(), &q)
-				fmt.Println(string(utils.Must(json.Marshal(list))))
 				if err != nil || len(list) == 0 {
 					return false
 				}

@@ -54,6 +54,18 @@ func TestAllow(t *testing.T) {
 			allow:    false,
 		},
 		{
+			scenario: "deny ip4",
+			rules:    []string{"8.8.8.8"},
+			ip:       "8.8.8.8",
+			allow:    false,
+		},
+		{
+			scenario: "deny ip6",
+			rules:    []string{"2606:2800:220:1:248:1893:25c8:1946"},
+			ip:       "2606:2800:220:1:248:1893:25c8:1946",
+			allow:    false,
+		},
+		{
 			scenario: "deny IPv4-mapped IPv6 address",
 			rules:    []string{"@default"},
 			ip:       "::ffff:127.0.0.1",

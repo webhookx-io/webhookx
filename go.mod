@@ -7,6 +7,7 @@ require (
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/creasty/defaults v1.8.0
 	github.com/dop251/goja v0.0.0-20250309171923-bcd7cc6bf64c
+	github.com/elazarl/goproxy v1.7.2
 	github.com/getkin/kin-openapi v0.132.0
 	github.com/go-kit/kit v0.13.0
 	github.com/go-playground/validator/v10 v10.26.0
@@ -27,6 +28,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/cobra v1.9.1
+	github.com/stealthrocket/netjail v0.1.2
 	github.com/stretchr/testify v1.11.1
 	github.com/tetratelabs/wazero v1.9.0
 	go.opentelemetry.io/contrib/propagators/autoprop v0.62.0

@@ -91,6 +91,15 @@ worker:
                                     #   - '2606:2800:220:1:248:1893:25c8:1946'
                                     #   - '*.example.com'
                                     #
+    #proxy: http://<proxy>:<port>       # HTTP proxy URL.
+                                        # When a proxy is enabled, the ACL is disabled.
+                                        # Example (HTTP): http://<proxy>:<port>
+                                        # Example (HTTPS): https://<proxy>:<port>
+    #proxy_client_cert:                 # Certificate file for proxy with TLS enabled.
+    #proxy_client_key:                  # Key file for proxy with TLS enabled.
+    #proxy_ca_cert:                     # CA certificate file used to verify the HTTPS proxy certificate.
+    #proxy_insecure_skip_verify: false  #
+
   pool:
     size: 10000                     # pool size, default to 10000.
     concurrency: 0                  # pool concurrency, default to 100 * CPUs

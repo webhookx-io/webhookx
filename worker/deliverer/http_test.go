@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/webhookx-io/webhookx/config"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -39,10 +38,7 @@ func Test(t *testing.T) {
 	defer server.Close()
 
 	t.Run("sanity", func(t *testing.T) {
-		cfg := config.WorkerDeliverer{
-			Timeout: 10 * 1000,
-		}
-		deliverer := NewHTTPDeliverer(&cfg)
+		deliverer := NewHTTPDeliverer(Options{RequestTimeout: time.Second * 10})
 
 		req := &Request{
 			URL:     server.URL,
@@ -65,10 +61,7 @@ func Test(t *testing.T) {
 	})
 
 	t.Run("should fail with DeadlineExceeded error", func(t *testing.T) {
-		cfg := config.WorkerDeliverer{
-			Timeout: 10 * 1000,
-		}
-		deliverer := NewHTTPDeliverer(&cfg)
+		deliverer := NewHTTPDeliverer(Options{RequestTimeout: time.Millisecond * 10 * 1000})
 
 		req := &Request{
 			URL:     server.URL,

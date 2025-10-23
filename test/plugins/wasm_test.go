@@ -44,11 +44,7 @@ var _ = Describe("wasm", Ordered, func() {
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
-				"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
-				"WEBHOOKX_WORKER_ENABLED": "true",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 		})
 
 		AfterAll(func() {

@@ -135,8 +135,6 @@ var _ = Describe("Proxy", Ordered, func() {
 			proxyClient = helper.ProxyClient()
 
 			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN":           "0.0.0.0:8081",
-				"WEBHOOKX_WORKER_ENABLED":         "true",
 				"WEBHOOKX_WORKER_DELIVERER_PROXY": httpProxyURL,
 			}))
 
@@ -147,7 +145,7 @@ var _ = Describe("Proxy", Ordered, func() {
 		})
 
 		It("http delivery request should be proxied", func() {
-			err := waitForServer("0.0.0.0:8081", time.Second)
+			err := helper.WaitForServer("0.0.0.0:9600", time.Second)
 			assert.NoError(GinkgoT(), err)
 
 			resp, err := proxyClient.R().
@@ -194,7 +192,7 @@ var _ = Describe("Proxy", Ordered, func() {
 		})
 
 		It("https delivery request should be proxied", func() {
-			err := waitForServer("0.0.0.0:8081", time.Second)
+			err := helper.WaitForServer("0.0.0.0:9600", time.Second)
 			assert.NoError(GinkgoT(), err)
 
 			resp, err := proxyClient.R().
@@ -240,7 +238,7 @@ var _ = Describe("Proxy", Ordered, func() {
 		})
 
 		It("should be failed when connect ", func() {
-			err := waitForServer("0.0.0.0:8081", time.Second)
+			err := helper.WaitForServer("0.0.0.0:9600", time.Second)
 			assert.NoError(GinkgoT(), err)
 
 			resp, err := proxyClient.R().
@@ -296,8 +294,6 @@ var _ = Describe("Proxy", Ordered, func() {
 				proxyClient = helper.ProxyClient()
 
 				app = utils.Must(helper.Start(map[string]string{
-					"WEBHOOKX_PROXY_LISTEN":                      "0.0.0.0:8081",
-					"WEBHOOKX_WORKER_ENABLED":                    "true",
 					"WEBHOOKX_WORKER_DELIVERER_PROXY":            httpsProxyURL,
 					"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_VERIFY": "TRUE",
 				}))
@@ -310,7 +306,7 @@ var _ = Describe("Proxy", Ordered, func() {
 			})
 
 			It("http delivery request should be proxied", func() {
-				err := waitForServer("0.0.0.0:8081", time.Second)
+				err := helper.WaitForServer("0.0.0.0:9600", time.Second)
 				assert.NoError(GinkgoT(), err)
 
 				resp, err := proxyClient.R().
@@ -356,7 +352,7 @@ var _ = Describe("Proxy", Ordered, func() {
 			})
 
 			It("https delivery request should be proxied", func() {
-				err := waitForServer("0.0.0.0:8081", time.Second)
+				err := helper.WaitForServer("0.0.0.0:9600", time.Second)
 				assert.NoError(GinkgoT(), err)
 
 				resp, err := proxyClient.R().
@@ -427,8 +423,6 @@ var _ = Describe("Proxy", Ordered, func() {
 				proxyClient = helper.ProxyClient()
 
 				app = utils.Must(helper.Start(map[string]string{
-					"WEBHOOKX_PROXY_LISTEN":                       "0.0.0.0:8081",
-					"WEBHOOKX_WORKER_ENABLED":                     "true",
 					"WEBHOOKX_WORKER_DELIVERER_PROXY":             mtlsProxyURL,
 					"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CERT":    test.FilePath("fixtures/mtls/client.crt"),
 					"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_KEY":     test.FilePath("fixtures/mtls/client.key"),
@@ -443,7 +437,7 @@ var _ = Describe("Proxy", Ordered, func() {
 			})
 
 			It("http delivery request should be proxied", func() {
-				err := waitForServer("0.0.0.0:8081", time.Second)
+				err := helper.WaitForServer("0.0.0.0:9600", time.Second)
 				assert.NoError(GinkgoT(), err)
 
 				resp, err := proxyClient.R().
@@ -489,7 +483,7 @@ var _ = Describe("Proxy", Ordered, func() {
 			})
 
 			It("https delivery request should be proxied", func() {
-				err := waitForServer("0.0.0.0:8081", time.Second)
+				err := helper.WaitForServer("0.0.0.0:9600", time.Second)
 				assert.NoError(GinkgoT(), err)
 
 				resp, err := proxyClient.R().
@@ -539,8 +533,6 @@ var _ = Describe("Proxy", Ordered, func() {
 	Context("error", func() {
 		It("returns error when certificate not found", func() {
 			_, err := helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN":                       "0.0.0.0:8081",
-				"WEBHOOKX_WORKER_ENABLED":                     "true",
 				"WEBHOOKX_WORKER_DELIVERER_PROXY":             mtlsProxyURL,
 				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CERT":    test.FilePath("fixtures/mtls/notfound.crt"),
 				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_KEY":     test.FilePath("fixtures/mtls/client.key"),
@@ -552,8 +544,6 @@ var _ = Describe("Proxy", Ordered, func() {
 		})
 		It("returns error when ca cert not found", func() {
 			_, err := helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN":                           "0.0.0.0:8081",
-				"WEBHOOKX_WORKER_ENABLED":                         "true",
 				"WEBHOOKX_WORKER_DELIVERER_PROXY":                 mtlsProxyURL,
 				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CLIENT_CERT": test.FilePath("fixtures/mtls/client.crt"),
 				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CLIENT_KEY":  test.FilePath("fixtures/mtls/client.key"),

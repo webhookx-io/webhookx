@@ -13,6 +13,7 @@ FROM alpine:3.15
 
 COPY --from=build-env /go/src/webhookx-io/webhookx/webhookx /usr/local/bin
 
-EXPOSE 8080
+EXPOSE 9600
+
 
 CMD ["webhookx", "start"]

@@ -33,9 +33,7 @@ var _ = Describe("/plugins", Ordered, func() {
 
 	BeforeAll(func() {
 		db = helper.InitDB(true, nil)
-		app = utils.Must(helper.Start(map[string]string{
-			"WEBHOOKX_ADMIN_LISTEN": "0.0.0.0:8080",
-		}))
+		app = utils.Must(helper.Start(map[string]string{}))
 		ws = utils.Must(db.Workspaces.GetDefault(context.TODO()))
 		adminClient = helper.AdminClient()
 	})

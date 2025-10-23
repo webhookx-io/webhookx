@@ -81,8 +81,6 @@ var _ = Describe("access_log", Ordered, func() {
 			helper.InitDB(true, &entitiesConfig)
 			app = utils.Must(helper.Start(map[string]string{
 				"NO_COLOR":                 "true",
-				"WEBHOOKX_ADMIN_LISTEN":    "0.0.0.0:8080",
-				"WEBHOOKX_PROXY_LISTEN":    "0.0.0.0:8081",
 				"WEBHOOKX_ACCESS_LOG_FILE": "webhookx-access.log",
 			}))
 			adminClient = helper.AdminClient()
@@ -167,8 +165,6 @@ var _ = Describe("access_log", Ordered, func() {
 			helper.InitDB(true, &entitiesConfig)
 			app = utils.Must(helper.Start(map[string]string{
 				"NO_COLOR":                   "true",
-				"WEBHOOKX_ADMIN_LISTEN":      "0.0.0.0:8080",
-				"WEBHOOKX_PROXY_LISTEN":      "0.0.0.0:8081",
 				"WEBHOOKX_ACCESS_LOG_FORMAT": "json",
 				"WEBHOOKX_ACCESS_LOG_FILE":   "webhookx-access.log",
 			}))

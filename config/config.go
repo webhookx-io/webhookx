@@ -129,13 +129,13 @@ func (cfg *Config) OverrideByRole(role Role) {
 	switch role {
 	case RoleCP:
 		if cfg.Admin.Listen == "" {
-			cfg.Admin.Listen = "127.0.0.1:8080"
+			cfg.Admin.Listen = "127.0.0.1:9601"
 		}
 		cfg.Proxy.Listen = ""
 		cfg.Worker.Enabled = false
 	case RoleDPProxy:
 		if cfg.Proxy.Listen == "" {
-			cfg.Proxy.Listen = "127.0.0.1:8081"
+			cfg.Proxy.Listen = "0.0.0.0:9600"
 		}
 		cfg.Admin.Listen = ""
 		cfg.Worker.Enabled = false

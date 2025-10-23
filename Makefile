@@ -24,17 +24,14 @@ test-deps:
 	mkdir -p test/output/otel
 	docker compose -f test/docker-compose.yml up -d
 
-test: clean
-	go test $$(go list ./... | grep -v /test/ | grep -v /examples/ )
+test-unit: clean
+	go test $$(go list ./... | grep -v /test/ | grep -v /examples/ ) $(FLAGS)
 
-test-coverage: clean
-	go test $$(go list ./... | grep -v /test/ | grep -v /examples/ ) -coverprofile=coverage.txt
+test-o11: clean
+	ginkgo -r $(FLAGS) ./test/metrics ./test/tracing
 
-test-integration: clean
-	go test -p 1 -v ./test/...
-
-test-integration-coverage: clean
-	go test -p 1 -v ./test/... --coverpkg ./... -coverprofile=coverage.txt
+test-main: clean
+	ginkgo -r --skip-package=metrics,tracing $(FLAGS) ./test
 
 goreleaser:
 	goreleaser release --snapshot --clean

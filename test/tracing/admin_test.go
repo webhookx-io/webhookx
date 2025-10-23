@@ -39,8 +39,6 @@ var _ = Describe("tracing admin", Ordered, func() {
 				adminClient = helper.AdminClient()
 
 				envs := map[string]string{
-					"WEBHOOKX_ADMIN_LISTEN":                   "0.0.0.0:8080",
-					"WEBHOOKX_PROXY_LISTEN":                   "0.0.0.0:8081",
 					"WEBHOOKX_TRACING_ENABLED":                "true",
 					"WEBHOOKX_TRACING_SAMPLING_RATE":          "1.0",
 					"WEBHOOKX_TRACING_OPENTELEMETRY_PROTOCOL": protocol,
@@ -70,7 +68,7 @@ var _ = Describe("tracing admin", Ordered, func() {
 					"http.response.body.size":   "*",
 					"user_agent.original":       "*",
 					"server.address":            "localhost",
-					"server.port":               "8080",
+					"server.port":               "9601",
 					"network.protocol.version":  "*",
 					"network.peer.address":      "*",
 					"network.peer.port":         "*",
@@ -83,26 +81,21 @@ var _ = Describe("tracing admin", Ordered, func() {
 					"dao.attempts.list":  {},
 				}
 
-				// wait for export
-				proxyFunc := func() bool {
-					resp, err := proxyClient.R().
-						SetBody(`{
-							"event_type": "foo.bar",
-							"data": {
-								"key": "value"
-							}
-						}`).Post("/")
-					return err == nil && resp.StatusCode() == 200
-				}
-				assert.Eventually(GinkgoT(), proxyFunc, time.Second*5, time.Second)
-				// make more tracing data
-				for i := 0; i < 20; i++ {
-					go proxyFunc()
-				}
+				err := helper.WaitForServer("0.0.0.0:9600", time.Second)
+				assert.NoError(GinkgoT(), err)
 
 				n, err := helper.FileCountLine(helper.OtelCollectorTracesFile)
 				assert.Nil(GinkgoT(), err)
 				n++
+
+				// make more tracing data
+				for i := 0; i < 20; i++ {
+					resp, err := proxyClient.R().
+						SetBody(`{"event_type": "foo.bar","data": {"key": "value"}}`).
+						Post("/")
+					assert.NoError(GinkgoT(), err)
+					assert.Equal(GinkgoT(), 200, resp.StatusCode())
+				}
 
 				assert.Eventually(GinkgoT(), func() bool {
 					resp, err := adminClient.R().

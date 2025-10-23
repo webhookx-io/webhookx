@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"encoding/hex"
+	"fmt"
 	"github.com/go-resty/resty/v2"
 	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/app"
@@ -17,6 +18,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/test"
 	"maps"
+	"net"
 	"os"
 	"regexp"
 	"time"
@@ -25,6 +27,14 @@ import (
 var (
 	OtelCollectorTracesFile  = test.FilePath("output/otel/traces.json")
 	OtelCollectorMetricsFile = test.FilePath("output/otel/metrics.json")
+)
+
+const (
+	DefaultHttpProxyURL  = "http://localhost:9600"
+	DefaultHttpsProxyURL = "https://localhost:9600"
+	DefaultHttpAdminURL  = "http://localhost:9601"
+	DefaultHttpsAdminURL = "https://localhost:9601"
+	DefaultHttpStatusURL = "http://localhost:9602"
 )
 
 var defaultEnvs = map[string]string{
@@ -101,33 +111,33 @@ func Start(envs map[string]string) (application *app.Application, err error) {
 
 func AdminClient() *resty.Client {
 	c := resty.New()
-	c.SetBaseURL("http://localhost:8080")
+	c.SetBaseURL(DefaultHttpAdminURL)
 	return c
 }
 
 func AdminTLSClient() *resty.Client {
 	c := resty.New()
 	c.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	c.SetBaseURL("https://localhost:8080")
+	c.SetBaseURL(DefaultHttpsAdminURL)
 	return c
 }
 
 func ProxyClient() *resty.Client {
 	c := resty.New()
-	c.SetBaseURL("http://localhost:8081")
+	c.SetBaseURL(DefaultHttpProxyURL)
 	return c
 }
 
 func ProxyTLSClient() *resty.Client {
 	c := resty.New()
 	c.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	c.SetBaseURL("https://localhost:8081")
+	c.SetBaseURL(DefaultHttpsProxyURL)
 	return c
 }
 
 func StatusClient() *resty.Client {
 	c := resty.New()
-	c.SetBaseURL("http://localhost:8082")
+	c.SetBaseURL(DefaultHttpStatusURL)
 	return c
 }
 
@@ -365,4 +375,17 @@ func GenerateTraceID() string {
 		panic(err)
 	}
 	return hex.EncodeToString(traceID)
+}
+
+func WaitForServer(addr string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		conn, err := net.DialTimeout("tcp", addr, time.Second)
+		if err == nil {
+			_ = conn.Close()
+			return nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return fmt.Errorf("server at %s not ready after %v", addr, timeout)
 }

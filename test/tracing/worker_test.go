@@ -33,9 +33,7 @@ var _ = Describe("tracing worker", Ordered, func() {
 				helper.InitDB(true, cfg)
 				proxyClient = helper.ProxyClient()
 				envs := map[string]string{
-					"WEBHOOKX_PROXY_LISTEN":                   "0.0.0.0:8081",
 					"WEBHOOKX_TRACING_ENABLED":                "true",
-					"WEBHOOKX_WORKER_ENABLED":                 "true",
 					"WEBHOOKX_TRACING_SAMPLING_RATE":          "1.0",
 					"WEBHOOKX_TRACING_OPENTELEMETRY_PROTOCOL": protocol,
 					"WEBHOOKX_TRACING_OPENTELEMETRY_ENDPOINT": address,

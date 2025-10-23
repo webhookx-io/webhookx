@@ -37,7 +37,6 @@ var _ = Describe("tracing proxy", Ordered, func() {
 				proxyClient = helper.ProxyClient()
 
 				envs := map[string]string{
-					"WEBHOOKX_PROXY_LISTEN":                   "0.0.0.0:8081",
 					"WEBHOOKX_TRACING_ENABLED":                "true",
 					"WEBHOOKX_TRACING_SAMPLING_RATE":          "1.0",
 					"WEBHOOKX_TRACING_ATTRIBUTES":             `{"env":"test"}`,
@@ -73,7 +72,7 @@ var _ = Describe("tracing proxy", Ordered, func() {
 					"http.response.body.size":   "*",
 					"user_agent.original":       "*",
 					"server.address":            "localhost",
-					"server.port":               "8081",
+					"server.port":               "9600",
 					"network.protocol.version":  "*",
 					"network.peer.address":      "*",
 					"network.peer.port":         "*",
@@ -195,7 +194,6 @@ var _ = Describe("tracing proxy", Ordered, func() {
 			proxyClient = helper.ProxyClient()
 
 			app, err = helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN":                   "0.0.0.0:8081",
 				"WEBHOOKX_TRACING_ENABLED":                "true",
 				"WEBHOOKX_TRACING_SAMPLING_RATE":          "1",
 				"WEBHOOKX_TRACING_ATTRIBUTES":             `{"env":"test"}`,

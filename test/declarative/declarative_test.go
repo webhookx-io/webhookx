@@ -47,9 +47,7 @@ var _ = Describe("Declarative", Ordered, func() {
 
 	BeforeAll(func() {
 		helper.InitDB(true, nil)
-		app = utils.Must(helper.Start(map[string]string{
-			"WEBHOOKX_ADMIN_LISTEN": "0.0.0.0:8080",
-		}))
+		app = utils.Must(helper.Start(map[string]string{}))
 		adminClient = helper.AdminClient()
 	})
 

@@ -6,8 +6,8 @@ import (
 	"os"
 )
 
-const (
-	defaultAdminURL = "http://localhost:8080"
+var (
+	AdminURL = "http://localhost:9601"
 )
 
 var (
@@ -18,11 +18,15 @@ var (
 
 func initConfig() {
 	var err error
+
+	var options config.Options
 	if configurationFile != "" {
-		cfg, err = config.InitWithFile(configurationFile)
-	} else {
-		cfg, err = config.Init()
+		buf, err := os.ReadFile(configurationFile)
+		cobra.CheckErr(err)
+		options.YAML = buf
 	}
+
+	cfg, err = config.New(&options)
 	cobra.CheckErr(err)
 
 	err = cfg.Validate()

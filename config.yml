@@ -1,15 +1,18 @@
-# ---------------------------
-# WebhookX configuration file
-# ---------------------------
+# ------------------------------------
+# WebhookX Configuration YAML File
+# ------------------------------------
 
 log:
-  file: /dev/stdout
-  level: info   # supported values are debug, info, warn, and error.
-  format: text  # supported values are "text" and "json"
+  level: info           # Supported values: debug, info, warn, and error.
+  format: text          # Supported values: text, json.
+  colored: true         # Enables colorized logs when using text format.
+  file: ''              # By default, logs are written to stdout.
 
 access_log:
-  file: /dev/stdout
-  format: text  # supported values are "text" and "json"
+  enabled: true         # Enables access log.
+  format: text          # Supported values: text, json.
+  colored: true         # Enables colorized logs when using text format.
+  file: ''              # By default, logs are written to stdout.
 
 database:
   host: localhost
@@ -17,61 +20,77 @@ database:
   username: webhookx
   password:
   database: webhookx
-  parameters: 'application_name=webhookx&sslmode=disable&connect_timeout=10'  # The connection uri parameters.
-                                                                              # See https://www.postgresql.org/docs/current/libpq-connect.html
-  max_pool_size: 40                                                           # The maximum number of connections
-  max_lifetime: 1800                                                          # The maximum lifetime (in seconds) of a connection
+  parameters: 'application_name=webhookx&sslmode=disable&connect_timeout=10'
+                                  # Connection uri parameters.
+                                  # See https://www.postgresql.org/docs/current/libpq-connect.html for more information.
+  max_pool_size: 40               # Specifies the maximum number of connections.
+  max_lifetime: 1800              # Specifies the maximum lifetime (in seconds) of a connection.
 
 redis:
   host: localhost
   port: 6379
   password:
   database: 0
+  max_pool_size: 0                # Specifies the maximum number of connections.
+                                  # Default is 10 connections per available CPU.
+
 
 #------------------------------------------------------------------------------
-# Cluster
+# Proxy
+# The Proxy ingests events.
 #------------------------------------------------------------------------------
-#role: standalone                   # Enables cluster mode.
-                                    # This allows some nodes in the cluster to run as the control plane
-                                    # and others to run as the data plane.
-                                    #
-                                    # supported values are:
-                                    #
-                                    # - `standalone`: disable cluster mode.
-                                    # - `cp`: this node runs as the control plane.
-                                    #   It connects to the database to provide entity management.
-                                    # - `dp_proxy`: this node runs as the Proxy data plane.
-                                    # - `dp_worker`: this node runs as the Worker data plane.
+proxy:
+  listen: 0.0.0.0:9600
+  #tls:                             # TLS configuration
+  #  cert: /path/to/server.crt      # The path to TLS certificate.
+  #  key: /path/to/server.key       # The path to TLS certificate key.
+  timeout_read: 10                  # Specifies the maximum time (in seconds) for reading the request. 0 disables timeout.
+  timeout_write: 10                 # Specifies the maximum time (in seconds) for writing the response. 0 disables timeout.
+  max_request_body_size: 1048576    # Specifies the maximum request body size. Default is 1048576.
+  response:                         # Default HTTP response
+    code: 200
+    content_type: application/json
+    body: '{"message": "OK"}'
+  queue:                            # Queue settings
+    type: redis                     # Queue type. Supported values: redis, off.
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      database: 0
+    max_pool_size: 0                # Specifies the maximum number of connections.
+                                    # Default value is 10 connections per every available CPU.
 
-anonymous_reports: true             # sends anonymous data such as software version to WebhookX.
 
 #------------------------------------------------------------------------------
-# ADMIN
+# Admin API
+# The Admin API provides RESTful APIs for managing entities.
 #------------------------------------------------------------------------------
-
 admin:
-  #listen: 127.0.0.1:8080
-  #debug_endpoints: true             # enables debugging and profiling endpoints. see https://pkg.go.dev/net/http/pprof
-  #tls:
-  #  cert: /path/to/server.crt
-  #  key: /path/to/server.key
+  listen: 127.0.0.1:9601
+  debug_endpoints: false             # Whether to expose debugging and profiling endpoints (via pprof).
+                                     # See https://pkg.go.dev/net/http/pprof for more information.
+  #tls:                              # TLS configuration
+  #  cert: /path/to/server.crt       # The path to TLS certificate.
+  #  key: /path/to/server.key        # The path to TLS certificate key.
 
 #------------------------------------------------------------------------------
-# STATUS
+# Status API
+# The Status API provides APIs for retrieving runtime status about WebhookX.
 #------------------------------------------------------------------------------
-
 status:
-  listen: 127.0.0.1:8082
-  debug_endpoints: true              # enables debugging and profiling endpoints. see https://pkg.go.dev/net/http/pprof
+  listen: 127.0.0.1:9602
+  debug_endpoints: true              # Whether to expose debugging and profiling endpoints (via pprof).
+                                     # See https://pkg.go.dev/net/http/pprof for more information.
 
 #------------------------------------------------------------------------------
-# WORKER
+# Worker
+# The Worker sends events to destinations.
 #------------------------------------------------------------------------------
-
 worker:
-  enabled: false                    # Whether to enable the Worker.
+  enabled: true                     # Whether to enable the Worker.
   deliverer:
-    timeout: 60000                  # Sets the request timeout (in milliseconds) for delivery requests.
+    timeout: 60000                  # Specifies the request timeout (in milliseconds) for delivery requests.
     acl:                            # Access Control List (ACL) defines rules to control outbound network access.
                                     # A rule is a string of IPv4, IPv6, CIDR, hostname, or pre-configured group.
                                     # A hostname can contain a wildcard prefix (*.) represents its subdomains, and Unicode
@@ -97,57 +116,67 @@ worker:
                                     # Example of HTTPS: https://<host>:<port>
     #proxy_tls_cert:                # Path to the client certificate file used for mTLS proxy authentication.
     #proxy_tls_key:                 # Path to the client private key file used for mTLS proxy authentication.
-    #proxy_tls_ca_cert:             # Path to the CA certificate file used to verify the HTTPS proxy’s certificate.
+    #proxy_tls_ca_cert:             # Path to the CA certificate file used to verify the HTTPS proxy's certificate.
     #proxy_tls_verify: true         # Whether to verify the proxy server's TLS certificate.
 
-  pool:
-    size: 10000                     # pool size, default to 10000.
-    concurrency: 0                  # pool concurrency, default to 100 * CPUs
+  pool:                             # Pool defines an in-memory (goroutine) pool used for event delivery.
+    size: 10000                     # Specifies the size of pool.
+                                    # Defaults to 10000.
+    concurrency: 0                  # Specifies the maximum number of concurrent deliveries.
+                                    # Default value is 100 per every available CPU.
 
 #------------------------------------------------------------------------------
-# PROXY
+# Cluster
 #------------------------------------------------------------------------------
-proxy:
-  #listen: 127.0.0.1:8081
-  #tls:
-  #  cert: /path/to/server.crt
-  #  key: /path/to/server.key
-  timeout_read: 10                  # read timeout (in seconds), 0 indicates unlimited.
-  timeout_write: 60                 # write timeout (in seconds), 0 indicates unlimited.
-  max_request_body_size: 1048576
-  response:
-    code: 200
-    content_type: application/json
-    body: '{"message": "OK"}'
+#role: standalone                   # Enables cluster mode.
+                                    # This allows some nodes in the cluster to run as the control plane
+                                    # and others to run as the data plane.
+                                    #
+                                    # Supported values:
+                                    #
+                                    # - `standalone`: disable cluster mode.
+                                    # - `cp`: this node runs as the control plane.
+                                    #   It connects to the database to provide entity management.
+                                    # - `dp_proxy`: this node runs as the Proxy data plane.
+                                    # - `dp_worker`: this node runs as the Worker data plane.
 
-  queue:
-    type: redis                     # supported values are redis, off
-    redis:
-      host: localhost
-      port: 6379
-      password:
-      database: 0
+anonymous_reports: true             # Sends anonymous data to help improve WebhookX.
+
 
 #------------------------------------------------------------------------------
-# METRICS
+# Metrics
 #------------------------------------------------------------------------------
 metrics:
-  attributes:                                   # global attributes for each metric
-    env: prod
-  #exports: [ opentelemetry ]                   # list of enabled vendor exports. supported value are opentelemetry
-  push_interval: 10                             # interval(in seconds) at which metrics are sent to the OpenTelemetry Collector
+  #attributes:                                  # Specifies the custom attributes in key-value pair for each metric.
+  #  foo: bar
+  #exports:                                     # The list of enabled vendor exports. Supported value: opentelemetry.
+  #  - opentelemetry
+  push_interval: 10                             # Specifies the interval (in seconds) at which metrics are sent to the OpenTelemetry Collector
   opentelemetry:
-    protocol: http/protobuf                     # supported value are http/protobuf, grpc
-    endpoint: http://localhost:4318/v1/metrics  # http/protobuf(http://localhost:4318/v1/metrics), grpc(localhost:4317)
+    protocol: http/protobuf                     # Supported values: http/protobuf, grpc.
+    endpoint: http://localhost:4318/v1/metrics  #
+                                                # Example of http/protobuf:
+                                                #   protocol: http/protobuf
+                                                #   endpoint: http://localhost:4318/v1/metrics
+                                                # Example of grpc:
+                                                #   protocol: grpc
+                                                #   endpoint: localhost:4317
 
 #------------------------------------------------------------------------------
-# TRACING
+# Tracing
 #------------------------------------------------------------------------------
 tracing:
   enabled: false
-  attributes:                                   # global attributes for each trace
-    env: prod
-  sampling_rate: 1.0
+  #attributes:                                  # Specifies the custom attributes in key-value pair for each trace.
+  #  foo: bar
+  sampling_rate: 1                              # Specifies the trace sampling rate.
+                                                # Example: `0.01`, samples 1% of traces.
   opentelemetry:
-    protocol: http/protobuf                     # supported value are http/protobuf, grpc
-    endpoint: http://localhost:4318/v1/traces   # http/protobuf(http://localhost:4318/v1/traces), grpc(localhost:4317)
+    protocol: http/protobuf                     # Supported values: http/protobuf, grpc.
+    endpoint: http://localhost:4318/v1/traces   #
+                                                # Example of http/protobuf:
+                                                #   protocol: http/protobuf
+                                                #   endpoint: http://localhost:4318/v1/traces
+                                                # Example of grpc:
+                                                #   protocol: grpc
+                                                #   endpoint: localhost:4317

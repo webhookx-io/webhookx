@@ -70,7 +70,7 @@ func newAdminDumpCmd() *cobra.Command {
 	}
 
 	dump.Flags().StringVarP(&workspace, "workspace", "", "default", "Set a specific workspace.")
-	dump.Flags().StringVarP(&addr, "addr", "", defaultAdminURL, "HTTP address of WebhookX's Admin API.")
+	dump.Flags().StringVarP(&addr, "addr", "", AdminURL, "HTTP address of WebhookX's Admin API.")
 	dump.Flags().IntVarP(&timeout, "timeout", "", 10, "Set the request timeout for the client to connect with WebhookX (in seconds).")
 
 	return dump

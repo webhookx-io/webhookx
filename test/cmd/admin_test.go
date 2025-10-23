@@ -40,6 +40,16 @@ func startHTTP(handler http.HandlerFunc, addr string) *http.Server {
 }
 
 var _ = Describe("admin", Ordered, func() {
+
+	var url = cmd.AdminURL
+	BeforeAll(func() {
+		cmd.AdminURL = helper.AdminHttpURL
+	})
+
+	AfterAll(func() {
+		cmd.AdminURL = url
+	})
+
 	Context("sync", func() {
 		Context("sanity", func() {
 			var app *app.Application
@@ -47,11 +57,7 @@ var _ = Describe("admin", Ordered, func() {
 
 			BeforeAll(func() {
 				db = helper.InitDB(true, nil)
-				app = utils.Must(helper.Start(map[string]string{
-					"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
-					"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
-					"WEBHOOKX_WORKER_ENABLED": "true",
-				}))
+				app = utils.Must(helper.Start(map[string]string{}))
 			})
 
 			AfterAll(func() {
@@ -59,7 +65,7 @@ var _ = Describe("admin", Ordered, func() {
 			})
 
 			It("sanity", func() {
-				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml")
+				output, err := helper.ExecAppCommand("admin", "sync", "../fixtures/webhookx.yml")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), "sync successfully\n", output)
 
@@ -113,7 +119,7 @@ var _ = Describe("admin", Ordered, func() {
 				err = db.Sources.Insert(context.TODO(), &source)
 				assert.NoError(GinkgoT(), err)
 
-				_, err = executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml")
+				_, err = helper.ExecAppCommand("admin", "sync", "../fixtures/webhookx.yml")
 				assert.Nil(GinkgoT(), err)
 
 				dbEndpoint, err := db.Endpoints.Get(context.TODO(), endpoint.ID)
@@ -126,14 +132,14 @@ var _ = Describe("admin", Ordered, func() {
 			})
 
 			It("entities id should not be changed after multiple syncs", func() {
-				_, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml")
+				_, err := helper.ExecAppCommand("admin", "sync", "../fixtures/webhookx.yml")
 				assert.Nil(GinkgoT(), err)
 
 				endpoint1, err := db.Endpoints.Select(context.TODO(), "name", "default-endpoint")
 				assert.NoError(GinkgoT(), err)
 				assert.NotNil(GinkgoT(), endpoint1)
 
-				_, err = executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml")
+				_, err = helper.ExecAppCommand("admin", "sync", "../fixtures/webhookx.yml")
 				assert.Nil(GinkgoT(), err)
 
 				endpoint2, err := db.Endpoints.Select(context.TODO(), "name", "default-endpoint")
@@ -145,17 +151,17 @@ var _ = Describe("admin", Ordered, func() {
 
 			Context("errors", func() {
 				It("missing filename", func() {
-					output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync")
+					output, err := helper.ExecAppCommand("admin", "sync")
 					assert.NotNil(GinkgoT(), err)
 					assert.Equal(GinkgoT(), "Error: accepts 1 arg(s), received 0\n", output)
 				})
 				It("invalid filename", func() {
-					output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "unknown.yaml")
+					output, err := helper.ExecAppCommand("admin", "sync", "unknown.yaml")
 					assert.NotNil(GinkgoT(), err)
 					assert.Equal(GinkgoT(), "Error: open unknown.yaml: no such file or directory\n", output)
 				})
 				It("invalid yaml", func() {
-					output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/invalid_webhookx.yml")
+					output, err := helper.ExecAppCommand("admin", "sync", "../fixtures/invalid_webhookx.yml")
 					assert.NotNil(GinkgoT(), err)
 					assert.Equal(GinkgoT(), "Error: invalid status code: 400 {\"message\":\"malformed yaml content: yaml: unmarshal errors:\\n  line 1: cannot unmarshal !!str `webhook...` into map[string]interface {}\"}\n", output)
 				})
@@ -166,10 +172,10 @@ var _ = Describe("admin", Ordered, func() {
 			It("--timeout", func() {
 				server := startHTTP(func(writer http.ResponseWriter, r *http.Request) {
 					time.Sleep(time.Second * 2)
-				}, ":8080")
-				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml", "--timeout", "1")
+				}, ":9701")
+				output, err := helper.ExecAppCommand("admin", "sync", "../fixtures/webhookx.yml", "--timeout", "1")
 				assert.NotNil(GinkgoT(), err)
-				assert.Equal(GinkgoT(), "Error: Post \"http://localhost:8080/workspaces/default/config/sync\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)\n", output)
+				assert.Equal(GinkgoT(), "Error: Post \"http://localhost:9701/workspaces/default/config/sync\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)\n", output)
 				assert.Nil(GinkgoT(), server.Shutdown(context.TODO()))
 			})
 
@@ -177,11 +183,11 @@ var _ = Describe("admin", Ordered, func() {
 				var url string
 				server := startHTTP(func(writer http.ResponseWriter, r *http.Request) {
 					url = fullURL(r)
-				}, "127.0.0.1:8080")
-				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml", "--workspace", "foo")
+				}, "127.0.0.1:9701")
+				output, err := helper.ExecAppCommand("admin", "sync", "../fixtures/webhookx.yml", "--workspace", "foo")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), "sync successfully\n", output)
-				assert.Equal(GinkgoT(), "http://localhost:8080/workspaces/foo/config/sync", url)
+				assert.Equal(GinkgoT(), "http://localhost:9701/workspaces/foo/config/sync", url)
 				assert.Nil(GinkgoT(), server.Shutdown(context.TODO()))
 			})
 
@@ -191,7 +197,7 @@ var _ = Describe("admin", Ordered, func() {
 				server := startHTTP(func(writer http.ResponseWriter, r *http.Request) {
 					url = fullURL(r)
 				}, "127.0.0.1:8888")
-				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml", "--addr", "http://localhost:8888")
+				output, err := helper.ExecAppCommand("admin", "sync", "../fixtures/webhookx.yml", "--addr", "http://localhost:8888")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), "sync successfully\n", output)
 				assert.Equal(GinkgoT(), "http://localhost:8888/workspaces/default/config/sync", url)
@@ -207,11 +213,7 @@ var _ = Describe("admin", Ordered, func() {
 
 			BeforeAll(func() {
 				db = helper.InitDB(true, nil)
-				app = utils.Must(helper.Start(map[string]string{
-					"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
-					"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
-					"WEBHOOKX_WORKER_ENABLED": "true",
-				}))
+				app = utils.Must(helper.Start(map[string]string{}))
 			})
 
 			AfterAll(func() {
@@ -243,7 +245,7 @@ var _ = Describe("admin", Ordered, func() {
 					factory.WithPluginMetadata(map[string]string{"k": "v"}))
 				assert.NoError(GinkgoT(), db.Plugins.Insert(context.TODO(), &plugin))
 
-				output, err := executeCommand(cmd.NewRootCmd(), "admin", "dump")
+				output, err := helper.ExecAppCommand("admin", "dump")
 				assert.Nil(GinkgoT(), err)
 				expected, err := os.ReadFile("testdata/dump.yml")
 				require.NoError(GinkgoT(), err)

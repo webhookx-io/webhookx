@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
-	"github.com/webhookx-io/webhookx/cmd"
 	"github.com/webhookx-io/webhookx/db/migrator"
 	"github.com/webhookx-io/webhookx/test/helper"
 )
@@ -48,18 +48,21 @@ var _ = Describe("db", Ordered, func() {
 
 	var m *migrator.Migrator
 	BeforeAll(func() {
-		m = migrator.New(helper.DB().DB.DB, nil)
+		cfg, err := helper.NewConfig(nil)
+		assert.NoError(GinkgoT(), err)
+		m = migrator.New(helper.NewDB(cfg).SqlDB(), nil)
 	})
 
 	Context("status", func() {
 		It("sanity", func() {
 			assert.Nil(GinkgoT(), m.Reset())
-			output, err := executeCommand(cmd.NewRootCmd(), "db", "status")
+			output, err := helper.ExecAppCommand("db", "status")
+			fmt.Println(output)
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), statusOutputInit, output)
 
 			assert.Nil(GinkgoT(), m.Up())
-			output, err = executeCommand(cmd.NewRootCmd(), "db", "status")
+			output, err = helper.ExecAppCommand("db", "status")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), statusOutputDone, output)
 		})
@@ -68,12 +71,12 @@ var _ = Describe("db", Ordered, func() {
 	Context("up", func() {
 		It("sanity", func() {
 			assert.Nil(GinkgoT(), m.Reset())
-			output, err := executeCommand(cmd.NewRootCmd(), "db", "up")
+			output, err := helper.ExecAppCommand("db", "up")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), "database is up-to-date\n", output)
 
 			// runs up again
-			output, err = executeCommand(cmd.NewRootCmd(), "db", "up")
+			output, err = helper.ExecAppCommand("db", "up")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), "database is up-to-date\n", output)
 		})
@@ -81,13 +84,13 @@ var _ = Describe("db", Ordered, func() {
 
 	Context("reset", func() {
 		It("with --yes flag", func() {
-			output, err := executeCommand(cmd.NewRootCmd(), "db", "reset", "--yes")
+			output, err := helper.ExecAppCommand("db", "reset", "--yes")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), "resetting database...\ndatabase successfully reset\n", output)
 		})
 
 		It("without --yes flag", func() {
-			output, err := executeCommand(cmd.NewRootCmd(), "db", "reset")
+			output, err := helper.ExecAppCommand("db", "reset")
 			assert.NotNil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), "canceled", err.Error())
 			assert.Equal(GinkgoT(), "> Are you sure? This operation is irreversible. [Y/N] Error: canceled\n", output)

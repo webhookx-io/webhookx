@@ -43,7 +43,7 @@ var _ = Describe("ingest", Ordered, func() {
 			proxyClient = helper.ProxyClient()
 
 			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN": "0.0.0.0:8081",
+				"WEBHOOKX_WORKER_ENABLED": "false",
 			}))
 		})
 
@@ -107,9 +107,7 @@ var _ = Describe("ingest", Ordered, func() {
 			helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN":     "0.0.0.0:8081",
 				"WEBHOOKX_PROXY_QUEUE_TYPE": "off",
-				"WEBHOOKX_LOG_FILE":         "webhookx.log",
 			}))
 		})
 
@@ -118,7 +116,7 @@ var _ = Describe("ingest", Ordered, func() {
 		})
 
 		It("returns HTTP 500", func() {
-			helper.TruncateFile("webhookx.log")
+			helper.TruncateFile(helper.LogFile)
 			assert.Eventually(GinkgoT(), func() bool {
 				resp, err := proxyClient.R().
 					SetBody(`{
@@ -130,7 +128,7 @@ var _ = Describe("ingest", Ordered, func() {
 					Post("/")
 				return err == nil && resp.StatusCode() == 500
 			}, time.Second*5, time.Second)
-			matched, err := helper.FileHasLine("webhookx.log", "^.*failed to ingest event: queue is disabled$")
+			matched, err := helper.FileHasLine(helper.LogFile, "^.*failed to ingest event: queue is disabled$")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), true, matched)
 		})

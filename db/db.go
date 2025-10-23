@@ -120,3 +120,7 @@ func (db *DB) Truncate(table string) error {
 	_, err := db.DB.Exec(sql)
 	return err
 }
+
+func (db *DB) SqlDB() *sql.DB {
+	return db.DB.DB
+}

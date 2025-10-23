@@ -1,7 +1,7 @@
 package config
 
 type AdminConfig struct {
-	Listen         string `yaml:"listen" json:"listen"`
+	Listen         string `yaml:"listen" json:"listen" default:"127.0.0.1:9601"`
 	DebugEndpoints bool   `yaml:"debug_endpoints" json:"debug_endpoints" envconfig:"DEBUG_ENDPOINTS"`
 	TLS            TLS    `yaml:"tls" json:"tls"`
 }

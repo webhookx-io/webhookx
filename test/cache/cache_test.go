@@ -16,7 +16,7 @@ var _ = Describe("cache", Ordered, func() {
 	var redisCache cache.Cache
 
 	BeforeAll(func() {
-		cfg, err := config.Init()
+		cfg, err := config.New(nil)
 		assert.NoError(GinkgoT(), err)
 		redisCache = cache.NewRedisCache(cfg.Redis.GetClient())
 	})

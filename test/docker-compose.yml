@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:13
     environment:
-      POSTGRES_DB: webhookx
+      POSTGRES_DB: webhookx_test
       POSTGRES_USER: webhookx
       POSTGRES_HOST_AUTH_METHOD: trust
     healthcheck:
@@ -29,7 +29,7 @@ services:
     depends_on:
       - httpbin
     ports:
-      - "9443:443"
+      - 9443:443
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./server.crt:/etc/nginx/certs/server.crt:ro

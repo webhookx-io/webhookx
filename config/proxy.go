@@ -37,7 +37,7 @@ func (cfg Queue) Validate() error {
 }
 
 type ProxyConfig struct {
-	Listen             string        `yaml:"listen" json:"listen"`
+	Listen             string        `yaml:"listen" json:"listen" default:"0.0.0.0:9600"`
 	TLS                TLS           `yaml:"tls" json:"tls"`
 	TimeoutRead        int64         `yaml:"timeout_read" json:"timeout_read" default:"10" envconfig:"TIMEOUT_READ"`
 	TimeoutWrite       int64         `yaml:"timeout_write" json:"timeout_write" default:"10" envconfig:"TIMEOUT_WRITE"`

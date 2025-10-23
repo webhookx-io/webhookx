@@ -23,7 +23,7 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 
 ## Features
 
-- **Admin API:** Expose a RESTful API on port `:8080` for managing WebhookX entities.
+- **Admin API:** Expose a RESTful API on port `:9601` for managing WebhookX entities.
 - **Retries:** Automatically retry unsuccessful deliveries with configurable delays.
 - **Fan out:** Route events to multiple endpoints based on the event type.
 - **Rate Limiting:** Protect the gateway ingestion and delivery endpoints from overload.
@@ -67,7 +67,7 @@ curl -O https://raw.githubusercontent.com/webhookx-io/webhookx/main/docker-compo
 Once it's running, you will see HTTP 200 response
 
 ```
-curl http://localhost:8080
+curl http://localhost:9601
 ```
 
 ```http
@@ -102,10 +102,10 @@ Once it is set up, you're ready to send events to WebhookX.
 
 ### 3. Send events to WebhookX
 
-> The Ingestion is exposed on port  `:8081`
+> The Ingestion is exposed on port  `:9600`
 
 ```
-curl -X POST http://localhost:8081 \
+curl -X POST http://localhost:9600 \
 --header 'Content-Type: application/json' \
 --data '{
     "event_type": "charge.succeeded",
@@ -125,12 +125,12 @@ We sent a `charge.succeeded` event including `data` to WebhookX, and it will be 
 >
 > Attempt object represents the delivery result of an event, and contains inspection information. 
 
-> The Admin is exposed on port  `:8080`
+> The Admin is exposed on port  `:9601`
 
 Let's make a request to retrieve the attempt list
 
 ```
-curl http://localhost:8080/workspaces/default/attempts
+curl http://localhost:9601/workspaces/default/attempts
 ```
 
 <details>
@@ -174,7 +174,7 @@ curl http://localhost:8080/workspaces/default/attempts
 To inspect the data such as `request.headers`, `request.body`, `response.headers`, and  `response.body`, try
 
 ```
-http://localhost:8080/workspaces/default/attempts/338lax8Xe774EhimzBukip37Zne
+http://localhost:9601/workspaces/default/attempts/338lax8Xe774EhimzBukip37Zne
 ```
 
 <details>
@@ -243,8 +243,8 @@ Usage:
 Available Commands:
   admin       Admin commands
   completion  Generate the autocompletion script for the specified shell
+  db          Database commands
   help        Help about any command
-  migrations  
   start       Start server
   version     Print the version
 

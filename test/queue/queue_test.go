@@ -17,7 +17,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 	var queue taskqueue.TaskQueue
 
 	BeforeAll(func() {
-		cfg, err := config.Init()
+		cfg, err := config.New(nil)
 		assert.Nil(GinkgoT(), err)
 		log, err := log.NewZapLogger(&cfg.Log)
 

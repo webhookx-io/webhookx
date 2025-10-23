@@ -18,7 +18,7 @@ var _ = Describe("anonymous reports", Ordered, func() {
 		BeforeAll(func() {
 			helper.InitDB(true, nil)
 			app = utils.Must(helper.Start(map[string]string{
-				"ANONYMOUS_REPORTS": "false",
+				"WEBHOOKX_ANONYMOUS_REPORTS": "false",
 			}))
 		})
 
@@ -27,7 +27,7 @@ var _ = Describe("anonymous reports", Ordered, func() {
 		})
 
 		It("should display log when anonymous_reports is disabled", func() {
-			matched, err := helper.FileHasLine("webhookx.log", "^.*anonymous reports is disabled$")
+			matched, err := helper.FileHasLine(helper.LogFile, "^.*anonymous reports is disabled$")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), true, matched)
 		})

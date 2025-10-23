@@ -37,9 +37,6 @@ var _ = Describe("opentelemetry", Ordered, func() {
 				proxyClient = helper.ProxyClient()
 				var err error
 				app, err = helper.Start(map[string]string{
-					"WEBHOOKX_ADMIN_LISTEN":                   "0.0.0.0:8080",
-					"WEBHOOKX_PROXY_LISTEN":                   "0.0.0.0:8081",
-					"WEBHOOKX_WORKER_ENABLED":                 "true",
 					"WEBHOOKX_METRICS_EXPORTS":                "opentelemetry",
 					"WEBHOOKX_METRICS_PUSH_INTERVAL":          "3",
 					"WEBHOOKX_METRICS_OPENTELEMETRY_PROTOCOL": protocol,

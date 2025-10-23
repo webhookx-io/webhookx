@@ -33,7 +33,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 	endpoint := factory.Endpoint()
 
 	BeforeAll(func() {
-		cfg, err := config.Init()
+		cfg, err := config.New(nil)
 		assert.NoError(GinkgoT(), err)
 		db = helper.InitDB(true, nil)
 

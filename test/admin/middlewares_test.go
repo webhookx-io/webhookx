@@ -41,9 +41,7 @@ var _ = Describe("middlewares", Ordered, func() {
 		BeforeAll(func() {
 			helper.InitDB(true, nil)
 			adminClient = helper.AdminClient()
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_ADMIN_LISTEN": "0.0.0.0:8080",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 		})
 
 		AfterAll(func() {
@@ -76,9 +74,7 @@ var _ = Describe("middlewares", Ordered, func() {
 
 			adminClient = helper.AdminClient()
 
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_ADMIN_LISTEN": "0.0.0.0:8080",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 		})
 
 		AfterAll(func() {

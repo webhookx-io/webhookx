@@ -22,9 +22,10 @@ const (
 )
 
 type LogConfig struct {
-	File   string    `yaml:"file" json:"file" default:"/dev/stdout"`
-	Level  LogLevel  `yaml:"level" json:"level" default:"info"`
-	Format LogFormat `yaml:"format" json:"format" default:"text"`
+	Level   LogLevel  `yaml:"level" json:"level" default:"info"`
+	Format  LogFormat `yaml:"format" json:"format" default:"text"`
+	Colored bool      `yaml:"colored" json:"colored" default:"true"`
+	File    string    `yaml:"file" json:"file"`
 }
 
 func (cfg LogConfig) Validate() error {

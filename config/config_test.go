@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/stretchr/testify/assert"
+	"os"
 	"testing"
 )
 
@@ -339,7 +340,7 @@ func TestStatusConfig(t *testing.T) {
 }
 
 func TestRole(t *testing.T) {
-	cfg, err := Init()
+	cfg, err := New(nil)
 	assert.Nil(t, err)
 
 	cfg.Role = "standalone"
@@ -480,7 +481,7 @@ func TestWorkerProxyConfig(t *testing.T) {
 }
 
 func TestConfig(t *testing.T) {
-	cfg, err := Init()
+	cfg, err := New(nil)
 	assert.Nil(t, err)
 	assert.Nil(t, cfg.Validate())
 	str := cfg.String()
@@ -495,7 +496,9 @@ func TestConfig(t *testing.T) {
 }
 
 func TestInitWithFile(t *testing.T) {
-	cfg, err := InitWithFile("./testdata/config-empty.yml")
+	b, err := os.ReadFile("./testdata/config-empty.yml")
+	assert.NoError(t, err)
+	cfg, err := New(&Options{YAML: b})
 	assert.Nil(t, err)
 	assert.Nil(t, cfg.Validate())
 }

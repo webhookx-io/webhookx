@@ -2,7 +2,6 @@ package plugins
 
 import (
 	"context"
-	"fmt"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/plugins/webhookx_signature"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
@@ -52,11 +51,7 @@ var _ = Describe("webhookx-signature", Ordered, func() {
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
-				"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
-				"WEBHOOKX_WORKER_ENABLED": "true",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 		})
 
 		AfterAll(func() {
@@ -121,7 +116,6 @@ var _ = Describe("webhookx-signature", Ordered, func() {
 			}, time.Second*5, time.Second)
 
 			// attemptDetail.request
-			fmt.Println(attemptDetail.RequestHeaders)
 			assert.Equal(GinkgoT(), "application/json; charset=utf-8", attemptDetail.RequestHeaders["Content-Type"])
 			assert.Equal(GinkgoT(), "WebhookX/"+config.VERSION, attemptDetail.RequestHeaders["User-Agent"])
 			assert.Regexp(GinkgoT(), "v1=[0-9a-f]{64}", attemptDetail.RequestHeaders["Webhookx-Signature"])

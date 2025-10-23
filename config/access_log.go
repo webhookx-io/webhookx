@@ -6,8 +6,10 @@ import (
 )
 
 type AccessLogConfig struct {
-	File   string    `yaml:"file" json:"file" default:"/dev/stdout"`
-	Format LogFormat `yaml:"format" json:"format" default:"text"`
+	Enabled bool      `yaml:"enabled" json:"enabled" default:"true"`
+	Format  LogFormat `yaml:"format" json:"format" default:"text"`
+	Colored bool      `yaml:"colored" json:"colored" default:"true"`
+	File    string    `yaml:"file" json:"file"`
 }
 
 func (cfg AccessLogConfig) Validate() error {
@@ -15,8 +17,4 @@ func (cfg AccessLogConfig) Validate() error {
 		return fmt.Errorf("invalid format: %s", cfg.Format)
 	}
 	return nil
-}
-
-func (cfg AccessLogConfig) Enabled() bool {
-	return cfg.File != ""
 }

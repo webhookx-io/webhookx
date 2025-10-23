@@ -66,8 +66,6 @@ var _ = Describe("network acl", Ordered, func() {
 			proxyClient = helper.ProxyClient()
 
 			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN":              "0.0.0.0:8081",
-				"WEBHOOKX_WORKER_ENABLED":            "true",
 				"WEBHOOKX_WORKER_DELIVERER_ACL_DENY": "@default,*.example.com,xn--e1aybc.foo.com",
 			}))
 
@@ -79,7 +77,7 @@ var _ = Describe("network acl", Ordered, func() {
 		})
 
 		It("request denied", func() {
-			err := waitForServer("0.0.0.0:8081", time.Second)
+			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
 			assert.NoError(GinkgoT(), err)
 
 			resp, err := proxyClient.R().
@@ -115,7 +113,7 @@ var _ = Describe("network acl", Ordered, func() {
 		})
 
 		It("request denied by hostname", func() {
-			err := waitForServer("0.0.0.0:8081", time.Second)
+			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
 			assert.NoError(GinkgoT(), err)
 
 			resp, err := proxyClient.R().
@@ -144,7 +142,7 @@ var _ = Describe("network acl", Ordered, func() {
 		})
 
 		It("request denied by unicode hostname", func() {
-			err := waitForServer("0.0.0.0:8081", time.Second)
+			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
 			assert.NoError(GinkgoT(), err)
 
 			resp, err := proxyClient.R().
@@ -173,7 +171,7 @@ var _ = Describe("network acl", Ordered, func() {
 		})
 
 		It("request denied by ip resolved by dns", func() {
-			err := waitForServer("0.0.0.0:8081", time.Second)
+			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
 			assert.NoError(GinkgoT(), err)
 
 			resp, err := proxyClient.R().

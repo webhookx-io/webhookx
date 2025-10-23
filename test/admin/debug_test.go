@@ -17,7 +17,6 @@ var _ = Describe("/debug", Ordered, func() {
 
 	BeforeAll(func() {
 		app = utils.Must(helper.Start(map[string]string{
-			"WEBHOOKX_ADMIN_LISTEN":          "0.0.0.0:8080",
 			"WEBHOOKX_ADMIN_DEBUG_ENDPOINTS": "true",
 		}))
 		adminClient = helper.AdminClient()

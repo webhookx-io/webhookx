@@ -11,17 +11,14 @@ type AccessLogger interface {
 }
 
 type Options struct {
-	File   string
-	Format string
+	File    string
+	Format  string
+	Colored bool
 }
 
 func NewAccessLogger(name string, opts Options) (AccessLogger, error) {
-	if opts.File == "" {
-		return nil, errors.New("accesslog file is required")
-	}
-
 	var writer io.Writer = os.Stdout
-	if opts.File != "/dev/stdout" {
+	if opts.File != "" {
 		file, err := os.OpenFile(opts.File, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
 		if err != nil {
 			return nil, err
@@ -31,7 +28,7 @@ func NewAccessLogger(name string, opts Options) (AccessLogger, error) {
 
 	switch opts.Format {
 	case "text":
-		return NewTextLogger(name, writer), nil
+		return NewTextLogger(name, writer, opts.Colored), nil
 	case "json":
 		return NewJsonLogger(name, writer), nil
 	default:

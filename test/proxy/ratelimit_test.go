@@ -35,9 +35,7 @@ var _ = Describe("rate-limit", Ordered, func() {
 			helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN": "0.0.0.0:8081",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 		})
 
 		AfterAll(func() {

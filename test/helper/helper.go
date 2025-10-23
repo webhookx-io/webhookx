@@ -2,13 +2,18 @@ package helper
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/tls"
+	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"github.com/go-resty/resty/v2"
+	"github.com/redis/go-redis/v9"
 	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/app"
+	"github.com/webhookx-io/webhookx/cmd"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
@@ -17,58 +22,85 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/test"
 	"maps"
+	"net"
+	"net/url"
 	"os"
 	"regexp"
 	"time"
 )
 
 var (
+	ProxyHttpURL  = "http://localhost:9700"
+	ProxyHttpsURL = "https://localhost:9700"
+	AdminHttpURL  = "http://localhost:9701"
+	AdminHttpsURL = "https://localhost:9701"
+	StatusHttpURL = "http://localhost:9702"
+
+	LogFile                  = test.FilePath("webhookx.log")
 	OtelCollectorTracesFile  = test.FilePath("output/otel/traces.json")
 	OtelCollectorMetricsFile = test.FilePath("output/otel/metrics.json")
+
+	// Environments is default test environments
+	Environments = map[string]string{
+		"NO_COLOR":                           "true",
+		"WEBHOOKX_LOG_LEVEL":                 "debug",
+		"WEBHOOKX_LOG_FORMAT":                "text",
+		"WEBHOOKX_LOG_FILE":                  LogFile,
+		"WEBHOOKX_LOG_COLORED":               "false",
+		"WEBHOOKX_ACCESS_LOG_FILE":           LogFile,
+		"WEBHOOKX_ACCESS_LOG_COLORED":        "false",
+		"WEBHOOKX_WORKER_DELIVERER_ACL_DENY": "",
+		"WEBHOOKX_PROXY_LISTEN":              "127.0.0.1:9700",
+		"WEBHOOKX_ADMIN_LISTEN":              "127.0.0.1:9701",
+		"WEBHOOKX_STATUS_LISTEN":             "127.0.0.1:9702",
+		"WEBHOOKX_DATABASE_DATABASE":         "webhookx_test",
+		"WEBHOOKX_WORKER_POOL_SIZE":          "100",
+		"WEBHOOKX_WORKER_POOL_CONCURRENCY":   "10",
+	}
 )
 
-var defaultEnvs = map[string]string{
-	"NO_COLOR":                           "true",
-	"WEBHOOKX_LOG_LEVEL":                 "debug",
-	"WEBHOOKX_LOG_FORMAT":                "text",
-	"WEBHOOKX_LOG_FILE":                  "webhookx.log",
-	"WEBHOOKX_ACCESS_LOG_FILE":           "webhookx.log",
-	"WEBHOOKX_WORKER_DELIVERER_ACL_DENY": "",
-	"WEBHOOKX_WORKER_POOL_SIZE":          "100",
-	"WEBHOOKX_WORKER_POOL_CONCURRENCY":   "10",
-}
-
-func unsetEnvs(envs map[string]string) {
-	for k := range envs {
-		os.Unsetenv(k)
+// SetEnvs sets envs and returns a function to restore envs
+func SetEnvs(defaults map[string]string, sets map[string]string) func() {
+	envs := maps.Clone(defaults)
+	maps.Copy(envs, sets)
+	originals := make(map[string]*string)
+	for k, v := range envs {
+		old, existed := os.LookupEnv(k)
+		if existed {
+			originals[k] = &old
+		} else {
+			originals[k] = nil
+		}
+		_ = os.Setenv(k, v)
 	}
-}
-
-func setEnvs(envs map[string]string) error {
-	for name, value := range envs {
-		if err := os.Setenv(name, value); err != nil {
-			return err
+	return func() {
+		for k, old := range originals {
+			if old == nil {
+				_ = os.Unsetenv(k)
+			} else {
+				_ = os.Setenv(k, *old)
+			}
 		}
 	}
-	return nil
 }
 
-// Start starts WebhookX with given environment variables
+func NewConfig(envs map[string]string) (*config.Config, error) {
+	cancel := SetEnvs(Environments, envs)
+	defer cancel()
+	return config.New(nil)
+}
+
+// Start starts application with given environment variables
 func Start(envs map[string]string) (application *app.Application, err error) {
-	environments := maps.Clone(defaultEnvs)
-	maps.Copy(environments, envs)
+	cancel := SetEnvs(Environments, envs)
 
 	defer func() {
 		if err != nil {
-			unsetEnvs(environments)
+			cancel()
 		}
 	}()
 
-	if err = setEnvs(environments); err != nil {
-		return
-	}
-
-	cfg, err := config.Init()
+	cfg, err := config.New(nil)
 	if err != nil {
 		return
 	}
@@ -76,12 +108,12 @@ func Start(envs map[string]string) (application *app.Application, err error) {
 		return
 	}
 
-	if _, err := os.Stat(defaultEnvs["WEBHOOKX_LOG_FILE"]); err == nil {
-		TruncateFile(defaultEnvs["WEBHOOKX_LOG_FILE"])
+	if _, err := os.Stat(cfg.Log.File); err == nil {
+		TruncateFile(cfg.Log.File)
 	}
 
-	if _, err := os.Stat(defaultEnvs["WEBHOOKX_ACCESS_LOG_FILE"]); err == nil {
-		TruncateFile(defaultEnvs["WEBHOOKX_ACCESS_LOG_FILE"])
+	if _, err := os.Stat(cfg.AccessLog.File); err == nil {
+		TruncateFile(cfg.Log.File)
 	}
 
 	application, err = app.New(cfg)
@@ -94,50 +126,61 @@ func Start(envs map[string]string) (application *app.Application, err error) {
 
 	go func() {
 		application.Wait()
-		unsetEnvs(environments)
+		cancel()
 	}()
 
 	time.Sleep(time.Second)
 	return application, nil
 }
 
+// ExecAppCommand executes application command
+func ExecAppCommand(args ...string) (output string, err error) {
+	cancel := SetEnvs(Environments, nil)
+	defer cancel()
+
+	root := cmd.NewRootCmd()
+	buf := new(bytes.Buffer)
+	root.SetOut(buf)
+	root.SetErr(buf)
+	root.SetArgs(args)
+
+	err = root.Execute()
+	return buf.String(), err
+}
+
 func AdminClient() *resty.Client {
 	c := resty.New()
-	c.SetBaseURL("http://localhost:8080")
+	c.SetBaseURL(AdminHttpURL)
 	return c
 }
 
 func AdminTLSClient() *resty.Client {
 	c := resty.New()
 	c.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	c.SetBaseURL("https://localhost:8080")
+	c.SetBaseURL(AdminHttpsURL)
 	return c
 }
 
 func ProxyClient() *resty.Client {
 	c := resty.New()
-	c.SetBaseURL("http://localhost:8081")
+	c.SetBaseURL(ProxyHttpURL)
 	return c
 }
 
 func ProxyTLSClient() *resty.Client {
 	c := resty.New()
 	c.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	c.SetBaseURL("https://localhost:8081")
+	c.SetBaseURL(ProxyHttpsURL)
 	return c
 }
 
 func StatusClient() *resty.Client {
 	c := resty.New()
-	c.SetBaseURL("http://localhost:8082")
+	c.SetBaseURL(StatusHttpURL)
 	return c
 }
 
-func DB() *db.DB {
-	cfg, err := config.Init()
-	if err != nil {
-		return nil
-	}
+func NewDB(cfg *config.Config) *db.DB {
 	sqlDB, err := db.NewSqlDB(cfg.Database)
 	if err != nil {
 		return nil
@@ -168,14 +211,27 @@ type EntitiesConfig struct {
 }
 
 func InitDB(truncated bool, entities *EntitiesConfig) *db.DB {
+	cfg, err := NewConfig(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	db := NewDB(cfg)
+
 	if truncated {
-		err := resetDB()
+		err := resetDB(db.SqlDB())
+		if err != nil {
+			panic(err)
+		}
+		err = resetRedis(cfg.Redis.GetClient())
+		if err != nil {
+			panic(err)
+		}
+		err = resetRedis(cfg.Proxy.Queue.Redis.GetClient())
 		if err != nil {
 			panic(err)
 		}
 	}
-
-	db := DB()
 
 	if entities == nil {
 		return db
@@ -238,27 +294,26 @@ func InitDB(truncated bool, entities *EntitiesConfig) *db.DB {
 }
 
 func GetDeafultWorkspace() (*entities.Workspace, error) {
-	db := DB()
+	cfg, err := NewConfig(nil)
+	if err != nil {
+		return nil, err
+	}
+	db := NewDB(cfg)
 	return db.Workspaces.GetDefault(context.TODO())
 }
 
-func resetDB() error {
-	cfg, err := config.Init()
+func resetDB(db *sql.DB) error {
+	m := migrator.New(db, &migrator.Options{Quiet: true})
+	err := m.Reset()
 	if err != nil {
 		return err
 	}
+	return m.Up()
+}
 
-	sqlDB, err := db.NewSqlDB(cfg.Database)
-	if err != nil {
-		return err
-	}
-
-	migrator := migrator.New(sqlDB, &migrator.Options{Quiet: true})
-	err = migrator.Reset()
-	if err != nil {
-		return err
-	}
-	return migrator.Up()
+func resetRedis(redis *redis.Client) error {
+	cmd := redis.FlushDB(context.TODO())
+	return cmd.Err()
 }
 
 func TruncateFile(filename string) error {
@@ -367,4 +422,21 @@ func GenerateTraceID() string {
 		panic(err)
 	}
 	return hex.EncodeToString(traceID)
+}
+
+func WaitForServer(urlstring string, timeout time.Duration) error {
+	u, err := url.Parse(urlstring)
+	if err != nil {
+		return err
+	}
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		conn, err := net.DialTimeout("tcp", u.Host, time.Second)
+		if err == nil {
+			_ = conn.Close()
+			return nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return fmt.Errorf("server at %s not ready after %v", u.Host, timeout)
 }

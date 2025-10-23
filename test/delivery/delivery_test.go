@@ -2,10 +2,8 @@ package delivery
 
 import (
 	"context"
-	"fmt"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
-	"net"
 	"strconv"
 	"testing"
 	"time"
@@ -22,19 +20,6 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
 )
-
-func waitForServer(addr string, timeout time.Duration) error {
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		conn, err := net.DialTimeout("tcp", addr, time.Second)
-		if err == nil {
-			_ = conn.Close()
-			return nil
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	return fmt.Errorf("server at %s not ready after %v", addr, timeout)
-}
 
 var _ = Describe("delivery", Ordered, func() {
 	Context("sanity", func() {
@@ -59,11 +44,7 @@ var _ = Describe("delivery", Ordered, func() {
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
-				"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
-				"WEBHOOKX_WORKER_ENABLED": "true",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 		})
 
 		AfterAll(func() {
@@ -71,7 +52,7 @@ var _ = Describe("delivery", Ordered, func() {
 		})
 
 		It("sanity", func() {
-			err := waitForServer("0.0.0.0:8081", time.Second)
+			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
 			assert.NoError(GinkgoT(), err)
 			now := time.Now()
 
@@ -150,11 +131,7 @@ var _ = Describe("delivery", Ordered, func() {
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
-				"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
-				"WEBHOOKX_WORKER_ENABLED": "true",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 		})
 
 		AfterAll(func() {
@@ -162,21 +139,21 @@ var _ = Describe("delivery", Ordered, func() {
 		})
 
 		It("all tries are exhausted", func() {
-			assert.Eventually(GinkgoT(), func() bool {
-				resp, err := proxyClient.R().
-					SetBody(`{
-				    "event_type": "foo.bar",
-				    "data": {
-						"key": "value"
-					}
-				}`).
-					Post("/")
-				return err == nil && resp.StatusCode() == 200
-			}, time.Second*5, time.Second)
+			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
+			assert.NoError(GinkgoT(), err)
+
+			resp, err := proxyClient.R().
+				SetBody(`{"event_type": "foo.bar","data": {"key": "value"}}`).
+				Post("/")
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 200, resp.StatusCode())
+			eventId := resp.Header().Get(constants.HeaderEventId)
 
 			time.Sleep(time.Second * 10)
 
-			attempts, err := db.Attempts.List(context.TODO(), &query.AttemptQuery{})
+			q := query.AttemptQuery{}
+			q.EventId = &eventId
+			attempts, err := db.Attempts.List(context.TODO(), &q)
 			assert.NoError(GinkgoT(), err)
 			assert.EqualValues(GinkgoT(), 3, len(attempts))
 			for i, e := range attempts {
@@ -217,11 +194,7 @@ var _ = Describe("delivery", Ordered, func() {
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
-				"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
-				"WEBHOOKX_WORKER_ENABLED": "true",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 		})
 
 		AfterAll(func() {
@@ -282,11 +255,7 @@ var _ = Describe("delivery", Ordered, func() {
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
-				"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
-				"WEBHOOKX_WORKER_ENABLED": "true",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 		})
 
 		AfterAll(func() {
@@ -356,10 +325,7 @@ var _ = Describe("delivery", Ordered, func() {
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
-				"WEBHOOKX_WORKER_ENABLED": "true",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 		})
 
 		AfterAll(func() {
@@ -367,7 +333,7 @@ var _ = Describe("delivery", Ordered, func() {
 		})
 
 		It("rate limiting", func() {
-			err := waitForServer("0.0.0.0:8081", time.Second)
+			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
 			assert.NoError(GinkgoT(), err)
 
 			for i := 1; i <= 4; i++ {
@@ -379,7 +345,7 @@ var _ = Describe("delivery", Ordered, func() {
 			}
 
 			assert.Eventually(GinkgoT(), func() bool {
-				matched, err := helper.FileHasLine("webhookx.log", "^.*rate limit.*$")
+				matched, err := helper.FileHasLine(helper.LogFile, "^.*rate limit.*$")
 				return err == nil && matched
 			}, time.Second*5, time.Second)
 
@@ -411,9 +377,7 @@ var _ = Describe("delivery", Ordered, func() {
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN": "0.0.0.0:8081",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 		})
 
 		AfterAll(func() {
@@ -421,7 +385,7 @@ var _ = Describe("delivery", Ordered, func() {
 		})
 
 		It("should de-duplicate events by unique_id", func() {
-			err := waitForServer("0.0.0.0:8081", time.Second)
+			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
 			assert.NoError(GinkgoT(), err)
 			for i := 1; i <= 2; i++ {
 				resp, err := proxyClient.R().

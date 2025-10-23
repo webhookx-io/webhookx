@@ -218,10 +218,11 @@ func (app *Application) initialize() error {
 			Dispatcher: dispatcher,
 			EventBus:   app.bus,
 		}
-		if cfg.AccessLog.Enabled() {
+		if cfg.AccessLog.Enabled {
 			accessLogger, err := accesslog.NewAccessLogger("admin", accesslog.Options{
-				File:   cfg.AccessLog.File,
-				Format: string(cfg.AccessLog.Format),
+				File:    cfg.AccessLog.File,
+				Format:  string(cfg.AccessLog.Format),
+				Colored: cfg.AccessLog.Colored,
 			})
 			if err != nil {
 				return err
@@ -247,10 +248,11 @@ func (app *Application) initialize() error {
 			Srv:         app.srv,
 			RateLimiter: ratelimiter.NewRedisLimiter(client),
 		}
-		if cfg.AccessLog.Enabled() {
+		if cfg.AccessLog.Enabled {
 			accessLogger, err := accesslog.NewAccessLogger("proxy", accesslog.Options{
-				File:   cfg.AccessLog.File,
-				Format: string(cfg.AccessLog.Format),
+				File:    cfg.AccessLog.File,
+				Format:  string(cfg.AccessLog.Format),
+				Colored: cfg.AccessLog.Colored,
 			})
 			if err != nil {
 				return err
@@ -268,10 +270,11 @@ func (app *Application) initialize() error {
 
 	if cfg.Status.IsEnabled() {
 		var accessLogger accesslog.AccessLogger
-		if cfg.AccessLog.Enabled() {
+		if cfg.AccessLog.Enabled {
 			accessLogger, err = accesslog.NewAccessLogger("status", accesslog.Options{
-				File:   cfg.AccessLog.File,
-				Format: string(cfg.AccessLog.Format),
+				File:    cfg.AccessLog.File,
+				Format:  string(cfg.AccessLog.Format),
+				Colored: cfg.AccessLog.Colored,
 			})
 			if err != nil {
 				return err

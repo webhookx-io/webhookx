@@ -6,7 +6,6 @@ import (
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
 	"time"
 )
 
@@ -39,15 +38,17 @@ func NewZapLogger(cfg *config.LogConfig) (*zap.SugaredLogger, error) {
 		zapConfig.EncoderConfig.EncodeName = func(loggerName string, enc zapcore.PrimitiveArrayEncoder) {
 			enc.AppendString(fmt.Sprintf("%-8s", "["+loggerName+"]"))
 		}
-		if os.Getenv("NO_COLOR") == "" {
+		if cfg.Colored {
 			zapConfig.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		}
 		zapConfig.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-			enc.AppendString(utils.Colorize(t.Format("2006/01/02 15:04:05.000"), utils.ColorDarkGray))
+			enc.AppendString(utils.Colorize(t.Format("2006/01/02 15:04:05.000"), utils.ColorDarkGray, cfg.Colored))
 		}
 	}
 
-	if len(cfg.File) > 0 {
+	if cfg.File == "" {
+		zapConfig.OutputPaths = []string{"/dev/stdout"}
+	} else {
 		zapConfig.OutputPaths = []string{cfg.File}
 	}
 

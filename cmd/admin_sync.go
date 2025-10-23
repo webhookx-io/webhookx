@@ -80,7 +80,7 @@ func newAdminSyncCmd() *cobra.Command {
 	}
 
 	sync.Flags().StringVarP(&workspace, "workspace", "", "default", "Set a specific workspace.")
-	sync.Flags().StringVarP(&addr, "addr", "", defaultAdminURL, "HTTP address of WebhookX's Admin API.")
+	sync.Flags().StringVarP(&addr, "addr", "", AdminURL, "HTTP address of WebhookX's Admin API.")
 	sync.Flags().IntVarP(&timeout, "timeout", "", 10, "Set the request timeout for the client to connect with WebhookX (in seconds).")
 
 	return sync

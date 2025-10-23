@@ -59,11 +59,7 @@ var _ = Describe("function", Ordered, func() {
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
-				"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
-				"WEBHOOKX_WORKER_ENABLED": "true",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 		})
 
 		AfterAll(func() {
@@ -82,7 +78,7 @@ var _ = Describe("function", Ordered, func() {
 				return err == nil && resp.StatusCode() == 200
 			}, time.Second*5, time.Second)
 
-			matched, err := helper.FileHasLine("webhookx.log", "^.*valid signature$")
+			matched, err := helper.FileHasLine(helper.LogFile, "^.*valid signature$")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), true, matched)
 

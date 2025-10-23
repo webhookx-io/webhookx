@@ -19,9 +19,7 @@ var _ = Describe("proxy", Ordered, func() {
 
 		BeforeAll(func() {
 			helper.InitDB(true, nil)
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN": "0.0.0.0:8081",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 			proxyClient = helper.ProxyClient()
 		})
 
@@ -45,7 +43,6 @@ var _ = Describe("proxy", Ordered, func() {
 		BeforeAll(func() {
 			helper.InitDB(true, nil)
 			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
 				"WEBHOOKX_PROXY_TLS_CERT": test.FilePath("server.crt"),
 				"WEBHOOKX_PROXY_TLS_KEY":  test.FilePath("server.key"),
 			}))

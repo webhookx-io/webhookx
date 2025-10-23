@@ -6,8 +6,6 @@ import (
 	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/pkg/envconfig"
 	"gopkg.in/yaml.v3"
-	"io"
-	"os"
 	"slices"
 )
 
@@ -86,35 +84,23 @@ func (cfg Config) Validate() error {
 	return nil
 }
 
-func Init() (*Config, error) {
-	var cfg Config
-	if err := defaults.Set(&cfg); err != nil {
-		return nil, err
-	}
-
-	err := envconfig.Process("WEBHOOKX", &cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &cfg, nil
+type Options struct {
+	YAML []byte
 }
 
-func InitWithFile(filename string) (*Config, error) {
+func New(opts *Options) (*Config, error) {
 	var cfg Config
-	if err := defaults.Set(&cfg); err != nil {
-		return nil, err
-	}
-
-	f, err := os.Open(filename)
+	err := defaults.Set(&cfg)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
-	decoder := yaml.NewDecoder(f)
-	err = decoder.Decode(&cfg)
-	if err != nil && err != io.EOF {
-		return nil, err
+
+	if opts != nil {
+		if len(opts.YAML) > 0 {
+			if err := yaml.Unmarshal(opts.YAML, &cfg); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	err = envconfig.Process("WEBHOOKX", &cfg)
@@ -129,13 +115,13 @@ func (cfg *Config) OverrideByRole(role Role) {
 	switch role {
 	case RoleCP:
 		if cfg.Admin.Listen == "" {
-			cfg.Admin.Listen = "127.0.0.1:8080"
+			cfg.Admin.Listen = "127.0.0.1:9601"
 		}
 		cfg.Proxy.Listen = ""
 		cfg.Worker.Enabled = false
 	case RoleDPProxy:
 		if cfg.Proxy.Listen == "" {
-			cfg.Proxy.Listen = "127.0.0.1:8081"
+			cfg.Proxy.Listen = "0.0.0.0:9600"
 		}
 		cfg.Admin.Listen = ""
 		cfg.Worker.Enabled = false

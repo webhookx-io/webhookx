@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"github.com/elazarl/goproxy"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
@@ -19,6 +20,7 @@ import (
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -31,7 +33,20 @@ func (NoopLogger) Printf(format string, v ...any) {}
 func NewHttpProxyServer(addr string) *http.Server {
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.Logger = &NoopLogger{}
-	proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm) // mitm
+	proxy.OnRequest(goproxy.ReqHostIs("deny.localhost:443")).HandleConnectFunc(func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
+		return &goproxy.ConnectAction{
+			Action: goproxy.ConnectHijack,
+			Hijack: func(req *http.Request, client net.Conn, ctx *goproxy.ProxyCtx) {
+				body := `{"error": "Proxy Authentication Required", "code": 407}`
+				resp := fmt.Sprintf("HTTP/1.1 407 Proxy Authentication Required\r\n"+
+					"Content-Type: application/json\r\n"+
+					"Content-Length: %d\r\n"+
+					"\r\n%s", len(body), body)
+				client.Write([]byte(resp))
+			},
+		}, host
+	})
+	proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm)
 	proxy.OnResponse().DoFunc(func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
 		resp.Header.Set("X-Proxied", "true")
 		return resp
@@ -106,6 +121,10 @@ var _ = Describe("Proxy", Ordered, func() {
 				factory.EndpointP(func(o *entities.Endpoint) {
 					o.Request.URL = httpsBinURL + "/anything"
 					o.Events = []string{"https"}
+				}),
+				factory.EndpointP(func(o *entities.Endpoint) {
+					o.Request.URL = "https://deny.localhost"
+					o.Events = []string{"deny"}
 				}),
 			},
 			Sources: []*entities.Source{factory.SourceP()},
@@ -220,6 +239,35 @@ var _ = Describe("Proxy", Ordered, func() {
 			assert.Equal(GinkgoT(), "true", (*detail.ResponseHeaders)["X-Proxied"])
 		})
 
+		It("should be failed when connect ", func() {
+			err := waitForServer("0.0.0.0:8081", time.Second)
+			assert.NoError(GinkgoT(), err)
+
+			resp, err := proxyClient.R().
+				SetBody(`{"event_type": "deny","data": {"key": "value"}}`).
+				Post("/")
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 200, resp.StatusCode())
+			eventId := resp.Header().Get(constants.HeaderEventId)
+
+			var attempt *entities.Attempt
+			assert.Eventually(GinkgoT(), func() bool {
+				q := query.AttemptQuery{}
+				q.EventId = &eventId
+				list, err := db.Attempts.List(context.TODO(), &q)
+				if err != nil || len(list) == 0 {
+					return false
+				}
+				attempt = list[0]
+				return attempt.Status == entities.AttemptStatusFailure
+			}, time.Second*5, time.Second)
+
+			assert.Equal(GinkgoT(), entitiesConfig.Endpoints[2].ID, attempt.EndpointId)
+
+			// attempt.request
+			assert.Equal(GinkgoT(), "POST", attempt.Request.Method)
+			assert.Equal(GinkgoT(), "https://deny.localhost", attempt.Request.URL)
+		})
 	})
 
 	Context("HTTPS URL", func() {
@@ -488,5 +536,32 @@ var _ = Describe("Proxy", Ordered, func() {
 		})
 	})
 
-	Context("error", func() {})
+	Context("error", func() {
+		It("returns error when certificate not found", func() {
+			_, err := helper.Start(map[string]string{
+				"WEBHOOKX_PROXY_LISTEN":                       "0.0.0.0:8081",
+				"WEBHOOKX_WORKER_ENABLED":                     "true",
+				"WEBHOOKX_WORKER_DELIVERER_PROXY":             mtlsProxyURL,
+				"WEBHOOKX_WORKER_DELIVERER_PROXY_CLIENT_CERT": test.FilePath("fixtures/mtls/notfound.crt"),
+				"WEBHOOKX_WORKER_DELIVERER_PROXY_CLIENT_KEY":  test.FilePath("fixtures/mtls/client.key"),
+				"WEBHOOKX_WORKER_DELIVERER_PROXY_CA_CERT":     test.FilePath("fixtures/mtls/server-ca.crt"),
+			})
+			assert.Equal(GinkgoT(),
+				fmt.Sprintf("failed to load client certificate: open %s: no such file or directory", test.FilePath("fixtures/mtls/notfound.crt")),
+				err.Error())
+		})
+		It("returns error when ca cert not found", func() {
+			_, err := helper.Start(map[string]string{
+				"WEBHOOKX_PROXY_LISTEN":                       "0.0.0.0:8081",
+				"WEBHOOKX_WORKER_ENABLED":                     "true",
+				"WEBHOOKX_WORKER_DELIVERER_PROXY":             mtlsProxyURL,
+				"WEBHOOKX_WORKER_DELIVERER_PROXY_CLIENT_CERT": test.FilePath("fixtures/mtls/client.crt"),
+				"WEBHOOKX_WORKER_DELIVERER_PROXY_CLIENT_KEY":  test.FilePath("fixtures/mtls/client.key"),
+				"WEBHOOKX_WORKER_DELIVERER_PROXY_CA_CERT":     test.FilePath("fixtures/mtls/notfound.crt"),
+			})
+			assert.Equal(GinkgoT(),
+				fmt.Sprintf("failed to read ca certificate: open %s: no such file or directory", test.FilePath("fixtures/mtls/notfound.crt")),
+				err.Error())
+		})
+	})
 })

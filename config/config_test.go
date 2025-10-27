@@ -465,6 +465,13 @@ func TestWorkerProxyConfig(t *testing.T) {
 			},
 			validateErr: errors.New("invalid proxy url: 'http://'"),
 		},
+		{
+			desc: "invalid proxy url: missing host ",
+			cfg: WorkerDeliverer{
+				Proxy: "http ://",
+			},
+			validateErr: errors.New("invalid proxy url: parse \"http ://\": first path segment in URL cannot contain colon"),
+		},
 	}
 	for _, test := range tests {
 		actual := test.cfg.Validate()

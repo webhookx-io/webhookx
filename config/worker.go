@@ -28,7 +28,7 @@ func (cfg *WorkerDeliverer) Validate() error {
 	if cfg.Proxy != "" {
 		u, err := url.Parse(cfg.Proxy)
 		if err != nil {
-			return err
+			return fmt.Errorf("invalid proxy url: %s", err)
 		}
 		if u.Scheme == "" || u.Host == "" {
 			return fmt.Errorf("invalid proxy url: '%s'", cfg.Proxy)

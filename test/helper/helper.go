@@ -16,6 +16,7 @@ import (
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/test"
+	"maps"
 	"os"
 	"regexp"
 	"time"
@@ -35,6 +36,12 @@ var defaultEnvs = map[string]string{
 	"WEBHOOKX_WORKER_DELIVERER_ACL_DENY": "",
 }
 
+func unsetEnvs(envs map[string]string) {
+	for k := range envs {
+		os.Unsetenv(k)
+	}
+}
+
 func setEnvs(envs map[string]string) error {
 	for name, value := range envs {
 		if err := os.Setenv(name, value); err != nil {
@@ -45,23 +52,26 @@ func setEnvs(envs map[string]string) error {
 }
 
 // Start starts WebhookX with given environment variables
-func Start(envs map[string]string) (*app.Application, error) {
-	if err := setEnvs(defaultEnvs); err != nil {
-		return nil, err
-	}
+func Start(envs map[string]string) (application *app.Application, err error) {
+	environments := maps.Clone(defaultEnvs)
+	maps.Copy(environments, envs)
 
-	if err := setEnvs(envs); err != nil {
-		return nil, err
+	defer func() {
+		if err != nil {
+			unsetEnvs(environments)
+		}
+	}()
+
+	if err = setEnvs(environments); err != nil {
+		return
 	}
 
 	cfg, err := config.Init()
 	if err != nil {
-		return nil, err
+		return
 	}
-
-	err = cfg.Validate()
-	if err != nil {
-		return nil, err
+	if err = cfg.Validate(); err != nil {
+		return
 	}
 
 	if _, err := os.Stat(defaultEnvs["WEBHOOKX_LOG_FILE"]); err == nil {
@@ -72,23 +82,21 @@ func Start(envs map[string]string) (*app.Application, error) {
 		TruncateFile(defaultEnvs["WEBHOOKX_ACCESS_LOG_FILE"])
 	}
 
-	app, err := app.New(cfg)
+	application, err = app.New(cfg)
 	if err != nil {
-		return nil, err
+		return
 	}
-	if err := app.Start(); err != nil {
+	if err := application.Start(); err != nil {
 		return nil, err
 	}
 
 	go func() {
-		app.Wait()
-		for name := range envs {
-			os.Unsetenv(name)
-		}
+		application.Wait()
+		unsetEnvs(environments)
 	}()
 
 	time.Sleep(time.Second)
-	return app, nil
+	return application, nil
 }
 
 func AdminClient() *resty.Client {

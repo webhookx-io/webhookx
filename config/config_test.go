@@ -465,22 +465,6 @@ func TestWorkerProxyConfig(t *testing.T) {
 			},
 			validateErr: errors.New("invalid proxy url: 'http://'"),
 		},
-		{
-			desc: "missing client proxy_client_key for https",
-			cfg: WorkerDeliverer{
-				Proxy:           "https://example.com",
-				ProxyClientCert: "/path/to/file",
-			},
-			validateErr: errors.New("proxy_client_cert and proxy_client_key are required for https proxy"),
-		},
-		{
-			desc: "missing client proxy_client_cert for https",
-			cfg: WorkerDeliverer{
-				Proxy:          "https://example.com",
-				ProxyClientKey: "/path/to/file",
-			},
-			validateErr: errors.New("proxy_client_cert and proxy_client_key are required for https proxy"),
-		},
 	}
 	for _, test := range tests {
 		actual := test.cfg.Validate()

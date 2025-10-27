@@ -36,11 +36,6 @@ func (cfg *WorkerDeliverer) Validate() error {
 		if u.Scheme != "http" && u.Scheme != "https" {
 			return fmt.Errorf("proxy schema must be http or https")
 		}
-		if u.Scheme == "https" {
-			if cfg.ProxyClientCert == "" || cfg.ProxyClientKey == "" {
-				return fmt.Errorf("proxy_client_cert and proxy_client_key are required for https proxy")
-			}
-		}
 	}
 
 	return nil

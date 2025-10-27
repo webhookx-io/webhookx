@@ -59,6 +59,11 @@ func Start(envs map[string]string) (*app.Application, error) {
 		return nil, err
 	}
 
+	err = cfg.Validate()
+	if err != nil {
+		return nil, err
+	}
+
 	if _, err := os.Stat(defaultEnvs["WEBHOOKX_LOG_FILE"]); err == nil {
 		TruncateFile(defaultEnvs["WEBHOOKX_LOG_FILE"])
 	}

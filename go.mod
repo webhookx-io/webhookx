@@ -28,7 +28,6 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/cobra v1.9.1
-	github.com/stealthrocket/netjail v0.1.2
 	github.com/stretchr/testify v1.11.1
 	github.com/tetratelabs/wazero v1.9.0
 	go.opentelemetry.io/contrib/propagators/autoprop v0.62.0

@@ -122,17 +122,20 @@ func (d *HTTPDeliverer) SetupProxy(opts ProxyOptions) error {
 
 	if proxyURL.Scheme == "https" {
 		tlsConfig := &tls.Config{
+			ServerName:         proxyURL.Hostname(),
 			InsecureSkipVerify: opts.InsecureSkipVerify,
 		}
-		cert, err := tls.LoadX509KeyPair(opts.ClientCert, opts.ClientKey)
-		if err != nil {
-			return fmt.Errorf("invalid proxy client certificate: %s", err)
+		if opts.ClientCert != "" || opts.ClientKey != "" {
+			cert, err := tls.LoadX509KeyPair(opts.ClientCert, opts.ClientKey)
+			if err != nil {
+				return fmt.Errorf("failed to load client certificate: %s", err)
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
 		}
-		tlsConfig.Certificates = []tls.Certificate{cert}
 		if opts.CaCertificate != "" {
 			caPEM, err := os.ReadFile(opts.CaCertificate)
 			if err != nil {
-				return fmt.Errorf("invalid proxy ca certificate: %s", err)
+				return fmt.Errorf("failed to read ca certificate: %s", err)
 			}
 			cp := x509.NewCertPool()
 			if !cp.AppendCertsFromPEM(caPEM) {

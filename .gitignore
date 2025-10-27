@@ -5,3 +5,4 @@ webhookx
 *.log
 dist/
 test/output
+**/node_modules/

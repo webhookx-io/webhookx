@@ -6,3 +6,5 @@ webhookx
 dist/
 test/output
 **/node_modules/
+**/rust/target/
+**/Cargo.lock

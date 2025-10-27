@@ -6,11 +6,38 @@ import (
 	"errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/config"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
 
 func Test(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(100 * time.Millisecond)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			panic(err)
+		}
+
+		headers := make(map[string]string)
+		for k, v := range r.Header {
+			if len(v) > 0 {
+				headers[k] = v[0]
+			}
+		}
+
+		resp := map[string]interface{}{
+			"data":    string(body),
+			"headers": headers,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	})
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
 	t.Run("sanity", func(t *testing.T) {
 		cfg := config.WorkerDeliverer{
 			Timeout: 10 * 1000,
@@ -18,7 +45,7 @@ func Test(t *testing.T) {
 		deliverer := NewHTTPDeliverer(&cfg)
 
 		req := &Request{
-			URL:     "http://localhost:9999/anything",
+			URL:     server.URL,
 			Method:  "POST",
 			Payload: []byte(`{"foo": "bar"}`),
 			Headers: map[string]string{
@@ -44,7 +71,7 @@ func Test(t *testing.T) {
 		deliverer := NewHTTPDeliverer(&cfg)
 
 		req := &Request{
-			URL:     "http://localhost:9999/anything",
+			URL:     server.URL,
 			Method:  "GET",
 			Timeout: time.Microsecond * 1,
 		}

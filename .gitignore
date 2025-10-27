@@ -8,3 +8,4 @@ test/output
 **/node_modules/
 **/rust/target/
 **/Cargo.lock
+*.test

@@ -431,6 +431,54 @@ func TestWorkerConfig(t *testing.T) {
 	}
 }
 
+func TestWorkerProxyConfig(t *testing.T) {
+	tests := []struct {
+		desc        string
+		cfg         WorkerDeliverer
+		validateErr error
+	}{
+		{
+			desc: "sanity",
+			cfg: WorkerDeliverer{
+				Proxy: "http://example.com:8080",
+			},
+			validateErr: nil,
+		},
+		{
+			desc: "invalid proxy url: missing schema",
+			cfg: WorkerDeliverer{
+				Proxy: "example.com",
+			},
+			validateErr: errors.New("invalid proxy url: 'example.com'"),
+		},
+		{
+			desc: "invalid proxy url: invalid schema ",
+			cfg: WorkerDeliverer{
+				Proxy: "ftp://example.com",
+			},
+			validateErr: errors.New("proxy schema must be http or https"),
+		},
+		{
+			desc: "invalid proxy url: missing host ",
+			cfg: WorkerDeliverer{
+				Proxy: "http://",
+			},
+			validateErr: errors.New("invalid proxy url: 'http://'"),
+		},
+		{
+			desc: "invalid proxy url: missing host ",
+			cfg: WorkerDeliverer{
+				Proxy: "http ://",
+			},
+			validateErr: errors.New("invalid proxy url: parse \"http ://\": first path segment in URL cannot contain colon"),
+		},
+	}
+	for _, test := range tests {
+		actual := test.cfg.Validate()
+		assert.Equal(t, test.validateErr, actual, "expected %v got %v", test.validateErr, actual)
+	}
+}
+
 func TestConfig(t *testing.T) {
 	cfg, err := Init()
 	assert.Nil(t, err)

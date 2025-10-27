@@ -3,13 +3,19 @@ package config
 import (
 	"fmt"
 	"net/netip"
+	"net/url"
 	"regexp"
 	"slices"
 )
 
 type WorkerDeliverer struct {
-	Timeout int64     `yaml:"timeout" json:"timeout" default:"60000"`
-	ACL     ACLConfig `yaml:"acl" json:"acl"`
+	Timeout        int64     `yaml:"timeout" json:"timeout" default:"60000"`
+	ACL            ACLConfig `yaml:"acl" json:"acl"`
+	Proxy          string    `yaml:"proxy" json:"proxy"`
+	ProxyTLSCert   string    `yaml:"proxy_tls_cert" json:"proxy_tls_cert" envconfig:"PROXY_TLS_CERT"`
+	ProxyTLSKey    string    `yaml:"proxy_tls_key" json:"proxy_tls_key" envconfig:"PROXY_TLS_KEY"`
+	ProxyTLSCaCert string    `yaml:"proxy_tls_ca_cert" json:"proxy_tls_ca_cert" envconfig:"PROXY_TLS_CA_CERT"`
+	ProxyTLSVerify bool      `yaml:"proxy_tls_verify" json:"proxy_tls_verify" envconfig:"PROXY_TLS_VERIFY"`
 }
 
 func (cfg *WorkerDeliverer) Validate() error {
@@ -19,6 +25,19 @@ func (cfg *WorkerDeliverer) Validate() error {
 	if err := cfg.ACL.Validate(); err != nil {
 		return err
 	}
+	if cfg.Proxy != "" {
+		u, err := url.Parse(cfg.Proxy)
+		if err != nil {
+			return fmt.Errorf("invalid proxy url: %s", err)
+		}
+		if u.Scheme == "" || u.Host == "" {
+			return fmt.Errorf("invalid proxy url: '%s'", cfg.Proxy)
+		}
+		if u.Scheme != "http" && u.Scheme != "https" {
+			return fmt.Errorf("proxy schema must be http or https")
+		}
+	}
+
 	return nil
 }
 

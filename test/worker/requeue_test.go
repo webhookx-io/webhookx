@@ -53,7 +53,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 		w = worker.NewWorker(worker.Options{
 			RequeueJobInterval: time.Second,
 			DB:                 db,
-			Deliverer:          deliverer.NewHTTPDeliverer(&config.WorkerDeliverer{}),
+			Deliverer:          deliverer.NewHTTPDeliverer(deliverer.Options{}),
 			Metrics:            metrics,
 			Tracer:             tracer,
 			EventBus:           mocks.MockBus{},

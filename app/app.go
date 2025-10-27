@@ -174,10 +174,29 @@ func (app *Application) initialize() error {
 
 	// worker
 	if cfg.Worker.Enabled {
+		d := deliverer.NewHTTPDeliverer(deliverer.Options{
+			Logger:         log,
+			RequestTimeout: time.Duration(cfg.Worker.Deliverer.Timeout) * time.Millisecond,
+			AccessControlOptions: deliverer.AccessControlOptions{
+				Deny: cfg.Worker.Deliverer.ACL.Deny,
+			},
+		})
+		if cfg.Worker.Deliverer.Proxy != "" {
+			err := d.SetupProxy(deliverer.ProxyOptions{
+				URL:              cfg.Worker.Deliverer.Proxy,
+				TLSCert:          cfg.Worker.Deliverer.ProxyTLSCert,
+				TLSKey:           cfg.Worker.Deliverer.ProxyTLSKey,
+				TLSCaCertificate: cfg.Worker.Deliverer.ProxyTLSCaCert,
+				TLSVerify:        cfg.Worker.Deliverer.ProxyTLSVerify,
+			})
+			if err != nil {
+				return err
+			}
+		}
 		opts := worker.Options{
 			PoolSize:        int(cfg.Worker.Pool.Size),
 			PoolConcurrency: int(cfg.Worker.Pool.Concurrency),
-			Deliverer:       deliverer.NewHTTPDeliverer(&cfg.Worker.Deliverer),
+			Deliverer:       d,
 			DB:              db,
 			Srv:             app.srv,
 			Tracer:          tracer,

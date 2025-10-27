@@ -25,13 +25,14 @@ type AclDecision struct {
 }
 
 type Response struct {
-	Request      *Request
-	ACL          AclDecision
-	StatusCode   int
-	Header       http.Header
-	ResponseBody []byte
-	Error        error
-	Latancy      time.Duration
+	Request         *Request
+	ACL             AclDecision
+	StatusCode      int
+	Header          http.Header
+	ResponseBody    []byte
+	Error           error
+	Latancy         time.Duration
+	ProxyStatusCode int
 }
 
 func (r *Response) Is2xx() bool {

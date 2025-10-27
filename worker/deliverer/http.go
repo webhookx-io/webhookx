@@ -3,13 +3,17 @@ package deliverer
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
-	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/constants"
+	"go.uber.org/zap"
 	"io"
 	"net"
 	"net/http"
 	"net/netip"
+	"net/url"
+	"os"
 	"time"
 )
 
@@ -18,12 +22,14 @@ type Resolver interface {
 }
 
 var DefaultResolver Resolver = net.DefaultResolver
+var DefaultTLSConfig *tls.Config = nil
 
 type contextKey struct{}
 
 // HTTPDeliverer delivers via HTTP
 type HTTPDeliverer struct {
-	defaultTimeout time.Duration
+	log            *zap.SugaredLogger
+	requestTimeout time.Duration
 	client         *http.Client
 }
 
@@ -54,23 +60,105 @@ func restrictedDialFunc(acl *ACL) func(context.Context, string, string) (net.Con
 	}
 }
 
-func NewHTTPDeliverer(cfg *config.WorkerDeliverer) *HTTPDeliverer {
+type ProxyOptions struct {
+	URL              string
+	TLSCert          string
+	TLSKey           string
+	TLSCaCertificate string
+	TLSVerify        bool
+}
+
+type AccessControlOptions struct {
+	Deny []string
+}
+
+type Options struct {
+	Logger               *zap.SugaredLogger
+	RequestTimeout       time.Duration
+	AccessControlOptions AccessControlOptions
+}
+
+func NewHTTPDeliverer(opts Options) *HTTPDeliverer {
 	transport := &http.Transport{
 		MaxIdleConns:          1000,
 		MaxIdleConnsPerHost:   1000,
 		IdleConnTimeout:       30 * time.Second,
 		TLSHandshakeTimeout:   5 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
-		DialContext:           restrictedDialFunc(NewACL(AclOptions{Rules: cfg.ACL.Deny})),
+		DialContext:           restrictedDialFunc(NewACL(AclOptions{Rules: opts.AccessControlOptions.Deny})),
+		TLSClientConfig:       DefaultTLSConfig,
 	}
 	client := &http.Client{
 		Transport: transport,
 	}
 
 	return &HTTPDeliverer{
-		defaultTimeout: time.Duration(cfg.Timeout) * time.Millisecond,
+		log:            opts.Logger,
+		requestTimeout: opts.RequestTimeout,
 		client:         client,
 	}
+}
+
+func (d *HTTPDeliverer) SetupProxy(opts ProxyOptions) error {
+	proxyURL, err := url.Parse(opts.URL)
+	if err != nil {
+		return fmt.Errorf("invalid proxy url '%s': %s", opts.URL, err)
+	}
+
+	transport := d.client.Transport.(*http.Transport)
+
+	transport.Proxy = http.ProxyURL(proxyURL)
+	transport.DialContext = nil
+	transport.OnProxyConnectResponse = func(ctx context.Context, proxyURL *url.URL, connectReq *http.Request, connectRes *http.Response) error {
+		if connectRes.StatusCode != 200 {
+			if res, ok := ctx.Value(contextKey{}).(*Response); ok {
+				res.ProxyStatusCode = connectRes.StatusCode
+			}
+		}
+		return nil
+	}
+
+	if proxyURL.Scheme == "https" {
+		tlsConfig := &tls.Config{
+			ServerName:         proxyURL.Hostname(),
+			InsecureSkipVerify: opts.TLSVerify,
+		}
+		if opts.TLSCert != "" || opts.TLSKey != "" {
+			cert, err := tls.LoadX509KeyPair(opts.TLSCert, opts.TLSKey)
+			if err != nil {
+				return fmt.Errorf("failed to load client certificate: %s", err)
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
+		if opts.TLSCaCertificate != "" {
+			caPEM, err := os.ReadFile(opts.TLSCaCertificate)
+			if err != nil {
+				return fmt.Errorf("failed to read ca certificate: %s", err)
+			}
+			cp := x509.NewCertPool()
+			if !cp.AppendCertsFromPEM(caPEM) {
+				return fmt.Errorf("failed to append ca certificate to pool")
+			}
+			tlsConfig.RootCAs = cp
+		}
+		transport.DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			dialer := &net.Dialer{}
+			conn, err := dialer.DialContext(ctx, "tcp", addr)
+			if err != nil {
+				return nil, err
+			}
+			tlsConn := tls.Client(conn, tlsConfig)
+			if err := tlsConn.HandshakeContext(ctx); err != nil {
+				_ = conn.Close()
+				return nil, err
+			}
+			return tlsConn, nil
+		}
+	}
+
+	d.log.Infow("proxy enabled", "proxy_url", opts.URL)
+
+	return nil
 }
 
 func timing(fn func()) time.Duration {
@@ -83,7 +171,7 @@ func timing(fn func()) time.Duration {
 func (d *HTTPDeliverer) Deliver(ctx context.Context, req *Request) (res *Response) {
 	timeout := req.Timeout
 	if timeout == 0 {
-		timeout = d.defaultTimeout
+		timeout = d.requestTimeout
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)

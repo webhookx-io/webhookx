@@ -24,6 +24,17 @@ services:
     ports:
       - 9999:80
 
+  httpsbin:
+    image: nginx:latest
+    depends_on:
+      - httpbin
+    ports:
+      - "9443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./server.crt:/etc/nginx/certs/server.crt:ro
+      - ./server.key:/etc/nginx/certs/server.key:ro
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib
     volumes:

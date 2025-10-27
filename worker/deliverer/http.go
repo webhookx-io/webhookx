@@ -100,8 +100,6 @@ func NewHTTPDeliverer(opts Options) *HTTPDeliverer {
 }
 
 func (d *HTTPDeliverer) SetupProxy(opts ProxyOptions) error {
-	d.log.Infow("setting up proxy", "url", opts.URL)
-
 	proxyURL, err := url.Parse(opts.URL)
 	if err != nil {
 		return fmt.Errorf("invalid proxy url '%s': %s", opts.URL, err)
@@ -157,6 +155,9 @@ func (d *HTTPDeliverer) SetupProxy(opts ProxyOptions) error {
 			return tlsConn, nil
 		}
 	}
+
+	d.log.Infow("proxy enabled", "proxy_url", opts.URL)
+
 	return nil
 }
 

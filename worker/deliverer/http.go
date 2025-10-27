@@ -61,11 +61,11 @@ func restrictedDialFunc(acl *ACL) func(context.Context, string, string) (net.Con
 }
 
 type ProxyOptions struct {
-	URL                string
-	ClientCert         string
-	ClientKey          string
-	CaCertificate      string
-	InsecureSkipVerify bool
+	URL              string
+	TLSCert          string
+	TLSKey           string
+	TLSCaCertificate string
+	TLSVerify        bool
 }
 
 type AccessControlOptions struct {
@@ -123,17 +123,17 @@ func (d *HTTPDeliverer) SetupProxy(opts ProxyOptions) error {
 	if proxyURL.Scheme == "https" {
 		tlsConfig := &tls.Config{
 			ServerName:         proxyURL.Hostname(),
-			InsecureSkipVerify: opts.InsecureSkipVerify,
+			InsecureSkipVerify: opts.TLSVerify,
 		}
-		if opts.ClientCert != "" || opts.ClientKey != "" {
-			cert, err := tls.LoadX509KeyPair(opts.ClientCert, opts.ClientKey)
+		if opts.TLSCert != "" || opts.TLSKey != "" {
+			cert, err := tls.LoadX509KeyPair(opts.TLSCert, opts.TLSKey)
 			if err != nil {
 				return fmt.Errorf("failed to load client certificate: %s", err)
 			}
 			tlsConfig.Certificates = []tls.Certificate{cert}
 		}
-		if opts.CaCertificate != "" {
-			caPEM, err := os.ReadFile(opts.CaCertificate)
+		if opts.TLSCaCertificate != "" {
+			caPEM, err := os.ReadFile(opts.TLSCaCertificate)
 			if err != nil {
 				return fmt.Errorf("failed to read ca certificate: %s", err)
 			}

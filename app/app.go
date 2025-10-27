@@ -183,11 +183,11 @@ func (app *Application) initialize() error {
 		})
 		if cfg.Worker.Deliverer.Proxy != "" {
 			err := d.SetupProxy(deliverer.ProxyOptions{
-				URL:                cfg.Worker.Deliverer.Proxy,
-				ClientCert:         cfg.Worker.Deliverer.ProxyClientCert,
-				ClientKey:          cfg.Worker.Deliverer.ProxyClientKey,
-				CaCertificate:      cfg.Worker.Deliverer.ProxyCaCert,
-				InsecureSkipVerify: cfg.Worker.Deliverer.ProxyInsecureSkipVerify,
+				URL:              cfg.Worker.Deliverer.Proxy,
+				TLSCert:          cfg.Worker.Deliverer.ProxyTLSCert,
+				TLSKey:           cfg.Worker.Deliverer.ProxyTLSKey,
+				TLSCaCertificate: cfg.Worker.Deliverer.ProxyTLSCaCert,
+				TLSVerify:        cfg.Worker.Deliverer.ProxyTLSVerify,
 			})
 			if err != nil {
 				return err

@@ -9,13 +9,13 @@ import (
 )
 
 type WorkerDeliverer struct {
-	Timeout                 int64     `yaml:"timeout" json:"timeout" default:"60000"`
-	ACL                     ACLConfig `yaml:"acl" json:"acl"`
-	Proxy                   string    `yaml:"proxy" json:"proxy"`
-	ProxyCaCert             string    `yaml:"proxy_ca_cert" json:"proxy_ca_cert" envconfig:"PROXY_CA_CERT"`
-	ProxyClientCert         string    `yaml:"proxy_client_cert" json:"proxy_client_cert" envconfig:"PROXY_CLIENT_CERT"`
-	ProxyClientKey          string    `yaml:"proxy_client_key" json:"proxy_client_key" envconfig:"PROXY_CLIENT_KEY"`
-	ProxyInsecureSkipVerify bool      `yaml:"proxy_insecure_skip_verify" json:"proxy_insecure_skip_verify" envconfig:"PROXY_INSECURE_SKIP_VERIFY"`
+	Timeout        int64     `yaml:"timeout" json:"timeout" default:"60000"`
+	ACL            ACLConfig `yaml:"acl" json:"acl"`
+	Proxy          string    `yaml:"proxy" json:"proxy"`
+	ProxyTLSCert   string    `yaml:"proxy_tls_cert" json:"proxy_tls_cert" envconfig:"PROXY_TLS_CERT"`
+	ProxyTLSKey    string    `yaml:"proxy_tls_key" json:"proxy_tls_key" envconfig:"PROXY_TLS_KEY"`
+	ProxyTLSCaCert string    `yaml:"proxy_tls_ca_cert" json:"proxy_tls_ca_cert" envconfig:"PROXY_TLS_CA_CERT"`
+	ProxyTLSVerify bool      `yaml:"proxy_tls_verify" json:"proxy_tls_verify" envconfig:"PROXY_TLS_VERIFY"`
 }
 
 func (cfg *WorkerDeliverer) Validate() error {

@@ -296,10 +296,10 @@ var _ = Describe("Proxy", Ordered, func() {
 				proxyClient = helper.ProxyClient()
 
 				app = utils.Must(helper.Start(map[string]string{
-					"WEBHOOKX_PROXY_LISTEN":                                "0.0.0.0:8081",
-					"WEBHOOKX_WORKER_ENABLED":                              "true",
-					"WEBHOOKX_WORKER_DELIVERER_PROXY":                      httpsProxyURL,
-					"WEBHOOKX_WORKER_DELIVERER_PROXY_INSECURE_SKIP_VERIFY": "TRUE",
+					"WEBHOOKX_PROXY_LISTEN":                      "0.0.0.0:8081",
+					"WEBHOOKX_WORKER_ENABLED":                    "true",
+					"WEBHOOKX_WORKER_DELIVERER_PROXY":            httpsProxyURL,
+					"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_VERIFY": "TRUE",
 				}))
 
 			})
@@ -430,9 +430,9 @@ var _ = Describe("Proxy", Ordered, func() {
 					"WEBHOOKX_PROXY_LISTEN":                       "0.0.0.0:8081",
 					"WEBHOOKX_WORKER_ENABLED":                     "true",
 					"WEBHOOKX_WORKER_DELIVERER_PROXY":             mtlsProxyURL,
-					"WEBHOOKX_WORKER_DELIVERER_PROXY_CLIENT_CERT": test.FilePath("fixtures/mtls/client.crt"),
-					"WEBHOOKX_WORKER_DELIVERER_PROXY_CLIENT_KEY":  test.FilePath("fixtures/mtls/client.key"),
-					"WEBHOOKX_WORKER_DELIVERER_PROXY_CA_CERT":     test.FilePath("fixtures/mtls/server-ca.crt"),
+					"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CERT":    test.FilePath("fixtures/mtls/client.crt"),
+					"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_KEY":     test.FilePath("fixtures/mtls/client.key"),
+					"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CA_CERT": test.FilePath("fixtures/mtls/server-ca.crt"),
 				}))
 
 			})
@@ -542,9 +542,9 @@ var _ = Describe("Proxy", Ordered, func() {
 				"WEBHOOKX_PROXY_LISTEN":                       "0.0.0.0:8081",
 				"WEBHOOKX_WORKER_ENABLED":                     "true",
 				"WEBHOOKX_WORKER_DELIVERER_PROXY":             mtlsProxyURL,
-				"WEBHOOKX_WORKER_DELIVERER_PROXY_CLIENT_CERT": test.FilePath("fixtures/mtls/notfound.crt"),
-				"WEBHOOKX_WORKER_DELIVERER_PROXY_CLIENT_KEY":  test.FilePath("fixtures/mtls/client.key"),
-				"WEBHOOKX_WORKER_DELIVERER_PROXY_CA_CERT":     test.FilePath("fixtures/mtls/server-ca.crt"),
+				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CERT":    test.FilePath("fixtures/mtls/notfound.crt"),
+				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_KEY":     test.FilePath("fixtures/mtls/client.key"),
+				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CA_CERT": test.FilePath("fixtures/mtls/server-ca.crt"),
 			})
 			assert.Equal(GinkgoT(),
 				fmt.Sprintf("failed to load client certificate: open %s: no such file or directory", test.FilePath("fixtures/mtls/notfound.crt")),
@@ -552,12 +552,12 @@ var _ = Describe("Proxy", Ordered, func() {
 		})
 		It("returns error when ca cert not found", func() {
 			_, err := helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN":                       "0.0.0.0:8081",
-				"WEBHOOKX_WORKER_ENABLED":                     "true",
-				"WEBHOOKX_WORKER_DELIVERER_PROXY":             mtlsProxyURL,
-				"WEBHOOKX_WORKER_DELIVERER_PROXY_CLIENT_CERT": test.FilePath("fixtures/mtls/client.crt"),
-				"WEBHOOKX_WORKER_DELIVERER_PROXY_CLIENT_KEY":  test.FilePath("fixtures/mtls/client.key"),
-				"WEBHOOKX_WORKER_DELIVERER_PROXY_CA_CERT":     test.FilePath("fixtures/mtls/notfound.crt"),
+				"WEBHOOKX_PROXY_LISTEN":                           "0.0.0.0:8081",
+				"WEBHOOKX_WORKER_ENABLED":                         "true",
+				"WEBHOOKX_WORKER_DELIVERER_PROXY":                 mtlsProxyURL,
+				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CLIENT_CERT": test.FilePath("fixtures/mtls/client.crt"),
+				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CLIENT_KEY":  test.FilePath("fixtures/mtls/client.key"),
+				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CA_CERT":     test.FilePath("fixtures/mtls/notfound.crt"),
 			})
 			assert.Equal(GinkgoT(),
 				fmt.Sprintf("failed to read ca certificate: open %s: no such file or directory", test.FilePath("fixtures/mtls/notfound.crt")),

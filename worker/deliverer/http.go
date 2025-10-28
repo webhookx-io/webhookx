@@ -68,14 +68,9 @@ type ProxyOptions struct {
 	TLSVerify        bool
 }
 
-type AccessControlOptions struct {
-	Deny []string
-}
-
 type Options struct {
-	Logger               *zap.SugaredLogger
-	RequestTimeout       time.Duration
-	AccessControlOptions AccessControlOptions
+	Logger         *zap.SugaredLogger
+	RequestTimeout time.Duration
 }
 
 func NewHTTPDeliverer(opts Options) *HTTPDeliverer {
@@ -85,7 +80,6 @@ func NewHTTPDeliverer(opts Options) *HTTPDeliverer {
 		IdleConnTimeout:       30 * time.Second,
 		TLSHandshakeTimeout:   5 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
-		DialContext:           restrictedDialFunc(NewACL(AclOptions{Rules: opts.AccessControlOptions.Deny})),
 		TLSClientConfig:       DefaultTLSConfig,
 	}
 	client := &http.Client{
@@ -97,6 +91,19 @@ func NewHTTPDeliverer(opts Options) *HTTPDeliverer {
 		requestTimeout: opts.RequestTimeout,
 		client:         client,
 	}
+}
+
+func (d *HTTPDeliverer) SetupACL(opts AclOptions) error {
+	transport := d.client.Transport.(*http.Transport)
+	if transport.Proxy != nil {
+		d.log.Debugf("ACL is disabled as HTTP proxy is configured")
+		return nil
+	}
+
+	transport.DialContext = restrictedDialFunc(NewACL(opts))
+	d.log.Infow("ACL configured", "rule", opts.Rules)
+
+	return nil
 }
 
 func (d *HTTPDeliverer) SetupProxy(opts ProxyOptions) error {
@@ -156,7 +163,7 @@ func (d *HTTPDeliverer) SetupProxy(opts ProxyOptions) error {
 		}
 	}
 
-	d.log.Infow("proxy enabled", "proxy_url", opts.URL)
+	d.log.Infow("HTTP proxy configured", "proxy_url", opts.URL)
 
 	return nil
 }

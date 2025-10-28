@@ -175,11 +175,8 @@ func (app *Application) initialize() error {
 	// worker
 	if cfg.Worker.Enabled {
 		d := deliverer.NewHTTPDeliverer(deliverer.Options{
-			Logger:         log,
+			Logger:         log.Named("deliverer"),
 			RequestTimeout: time.Duration(cfg.Worker.Deliverer.Timeout) * time.Millisecond,
-			AccessControlOptions: deliverer.AccessControlOptions{
-				Deny: cfg.Worker.Deliverer.ACL.Deny,
-			},
 		})
 		if cfg.Worker.Deliverer.Proxy != "" {
 			err := d.SetupProxy(deliverer.ProxyOptions{
@@ -189,6 +186,12 @@ func (app *Application) initialize() error {
 				TLSCaCertificate: cfg.Worker.Deliverer.ProxyTLSCaCert,
 				TLSVerify:        cfg.Worker.Deliverer.ProxyTLSVerify,
 			})
+			if err != nil {
+				return err
+			}
+		}
+		if len(cfg.Worker.Deliverer.ACL.Deny) > 0 {
+			err := d.SetupACL(deliverer.AclOptions{Rules: cfg.Worker.Deliverer.ACL.Deny})
 			if err != nil {
 				return err
 			}

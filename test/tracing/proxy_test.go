@@ -108,8 +108,7 @@ var _ = Describe("tracing proxy", Ordered, func() {
 				}
 				assert.Eventually(GinkgoT(), proxyFunc, time.Second*5, time.Second)
 
-				// make more tracing data
-				time.Sleep(time.Second * 3)
+				time.Sleep(time.Second)
 				gotScopeNames := make(map[string]bool)
 				gotSpanAttributes := make(map[string]map[string]string)
 				assert.Eventually(GinkgoT(), func() bool {

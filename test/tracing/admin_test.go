@@ -89,7 +89,7 @@ var _ = Describe("tracing admin", Ordered, func() {
 				n++
 
 				// make more tracing data
-				for i := 0; i < 20; i++ {
+				for i := 0; i < 3; i++ {
 					resp, err := proxyClient.R().
 						SetBody(`{"event_type": "foo.bar","data": {"key": "value"}}`).
 						Post("/")
@@ -103,10 +103,8 @@ var _ = Describe("tracing admin", Ordered, func() {
 						SetResult(api.Pagination[*entities.Attempt]{}).
 						Get("/workspaces/default/attempts?page_no=1")
 					result := resp.Result().(*api.Pagination[*entities.Attempt])
-					return err == nil && resp.StatusCode() == 200 && len(result.Data) == 20
+					return err == nil && resp.StatusCode() == 200 && len(result.Data) == 3
 				}, time.Second*5, time.Second)
-
-				time.Sleep(time.Second * 10)
 
 				assert.Eventually(GinkgoT(), func() bool {
 					line, err := helper.FileLine(helper.OtelCollectorTracesFile, n)

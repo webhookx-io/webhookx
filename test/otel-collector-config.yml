@@ -7,6 +7,9 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 processors:
+  batch:
+    timeout: 200ms
+    send_batch_size: 1
 
 exporters:
   debug:

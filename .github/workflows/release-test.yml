@@ -17,7 +17,7 @@ jobs:
         run: |
           docker compose up -d
           sleep 10
-          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:8080)
+          STATUS_CODE=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:9601)
           if [ "$STATUS_CODE" -ne 200 ]; then
             echo "API failed with status code $STATUS_CODE"
             exit 1

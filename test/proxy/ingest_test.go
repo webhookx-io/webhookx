@@ -43,7 +43,7 @@ var _ = Describe("ingest", Ordered, func() {
 			proxyClient = helper.ProxyClient()
 
 			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN": "0.0.0.0:8081",
+				"WEBHOOKX_WORKER_ENABLED": "false",
 			}))
 		})
 
@@ -107,7 +107,6 @@ var _ = Describe("ingest", Ordered, func() {
 			helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_PROXY_LISTEN":     "0.0.0.0:8081",
 				"WEBHOOKX_PROXY_QUEUE_TYPE": "off",
 				"WEBHOOKX_LOG_FILE":         "webhookx.log",
 			}))

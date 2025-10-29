@@ -1,5 +1,8 @@
 name: Test
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     paths-ignore:
@@ -13,59 +16,78 @@ on:
       - '**/*.gif'
 
 jobs:
-  unit-tests:
+  tests-unit:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
-
     - uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
-
-    - name: run tests
-      run: make test-coverage
-
-    - name: upload coverage reselt to Codecov
+    - name: runs tests
+      run: |
+        make test-unit FLAGS=-coverprofile=coverage.txt
+        cat coverage.txt
+    - name: uploads coverage reselt
       uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
         flags: unit
 
-    services:
-      httpbin:
-        image: kennethreitz/httpbin
-        ports:
-          - 9999:80
-
-  integration-tests:
+  tests-integration-main:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-
-      - name: start dependencies
+      - name: starts dependencies
         run: |
           mkdir -p test/output/otel
           sudo chmod 777 -R test/output/otel
           make test-deps
           sleep 3
           docker compose -f test/docker-compose.yml logs
-
-      - name: install
+      - name: installs webhookx
         run: make install
-
+      - name: installs ginkgo
+        run: go install github.com/onsi/ginkgo/v2/ginkgo
       - name: run tests
-        run: make test-integration-coverage
-
-      - name: upload coverage reselt to Codecov
+        run: |
+          make test-main FLAGS="-coverpkg=github.com/webhookx-io/webhookx/... --cover --coverprofile=coverage.txt"
+          cat coverage.txt
+      - name: upload coverage reselt
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
           flags: integration
+
+  tests-integration-o11:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: starts dependencies
+        run: |
+          mkdir -p test/output/otel
+          sudo chmod 777 -R test/output/otel
+          make test-deps
+          sleep 3
+          docker compose -f test/docker-compose.yml logs
+      - name: installs webhookx
+        run: make install
+      - name: install ginkgo
+        run: go install github.com/onsi/ginkgo/v2/ginkgo
+      - name: run tests
+        run: |
+          make test-o11 FLAGS="-coverpkg=github.com/webhookx-io/webhookx/... --cover --coverprofile=coverage.txt"
+          cat coverage.txt
+      - name: upload coverage reselt
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+          flags: integration-o11

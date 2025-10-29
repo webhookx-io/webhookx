@@ -48,10 +48,9 @@ func newDatabaseResetCmd() *cobra.Command {
 func newDatabaseCmd() *cobra.Command {
 
 	database := &cobra.Command{
-		Use:     "db",
-		Aliases: []string{"migrations"},
-		Short:   "Database commands",
-		Long:    ``,
+		Use:   "db",
+		Short: "Database commands",
+		Long:  ``,
 	}
 
 	database.PersistentFlags().StringVarP(&configurationFile, "config", "", "", "The configuration filename")

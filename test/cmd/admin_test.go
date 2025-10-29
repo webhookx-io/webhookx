@@ -47,11 +47,7 @@ var _ = Describe("admin", Ordered, func() {
 
 			BeforeAll(func() {
 				db = helper.InitDB(true, nil)
-				app = utils.Must(helper.Start(map[string]string{
-					"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
-					"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
-					"WEBHOOKX_WORKER_ENABLED": "true",
-				}))
+				app = utils.Must(helper.Start(map[string]string{}))
 			})
 
 			AfterAll(func() {
@@ -166,10 +162,10 @@ var _ = Describe("admin", Ordered, func() {
 			It("--timeout", func() {
 				server := startHTTP(func(writer http.ResponseWriter, r *http.Request) {
 					time.Sleep(time.Second * 2)
-				}, ":8080")
+				}, ":9601")
 				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml", "--timeout", "1")
 				assert.NotNil(GinkgoT(), err)
-				assert.Equal(GinkgoT(), "Error: Post \"http://localhost:8080/workspaces/default/config/sync\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)\n", output)
+				assert.Equal(GinkgoT(), "Error: Post \"http://localhost:9601/workspaces/default/config/sync\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)\n", output)
 				assert.Nil(GinkgoT(), server.Shutdown(context.TODO()))
 			})
 
@@ -177,11 +173,11 @@ var _ = Describe("admin", Ordered, func() {
 				var url string
 				server := startHTTP(func(writer http.ResponseWriter, r *http.Request) {
 					url = fullURL(r)
-				}, "127.0.0.1:8080")
+				}, "127.0.0.1:9601")
 				output, err := executeCommand(cmd.NewRootCmd(), "admin", "sync", "../fixtures/webhookx.yml", "--workspace", "foo")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), "sync successfully\n", output)
-				assert.Equal(GinkgoT(), "http://localhost:8080/workspaces/foo/config/sync", url)
+				assert.Equal(GinkgoT(), "http://localhost:9601/workspaces/foo/config/sync", url)
 				assert.Nil(GinkgoT(), server.Shutdown(context.TODO()))
 			})
 
@@ -207,11 +203,7 @@ var _ = Describe("admin", Ordered, func() {
 
 			BeforeAll(func() {
 				db = helper.InitDB(true, nil)
-				app = utils.Must(helper.Start(map[string]string{
-					"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
-					"WEBHOOKX_PROXY_LISTEN":   "0.0.0.0:8081",
-					"WEBHOOKX_WORKER_ENABLED": "true",
-				}))
+				app = utils.Must(helper.Start(map[string]string{}))
 			})
 
 			AfterAll(func() {

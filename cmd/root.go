@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	defaultAdminURL = "http://localhost:8080"
+	defaultAdminURL = "http://localhost:9601"
 )
 
 var (

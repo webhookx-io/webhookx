@@ -7,7 +7,7 @@ services:
       WEBHOOKX_DATABASE_USERNAME: webhookx
       WEBHOOKX_DATABASE_DATABASE: webhookx
       WEBHOOKX_DATABASE_PORT: 5432
-    command: webhookx migrations up
+    command: webhookx db up
     depends_on:
       webhookx-database:
         condition: service_healthy
@@ -22,16 +22,16 @@ services:
       WEBHOOKX_DATABASE_PORT: 5432
       WEBHOOKX_REDIS_HOST: redis
       WEBHOOKX_REDIS_PORT: 6379
-      WEBHOOKX_ADMIN_LISTEN: 0.0.0.0:8080
+      WEBHOOKX_ADMIN_LISTEN: 0.0.0.0:9601
       WEBHOOKX_WORKER_ENABLED: true
-      WEBHOOKX_PROXY_LISTEN: 0.0.0.0:8081
+      WEBHOOKX_PROXY_LISTEN: 0.0.0.0:9600
       WEBHOOKX_PROXY_QUEUE_REDIS_HOST: redis
       WEBHOOKX_PROXY_QUEUE_REDIS_PORT: 6379
-      WEBHOOKX_STATUS_LISTEN: 0.0.0.0:8082
+      WEBHOOKX_STATUS_LISTEN: 0.0.0.0:9602
     ports:
-      - "8080:8080"
-      - "8081:8081"
-      - "8082:8082"
+      - "9601:9601"
+      - "9600:9600"
+      - "9602:9602"
     depends_on:
       webhookx-database:
         condition: service_healthy

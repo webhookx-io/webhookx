@@ -24,9 +24,7 @@ var _ = Describe("/workspaces", Ordered, func() {
 		db = helper.InitDB(true, nil)
 		var err error
 		adminClient = helper.AdminClient()
-		app, err = helper.Start(map[string]string{
-			"WEBHOOKX_ADMIN_LISTEN": "0.0.0.0:8080",
-		})
+		app, err = helper.Start(map[string]string{})
 		assert.Nil(GinkgoT(), err)
 		ws, err = db.Workspaces.GetDefault(context.TODO())
 		assert.Nil(GinkgoT(), err)

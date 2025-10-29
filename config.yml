@@ -1,15 +1,14 @@
-# ---------------------------
-# WebhookX configuration file
-# ---------------------------
-
+# ------------------------------------
+# WebhookX Configuration YAML file
+# ------------------------------------
 log:
-  file: /dev/stdout
-  level: info   # supported values are debug, info, warn, and error.
-  format: text  # supported values are "text" and "json"
+  file: /dev/stdout     # Specifies the log file.
+  level: info           # Supported values: debug, info, warn, and error.
+  format: text          # Supported values: text, json.
 
-access_log:
-  file: /dev/stdout
-  format: text  # supported values are "text" and "json"
+access_log:             # Access Log
+  file: /dev/stdout     # Specifies the log file.
+  format: text          # Supported values: text, json.
 
 database:
   host: localhost
@@ -17,10 +16,11 @@ database:
   username: webhookx
   password:
   database: webhookx
-  parameters: 'application_name=webhookx&sslmode=disable&connect_timeout=10'  # The connection uri parameters.
-                                                                              # See https://www.postgresql.org/docs/current/libpq-connect.html
-  max_pool_size: 40                                                           # The maximum number of connections
-  max_lifetime: 1800                                                          # The maximum lifetime (in seconds) of a connection
+  parameters: 'application_name=webhookx&sslmode=disable&connect_timeout=10'
+                                  # Connection uri parameters.
+                                  # See https://www.postgresql.org/docs/current/libpq-connect.html for more information.
+  max_pool_size: 40               # Specifies the maximum number of connections.
+  max_lifetime: 1800              # Specifies the maximum lifetime (in seconds) for a connection.
 
 redis:
   host: localhost
@@ -29,47 +29,55 @@ redis:
   database: 0
 
 #------------------------------------------------------------------------------
-# Cluster
+# PROXY
 #------------------------------------------------------------------------------
-#role: standalone                   # Enables cluster mode.
-                                    # This allows some nodes in the cluster to run as the control plane
-                                    # and others to run as the data plane.
-                                    #
-                                    # supported values are:
-                                    #
-                                    # - `standalone`: disable cluster mode.
-                                    # - `cp`: this node runs as the control plane.
-                                    #   It connects to the database to provide entity management.
-                                    # - `dp_proxy`: this node runs as the Proxy data plane.
-                                    # - `dp_worker`: this node runs as the Worker data plane.
-
-anonymous_reports: true             # sends anonymous data such as software version to WebhookX.
+proxy:
+  listen: 0.0.0.0:9600
+  tls:                              # TLS configuration
+    cert: ''                        # The path to TLS certificate. Example: /path/to/server.cert
+    key: ''                         # The path to TLS certificate key. Example: /path/to/server.key
+  timeout_read: 10                  # Specifies the maximum time (in seconds) for reading request. 0 disables timeout.
+  timeout_write: 10                 # Specifies the maximum time (in seconds) for writing response. 0 disables timeout.
+  max_request_body_size: 1048576    # Specifies the maximum request body size. Default is 1048576.
+  response:                         # Default HTTP response
+    code: 200
+    content_type: application/json
+    body: '{"message": "OK"}'
+  queue:                            # Queue settings
+    type: redis                     # Queue type. Supported values: redis, off.
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      database: 0
 
 #------------------------------------------------------------------------------
-# ADMIN
+# Admin API
+# The Admin API provides RESTful APIs for managing entities.
 #------------------------------------------------------------------------------
-
 admin:
-  #listen: 127.0.0.1:8080
-  #debug_endpoints: true             # enables debugging and profiling endpoints. see https://pkg.go.dev/net/http/pprof
-  #tls:
-  #  cert: /path/to/server.crt
-  #  key: /path/to/server.key
+  listen: 127.0.0.1:9601
+  debug_endpoints: false             # Whether to expose debugging and profiling endpoints.
+                                     # See https://pkg.go.dev/net/http/pprof for more information.
+  #tls:                              # TLS configuration
+  #  cert: /path/to/server.crt       # The Path to TLS certificate.
+  #  key: /path/to/server.key        # The path to TLS certificate key.
 
 #------------------------------------------------------------------------------
-# STATUS
+# Status API
+# The Status API provides APIs for retrieving runtime status about WebhookX.
 #------------------------------------------------------------------------------
-
 status:
-  listen: 127.0.0.1:8082
-  debug_endpoints: true              # enables debugging and profiling endpoints. see https://pkg.go.dev/net/http/pprof
+  listen: 127.0.0.1:9602
+  debug_endpoints: true              # Whether to expose debugging and profiling endpoints.
+                                     # See https://pkg.go.dev/net/http/pprof for more information.
 
 #------------------------------------------------------------------------------
-# WORKER
+# Worker
+# The Worker sends events to destinations.
 #------------------------------------------------------------------------------
-
 worker:
-  enabled: false                    # Whether to enable the Worker.
+  enabled: true                     # Whether to enable the Worker.
   deliverer:
     timeout: 60000                  # Sets the request timeout (in milliseconds) for delivery requests.
     acl:                            # Access Control List (ACL) defines rules to control outbound network access.
@@ -105,28 +113,22 @@ worker:
     concurrency: 0                  # pool concurrency, default to 100 * CPUs
 
 #------------------------------------------------------------------------------
-# PROXY
+# Cluster
 #------------------------------------------------------------------------------
-proxy:
-  #listen: 127.0.0.1:8081
-  #tls:
-  #  cert: /path/to/server.crt
-  #  key: /path/to/server.key
-  timeout_read: 10                  # read timeout (in seconds), 0 indicates unlimited.
-  timeout_write: 60                 # write timeout (in seconds), 0 indicates unlimited.
-  max_request_body_size: 1048576
-  response:
-    code: 200
-    content_type: application/json
-    body: '{"message": "OK"}'
+#role: standalone                   # Enables cluster mode.
+                                    # This allows some nodes in the cluster to run as the control plane
+                                    # and others to run as the data plane.
+                                    #
+                                    # supported values are:
+                                    #
+                                    # - `standalone`: disable cluster mode.
+                                    # - `cp`: this node runs as the control plane.
+                                    #   It connects to the database to provide entity management.
+                                    # - `dp_proxy`: this node runs as the Proxy data plane.
+                                    # - `dp_worker`: this node runs as the Worker data plane.
 
-  queue:
-    type: redis                     # supported values are redis, off
-    redis:
-      host: localhost
-      port: 6379
-      password:
-      database: 0
+anonymous_reports: true             # sends anonymous data such as software version to WebhookX.
+
 
 #------------------------------------------------------------------------------
 # METRICS
@@ -137,7 +139,7 @@ metrics:
   #exports: [ opentelemetry ]                   # list of enabled vendor exports. supported value are opentelemetry
   push_interval: 10                             # interval(in seconds) at which metrics are sent to the OpenTelemetry Collector
   opentelemetry:
-    protocol: http/protobuf                     # supported value are http/protobuf, grpc
+    protocol: http/protobuf                     # Supported values: http/protobuf, grpc.
     endpoint: http://localhost:4318/v1/metrics  # http/protobuf(http://localhost:4318/v1/metrics), grpc(localhost:4317)
 
 #------------------------------------------------------------------------------
@@ -149,5 +151,5 @@ tracing:
     env: prod
   sampling_rate: 1.0
   opentelemetry:
-    protocol: http/protobuf                     # supported value are http/protobuf, grpc
+    protocol: http/protobuf                     # Supported value: http/protobuf, grpc.
     endpoint: http://localhost:4318/v1/traces   # http/protobuf(http://localhost:4318/v1/traces), grpc(localhost:4317)

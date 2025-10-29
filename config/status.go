@@ -6,7 +6,7 @@ import (
 )
 
 type StatusConfig struct {
-	Listen         string `yaml:"listen" json:"listen" default:"127.0.0.1:8082"`
+	Listen         string `yaml:"listen" json:"listen" default:"127.0.0.1:9602"`
 	DebugEndpoints bool   `yaml:"debug_endpoints" json:"debug_endpoints" default:"true" envconfig:"DEBUG_ENDPOINTS"`
 }
 

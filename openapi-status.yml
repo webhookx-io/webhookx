@@ -11,7 +11,7 @@ info:
   version: 0.9.0
 
 servers:
-  - url: http://localhost:8082
+  - url: http://localhost:9602
 
 paths:
   /:

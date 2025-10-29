@@ -18,9 +18,7 @@ var _ = Describe("admin", Ordered, func() {
 
 		BeforeAll(func() {
 			helper.InitDB(true, nil)
-			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_ADMIN_LISTEN": "0.0.0.0:8080",
-			}))
+			app = utils.Must(helper.Start(map[string]string{}))
 			adminClient = helper.AdminClient()
 		})
 
@@ -49,7 +47,6 @@ var _ = Describe("admin", Ordered, func() {
 		BeforeAll(func() {
 			helper.InitDB(true, nil)
 			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_ADMIN_LISTEN":   "0.0.0.0:8080",
 				"WEBHOOKX_ADMIN_TLS_CERT": test.FilePath("server.crt"),
 				"WEBHOOKX_ADMIN_TLS_KEY":  test.FilePath("server.key"),
 			}))

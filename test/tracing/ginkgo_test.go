@@ -30,7 +30,6 @@ var _ = Describe("tracing disabled", Ordered, func() {
 				helper.InitDB(true, &entitiesConfig)
 
 				envs := map[string]string{
-					"WEBHOOKX_PROXY_LISTEN":          "0.0.0.0:8081",
 					"WEBHOOKX_TRACING_ENABLED":       "false",
 					"WEBHOOKX_TRACING_SAMPLING_RATE": "1.0",
 				}

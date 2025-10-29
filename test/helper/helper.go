@@ -34,6 +34,8 @@ var defaultEnvs = map[string]string{
 	"WEBHOOKX_LOG_FILE":                  "webhookx.log",
 	"WEBHOOKX_ACCESS_LOG_FILE":           "webhookx.log",
 	"WEBHOOKX_WORKER_DELIVERER_ACL_DENY": "",
+	"WEBHOOKX_WORKER_POOL_SIZE":          "100",
+	"WEBHOOKX_WORKER_POOL_CONCURRENCY":   "10",
 }
 
 func unsetEnvs(envs map[string]string) {

@@ -33,6 +33,7 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
   - `webhookx-signature`: Sign outbound requests with HMAC(SHA-256) by adding `Webhookx-Signature` and `Webhookx-Timestamp` headers.
   - `wasm`: Transform outbound requests using high-level languages such as AssemblyScript, Rust or TinyGo. See [plugin/wasm](plugins/wasm).
   - `function`: Customize inbound behavior with JavaScript, e.g. signature verification or request body transformation.
+  - `jsonschema-validator`: Validate event payloads against JSONSchema definitions. Up to Draft v6 is supported.
 - **Observability:** OpenTelemetry metrics and tracing for monitoring and troubleshooting.
 
 

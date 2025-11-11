@@ -9,7 +9,7 @@ RUN go mod download
 COPY . .
 RUN make build
 
-FROM alpine:3.15
+FROM alpine:3.22
 
 COPY --from=build-env /go/src/webhookx-io/webhookx/webhookx /usr/local/bin
 

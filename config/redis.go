@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9/maintnotifications"
 )
 
 type RedisConfig struct {
@@ -19,6 +20,9 @@ func (cfg RedisConfig) GetClient() *redis.Client {
 		Password: string(cfg.Password),
 		DB:       int(cfg.Database),
 		PoolSize: int(cfg.MaxPoolSize),
+		MaintNotificationsConfig: &maintnotifications.Config{
+			Mode: maintnotifications.ModeDisabled,
+		},
 	}
 	return redis.NewClient(options)
 }

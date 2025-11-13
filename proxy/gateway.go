@@ -260,6 +260,7 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
 			return false
 		}
+
 		if result.Terminated {
 			return false
 		}

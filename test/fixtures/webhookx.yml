@@ -10,7 +10,7 @@ endpoints:
       strategy: fixed
       config:
         attempts: [0, 3600, 3600]
-    events: ["charge.succeeded"]
+    events: [ "charge.succeeded" ]
     metadata:
       key1: value1
       key2: value2
@@ -28,7 +28,7 @@ endpoints:
 sources:
   - name: default-source
     path: /
-    methods: ["POST"]
+    methods: [ "POST" ]
     response:
       code: 200
       content_type: application/json

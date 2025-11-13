@@ -8,7 +8,6 @@ import (
 	"fmt"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
-	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/errs"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/db/transaction"
@@ -51,7 +50,7 @@ type Options struct {
 	EntityName     string
 	Workspace      bool
 	CachePropagate bool
-	CacheKey       constants.CacheKey
+	CacheName      string
 }
 
 func NewDAO[T any](db *sqlx.DB, bus *eventbus.EventBus, opts Options) *DAO[T] {
@@ -381,10 +380,10 @@ func (dao *DAO[T]) Upsert(ctx context.Context, fields []string, entity *T) error
 
 func (dao *DAO[T]) propagateEvent(id string, entity *T) {
 	data := &eventbus.CrudData{
-		ID:       id,
-		CacheKey: dao.opts.CacheKey.Build(id),
-		Entity:   dao.opts.EntityName,
-		Data:     utils.Must(json.Marshal(entity)),
+		ID:        id,
+		CacheName: dao.opts.CacheName,
+		Entity:    dao.opts.EntityName,
+		Data:      utils.Must(json.Marshal(entity)),
 	}
 	wid := reflect.ValueOf(*entity).FieldByName("WorkspaceId")
 	if wid.IsValid() {

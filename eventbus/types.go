@@ -25,11 +25,11 @@ type Message struct {
 type Callback func(data interface{})
 
 type CrudData struct {
-	Entity   string          `json:"entity"`
-	ID       string          `json:"id"`
-	WID      string          `json:"wid"`
-	CacheKey string          `json:"cache_key"`
-	Data     json.RawMessage `json:"data"`
+	Entity    string          `json:"entity"`
+	ID        string          `json:"id"`
+	WID       string          `json:"wid"`
+	CacheName string          `json:"cache_name"`
+	Data      json.RawMessage `json:"data"`
 }
 
 type EventFanoutData struct {

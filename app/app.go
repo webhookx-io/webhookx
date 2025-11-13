@@ -10,6 +10,7 @@ import (
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/migrator"
@@ -321,13 +322,14 @@ func registerEventHandler(bus *eventbus.EventBus) {
 		}
 		bus.Broadcast(eventbus.EventCRUD, eventData)
 	})
-	bus.Subscribe(eventbus.EventCRUD, func(data interface{}) {
-		eventData := data.(*eventbus.CrudData)
-		err := mcache.Invalidate(context.TODO(), eventData.CacheKey)
+	bus.Subscribe(eventbus.EventCRUD, func(d interface{}) {
+		data := d.(*eventbus.CrudData)
+		cacheKey := constants.CacheKeyFrom(data.CacheName)
+		err := mcache.Invalidate(context.TODO(), cacheKey.Build(data.ID))
 		if err != nil {
-			zap.S().Errorf("failed to invalidate cache: key=%s %v", eventData.CacheKey, err)
+			zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey.Build(data.ID), err)
 		}
-		bus.Broadcast(fmt.Sprintf("%s.crud", eventData.Entity), eventData)
+		bus.Broadcast(fmt.Sprintf("%s.crud", data.Entity), data)
 	})
 }
 

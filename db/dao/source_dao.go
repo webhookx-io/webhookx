@@ -17,7 +17,7 @@ func NewSourceDAO(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) SourceDAO
 		EntityName:     "source",
 		Workspace:      workspace,
 		CachePropagate: true,
-		CacheKey:       constants.SourceCacheKey,
+		CacheName:      constants.SourceCacheKey.Name,
 	}
 	return &sourceDAO{
 		DAO: NewDAO[entities.Source](db, bus, opts),

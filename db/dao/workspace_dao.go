@@ -18,7 +18,7 @@ func NewWorkspaceDAO(db *sqlx.DB, bus *eventbus.EventBus) WorkspaceDAO {
 		EntityName:     "workspace",
 		Workspace:      false,
 		CachePropagate: true,
-		CacheKey:       constants.WorkspaceCacheKey,
+		CacheName:      constants.WorkspaceCacheKey.Name,
 	}
 	return &workspaceDAO{
 		DAO: NewDAO[entities.Workspace](db, bus, opts),

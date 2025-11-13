@@ -936,7 +936,7 @@ components:
           nullable: true
         config:
           type: object
-          nullable: true
+          default: { }
         metadata:
           $ref: "#/components/schemas/Metadata"
         created_at:
@@ -988,3 +988,33 @@ components:
       required:
         - quota
         - period
+
+
+    WasmPluginConfiguration:
+      type: object
+      properties:
+        file:
+          type: string
+        envs:
+          type: object
+          additionalProperties:
+            type: string
+          default: { }
+      required:
+        - file
+
+    FunctionPluginConfiguration:
+      type: object
+      properties:
+        function:
+          type: string
+          maxLength: 1048576
+      required:
+        - function
+
+    WebhookxSignaturePluginConfiguration:
+      type: object
+      properties:
+        signing_secret:
+          type: string
+          minLength: 1

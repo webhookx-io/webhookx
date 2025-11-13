@@ -1,9 +1,12 @@
 package webhookx_signature
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/utils"
 	"strconv"
@@ -11,7 +14,11 @@ import (
 )
 
 type Config struct {
-	SigningSecret string `json:"signing_secret" validate:"required"`
+	SigningSecret string `json:"signing_secret"`
+}
+
+func (c Config) Schema() *openapi3.Schema {
+	return entities.LookupSchema("WebhookxSignaturePluginConfiguration")
 }
 
 type SignaturePlugin struct {
@@ -20,23 +27,17 @@ type SignaturePlugin struct {
 	ts time.Time // used in testing
 }
 
-func New(config []byte) (plugin.Plugin, error) {
-	p := &SignaturePlugin{}
-	p.Name = "webhookx-signature"
-
-	p.Config.SigningSecret = utils.RandomString(32)
-
-	if config != nil {
-		if err := p.UnmarshalConfig(config); err != nil {
-			return nil, err
-		}
-	}
-
-	return p, nil
+func (p *SignaturePlugin) Name() string {
+	return "webhookx-signature"
 }
 
-func (p *SignaturePlugin) ValidateConfig() error {
-	return utils.Validate(p.Config)
+// TODO
+func (p *SignaturePlugin) ValidateConfig(config map[string]interface{}) error {
+	if _, ok := config["signing_secret"]; !ok {
+		config["signing_secret"] = utils.RandomString(32)
+	}
+
+	return p.BasePlugin.ValidateConfig(config)
 }
 
 func computeSignature(ts time.Time, payload []byte, secret string) []byte {
@@ -47,7 +48,7 @@ func computeSignature(ts time.Time, payload []byte, secret string) []byte {
 	return mac.Sum(nil)
 }
 
-func (p *SignaturePlugin) ExecuteOutbound(outbound *plugin.Outbound, _ *plugin.Context) error {
+func (p *SignaturePlugin) ExecuteOutbound(ctx context.Context, outbound *plugin.Outbound) error {
 	ts := p.ts
 	if ts.IsZero() {
 		ts = time.Now()

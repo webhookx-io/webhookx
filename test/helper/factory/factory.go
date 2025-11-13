@@ -6,6 +6,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/openapi"
+	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -150,7 +151,7 @@ func defaultPlugin() entities.Plugin {
 	SetDefault(entities.LookupSchema("Plugin"), &entity)
 
 	entity.ID = utils.KSUID()
-	entity.Config = entities.PluginConfiguration("{}")
+	entity.Config = make(map[string]interface{})
 
 	return entity
 }
@@ -187,19 +188,13 @@ func WithPluginMetadata(metadata map[string]string) PluginOption {
 	}
 }
 
-func WithPluginConfig(config interface{}) PluginOption {
+func WithPluginConfig(config plugin.Configuration) PluginOption {
 	return func(e *entities.Plugin) {
-		b, err := json.Marshal(config)
+		properties, err := utils.StructToMap(config)
 		if err != nil {
 			panic(err)
 		}
-		e.Config = b
-	}
-}
-
-func WithPluginConfigJSON(json string) PluginOption {
-	return func(e *entities.Plugin) {
-		e.Config = entities.PluginConfiguration(json)
+		e.Config = properties
 	}
 }
 

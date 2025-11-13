@@ -9,8 +9,16 @@ import (
 )
 
 func LoadPlugins() {
-	plugin.RegisterPlugin(plugin.TypeInbound, "function", function.New)
-	plugin.RegisterPlugin(plugin.TypeInbound, "jsonschema-validator", jsonschema_validator.New)
-	plugin.RegisterPlugin(plugin.TypeOutbound, "wasm", wasm.New)
-	plugin.RegisterPlugin(plugin.TypeOutbound, "webhookx-signature", webhookx_signature.New)
+	plugin.RegisterPlugin(plugin.TypeInbound, "function", func() plugin.Plugin {
+		return &function.FunctionPlugin{}
+	})
+	plugin.RegisterPlugin(plugin.TypeOutbound, "wasm", func() plugin.Plugin {
+		return &wasm.WasmPlugin{}
+	})
+	plugin.RegisterPlugin(plugin.TypeOutbound, "webhookx-signature", func() plugin.Plugin {
+		return &webhookx_signature.SignaturePlugin{}
+	})
+	plugin.RegisterPlugin(plugin.TypeInbound, "jsonschema-validator", func() plugin.Plugin {
+		return &jsonschema_validator.SchemaValidatorPlugin{}
+	})
 }

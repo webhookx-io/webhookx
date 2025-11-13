@@ -473,6 +473,7 @@ var _ = Describe("Proxy", Ordered, func() {
 				assert.Nil(GinkgoT(), attempt.Response.Headers)
 				assert.Nil(GinkgoT(), attempt.Response.Body)
 
+				time.Sleep(time.Millisecond * 100)
 				detail, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
 				assert.NoError(GinkgoT(), err)
 				assert.NotNil(GinkgoT(), detail.RequestHeaders)

@@ -1,6 +1,7 @@
 package webhookx_signature
 
 import (
+	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"testing"
@@ -8,10 +9,9 @@ import (
 )
 
 func TestExecute(t *testing.T) {
-	p, err := New(nil)
-	assert.Nil(t, err)
-	p.(*SignaturePlugin).ts = time.Unix(1726285679, 0)
-	p.(*SignaturePlugin).Config.SigningSecret = "QGvaZ0uPwA9nYi7jr31JtZn1EKK4pJpK"
+	p := new(SignaturePlugin)
+	p.ts = time.Unix(1726285679, 0)
+	p.Config.SigningSecret = "QGvaZ0uPwA9nYi7jr31JtZn1EKK4pJpK"
 
 	pluginReq := &plugin.Outbound{
 		URL:     "https://example.com",
@@ -19,7 +19,7 @@ func TestExecute(t *testing.T) {
 		Headers: make(map[string]string),
 		Payload: "foo",
 	}
-	p.ExecuteOutbound(pluginReq, nil)
+	p.ExecuteOutbound(context.TODO(), pluginReq)
 
 	assert.Equal(t, "https://example.com", pluginReq.URL)
 	assert.Equal(t, "POST", pluginReq.Method)

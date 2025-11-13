@@ -3,45 +3,37 @@ package wasm
 import (
 	"context"
 	"fmt"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
+	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
-	"github.com/webhookx-io/webhookx/utils"
 	"os"
 )
 
 type Config struct {
-	File string            `json:"file" validate:"required"`
+	File string            `json:"file"`
 	Envs map[string]string `json:"envs"`
+}
+
+func (c Config) Schema() *openapi3.Schema {
+	return entities.LookupSchema("WasmPluginConfiguration")
 }
 
 type WasmPlugin struct {
 	plugin.BasePlugin[Config]
 }
 
-func New(config []byte) (plugin.Plugin, error) {
-	p := &WasmPlugin{}
-	p.Name = "wasm"
-
-	if config != nil {
-		if err := p.UnmarshalConfig(config); err != nil {
-			return nil, err
-		}
-	}
-
-	return p, nil
-}
-func (p *WasmPlugin) ValidateConfig() error {
-	return utils.Validate(p.Config)
+func (p *WasmPlugin) Name() string {
+	return "wasm"
 }
 
-func (p *WasmPlugin) ExecuteOutbound(outbound *plugin.Outbound, _ *plugin.Context) error {
+func (p *WasmPlugin) ExecuteOutbound(ctx context.Context, outbound *plugin.Outbound) error {
 	source, err := os.ReadFile(p.Config.File)
 	if err != nil {
 		return err
 	}
 
-	ctx := context.Background()
 	runtime := wazero.NewRuntime(ctx)
 	defer func() { _ = runtime.Close(ctx) }()
 

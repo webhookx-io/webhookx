@@ -54,11 +54,6 @@ func (cfg *Configuration) Validate() error {
 			if err := model.Validate(); err != nil {
 				return err
 			}
-			p, err := model.Plugin()
-			if err != nil {
-				return err
-			}
-			model.Config = utils.Must(p.MarshalConfig())
 		}
 	}
 
@@ -67,11 +62,6 @@ func (cfg *Configuration) Validate() error {
 			if err := model.Validate(); err != nil {
 				return err
 			}
-			p, err := model.Plugin()
-			if err != nil {
-				return err
-			}
-			model.Config = utils.Must(p.MarshalConfig())
 		}
 	}
 

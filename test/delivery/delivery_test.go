@@ -37,7 +37,7 @@ var _ = Describe("delivery", Ordered, func() {
 			EndpointId: utils.Pointer(entitiesConfig.Endpoints[0].ID),
 			Name:       "webhookx-signature",
 			Enabled:    true,
-			Config:     []byte(`{"key":"abcdefg"}`),
+			Config:     map[string]interface{}{"key": "abcdefg"},
 		}}
 
 		BeforeAll(func() {

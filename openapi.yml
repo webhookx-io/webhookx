@@ -1018,3 +1018,24 @@ components:
         signing_secret:
           type: string
           minLength: 1
+
+    JsonschemaValidatorPluginConfiguration:
+      type: object
+      properties:
+        draft:
+          type: string
+          enum: ["6"]
+          default: "6"
+        default_schema:
+          type: string
+          format: jsonschema
+          maxLength: 1048576
+        schemas:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              schema:
+                type: string
+                format: jsonschema
+                maxLength: 1048576

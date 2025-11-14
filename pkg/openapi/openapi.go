@@ -1,12 +1,31 @@
 package openapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"strconv"
 )
+
+type FormatValidatorFunc[T any] func(T) error
+
+func (fn FormatValidatorFunc[T]) Validate(value T) error { return fn(value) }
+
+func init() {
+	openapi3.DefineStringFormatValidator("jsonschema", FormatValidatorFunc[string](func(s string) error {
+		schema := &openapi3.Schema{}
+		if err := schema.UnmarshalJSON([]byte(s)); err != nil {
+			return err
+		}
+		// compare to doc.Validat in LoadOpenAPI() ?
+		if err := schema.Validate(context.TODO(), openapi3.EnableSchemaFormatValidation()); err != nil {
+			return err
+		}
+		return nil
+	}))
+}
 
 func SetDefaults(schema *openapi3.Schema, defaults map[string]interface{}) error {
 	data := make(map[string]interface{})
@@ -126,9 +145,9 @@ func insertError(current map[string]interface{}, i int, paths []string, err *ope
 				arr[index] = formatError(err)
 			}
 		} else {
-			if err.Origin == nil {
-				current[key] = formatError(err)
-			}
+			//if err.Origin == nil { // TODO???
+			current[key] = formatError(err)
+			//}
 		}
 		return
 	}

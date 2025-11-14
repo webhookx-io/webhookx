@@ -124,6 +124,7 @@ var _ = Describe("delivery", Ordered, func() {
 
 		BeforeAll(func() {
 			endpoint.Request.Timeout = 1
+			endpoint.Retry.Config.Attempts = []int64{0, 1, 1}
 			entitiesConfig := helper.EntitiesConfig{
 				Endpoints: []*entities.Endpoint{&endpoint},
 				Sources:   []*entities.Source{factory.SourceP()},
@@ -149,7 +150,7 @@ var _ = Describe("delivery", Ordered, func() {
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
 			eventId := resp.Header().Get(constants.HeaderEventId)
 
-			time.Sleep(time.Second * 10)
+			time.Sleep(time.Second * 8)
 
 			q := query.AttemptQuery{}
 			q.EventId = &eventId

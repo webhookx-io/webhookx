@@ -23,7 +23,7 @@ func NewAttemptDetailDao(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) At
 		EntityName:     "attempt_detail",
 		Workspace:      workspace,
 		CachePropagate: false,
-		CacheKey:       constants.AttemptDetailCacheKey,
+		CacheName:      constants.AttemptDetailCacheKey.Name,
 	}
 	return &attemptDetailDao{
 		DAO: NewDAO[entities.AttemptDetail](db, bus, opts),

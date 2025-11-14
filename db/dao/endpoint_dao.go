@@ -17,7 +17,7 @@ func NewEndpointDAO(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) Endpoin
 		EntityName:     "endpoint",
 		Workspace:      workspace,
 		CachePropagate: true,
-		CacheKey:       constants.EndpointCacheKey,
+		CacheName:      constants.EndpointCacheKey.Name,
 	}
 	return &endpointDAO{
 		DAO: NewDAO[entities.Endpoint](db, bus, opts),

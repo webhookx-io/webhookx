@@ -16,7 +16,7 @@ type RedisCache struct {
 func NewRedisCache(client *redis.Client) *RedisCache {
 	return &RedisCache{
 		c: client,
-		s: serializer.Gob,
+		s: serializer.MsgPack,
 	}
 }
 

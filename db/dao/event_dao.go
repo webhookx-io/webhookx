@@ -20,7 +20,7 @@ func NewEventDao(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) EventDAO {
 		EntityName:     "event",
 		Workspace:      workspace,
 		CachePropagate: false,
-		CacheKey:       constants.EventCacheKey,
+		CacheName:      constants.EventCacheKey.Name,
 	}
 	return &eventDao{
 		DAO: NewDAO[entities.Event](db, bus, opts),

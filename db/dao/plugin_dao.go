@@ -20,7 +20,7 @@ func NewPluginDAO(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) PluginDAO
 		EntityName:     "plugin",
 		Workspace:      workspace,
 		CachePropagate: true,
-		CacheKey:       constants.PluginCacheKey,
+		CacheName:      constants.PluginCacheKey.Name,
 	}
 	return &pluginDAO{
 		DAO: NewDAO[entities.Plugin](db, bus, opts),

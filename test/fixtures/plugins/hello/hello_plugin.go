@@ -20,7 +20,7 @@ var schemaJSON = `
 `
 
 type Config struct {
-	Message string `json:"message" validate:"required"`
+	Message string `json:"message"`
 }
 
 func (c Config) Schema() *openapi3.Schema {

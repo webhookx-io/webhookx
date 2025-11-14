@@ -10,7 +10,7 @@ import (
 )
 
 type Config struct {
-	Function string `json:"function" validate:"required,max=1048576"`
+	Function string `json:"function"`
 }
 
 func (c Config) Schema() *openapi3.Schema {

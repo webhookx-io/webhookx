@@ -140,13 +140,9 @@ func insertError(current map[string]interface{}, i int, paths []string, err *ope
 		if isIndex {
 			ensureArray(current, "", index)
 			arr := current[""].([]interface{})
-			if err.Origin == nil {
-				arr[index] = formatError(err)
-			}
+			arr[index] = formatError(err)
 		} else {
-			//if err.Origin == nil { // TODO???
 			current[key] = formatError(err)
-			//}
 		}
 		return
 	}

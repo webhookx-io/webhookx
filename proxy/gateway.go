@@ -260,7 +260,7 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 			RawBody:  body,
 		})
 		if err != nil {
-			gw.log.Errorf("failed to execute plugin: %v", err)
+			gw.log.Errorf("failed to execute %s plugin: %v", executor.Name(), err)
 			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
 			return false
 		}

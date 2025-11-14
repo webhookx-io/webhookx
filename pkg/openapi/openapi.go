@@ -19,7 +19,6 @@ func init() {
 		if err := schema.UnmarshalJSON([]byte(s)); err != nil {
 			return err
 		}
-		// compare to doc.Validat in LoadOpenAPI() ?
 		if err := schema.Validate(context.TODO(), openapi3.EnableSchemaFormatValidation()); err != nil {
 			return err
 		}

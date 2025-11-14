@@ -397,7 +397,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 
 		err = executor.ExecuteOutbound(context.TODO(), &outbound)
 		if err != nil {
-			return fmt.Errorf("failed to execute %s plugin: %v", p.Name, err)
+			return fmt.Errorf("failed to execute %s plugin: %v", executor.Name(), err)
 		}
 	}
 

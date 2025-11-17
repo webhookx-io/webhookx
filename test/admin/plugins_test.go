@@ -2,7 +2,6 @@ package admin
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
@@ -22,9 +21,15 @@ import (
 
 var _ = Describe("/plugins", Ordered, func() {
 
-	plugin.RegisterPlugin(plugin.TypeInbound, "inbound", inbound.New)
-	plugin.RegisterPlugin(plugin.TypeOutbound, "outbound", outbound.New)
-	plugin.RegisterPlugin(plugin.TypeOutbound, "hello", hello.New)
+	plugin.RegisterPlugin(plugin.TypeInbound, "inbound", func() plugin.Plugin {
+		return &inbound.InboundPlugin{}
+	})
+	plugin.RegisterPlugin(plugin.TypeOutbound, "outbound", func() plugin.Plugin {
+		return &outbound.OutboundPlugin{}
+	})
+	plugin.RegisterPlugin(plugin.TypeOutbound, "hello", func() plugin.Plugin {
+		return &hello.HelloPlugin{}
+	})
 
 	var adminClient *resty.Client
 	var app *app.Application
@@ -55,7 +60,6 @@ var _ = Describe("/plugins", Ordered, func() {
 						EndpointId: utils.Pointer(endpoint.ID),
 						Name:       "webhookx-signature",
 						Enabled:    true,
-						Config:     entities.PluginConfiguration("{}"),
 					}
 					plugin.WorkspaceId = ws.ID
 					assert.NoError(GinkgoT(), db.Plugins.Insert(context.TODO(), &plugin))
@@ -99,7 +103,7 @@ var _ = Describe("/plugins", Ordered, func() {
 	Context("POST", func() {
 
 		Context("webhookx-signature plugin", func() {
-			It("creates a plugin with missing config", func() {
+			It("creates plugin with missing config", func() {
 				endpoint := factory.EndpointP()
 				assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 				resp, err := adminClient.R().
@@ -118,16 +122,14 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Equal(GinkgoT(), endpoint.ID, *result.EndpointId)
 				assert.Equal(GinkgoT(), "webhookx-signature", result.Name)
 				assert.Equal(GinkgoT(), true, result.Enabled)
-				data := make(map[string]string)
-				json.Unmarshal(result.Config, &data)
-				assert.Equal(GinkgoT(), 32, len(data["signing_secret"]))
+				assert.Equal(GinkgoT(), 32, len(result.Config["signing_secret"].(string)))
 
 				e, err := db.Plugins.Get(context.TODO(), result.ID)
 				assert.Nil(GinkgoT(), err)
 				assert.NotNil(GinkgoT(), e)
 			})
 
-			It("creates a plugin with plugin config", func() {
+			It("creates plugin with plugin config", func() {
 				endpoint := factory.EndpointP()
 				assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 				resp, err := adminClient.R().
@@ -149,15 +151,43 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Equal(GinkgoT(), endpoint.ID, *result.EndpointId)
 				assert.Equal(GinkgoT(), "webhookx-signature", result.Name)
 				assert.Equal(GinkgoT(), true, result.Enabled)
-				data := make(map[string]string)
-				json.Unmarshal(result.Config, &data)
-				assert.Equal(GinkgoT(), "abcde", data["signing_secret"])
+				assert.Equal(GinkgoT(), "abcde", result.Config["signing_secret"].(string))
 
 				e, err := db.Plugins.Get(context.TODO(), result.ID)
 				assert.Nil(GinkgoT(), err)
 				assert.NotNil(GinkgoT(), e)
 			})
 
+			It("creates plugin with unknown properties", func() {
+				endpoint := factory.EndpointP()
+				assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"name":        "webhookx-signature",
+						"endpoint_id": endpoint.ID,
+						"config": map[string]string{
+							"signing_secret": "abcde",
+							"unknown":        "unknown",
+						},
+					}).
+					SetResult(entities.Plugin{}).
+					Post("/workspaces/default/plugins")
+				assert.Nil(GinkgoT(), err)
+
+				assert.Equal(GinkgoT(), 201, resp.StatusCode())
+
+				result := resp.Result().(*entities.Plugin)
+				assert.NotNil(GinkgoT(), result.ID)
+				assert.Equal(GinkgoT(), endpoint.ID, *result.EndpointId)
+				assert.Equal(GinkgoT(), "webhookx-signature", result.Name)
+				assert.Equal(GinkgoT(), true, result.Enabled)
+				// the unknown property should be removed
+				assert.EqualValues(GinkgoT(), map[string]interface{}{"signing_secret": "abcde"}, result.Config)
+
+				e, err := db.Plugins.Get(context.TODO(), result.ID)
+				assert.Nil(GinkgoT(), err)
+				assert.NotNil(GinkgoT(), e)
+			})
 		})
 
 		Context("function plugin", func() {
@@ -178,7 +208,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"function":"length must be at most 1048576"}}}}`,
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"function":"maximum string length is 1048576"}}}}`,
 					string(resp.Body()))
 			})
 		})
@@ -260,7 +290,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"json: cannot unmarshal number into Go struct field Config.message of type string"}`,
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"message":"value must be a string"}}}}`,
 					string(resp.Body()))
 			})
 
@@ -279,7 +309,7 @@ var _ = Describe("/plugins", Ordered, func() {
 					EndpointId: utils.Pointer(entitiesConfig.Endpoints[0].ID),
 					Name:       "webhookx-signature",
 					Enabled:    true,
-					Config:     entities.PluginConfiguration(`{"signing_secret":"abcde"}`),
+					Config:     map[string]interface{}{"signing_secret": "abcde"},
 				}
 				entitiesConfig.Plugins = []*entities.Plugin{entity}
 
@@ -297,7 +327,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Equal(GinkgoT(), entity.EndpointId, result.EndpointId)
 				assert.Equal(GinkgoT(), entity.Name, result.Name)
 				assert.Equal(GinkgoT(), entity.Enabled, result.Enabled)
-				assert.Equal(GinkgoT(), `{"signing_secret": "abcde"}`, string(entity.Config))
+				assert.EqualValues(GinkgoT(), map[string]interface{}{"signing_secret": "abcde"}, entity.Config)
 			})
 
 			Context("errors", func() {
@@ -330,7 +360,6 @@ var _ = Describe("/plugins", Ordered, func() {
 					ID:         utils.KSUID(),
 					Name:       "webhookx-signature",
 					Enabled:    true,
-					Config:     entities.PluginConfiguration("{}"),
 					EndpointId: utils.Pointer(endpoint.ID),
 				}
 				plugin.WorkspaceId = ws.ID
@@ -358,7 +387,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			Context("errors", func() {
-				It("should return HTTP 400 for unkown plugin name", func() {
+				It("return HTTP 400 when configuration filed type does not match", func() {
 					resp, err := adminClient.R().
 						SetBody(map[string]interface{}{
 							"config": map[string]interface{}{
@@ -370,7 +399,7 @@ var _ = Describe("/plugins", Ordered, func() {
 					assert.Nil(GinkgoT(), err)
 					assert.Equal(GinkgoT(), 400, resp.StatusCode())
 					assert.Equal(GinkgoT(),
-						"{\"message\":\"json: cannot unmarshal number into Go struct field Config.signing_secret of type string\"}",
+						`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"signing_secret":"value must be a string"}}}}`,
 						string(resp.Body()))
 				})
 
@@ -414,7 +443,6 @@ var _ = Describe("/plugins", Ordered, func() {
 					ID:         utils.KSUID(),
 					Name:       "webhookx-signature",
 					Enabled:    true,
-					Config:     entities.PluginConfiguration("{}"),
 					EndpointId: utils.Pointer(endpoint.ID),
 				}
 				entity.WorkspaceId = ws.ID

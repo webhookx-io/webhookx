@@ -151,6 +151,7 @@ func ExecAppCommand(args ...string) (output string, err error) {
 func AdminClient() *resty.Client {
 	c := resty.New()
 	c.SetBaseURL(AdminHttpURL)
+	c.DisableWarn = true
 	return c
 }
 
@@ -164,6 +165,7 @@ func AdminTLSClient() *resty.Client {
 func ProxyClient() *resty.Client {
 	c := resty.New()
 	c.SetBaseURL(ProxyHttpURL)
+	c.DisableWarn = true
 	return c
 }
 
@@ -177,6 +179,7 @@ func ProxyTLSClient() *resty.Client {
 func StatusClient() *resty.Client {
 	c := resty.New()
 	c.SetBaseURL(StatusHttpURL)
+	c.DisableWarn = true
 	return c
 }
 

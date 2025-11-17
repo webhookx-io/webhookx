@@ -2,6 +2,7 @@ package wasm
 
 import (
 	"bytes"
+	"context"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
@@ -39,9 +40,8 @@ var _ = Describe("wasm", Ordered, func() {
 	for language, filename := range languages {
 		It(language, func() {
 			buf := initLogger()
-			p, err := New(nil)
-			assert.Nil(GinkgoT(), err)
-			p.(*WasmPlugin).Config.File = filename
+			p := new(WasmPlugin)
+			p.Config.File = filename
 
 			pluginReq := &plugin.Outbound{
 				URL:     "https://example.com",
@@ -49,7 +49,7 @@ var _ = Describe("wasm", Ordered, func() {
 				Headers: make(map[string]string),
 				Payload: "",
 			}
-			err = p.ExecuteOutbound(pluginReq, nil)
+			err := p.ExecuteOutbound(context.TODO(), pluginReq)
 			assert.NoError(GinkgoT(), err)
 			assert.Equal(GinkgoT(), "https://httpbin.org/anything", pluginReq.URL)
 			assert.Equal(GinkgoT(), "POST", pluginReq.Method)
@@ -65,28 +65,25 @@ var _ = Describe("wasm", Ordered, func() {
 
 	Context("errors", func() {
 		It("file not found", func() {
-			p, err := New(nil)
-			assert.Nil(GinkgoT(), err)
-			p.(*WasmPlugin).Config.File = "notfound.wasm"
-			err = p.ExecuteOutbound(nil, nil)
+			p := new(WasmPlugin)
+			p.Config.File = "notfound.wasm"
+			err := p.ExecuteOutbound(context.TODO(), nil)
 			assert.Error(GinkgoT(), err)
 			assert.Equal(GinkgoT(), "open notfound.wasm: no such file or directory", err.Error())
 		})
 
 		It("transform not defined", func() {
-			p, err := New(nil)
-			assert.Nil(GinkgoT(), err)
-			p.(*WasmPlugin).Config.File = "./testdata/no_transform.wasm"
-			err = p.ExecuteOutbound(nil, nil)
+			p := new(WasmPlugin)
+			p.Config.File = "./testdata/no_transform.wasm"
+			err := p.ExecuteOutbound(context.TODO(), nil)
 			assert.Error(GinkgoT(), err)
 			assert.Equal(GinkgoT(), "exported function 'transform' is not defined in module", err.Error())
 		})
 
 		It("transform return does not return 0", func() {
-			p, err := New(nil)
-			assert.Nil(GinkgoT(), err)
-			p.(*WasmPlugin).Config.File = "./testdata/transform_return_1.wasm"
-			err = p.ExecuteOutbound(nil, nil)
+			p := new(WasmPlugin)
+			p.Config.File = "./testdata/transform_return_1.wasm"
+			err := p.ExecuteOutbound(context.TODO(), nil)
 			assert.Error(GinkgoT(), err)
 			assert.Equal(GinkgoT(), "transform failed with value 0", err.Error())
 		})

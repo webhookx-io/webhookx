@@ -383,18 +383,21 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		Payload: data.Event,
 	}
 	maps.Copy(outbound.Headers, endpoint.Request.Headers)
-	pluginCtx := &plugin.Context{
-		//Workspace: workspace,
-	}
+
 	for _, p := range plugins {
-		executor, err := p.Plugin()
+		executor, err := p.ToPlugin()
 		if err != nil {
 			return err
 		}
 
-		err = executor.ExecuteOutbound(&outbound, pluginCtx)
+		err = executor.Init(p.Config)
 		if err != nil {
-			return fmt.Errorf("failed to execute %s plugin: %v", p.Name, err)
+			return err
+		}
+
+		err = executor.ExecuteOutbound(context.TODO(), &outbound)
+		if err != nil {
+			return fmt.Errorf("failed to execute %s plugin: %v", executor.Name(), err)
 		}
 	}
 

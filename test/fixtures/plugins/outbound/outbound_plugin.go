@@ -1,34 +1,26 @@
 package outbound
 
 import (
+	"context"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 type Config struct {
+}
+
+func (c Config) Schema() *openapi3.Schema {
+	return openapi3.NewObjectSchema()
 }
 
 type OutboundPlugin struct {
 	plugin.BasePlugin[Config]
 }
 
-func New(config []byte) (plugin.Plugin, error) {
-	p := &OutboundPlugin{}
-	p.Name = "outbound"
-
-	if config != nil {
-		if err := p.UnmarshalConfig(config); err != nil {
-			return nil, err
-		}
-	}
-
-	return p, nil
+func (p *OutboundPlugin) Name() string {
+	return "outbound"
 }
 
-func (p *OutboundPlugin) ValidateConfig() error {
-	return utils.Validate(p.Config)
-}
-
-func (p *OutboundPlugin) ExecuteOutbound(outbound *plugin.Outbound, _ *plugin.Context) error {
+func (p *OutboundPlugin) ExecuteOutbound(ctx context.Context, outbound *plugin.Outbound) error {
 	return nil
 }

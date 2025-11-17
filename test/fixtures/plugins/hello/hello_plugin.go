@@ -1,37 +1,46 @@
 package hello
 
 import (
+	"context"
 	"fmt"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
+var schemaJSON = `
+{
+    "type": "object",
+    "properties": {
+        "message": {
+            "type": "string"
+        }
+    },
+   "required": ["message"]
+}
+`
+
 type Config struct {
-	Message string `json:"message" validate:"required"`
+	Message string `json:"message"`
+}
+
+func (c Config) Schema() *openapi3.Schema {
+	schema := openapi3.NewSchema()
+	err := schema.UnmarshalJSON([]byte(schemaJSON))
+	if err != nil {
+		panic(err)
+	}
+	return schema
 }
 
 type HelloPlugin struct {
 	plugin.BasePlugin[Config]
 }
 
-func New(config []byte) (plugin.Plugin, error) {
-	p := &HelloPlugin{}
-	p.Name = "hello"
-
-	if config != nil {
-		if err := p.UnmarshalConfig(config); err != nil {
-			return nil, err
-		}
-	}
-
-	return p, nil
+func (p *HelloPlugin) Name() string {
+	return "hello"
 }
 
-func (p *HelloPlugin) ValidateConfig() error {
-	return utils.Validate(p.Config)
-}
-
-func (p *HelloPlugin) ExecuteOutbound(outbound *plugin.Outbound, _ *plugin.Context) error {
+func (p *HelloPlugin) ExecuteOutbound(ctx context.Context, outbound *plugin.Outbound) error {
 	fmt.Println(p.Config.Message)
 	return nil
 }

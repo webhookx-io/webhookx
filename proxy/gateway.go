@@ -245,18 +245,22 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	for _, p := range plugins {
-		executor, err := p.Plugin()
+		executor, err := p.ToPlugin()
 		if err != nil {
 			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
 			return false
 		}
-		result, err := executor.ExecuteInbound(&plugin.Inbound{
+		err = executor.Init(p.Config)
+		if err != nil {
+			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
+		}
+		result, err := executor.ExecuteInbound(context.TODO(), &plugin.Inbound{
 			Request:  r,
 			Response: w,
 			RawBody:  body,
 		})
 		if err != nil {
-			gw.log.Errorf("failed to execute plugin: %v", err)
+			gw.log.Errorf("failed to execute %s plugin: %v", executor.Name(), err)
 			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
 			return false
 		}

@@ -1,36 +1,36 @@
 package plugin
 
 import (
-	"encoding/json"
+	"context"
 	"net/http"
 )
 
 type Plugin interface {
-	ExecuteOutbound(outbound *Outbound, context *Context) error
-	ExecuteInbound(inbound *Inbound) (InboundResult, error)
-	ValidateConfig() error
-	MarshalConfig() ([]byte, error)
+	// Name returns plugin's name
+	Name() string
+
+	// Init inits plugin with configuration
+	Init(config map[string]interface{}) error
+
+	// GetConfig returns plugin's configuration
+	GetConfig() map[string]interface{}
+
+	// ValidateConfig validates plugin's configuration
+	ValidateConfig(config map[string]interface{}) error
+
+	// ExecuteInbound executes inbound
+	ExecuteInbound(ctx context.Context, inbound *Inbound) (InboundResult, error)
+
+	// ExecuteOutbound executes outbound
+	ExecuteOutbound(ctx context.Context, outbound *Outbound) error
 }
 
-type BasePlugin[T any] struct {
-	Name   string
-	Config T
-}
-
-func (p *BasePlugin[T]) UnmarshalConfig(data []byte) error {
-	return json.Unmarshal(data, &p.Config)
-}
-
-func (p *BasePlugin[T]) MarshalConfig() ([]byte, error) {
-	return json.Marshal(p.Config)
-}
-
-func (p *BasePlugin[T]) ExecuteOutbound(outbound *Outbound, context *Context) error {
-	panic("not implemented")
-}
-
-func (p *BasePlugin[T]) ExecuteInbound(inbound *Inbound) (InboundResult, error) {
-	panic("not implemented")
+func New(name string) (Plugin, bool) {
+	r := GetRegistration(name)
+	if r == nil {
+		return nil, false
+	}
+	return r.Factory(), true
 }
 
 type Outbound struct {
@@ -44,10 +44,6 @@ type Inbound struct {
 	Request  *http.Request
 	Response http.ResponseWriter
 	RawBody  []byte
-}
-
-type Context struct {
-	//Workspace *entities.Workspace
 }
 
 type InboundResult struct {

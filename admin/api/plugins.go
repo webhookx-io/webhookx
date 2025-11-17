@@ -44,10 +44,7 @@ func (api *API) CreatePlugin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p, err := model.Plugin()
-	api.assert(err)
-	model.Config = utils.Must(p.MarshalConfig())
-	err = api.db.PluginsWS.Insert(r.Context(), &model)
+	err := api.db.PluginsWS.Insert(r.Context(), &model)
 	api.assert(err)
 
 	api.json(201, w, model)
@@ -72,11 +69,6 @@ func (api *API) UpdatePlugin(w http.ResponseWriter, r *http.Request) {
 		api.error(400, w, err)
 		return
 	}
-
-	p, err := model.Plugin()
-	api.assert(err)
-
-	model.Config = utils.Must(p.MarshalConfig())
 
 	model.ID = id
 	err = api.db.PluginsWS.Update(r.Context(), model)

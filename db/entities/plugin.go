@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -44,11 +45,11 @@ func (m *Plugin) Validate() error {
 	}
 
 	// validate plugin configuration
-	p, err := m.Plugin()
+	p, err := m.ToPlugin()
 	if err != nil {
 		return err
 	}
-	if err = p.ValidateConfig(); err != nil {
+	if err = p.ValidateConfig(m.Config); err != nil {
 		if e, ok := err.(*errs.ValidateError); ok {
 			e.Fields = map[string]interface{}{
 				"config": e.Fields,
@@ -57,6 +58,13 @@ func (m *Plugin) Validate() error {
 		}
 		return err
 	}
+
+	err = p.Init(m.Config)
+	if err != nil {
+		return err
+	}
+	m.Config = p.GetConfig()
+
 	return nil
 }
 
@@ -69,44 +77,32 @@ func (m *Plugin) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, (*alias)(m))
 }
 
-func (m *Plugin) Plugin() (plugin.Plugin, error) {
-	r := plugin.GetRegistration(m.Name)
-	if r == nil {
+func (m *Plugin) ToPlugin() (plugin.Plugin, error) {
+	executor, ok := plugin.New(m.Name)
+	if !ok {
 		return nil, fmt.Errorf("unknown plugin name: '%s'", m.Name)
-	}
-
-	executor, err := r.New(m.Config)
-	if err != nil {
-		return nil, err
 	}
 	return executor, nil
 }
 
-type PluginConfiguration json.RawMessage
+type PluginConfiguration map[string]interface{}
 
-func (m PluginConfiguration) MarshalYAML() (interface{}, error) {
-	if len(m) == 0 {
-		return nil, nil
-	}
-	data := make(map[string]interface{})
-	err := json.Unmarshal(m, &data)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
+func (m *PluginConfiguration) Scan(src interface{}) error {
+	return json.Unmarshal(src.([]byte), m)
 }
 
-func (m PluginConfiguration) MarshalJSON() ([]byte, error) {
+func (m PluginConfiguration) Value() (driver.Value, error) {
 	if m == nil {
-		return []byte("null"), nil
+		return []byte(`{}`), nil
 	}
-	return m, nil
+	return json.Marshal(m)
 }
 
 func (m *PluginConfiguration) UnmarshalJSON(data []byte) error {
-	if m == nil {
-		return errors.New("json.RawMessage: UnmarshalJSON on nil pointer")
+	v := make(map[string]interface{})
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
 	}
-	*m = append((*m)[0:0], data...)
+	*m = v
 	return nil
 }

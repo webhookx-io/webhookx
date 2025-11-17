@@ -12,17 +12,15 @@ const (
 	TypeOutbound Type = "outbound"
 )
 
-type NewPluginFunc func(config []byte) (Plugin, error)
-
 type Registration struct {
-	Type Type
-	New  NewPluginFunc
+	Type    Type
+	Factory func() Plugin
 }
 
 var mux sync.RWMutex
-var registry = make(map[string]*Registration)
+var registry = map[string]*Registration{}
 
-func RegisterPlugin(typ Type, name string, fn NewPluginFunc) {
+func RegisterPlugin(typ Type, name string, fn func() Plugin) {
 	mux.Lock()
 	defer mux.Unlock()
 	if _, ok := registry[name]; ok {
@@ -30,8 +28,8 @@ func RegisterPlugin(typ Type, name string, fn NewPluginFunc) {
 	}
 
 	registry[name] = &Registration{
-		Type: typ,
-		New:  fn,
+		Type:    typ,
+		Factory: fn,
 	}
 }
 

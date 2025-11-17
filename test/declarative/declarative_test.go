@@ -146,7 +146,7 @@ var _ = Describe("Declarative", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"default_schema":"value must be a valid json string","draft":"required field missing","schemas[charge.succeed]":{"schema":"value must be a valid json string"}}}}}`,
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"default_schema":"string doesn't match the format \"jsonschema\" (invalid character 'i' looking for beginning of value)","schemas":{"charge.succeed":{"schema":"string doesn't match the format \"jsonschema\" (invalid character 'i' looking for beginning of value)"}}}}}}`,
 					string(resp.Body()))
 			})
 
@@ -159,7 +159,7 @@ var _ = Describe("Declarative", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"default_schema":"unsupported 'type' value \"invlidObject\"","schemas[charge.succeed]":{"schema":"unsupported 'format' value \"invalid\""},"schemas[reuse.default_schema]":{"schema":"invalid due to reusing the default_schema definition"}}}}}`,
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"default_schema":"string doesn't match the format \"jsonschema\" (unsupported 'type' value \"invlidObject\")","schemas":{"charge.succeed":{"schema":"string doesn't match the format \"jsonschema\" (unsupported 'format' value \"invalid\")"},"reuse.default_schema":"Value is not nullable"}}}}}`,
 					string(resp.Body()))
 			})
 		})

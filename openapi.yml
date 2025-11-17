@@ -936,7 +936,7 @@ components:
           nullable: true
         config:
           type: object
-          nullable: true
+          default: { }
         metadata:
           $ref: "#/components/schemas/Metadata"
         created_at:
@@ -988,3 +988,64 @@ components:
       required:
         - quota
         - period
+
+
+    WasmPluginConfiguration:
+      description: "The wasm plugin configuration"
+      type: object
+      properties:
+        file:
+          description: "The file path to the wasm file."
+          type: string
+        envs:
+          description: "Environments that can be used in wasm."
+          type: object
+          additionalProperties:
+            type: string
+          default: { }
+      required:
+        - file
+
+    FunctionPluginConfiguration:
+      description: "The function plugin configuration"
+      type: object
+      properties:
+        function:
+          description: "The function content."
+          type: string
+          maxLength: 1048576
+      required:
+        - function
+
+    WebhookxSignaturePluginConfiguration:
+      description: "The webhookx-signature plugin configuration"
+      type: object
+      properties:
+        signing_secret:
+          description: "The signature secret."
+          type: string
+          minLength: 1
+
+    JsonschemaValidatorPluginConfiguration:
+      description: "The jsonschema-validator plugin configuration"
+      type: object
+      properties:
+        draft:
+          type: string
+          enum: ["6"]
+          default: "6"
+        default_schema:
+          description: "The default schema"
+          type: string
+          format: jsonschema
+          maxLength: 1048576
+        schemas:
+          description: "Defines event's schema."
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              schema:
+                type: string
+                format: jsonschema
+                maxLength: 1048576

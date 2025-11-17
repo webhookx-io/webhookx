@@ -11,6 +11,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
+	"github.com/webhookx-io/webhookx/utils"
 	"testing"
 	"time"
 )
@@ -28,21 +29,26 @@ var _ = Describe("opentelemetry", Ordered, func() {
 
 			BeforeAll(func() {
 				entitiesConfig := helper.EntitiesConfig{
-					Endpoints: []*entities.Endpoint{factory.EndpointP(), factory.EndpointP()},
-					Sources:   []*entities.Source{factory.SourceP(factory.WithSourceAsync(true))},
+					Endpoints: []*entities.Endpoint{
+						factory.EndpointP(),
+						factory.EndpointP(func(e *entities.Endpoint) {
+							e.Request.Timeout = 1
+						}),
+					},
+					Sources: []*entities.Source{factory.SourceP()},
 				}
-				entitiesConfig.Endpoints[1].Request.Timeout = 1
 				helper.InitDB(true, &entitiesConfig)
 				helper.InitOtelOutput()
 				proxyClient = helper.ProxyClient()
-				var err error
-				app, err = helper.Start(map[string]string{
+				app = utils.Must(helper.Start(map[string]string{
 					"WEBHOOKX_METRICS_EXPORTS":                "opentelemetry",
 					"WEBHOOKX_METRICS_PUSH_INTERVAL":          "3",
 					"WEBHOOKX_METRICS_OPENTELEMETRY_PROTOCOL": protocol,
 					"WEBHOOKX_METRICS_OPENTELEMETRY_ENDPOINT": endpoints[protocol],
-				})
-				assert.Nil(GinkgoT(), err)
+				}))
+
+				err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
+				assert.NoError(GinkgoT(), err)
 			})
 
 			AfterAll(func() {
@@ -50,16 +56,17 @@ var _ = Describe("opentelemetry", Ordered, func() {
 			})
 
 			It("sanity", func() {
-				assert.Eventually(GinkgoT(), func() bool {
+				n, err := helper.FileCountLine(helper.OtelCollectorMetricsFile)
+				assert.Nil(GinkgoT(), err)
+				n++
+
+				for i := 0; i < 3; i++ {
 					resp, err := proxyClient.R().
-						SetBody(`{
-					    "event_type": "foo.bar",
-					    "data": {
-							"key": "value"
-						}
-					}`).Post("/")
-					return err == nil && resp.StatusCode() == 200
-				}, time.Second*5, time.Second)
+						SetBody(`{"event_type": "foo.bar","data": {"key": "value"}}`).
+						Post("/")
+					assert.NoError(GinkgoT(), err)
+					assert.Equal(GinkgoT(), 200, resp.StatusCode())
+				}
 
 				expected := []string{
 					"webhookx.runtime.num_goroutine",
@@ -84,9 +91,6 @@ var _ = Describe("opentelemetry", Ordered, func() {
 					"webhookx.attempt.failed",
 				}
 
-				n, err := helper.FileCountLine(helper.OtelCollectorMetricsFile)
-				assert.Nil(GinkgoT(), err)
-				n++
 				uploaded := make(map[string]bool)
 				assert.Eventually(GinkgoT(), func() bool {
 					line, err := helper.FileLine(helper.OtelCollectorMetricsFile, n)

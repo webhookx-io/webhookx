@@ -1,34 +1,26 @@
 package inbound
 
 import (
+	"context"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 type Config struct {
+}
+
+func (c Config) Schema() *openapi3.Schema {
+	return openapi3.NewObjectSchema()
 }
 
 type InboundPlugin struct {
 	plugin.BasePlugin[Config]
 }
 
-func New(config []byte) (plugin.Plugin, error) {
-	p := &InboundPlugin{}
-	p.Name = "inbound"
-
-	if config != nil {
-		if err := p.UnmarshalConfig(config); err != nil {
-			return nil, err
-		}
-	}
-
-	return p, nil
+func (p *InboundPlugin) Name() string {
+	return "inbound"
 }
 
-func (p *InboundPlugin) ValidateConfig() error {
-	return utils.Validate(p.Config)
-}
-
-func (p *InboundPlugin) ExecuteInbound(inbound *plugin.Inbound) (res plugin.InboundResult, err error) {
+func (p *InboundPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (res plugin.InboundResult, err error) {
 	return
 }

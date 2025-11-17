@@ -1037,6 +1037,72 @@ components:
                 format: jsonschema
                 maxLength: 1048576
 
+    BasicAuthPluginConfiguration:
+      description: "The basic auth plugin configuration"
+      type: object
+      properties:
+        username:
+          description: "The username used for Basic Authentication"
+          type: string
+        password:
+          description: "The password used for Basic Authentication"
+          type: string
+      required:
+        - username
+        - password
+
+    KeyAuthPluginConfiguration:
+      description: "The key-auth plugin configuration"
+      type: object
+      properties:
+        param_name:
+          description: "The parameter name of api key."
+          type: string
+          minLength: 1
+        param_locations:
+          description: "The locations where the api key can be provided."
+          type: array
+          uniqueItems: true
+          minItems: 1
+          items:
+            type: string
+            enum: [ "header", "query" ]
+        key:
+          description: "The api key used for authentication"
+          type: string
+          minLength: 1
+      required:
+        - param_name
+        - param_locations
+        - key
+
+    HmacAuthPluginConfiguration:
+      description: "The hmac-auth plugin configuration"
+      type: object
+      properties:
+        hash:
+          description: "The hash algorithm used to generate the HMAC signature."
+          type: string
+          enum: [ "md5", "sha-1", "sha-256", "sha-512" ]
+          default: "sha-256"
+        encoding:
+          description: "The encoding format of the generated signature."
+          type: string
+          enum: [ "hex", "base64", "base64url" ]
+          default: "hex"
+        signature_header:
+          description: "The HTTP header name where the HMAC signature is sent."
+          type: string
+          minLength: 1
+        secret:
+          type: string
+          minLength: 1
+      required:
+        - hash
+        - encoding
+        - signature_header
+        - secret
+
     HTTPSourceConfig:
       type: object
       default:

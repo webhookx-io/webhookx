@@ -3,9 +3,10 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRedisConfig(t *testing.T) {

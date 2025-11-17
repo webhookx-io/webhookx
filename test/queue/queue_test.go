@@ -2,14 +2,15 @@ package queue
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
-	"testing"
-	"time"
 )
 
 var _ = Describe("processRequeue", Ordered, func() {

@@ -1,8 +1,9 @@
 package api
 
 import (
-	"github.com/webhookx-io/webhookx/pkg/types"
 	"net/http"
+
+	"github.com/webhookx-io/webhookx/pkg/types"
 
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/utils"

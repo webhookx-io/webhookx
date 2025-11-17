@@ -3,12 +3,13 @@ package middlewares
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"runtime"
+
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"go.uber.org/zap"
-	"net/http"
-	"runtime"
 )
 
 func PanicRecovery(h http.Handler) http.Handler {

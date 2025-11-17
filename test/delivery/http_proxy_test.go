@@ -5,6 +5,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/elazarl/goproxy"
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
@@ -19,11 +25,6 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
-	"log"
-	"net"
-	"net/http"
-	"os"
-	"time"
 )
 
 type NoopLogger struct{}

@@ -2,11 +2,12 @@ package log
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"time"
 )
 
 func NewZapLogger(cfg *config.LogConfig) (*zap.SugaredLogger, error) {

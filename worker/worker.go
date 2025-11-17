@@ -5,6 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
+	"runtime"
+	"sync/atomic"
+	"time"
+
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/redis/go-redis/v9"
@@ -29,10 +34,6 @@ import (
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"maps"
-	"runtime"
-	"sync/atomic"
-	"time"
 )
 
 var (

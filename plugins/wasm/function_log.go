@@ -3,6 +3,7 @@ package wasm
 import (
 	"context"
 	"fmt"
+
 	"github.com/tetratelabs/wazero/api"
 	"go.uber.org/zap"
 )

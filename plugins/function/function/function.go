@@ -1,9 +1,10 @@
 package function
 
 import (
+	"time"
+
 	"github.com/webhookx-io/webhookx/plugins/function/function/javascript"
 	"github.com/webhookx-io/webhookx/plugins/function/sdk"
-	"time"
 )
 
 type Function interface {

@@ -3,9 +3,10 @@ package cache
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/redis/go-redis/v9"
 	"github.com/webhookx-io/webhookx/pkg/serializer"
-	"time"
 )
 
 type RedisCache struct {

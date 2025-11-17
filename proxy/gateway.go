@@ -5,6 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"math"
+	"net/http"
+	"os"
+	"runtime"
+	"strconv"
+	"sync/atomic"
+	"time"
+
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/constants"
@@ -35,14 +44,6 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"io"
-	"math"
-	"net/http"
-	"os"
-	"runtime"
-	"strconv"
-	"sync/atomic"
-	"time"
 )
 
 var (

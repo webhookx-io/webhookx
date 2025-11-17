@@ -1,9 +1,10 @@
 package sdk
 
 import (
+	"net/http"
+
 	"github.com/dop251/goja"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"net/http"
 )
 
 type SDK struct {

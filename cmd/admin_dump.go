@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
-	"github.com/webhookx-io/webhookx/config"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"time"
+
+	"github.com/spf13/cobra"
+	"github.com/webhookx-io/webhookx/config"
 )
 
 func newAdminDumpCmd() *cobra.Command {

@@ -2,6 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/pprof"
+	"strconv"
+
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
@@ -16,9 +20,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
-	"net/http"
-	"net/http/pprof"
-	"strconv"
 )
 
 type API struct {

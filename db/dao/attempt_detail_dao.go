@@ -3,8 +3,9 @@ package dao
 import (
 	"context"
 	"fmt"
-	"github.com/webhookx-io/webhookx/eventbus"
 	"time"
+
+	"github.com/webhookx-io/webhookx/eventbus"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/constants"

@@ -3,6 +3,7 @@ package entities
 import (
 	"database/sql/driver"
 	"encoding/json"
+
 	"github.com/lib/pq"
 	"github.com/webhookx-io/webhookx/pkg/types"
 )

@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
+
 	evbus "github.com/asaskevich/EventBus"
 	"github.com/lib/pq"
 	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
 const channelName = "webhookx"

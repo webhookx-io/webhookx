@@ -2,10 +2,11 @@ package plugins
 
 import (
 	"context"
+	"time"
+
 	"github.com/webhookx-io/webhookx/plugins/wasm"
 	"github.com/webhookx-io/webhookx/test"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
-	"time"
 
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"

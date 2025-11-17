@@ -3,12 +3,13 @@ package wasm
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
-	"os"
 )
 
 type Config struct {

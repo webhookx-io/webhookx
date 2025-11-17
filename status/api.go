@@ -2,6 +2,11 @@ package status
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/pprof"
+	"runtime"
+	"time"
+
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/pkg/accesslog"
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
@@ -11,10 +16,6 @@ import (
 	"github.com/webhookx-io/webhookx/status/health"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"net/http"
-	"net/http/pprof"
-	"runtime"
-	"time"
 )
 
 type API struct {

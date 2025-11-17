@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/db/migrator"

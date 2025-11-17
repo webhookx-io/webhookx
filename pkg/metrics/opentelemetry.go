@@ -3,6 +3,8 @@ package metrics
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/webhookx-io/webhookx/config"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -10,8 +12,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/semconv/v1.26.0"
-	"time"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
 const (

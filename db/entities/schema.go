@@ -2,6 +2,7 @@ package entities
 
 import (
 	"fmt"
+
 	"github.com/getkin/kin-openapi/openapi3"
 )
 

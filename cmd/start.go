@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"context"
-	"github.com/spf13/cobra"
-	"github.com/webhookx-io/webhookx/app"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/spf13/cobra"
+	"github.com/webhookx-io/webhookx/app"
 )
 
 func newStartCmd() *cobra.Command {

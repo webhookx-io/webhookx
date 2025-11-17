@@ -3,13 +3,14 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"github.com/spf13/cobra"
-	"github.com/webhookx-io/webhookx/config"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"os"
 	"time"
+
+	"github.com/spf13/cobra"
+	"github.com/webhookx-io/webhookx/config"
 )
 
 func newAdminSyncCmd() *cobra.Command {

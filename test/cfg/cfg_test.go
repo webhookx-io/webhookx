@@ -1,14 +1,15 @@
 package cfg
 
 import (
+	"strings"
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
-	"strings"
-	"testing"
 )
 
 var _ = Describe("Configuration", Ordered, func() {

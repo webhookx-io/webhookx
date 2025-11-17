@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strconv"
+
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/pkg/errs"
-	"strconv"
 )
 
 type FormatValidatorFunc[T any] func(T) error

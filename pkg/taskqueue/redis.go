@@ -3,6 +3,9 @@ package taskqueue
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/redis/go-redis/v9"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
@@ -10,8 +13,6 @@ import (
 	"github.com/webhookx-io/webhookx/utils"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"strconv"
-	"time"
 )
 
 var (

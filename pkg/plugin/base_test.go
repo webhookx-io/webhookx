@@ -2,9 +2,10 @@ package plugin
 
 import (
 	"context"
+	"testing"
+
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 type config struct {

@@ -2,9 +2,10 @@ package types
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var testTime, _ = time.Parse(time.RFC3339Nano, "2006-01-02T15:04:05.999Z")

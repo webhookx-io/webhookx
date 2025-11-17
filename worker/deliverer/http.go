@@ -6,8 +6,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/webhookx-io/webhookx/constants"
-	"go.uber.org/zap"
 	"io"
 	"net"
 	"net/http"
@@ -15,6 +13,9 @@ import (
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/webhookx-io/webhookx/constants"
+	"go.uber.org/zap"
 )
 
 type Resolver interface {

@@ -3,6 +3,7 @@ package wasm
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/tetratelabs/wazero/api"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"go.uber.org/zap"

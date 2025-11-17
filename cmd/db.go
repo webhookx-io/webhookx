@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/spf13/cobra"
 	"github.com/webhookx-io/webhookx/db"

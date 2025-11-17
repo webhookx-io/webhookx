@@ -2,10 +2,11 @@ package dao
 
 import (
 	"errors"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/webhookx-io/webhookx/utils"
 	"reflect"
 	"strings"
+
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/webhookx-io/webhookx/utils"
 )
 
 // EachField traverse each database field

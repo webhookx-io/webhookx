@@ -2,6 +2,9 @@ package clustering
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -13,8 +16,6 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
-	"testing"
-	"time"
 )
 
 var _ = Describe("clustering", Ordered, func() {

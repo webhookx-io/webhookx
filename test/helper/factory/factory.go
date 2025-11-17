@@ -2,6 +2,7 @@ package factory
 
 import (
 	"encoding/json"
+
 	"github.com/creasty/defaults"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/db/entities"

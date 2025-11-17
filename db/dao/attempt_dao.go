@@ -3,6 +3,8 @@ package dao
 import (
 	"context"
 	"fmt"
+	"time"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/constants"
@@ -11,7 +13,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"go.opentelemetry.io/otel/trace"
-	"time"
 )
 
 type attemptDao struct {

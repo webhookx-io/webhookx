@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/db/errs"
@@ -17,8 +20,6 @@ import (
 	"github.com/webhookx-io/webhookx/utils"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"reflect"
-	"strings"
 )
 
 var (

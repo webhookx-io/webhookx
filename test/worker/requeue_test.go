@@ -2,6 +2,9 @@ package worker
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
@@ -19,8 +22,6 @@ import (
 	"github.com/webhookx-io/webhookx/worker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.uber.org/mock/gomock"
-	"testing"
-	"time"
 )
 
 var _ = Describe("processRequeue", Ordered, func() {

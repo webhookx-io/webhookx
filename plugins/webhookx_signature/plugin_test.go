@@ -2,10 +2,11 @@ package webhookx_signature
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
-	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/webhookx-io/webhookx/pkg/plugin"
 )
 
 func TestExecute(t *testing.T) {

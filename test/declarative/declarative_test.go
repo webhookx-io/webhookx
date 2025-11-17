@@ -2,6 +2,9 @@ package declarative
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -9,8 +12,6 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
-	"os"
-	"testing"
 )
 
 var (

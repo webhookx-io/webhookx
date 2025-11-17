@@ -3,11 +3,12 @@ package admin
 import (
 	"context"
 	"fmt"
-	"github.com/webhookx-io/webhookx/config"
-	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/webhookx-io/webhookx/config"
+	"go.uber.org/zap"
 )
 
 // Admin is an HTTP Server

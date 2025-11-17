@@ -3,6 +3,9 @@ package tracing
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/url"
+
 	"github.com/webhookx-io/webhookx/config"
 	"go.opentelemetry.io/contrib/propagators/autoprop"
 	"go.opentelemetry.io/otel"
@@ -15,8 +18,6 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/encoding/gzip"
-	"net"
-	"net/url"
 )
 
 const instrumentationName = "github.com/webhookx-io/webhookx"

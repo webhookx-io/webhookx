@@ -2,6 +2,7 @@ package entities
 
 import (
 	"encoding/json"
+
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
 )

@@ -2,12 +2,13 @@ package tracing
 
 import (
 	"context"
+	"time"
+
 	"github.com/webhookx-io/webhookx/config"
 	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
-	"time"
 )
 
 func New(conf *config.TracingConfig) (*Tracer, error) {

@@ -1,8 +1,9 @@
 package safe
 
 import (
-	"go.uber.org/zap"
 	"runtime"
+
+	"go.uber.org/zap"
 )
 
 func Go(fn func()) {

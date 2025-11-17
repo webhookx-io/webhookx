@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
@@ -10,7 +12,6 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
-	"testing"
 )
 
 var _ = Describe("DB", Ordered, func() {

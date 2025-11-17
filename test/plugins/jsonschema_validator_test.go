@@ -2,6 +2,8 @@ package plugins
 
 import (
 	"context"
+	"time"
+
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -14,7 +16,6 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
-	"time"
 )
 
 var jsonString = `{

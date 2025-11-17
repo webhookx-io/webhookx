@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
+
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -14,7 +16,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"time"
 )
 
 type DB struct {

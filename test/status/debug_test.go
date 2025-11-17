@@ -1,13 +1,14 @@
 package status
 
 import (
+	"time"
+
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
-	"time"
 )
 
 var _ = Describe("/debug", Ordered, func() {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/plugin"

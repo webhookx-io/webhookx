@@ -2,10 +2,11 @@ package accesslog
 
 import (
 	"fmt"
-	"github.com/rs/zerolog"
-	"github.com/webhookx-io/webhookx/utils"
 	"net/http"
 	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/webhookx-io/webhookx/utils"
 )
 
 type Entry struct {

@@ -5,14 +5,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/webhookx-io/webhookx/db/migrations"
 	"github.com/webhookx-io/webhookx/utils"
-	"os"
-	"strings"
-	"time"
 )
 
 type Log struct{}

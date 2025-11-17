@@ -1,8 +1,9 @@
 package accesslog
 
 import (
-	"github.com/rs/zerolog"
 	"io"
+
+	"github.com/rs/zerolog"
 )
 
 type JsonLogger struct {

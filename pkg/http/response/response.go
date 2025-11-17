@@ -2,8 +2,9 @@ package response
 
 import (
 	"encoding/json"
-	"github.com/webhookx-io/webhookx/constants"
 	"net/http"
+
+	"github.com/webhookx-io/webhookx/constants"
 )
 
 func JSON(w http.ResponseWriter, code int, data interface{}) {

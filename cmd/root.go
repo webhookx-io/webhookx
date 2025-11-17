@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
 	"github.com/webhookx-io/webhookx/config"
-	"os"
 )
 
 var (

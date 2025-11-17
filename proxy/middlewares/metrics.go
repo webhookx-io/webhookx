@@ -1,9 +1,10 @@
 package middlewares
 
 import (
-	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"net/http"
 	"time"
+
+	"github.com/webhookx-io/webhookx/pkg/metrics"
 )
 
 type MetricsMiddleware struct {

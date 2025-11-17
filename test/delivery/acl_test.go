@@ -2,6 +2,9 @@ package delivery
 
 import (
 	"context"
+	"net/netip"
+	"time"
+
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
@@ -14,8 +17,6 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
-	"net/netip"
-	"time"
 )
 
 type ResolverFunc func(ctx context.Context, network, host string) ([]netip.Addr, error)

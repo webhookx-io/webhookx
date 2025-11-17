@@ -2,10 +2,11 @@ package api
 
 import (
 	"errors"
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
-	"net/http"
 )
 
 func (api *API) contextMiddleware(next http.Handler) http.Handler {

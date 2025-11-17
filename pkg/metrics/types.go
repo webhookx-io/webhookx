@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+
 	"github.com/go-kit/kit/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"

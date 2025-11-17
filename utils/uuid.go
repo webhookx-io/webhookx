@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"github.com/satori/go.uuid"
 	"strings"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 func UUID() string {

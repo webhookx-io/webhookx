@@ -2,6 +2,8 @@ package tracing
 
 import (
 	"context"
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
@@ -12,7 +14,6 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.opentelemetry.io/otel/trace"
-	"testing"
 )
 
 var _ = Describe("tracing disabled", Ordered, func() {

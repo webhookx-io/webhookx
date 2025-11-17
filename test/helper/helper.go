@@ -9,6 +9,13 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"maps"
+	"net"
+	"net/url"
+	"os"
+	"regexp"
+	"time"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/redis/go-redis/v9"
 	uuid "github.com/satori/go.uuid"
@@ -21,12 +28,6 @@ import (
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/test"
-	"maps"
-	"net"
-	"net/url"
-	"os"
-	"regexp"
-	"time"
 )
 
 var (

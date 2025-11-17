@@ -1,8 +1,9 @@
 package api
 
 import (
-	"github.com/webhookx-io/webhookx/config"
 	"net/http"
+
+	"github.com/webhookx-io/webhookx/config"
 )
 
 type IndexResponse struct {

@@ -3,15 +3,16 @@ package redis
 import (
 	"context"
 	"errors"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/redis/go-redis/v9"
 	"github.com/webhookx-io/webhookx/pkg/loglimiter"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type RedisQueue struct {

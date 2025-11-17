@@ -2,9 +2,10 @@ package ratelimiter
 
 import (
 	"context"
+	"time"
+
 	"github.com/go-redis/redis_rate/v10"
 	"github.com/redis/go-redis/v9"
-	"time"
 )
 
 type RedisLimiter struct {

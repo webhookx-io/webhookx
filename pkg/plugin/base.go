@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/mitchellh/mapstructure"
 	"github.com/webhookx-io/webhookx/pkg/openapi"

@@ -2,12 +2,13 @@ package metrics
 
 import (
 	"context"
+	"runtime"
+	"time"
+
 	"github.com/go-kit/kit/metrics"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"go.uber.org/zap"
-	"runtime"
-	"time"
 )
 
 type Metrics struct {

@@ -3,9 +3,10 @@ package errs
 import (
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgconn"
 	"regexp"
 	"strings"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type DBError struct {

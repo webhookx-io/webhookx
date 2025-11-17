@@ -2,11 +2,12 @@ package delivery
 
 import (
 	"context"
-	"github.com/webhookx-io/webhookx/constants"
-	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/webhookx-io/webhookx/constants"
+	"github.com/webhookx-io/webhookx/test/helper/factory"
 
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"

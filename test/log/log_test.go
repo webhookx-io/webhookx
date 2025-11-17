@@ -2,6 +2,9 @@ package log
 
 import (
 	"encoding/json"
+	"testing"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
@@ -10,8 +13,6 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
-	"testing"
-	"time"
 )
 
 var _ = Describe("logging", Ordered, func() {

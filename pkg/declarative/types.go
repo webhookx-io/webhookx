@@ -2,6 +2,7 @@ package declarative
 
 import (
 	"encoding/json"
+
 	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/utils"

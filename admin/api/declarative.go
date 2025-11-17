@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"strings"
+
 	"github.com/webhookx-io/webhookx/pkg/declarative"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"gopkg.in/yaml.v3"
-	"io"
-	"net/http"
-	"strings"
 )
 
 func toJSON(yamlstr []byte) ([]byte, error) {

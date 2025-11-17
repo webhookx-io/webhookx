@@ -3,14 +3,15 @@ package wasm
 import (
 	"bytes"
 	"context"
+	"strings"
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"strings"
-	"testing"
 )
 
 func initLogger() *bytes.Buffer {

@@ -2,9 +2,10 @@ package jsonschema
 
 import (
 	"encoding/json"
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"testing"
 )
 
 func TestJSONSchema(t *testing.T) {

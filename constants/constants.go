@@ -1,8 +1,9 @@
 package constants
 
 import (
-	"github.com/webhookx-io/webhookx/config"
 	"time"
+
+	"github.com/webhookx-io/webhookx/config"
 )
 
 // Task Queue

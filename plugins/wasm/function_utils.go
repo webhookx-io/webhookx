@@ -3,6 +3,7 @@ package wasm
 import (
 	"context"
 	"errors"
+
 	"github.com/tetratelabs/wazero/api"
 )
 

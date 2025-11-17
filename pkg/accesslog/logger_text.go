@@ -1,9 +1,10 @@
 package accesslog
 
 import (
+	"io"
+
 	"github.com/rs/zerolog"
 	"github.com/webhookx-io/webhookx/utils"
-	"io"
 )
 
 type TextLogger struct {

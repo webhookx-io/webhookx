@@ -2,12 +2,13 @@ package utils
 
 import (
 	"fmt"
-	"github.com/go-playground/validator/v10"
-	"github.com/webhookx-io/webhookx/pkg/errs"
 	"reflect"
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/webhookx-io/webhookx/pkg/errs"
 )
 
 var validate = validator.New(validator.WithRequiredStructEnabled())

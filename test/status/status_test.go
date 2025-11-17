@@ -2,6 +2,7 @@ package status
 
 import (
 	"errors"
+
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"

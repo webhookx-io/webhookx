@@ -3,11 +3,12 @@ package javascript
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/dop251/goja"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/webhookx-io/webhookx/plugins/function/sdk"
-	"strings"
-	"time"
 )
 
 type JavaScript struct {

@@ -3,10 +3,11 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
+
 	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/pkg/envconfig"
 	"gopkg.in/yaml.v3"
-	"slices"
 )
 
 var (

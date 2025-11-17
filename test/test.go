@@ -1,9 +1,10 @@
 package test
 
 import (
-	"github.com/stretchr/testify/suite"
 	"path/filepath"
 	"runtime"
+
+	"github.com/stretchr/testify/suite"
 )
 
 var dir string // test dir

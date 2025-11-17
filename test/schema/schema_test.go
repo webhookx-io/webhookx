@@ -2,6 +2,8 @@ package delivery
 
 import (
 	"encoding/json"
+	"testing"
+
 	"github.com/getkin/kin-openapi/openapi3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -10,7 +12,6 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/openapi"
-	"testing"
 )
 
 var _ = Describe("schemas", Ordered, func() {

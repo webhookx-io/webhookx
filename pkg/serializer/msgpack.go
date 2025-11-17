@@ -2,6 +2,7 @@ package serializer
 
 import (
 	"bytes"
+
 	"github.com/vmihailenco/msgpack/v5"
 )
 

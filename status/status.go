@@ -3,14 +3,15 @@ package status
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/pkg/accesslog"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/status/health"
 	"go.uber.org/zap"
-	"net/http"
-	"os"
-	"time"
 )
 
 type Status struct {

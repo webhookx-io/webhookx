@@ -2,6 +2,8 @@ package dispatcher
 
 import (
 	"context"
+	"time"
+
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
@@ -10,7 +12,6 @@ import (
 	"github.com/webhookx-io/webhookx/utils"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"time"
 )
 
 // Dispatcher is Event Dispatcher

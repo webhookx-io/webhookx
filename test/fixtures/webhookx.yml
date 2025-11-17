@@ -27,12 +27,15 @@ endpoints:
 
 sources:
   - name: default-source
-    path: /
-    methods: [ "POST" ]
-    response:
-      code: 200
-      content_type: application/json
-      body: '{"message": "OK"}'
+    type: http
+    config:
+      http:
+        path: /
+        methods: [ "POST" ]
+        response:
+          code: 200
+          content_type: application/json
+          body: '{"message": "OK"}'
     plugins:
       - name: function
         config:

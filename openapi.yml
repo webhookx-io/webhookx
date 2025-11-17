@@ -877,33 +877,21 @@ components:
         enabled:
           type: boolean
           default: true
-        path:
+        type:
           type: string
-        methods:
-          type: array
-          items:
-            type: string
-            enum: [ GET, POST, PUT, DELETE, PATCH ]
-          minItems: 1
+          enum: [ "http" ]
+          default: http
+        config:
+          type: object
+          properties:
+            http:
+              $ref: "#/components/schemas/HTTPSourceConfig"
+          required:
+            - http
         async:
           type: boolean
           description: "Whether to ingest events asynchronously through the queue"
           default: false
-        response:
-          type: object
-          nullable: true
-          properties:
-            code:
-              type: integer
-              minimum: 200
-              maximum: 599
-            content_type:
-              type: string
-            body:
-              type: string
-          required:
-            - code
-            - content_type
         metadata:
           $ref: "#/components/schemas/Metadata"
         rate_limit:
@@ -915,8 +903,7 @@ components:
           type: integer
           readOnly: true
       required:
-        - path
-        - methods
+        - config
 
     Plugin:
       type: object
@@ -1049,3 +1036,33 @@ components:
                 type: string
                 format: jsonschema
                 maxLength: 1048576
+
+    HTTPSourceConfig:
+      type: object
+      default:
+        methods: [ "POST" ]
+      properties:
+        path:
+          type: string
+        methods:
+          type: array
+          items:
+            type: string
+            enum: [ GET, POST, PUT, DELETE, PATCH ]
+          minItems: 1
+          default: [ "POST" ]
+        response:
+          type: object
+          nullable: true
+          properties:
+            code:
+              type: integer
+              minimum: 200
+              maximum: 599
+            content_type:
+              type: string
+            body:
+              type: string
+          required:
+            - code
+            - content_type

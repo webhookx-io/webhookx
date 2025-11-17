@@ -30,7 +30,8 @@ func init() {
 		return "required field missing"
 	})
 	RegisterFormatter("oneof", func(fe validator.FieldError) string {
-		return fmt.Sprintf("invalid value: %s", fe.Value())
+		enums := strings.Split(fe.Param(), " ")
+		return fmt.Sprintf("value must be one of: [%s]", strings.Join(enums, ", "))
 	})
 	RegisterFormatter("gt", func(fe validator.FieldError) string {
 		return fmt.Sprintf("value must be > %s", fe.Param())

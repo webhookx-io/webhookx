@@ -34,11 +34,14 @@ sources:
   - id: 2q6ItgNdNEIvoJ2wffn5G5j8HYC
     name: null
     enabled: true
-    path: /
-    methods:
-      - POST
+    type: http
+    config:
+      http:
+        path: /
+        methods:
+          - POST
+        response: null
     async: false
-    response: null
     metadata:
       k: v
     rate_limit: null

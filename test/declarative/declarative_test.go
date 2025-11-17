@@ -15,13 +15,14 @@ import (
 
 var (
 	malformedYAML = `
-webhookx is coolest!
+webhookx is awesome 👻!
 `
 	invalidYAML = `
 sources:
   - name: default-source
-    path: /
-    enabled: ok
+	config:
+      path: /
+      enabled: ok
 `
 
 	invalidEndpointYAML = `
@@ -44,8 +45,9 @@ endpoints:
 	invalidSourcePluginJSONSchemaConfigYAML = `
 sources:
   - name: default-source
-    path: /
-    methods: ["POST"]
+    config:
+      path: /
+      methods: ["POST"]
     plugins:
       - name: "jsonschema-validator"
         config:
@@ -60,8 +62,9 @@ sources:
 	invalidSourcePluginJSONSchemaJSONYAML = `
 sources:
   - name: default-source
-    path: /
-    methods: ["POST"]
+    config:
+      path: /
+      methods: ["POST"]
     plugins:
       - name: "jsonschema-validator"
         config:

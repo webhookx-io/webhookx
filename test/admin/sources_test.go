@@ -38,10 +38,7 @@ var _ = Describe("/sources", Ordered, func() {
 	Context("POST", func() {
 		It("creates a source", func() {
 			resp, err := adminClient.R().
-				SetBody(map[string]interface{}{
-					"path":    "/v1",
-					"methods": []string{"POST"},
-				}).
+				SetBody(`{ "type": "http", "config": { "http": { "path": "" } }}`).
 				SetResult(entities.Source{}).
 				Post("/workspaces/default/sources")
 			assert.Nil(GinkgoT(), err)
@@ -51,10 +48,10 @@ var _ = Describe("/sources", Ordered, func() {
 			result := resp.Result().(*entities.Source)
 			assert.NotNil(GinkgoT(), result.ID)
 			assert.Equal(GinkgoT(), true, result.Enabled)
-			assert.Equal(GinkgoT(), "/v1", result.Path)
-			assert.EqualValues(GinkgoT(), []string{"POST"}, result.Methods)
+			assert.True(GinkgoT(), len(result.Config.HTTP.Path) > 0) // auto generate path
+			assert.EqualValues(GinkgoT(), []string{"POST"}, result.Config.HTTP.Methods)
 			assert.Equal(GinkgoT(), false, result.Async)
-			assert.True(GinkgoT(), nil == result.Response)
+			assert.True(GinkgoT(), nil == result.Config.HTTP.Response)
 
 			e, err := db.Sources.Get(context.TODO(), result.ID)
 			assert.Nil(GinkgoT(), err)
@@ -70,7 +67,7 @@ var _ = Describe("/sources", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"Request Validation","error":{"message":"request validation","fields":{"methods":"required field missing","path":"required field missing"}}}`,
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":"required field missing"}}}`,
 					string(resp.Body()))
 			})
 		})
@@ -166,14 +163,19 @@ var _ = Describe("/sources", Ordered, func() {
 			It("updates by id", func() {
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
-						"path":    "/v1",
-						"methods": []string{"GET", "POST", "PUT", "DELETE"},
-						"async":   true,
-						"response": map[string]interface{}{
-							"code":         200,
-							"content_type": "text/plain",
-							"body":         "OK",
+						"type": "http",
+						"config": map[string]interface{}{
+							"http": map[string]interface{}{
+								"path":    "/v1",
+								"methods": []string{"GET", "POST", "PUT", "DELETE"},
+								"response": map[string]interface{}{
+									"code":         200,
+									"content_type": "text/plain",
+									"body":         "OK",
+								},
+							},
 						},
+						"async": true,
 					}).
 					SetResult(entities.Source{}).
 					Put("/workspaces/default/sources/" + entity.ID)
@@ -183,14 +185,14 @@ var _ = Describe("/sources", Ordered, func() {
 				result := resp.Result().(*entities.Source)
 
 				assert.Equal(GinkgoT(), entity.ID, result.ID)
-				assert.Equal(GinkgoT(), "/v1", result.Path)
-				assert.EqualValues(GinkgoT(), []string{"GET", "POST", "PUT", "DELETE"}, result.Methods)
+				assert.Equal(GinkgoT(), "/v1", result.Config.HTTP.Path)
+				assert.EqualValues(GinkgoT(), []string{"GET", "POST", "PUT", "DELETE"}, result.Config.HTTP.Methods)
 				assert.Equal(GinkgoT(), true, result.Async)
 				assert.EqualValues(GinkgoT(), &entities.CustomResponse{
 					Code:        200,
 					ContentType: "text/plain",
 					Body:        "OK",
-				}, result.Response)
+				}, result.Config.HTTP.Response)
 			})
 		})
 

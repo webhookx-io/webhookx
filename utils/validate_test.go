@@ -44,7 +44,7 @@ func TestValidate(t *testing.T) {
       "Age": "value must be >= 0",
       "Name": "required field missing",
       "Nest": {
-         "Gender": "invalid value: x",
+         "Gender": "value must be one of: [male, female]",
          "NestB": {
             "Timeout": "value must be > 0"
          }

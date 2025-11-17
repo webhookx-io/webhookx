@@ -40,6 +40,12 @@ func (api *API) CreateSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if source.Type == "http" {
+		if source.Config.HTTP.Path == "" {
+			source.Config.HTTP.Path = "/" + utils.UUIDShort()
+		}
+	}
+
 	source.WorkspaceId = ucontext.GetWorkspaceID(r.Context())
 	err := api.db.SourcesWS.Insert(r.Context(), &source)
 	api.assert(err)

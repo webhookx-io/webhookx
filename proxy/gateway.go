@@ -169,8 +169,8 @@ func (gw *Gateway) buildRouter(version string) {
 	routes := make([]*router.Route, 0)
 	for _, source := range sources {
 		route := router.Route{
-			Paths:   []string{source.Path},
-			Methods: source.Methods,
+			Paths:   []string{source.Config.HTTP.Path},
+			Methods: source.Config.HTTP.Methods,
 			Handler: source,
 		}
 		routes = append(routes, &route)
@@ -204,7 +204,7 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 		span.SetAttributes(attribute.String("source.name", utils.PointerValue(source.Name)))
 		span.SetAttributes(attribute.String("source.workspace_id", source.WorkspaceId))
 		span.SetAttributes(attribute.Bool("source.async", source.Async))
-		span.SetAttributes(semconv.HTTPRoute(source.Path))
+		span.SetAttributes(semconv.HTTPRoute(source.Config.HTTP.Path))
 		defer span.End()
 		ctx = tracingCtx
 	}
@@ -306,9 +306,9 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 		headers[constants.HeaderEventId] = event.ID
 	}
 
-	if source.Response != nil {
-		headers["Content-Type"] = source.Response.ContentType
-		exit(w, source.Response.Code, source.Response.Body, headers)
+	if source.Config.HTTP.Response != nil {
+		headers["Content-Type"] = source.Config.HTTP.Response.ContentType
+		exit(w, source.Config.HTTP.Response.Code, source.Config.HTTP.Response.Body, headers)
 		return true
 	}
 

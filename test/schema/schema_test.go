@@ -113,33 +113,52 @@ var _ = Describe("schemas", Ordered, func() {
 				feildsJSON string
 			}{
 				{
-					name: "methods is emtpy list",
-					data: map[string]interface{}{
-						"path":    "/",
-						"methods": []interface{}{},
-					},
-					feildsJSON: `{"methods":"minimum number of items is 1"}`,
+					name:       "missing requires fields",
+					data:       map[string]interface{}{},
+					feildsJSON: `{"config":"required field missing"}`,
 				},
 				{
-					name: "methods element is invalid",
+					name: "config.http.methods is empty",
 					data: map[string]interface{}{
-						"path":    "/",
-						"methods": []interface{}{"test"},
-					},
-					feildsJSON: `{"methods":["value is not one of the allowed values [\"GET\",\"POST\",\"PUT\",\"DELETE\",\"PATCH\"]"]}`,
-				},
-
-				{
-					name: "response.code is invalid",
-					data: map[string]interface{}{
-						"path":    "/",
-						"methods": []interface{}{"POST"},
-						"response": map[string]interface{}{
-							"code":         600,
-							"content_type": "application/json",
+						"type": "http",
+						"config": map[string]interface{}{
+							"http": map[string]interface{}{
+								"path":    "/",
+								"methods": []interface{}{},
+							},
 						},
 					},
-					feildsJSON: `{"response":{"code":"number must be at most 599"}}`,
+					feildsJSON: `{"config":{"http":{"methods":"minimum number of items is 1"}}}`,
+				},
+				{
+					name: "config.http.methods element is invalid",
+					data: map[string]interface{}{
+						"type": "http",
+						"config": map[string]interface{}{
+							"http": map[string]interface{}{
+								"path":    "/",
+								"methods": []interface{}{"unknown"},
+							},
+						},
+					},
+					feildsJSON: `{"config":{"http":{"methods":["value is not one of the allowed values [\"GET\",\"POST\",\"PUT\",\"DELETE\",\"PATCH\"]"]}}}`,
+				},
+				{
+					name: "config.http.response.code is invalid",
+					data: map[string]interface{}{
+						"type": "http",
+						"config": map[string]interface{}{
+							"http": map[string]interface{}{
+								"path":    "/",
+								"methods": []interface{}{"POST"},
+								"response": map[string]interface{}{
+									"code":         600,
+									"content_type": "application/json",
+								},
+							},
+						},
+					},
+					feildsJSON: `{"config":{"http":{"response":{"code":"number must be at most 599"}}}}`,
 				},
 			}
 			for _, test := range tests {
@@ -177,13 +196,18 @@ var _ = Describe("schemas", Ordered, func() {
 						"sources": []interface{}{
 							map[string]interface{}{},
 							map[string]interface{}{
-								"path":    "/",
-								"methods": []interface{}{"POST"},
+								"type": "http",
+								"config": map[string]interface{}{
+									"http": map[string]interface{}{
+										"path":    "/",
+										"methods": []interface{}{"POST"},
+									},
+								},
 							},
 							map[string]interface{}{},
 						},
 					},
-					feildsJSON: `{"endpoints":[{"request":{"url":"required field missing"}},null,{"request":{"url":"required field missing"}}],"sources":[{"methods":"required field missing","path":"required field missing"},null,{"methods":"required field missing","path":"required field missing"}]}`,
+					feildsJSON: `{"endpoints":[{"request":{"url":"required field missing"}},null,{"request":{"url":"required field missing"}}],"sources":[{"config":"required field missing"},null,{"config":"required field missing"}]}`,
 				},
 			}
 			for _, test := range tests {

@@ -14,12 +14,15 @@ endpoints:
 
 sources:
   - name: github-source
-    path: /github
-    methods: [ "POST" ]
-    response:
-      code: 200
-      content_type: application/json
-      body: '{"message": "OK"}'
+    type: http
+    config:
+      http:
+        path: /github
+        methods: [ "POST" ]
+        response:
+          code: 200
+          content_type: application/json
+          body: '{"message": "OK"}'
     plugins:
       - name: function
         config:

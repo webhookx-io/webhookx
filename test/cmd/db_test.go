@@ -19,11 +19,12 @@ var statusOutputInit = `1 init (⏳ pending)
 9 timestamp (⏳ pending)
 10 ratelimit (⏳ pending)
 11 event_unique_id (⏳ pending)
+1762423418 source_config (⏳ pending)
 Summary:
   Current version: 0
   Dirty: false
   Executed: 0
-  Pending: 11
+  Pending: 12
 `
 
 var statusOutputDone = `1 init (✅ executed)
@@ -37,10 +38,11 @@ var statusOutputDone = `1 init (✅ executed)
 9 timestamp (✅ executed)
 10 ratelimit (✅ executed)
 11 event_unique_id (✅ executed)
+1762423418 source_config (✅ executed)
 Summary:
-  Current version: 11
+  Current version: 1762423418
   Dirty: false
-  Executed: 11
+  Executed: 12
   Pending: 0
 `
 

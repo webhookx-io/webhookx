@@ -87,8 +87,9 @@ func defaultSource() entities.Source {
 	SetDefault(entities.LookupSchema("Source"), &entity)
 
 	entity.ID = utils.KSUID()
-	entity.Path = "/"
-	entity.Methods = []string{"POST"}
+	entity.Type = "http"
+	entity.Config.HTTP.Path = "/"
+	entity.Config.HTTP.Methods = []string{"POST"}
 
 	return entity
 }
@@ -107,21 +108,9 @@ func WithSourceAsync(async bool) SourceOption {
 	}
 }
 
-func WithSourcePath(path string) SourceOption {
-	return func(e *entities.Source) {
-		e.Path = path
-	}
-}
-
 func WithSourceMetadata(metadata map[string]string) SourceOption {
 	return func(e *entities.Source) {
 		e.Metadata = metadata
-	}
-}
-
-func WithSourceResponse(response *entities.CustomResponse) SourceOption {
-	return func(e *entities.Source) {
-		e.Response = response
 	}
 }
 

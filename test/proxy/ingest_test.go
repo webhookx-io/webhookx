@@ -28,12 +28,14 @@ var _ = Describe("ingest", Ordered, func() {
 			Sources: []*entities.Source{
 				factory.SourceP(),
 				factory.SourceP(
-					factory.WithSourcePath("/custom-response"),
-					factory.WithSourceResponse(&entities.CustomResponse{
-						Code:        201,
-						ContentType: "application/xml",
-						Body:        "<message>ok</message>",
-					})),
+					func(o *entities.Source) {
+						o.Config.HTTP.Path = "/custom-response"
+						o.Config.HTTP.Response = &entities.CustomResponse{
+							Code:        201,
+							ContentType: "application/xml",
+							Body:        "<message>ok</message>",
+						}
+					}),
 			},
 		}
 		entitiesConfig.Sources[0].Async = true

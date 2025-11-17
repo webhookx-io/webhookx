@@ -2,6 +2,8 @@ package admin
 
 import (
 	"context"
+	"strings"
+
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
@@ -10,13 +12,13 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
+	key_auth "github.com/webhookx-io/webhookx/plugins/key-auth"
 	"github.com/webhookx-io/webhookx/test/fixtures/plugins/hello"
 	"github.com/webhookx-io/webhookx/test/fixtures/plugins/inbound"
 	"github.com/webhookx-io/webhookx/test/fixtures/plugins/outbound"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
-	"strings"
 )
 
 var _ = Describe("/plugins", Ordered, func() {
@@ -210,6 +212,95 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Equal(GinkgoT(),
 					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"function":"maximum string length is 1048576"}}}}`,
 					string(resp.Body()))
+			})
+		})
+
+		Context("basic-auth plugin", func() {
+			It("return 201", func() {
+				source := factory.SourceP()
+				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"name":      "basic-auth",
+						"source_id": source.ID,
+						"config": map[string]string{
+							"username": "foo",
+							"password": "bar",
+						},
+					}).
+					SetResult(entities.Plugin{}).
+					Post("/workspaces/default/plugins")
+
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 201, resp.StatusCode())
+
+				result := resp.Result().(*entities.Plugin)
+				assert.Equal(GinkgoT(), "basic-auth", result.Name)
+				assert.Equal(GinkgoT(), source.ID, *result.SourceId)
+				assert.Equal(GinkgoT(), "foo", result.Config["username"])
+				assert.Equal(GinkgoT(), "bar", result.Config["password"])
+			})
+		})
+
+		Context("key-auth plugin", func() {
+			It("return 201", func() {
+				source := factory.SourceP()
+				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"name":      "key-auth",
+						"source_id": source.ID,
+						"config": map[string]interface{}{
+							"param_name":      "apikey",
+							"param_locations": []string{"header", "query"},
+							"key":             "mykey",
+						},
+					}).
+					SetResult(entities.Plugin{}).
+					Post("/workspaces/default/plugins")
+
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 201, resp.StatusCode())
+
+				result := resp.Result().(*entities.Plugin)
+				assert.Equal(GinkgoT(), "key-auth", result.Name)
+				assert.Equal(GinkgoT(), source.ID, *result.SourceId)
+				cfg := key_auth.Config{}
+				utils.MapToStruct(result.Config, &cfg)
+				assert.Equal(GinkgoT(), "apikey", cfg.ParamName)
+				assert.Equal(GinkgoT(), []string{"header", "query"}, cfg.ParamLocations)
+				assert.Equal(GinkgoT(), "mykey", cfg.Key)
+			})
+		})
+
+		Context("hmac-auth plugin", func() {
+			It("return 201", func() {
+				source := factory.SourceP()
+				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"name":      "hmac-auth",
+						"source_id": source.ID,
+						"config": map[string]interface{}{
+							"hash":             "sha-256",
+							"encoding":         "base64",
+							"signature_header": "x-signature",
+							"secret":           "mykey",
+						},
+					}).
+					SetResult(entities.Plugin{}).
+					Post("/workspaces/default/plugins")
+
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 201, resp.StatusCode())
+
+				result := resp.Result().(*entities.Plugin)
+				assert.Equal(GinkgoT(), "hmac-auth", result.Name)
+				assert.Equal(GinkgoT(), source.ID, *result.SourceId)
+				assert.Equal(GinkgoT(), "sha-256", result.Config["hash"])
+				assert.Equal(GinkgoT(), "base64", result.Config["encoding"])
+				assert.Equal(GinkgoT(), "x-signature", result.Config["signature_header"])
+				assert.Equal(GinkgoT(), "mykey", result.Config["secret"])
 			})
 		})
 

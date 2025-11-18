@@ -481,6 +481,47 @@ func TestWorkerProxyConfig(t *testing.T) {
 	}
 }
 
+func TestSecretConfig(t *testing.T) {
+	tests := []struct {
+		desc        string
+		cfg         SecretConfig
+		validateErr error
+	}{
+		{
+			desc: "sanity",
+			cfg: SecretConfig{
+				Vault: VaultProviderConfig{
+					AuthMethod: "token",
+				},
+			},
+			validateErr: nil,
+		},
+		{
+			desc: "invalid provider",
+			cfg: SecretConfig{
+				Providers: []Provider{"aws", "vault", "unknown"},
+				Vault: VaultProviderConfig{
+					AuthMethod: "token",
+				},
+			},
+			validateErr: errors.New("invalid provider: unknown"),
+		},
+		{
+			desc: "invalid vault.auth_method",
+			cfg: SecretConfig{
+				Vault: VaultProviderConfig{
+					AuthMethod: "unknown",
+				},
+			},
+			validateErr: errors.New("invalid auth_method: unknown"),
+		},
+	}
+	for _, test := range tests {
+		actual := test.cfg.Validate()
+		assert.Equal(t, test.validateErr, actual, "expected %v got %v", test.validateErr, actual)
+	}
+}
+
 func TestConfig(t *testing.T) {
 	cfg, err := New(nil)
 	assert.Nil(t, err)

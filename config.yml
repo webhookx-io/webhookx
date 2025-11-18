@@ -180,3 +180,34 @@ tracing:
                                                 # Example of grpc:
                                                 #   protocol: grpc
                                                 #   endpoint: localhost:4317
+
+
+#------------------------------------------------------------------------------
+# Secret (remote secret)
+# reference: {secret://<provider>/<name>[?<properties>][#/jsonpointer]}
+# Example: {secret://aws/path/to/secret#/password?ttl=1}
+#------------------------------------------------------------------------------
+secret:
+  providers:                                    # Specifies enabled providers.
+    - '@default'
+    - '@all'
+  ttl: 10s
+  aws:                                          # AWS SecretManager provider
+    region: us-west-1
+    url: http://localhost:4566 # aws_url?
+
+  vault:                                        # HashiCorp Vault provider
+    address: http://localhost:8200
+    mount_path: secret
+    namespace:
+    auth_method: approle
+    authn:
+      token:
+        token:
+      approle:
+        role_id:
+        secret_id:
+        response_wrapping: false
+      kubernetes:
+        role:
+        token_path:

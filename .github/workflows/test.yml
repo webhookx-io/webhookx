@@ -48,8 +48,6 @@ jobs:
           make test-deps
           sleep 3
           docker compose -f test/docker-compose.yml logs
-      - name: installs webhookx
-        run: make install
       - name: installs ginkgo
         run: go install github.com/onsi/ginkgo/v2/ginkgo
       - name: run tests
@@ -77,8 +75,6 @@ jobs:
           make test-deps
           sleep 3
           docker compose -f test/docker-compose.yml logs
-      - name: installs webhookx
-        run: make install
       - name: install ginkgo
         run: go install github.com/onsi/ginkgo/v2/ginkgo
       - name: run tests

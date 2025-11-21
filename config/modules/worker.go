@@ -1,4 +1,4 @@
-package config
+package modules
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
+
+	"github.com/webhookx-io/webhookx/config/core"
 )
 
 type WorkerDeliverer struct {
@@ -47,6 +49,7 @@ type Pool struct {
 }
 
 type WorkerConfig struct {
+	core.BaseConfig
 	Enabled   bool            `yaml:"enabled" json:"enabled" default:"true"`
 	Deliverer WorkerDeliverer `yaml:"deliverer" json:"deliverer"`
 	Pool      Pool            `yaml:"pool" json:"pool"`

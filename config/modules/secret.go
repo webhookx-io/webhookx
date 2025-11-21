@@ -1,9 +1,10 @@
-package config
+package modules
 
 import (
 	"fmt"
 	"slices"
 
+	"github.com/webhookx-io/webhookx/config/core"
 	"github.com/webhookx-io/webhookx/pkg/secret/provider/vault"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -16,14 +17,15 @@ const (
 )
 
 type SecretConfig struct {
-	Providers []Provider          `json:"providers" yaml:"providers" default:"[\"aws\", \"vault\"]"`
+	core.BaseConfig
+	Providers []Provider          `json:"providers" yaml:"providers" default:"[\"@default\"]"`
 	Aws       AwsProviderConfig   `json:"aws" yaml:"aws"`
 	Vault     VaultProviderConfig `json:"vault" yaml:"vault"`
 }
 
 func (cfg *SecretConfig) Validate() error {
 	for _, name := range cfg.Providers {
-		if !slices.Contains([]Provider{ProviderAWS, ProviderVault}, name) {
+		if !slices.Contains([]Provider{"@default", ProviderAWS, ProviderVault}, name) {
 			return fmt.Errorf("invalid provider: %s", name)
 		}
 	}
@@ -38,6 +40,18 @@ func (cfg *SecretConfig) Validate() error {
 
 func (cfg *SecretConfig) Enabled() bool {
 	return len(cfg.Providers) > 0
+}
+
+func (cfg *SecretConfig) GetProviders() []Provider {
+	names := make([]Provider, 0)
+	for _, p := range cfg.Providers {
+		if p == "@default" {
+			names = append(names, ProviderAWS, ProviderVault)
+		} else {
+			names = append(names, p)
+		}
+	}
+	return names
 }
 
 func (cfg *SecretConfig) GetProviderConfiguration(name string) map[string]interface{} {

@@ -9,9 +9,6 @@ path "secret/data/webhookx/*" {
 EOF
 vault write auth/approle/role/test-role \
     token_policies="webhookx-read" \
-    token_ttl=1h \
-    token_max_ttl=4h \
-    secret_id_ttl=1h \
     secret_id_num_uses=10
 vault write auth/approle/role/test-role/role-id role_id="test-role-id"
 vault write auth/approle/role/test-role/custom-secret-id secret_id="test-secret-id"

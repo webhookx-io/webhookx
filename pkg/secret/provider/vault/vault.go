@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/api/auth/approle"
@@ -74,12 +73,9 @@ func setupClientAuth(client *api.Client, method string, cfg map[string]interface
 		if err != nil {
 			return err
 		}
-		secret, err := client.Auth().Login(context.TODO(), appRoleAuth)
+		_, err = client.Auth().Login(context.TODO(), appRoleAuth)
 		if err != nil {
 			return err
-		}
-		if secret == nil || secret.Auth == nil {
-			return fmt.Errorf("no auth info returned from approle login")
 		}
 	case "kubernetes":
 		opts := make([]kubernetes.LoginOption, 0)
@@ -93,12 +89,9 @@ func setupClientAuth(client *api.Client, method string, cfg map[string]interface
 		if err != nil {
 			return err
 		}
-		secret, err := client.Auth().Login(context.TODO(), auth)
+		_, err = client.Auth().Login(context.TODO(), auth)
 		if err != nil {
 			return err
-		}
-		if secret == nil || secret.Auth == nil {
-			return fmt.Errorf("no auth info returned from kubernetes login")
 		}
 	}
 
@@ -108,7 +101,13 @@ func setupClientAuth(client *api.Client, method string, cfg map[string]interface
 func (p *VaultProvider) GetValue(ctx context.Context, key string, properties map[string]string) (string, error) {
 	secret, err := p.client.KVv2(p.mountPath).Get(ctx, key)
 	if err != nil {
-		// todo handle secret not found error?
+		if errors.Is(err, api.ErrSecretNotFound) {
+			return "", ErrSecretNotFound
+		}
+		//var vaultErr *api.ResponseError
+		//if errors.As(err, &vaultErr) {
+		//	return "", fmt.Errorf("request failed %d %v", vaultErr.StatusCode, vaultErr.Errors)
+		//}
 		return "", err
 	}
 

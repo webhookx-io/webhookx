@@ -60,65 +60,84 @@ var _ = Describe("Vault", Ordered, func() {
 		secret, err := vaultClient.KVv2("secret").Put(context.TODO(), "webhookx/config", data)
 		assert.NoError(GinkgoT(), err)
 		assert.NotNil(GinkgoT(), secret)
+
+		secret, err = vaultClient.KVv2("secret").Put(context.TODO(), "webhookx/secret-deleted", map[string]interface{}{"data": "value"})
+		assert.NoError(GinkgoT(), err)
+		assert.NotNil(GinkgoT(), secret)
+
+		err = vaultClient.KVv2("secret").Delete(context.TODO(), "webhookx/secret-deleted")
+		assert.NoError(GinkgoT(), err)
 	})
 
 	Context("ENV", func() {
 		It("references should be resolved #token", func() {
-			config, err := helper.NewConfig(map[string]string{
-				"WEBHOOKX_SECRET_VAULT_AUTHN_TOKEN_TOKEN": "root",
+			var cfg *config.Config
+			var err error
+			withCleanEnv(func() {
+				cancel := helper.SetEnvs(nil, map[string]string{
+					"WEBHOOKX_SECRET_VAULT_AUTHN_TOKEN_TOKEN": "root",
 
-				"WEBHOOKX_DATABASE_HOST":       "{secret://vault/webhookx/config.key_boolean}",
-				"WEBHOOKX_DATABASE_USERNAME":   "{secret://vault/webhookx/config.key_string}",
-				"WEBHOOKX_DATABASE_PASSWORD":   "{secret://vault/webhookx/config.key_integer}",
-				"WEBHOOKX_DATABASE_DATABASE":   "{secret://vault/webhookx/config.key_float}",
-				"WEBHOOKX_DATABASE_PARAMETERS": "{secret://vault/webhookx/config.key_array.2}",
+					"WEBHOOKX_DATABASE_HOST":       "{secret://vault/webhookx/config.key_boolean}",
+					"WEBHOOKX_DATABASE_USERNAME":   "{secret://vault/webhookx/config.key_string}",
+					"WEBHOOKX_DATABASE_PASSWORD":   "{secret://vault/webhookx/config.key_integer}",
+					"WEBHOOKX_DATABASE_DATABASE":   "{secret://vault/webhookx/config.key_float}",
+					"WEBHOOKX_DATABASE_PARAMETERS": "{secret://vault/webhookx/config.key_array.2}",
 
-				"WEBHOOKX_REDIS_HOST":     "{secret://vault/webhookx/config.key_nested.key_boolean}",
-				"WEBHOOKX_REDIS_PASSWORD": "{secret://vault/webhookx/config.key_nested.key_string}",
+					"WEBHOOKX_REDIS_HOST":     "{secret://vault/webhookx/config.key_nested.key_boolean}",
+					"WEBHOOKX_REDIS_PASSWORD": "{secret://vault/webhookx/config.key_nested.key_string}",
+				})
+				defer cancel()
+				cfg = config.New()
+				err = config.NewLoader(cfg).Load()
 			})
 			assert.NoError(GinkgoT(), err)
 
-			assert.Equal(GinkgoT(), "true", config.Database.Host)
-			assert.Equal(GinkgoT(), "value", config.Database.Username)
-			assert.EqualValues(GinkgoT(), "1", config.Database.Password)
-			assert.EqualValues(GinkgoT(), "0.5", config.Database.Database)
-			assert.EqualValues(GinkgoT(), "c", config.Database.Parameters)
+			assert.Equal(GinkgoT(), "true", cfg.Database.Host)
+			assert.Equal(GinkgoT(), "value", cfg.Database.Username)
+			assert.EqualValues(GinkgoT(), "1", cfg.Database.Password)
+			assert.EqualValues(GinkgoT(), "0.5", cfg.Database.Database)
+			assert.EqualValues(GinkgoT(), "c", cfg.Database.Parameters)
 
-			assert.Equal(GinkgoT(), "false", config.Redis.Host)
-			assert.EqualValues(GinkgoT(), "nested value", config.Redis.Password)
+			assert.Equal(GinkgoT(), "false", cfg.Redis.Host)
+			assert.EqualValues(GinkgoT(), "nested value", cfg.Redis.Password)
 		})
 
 		It("references should be resolved #approle", func() {
-			config, err := helper.NewConfig(map[string]string{
-				"WEBHOOKX_SECRET_VAULT_AUTH_METHOD":             "approle",
-				"WEBHOOKX_SECRET_VAULT_AUTHN_APPROLE_ROLE_ID":   "test-role-id",
-				"WEBHOOKX_SECRET_VAULT_AUTHN_APPROLE_SECRET_ID": "test-secret-id",
+			var cfg *config.Config
+			var err error
+			withCleanEnv(func() {
+				cancel := helper.SetEnvs(nil, map[string]string{
+					"WEBHOOKX_SECRET_VAULT_AUTH_METHOD":             "approle",
+					"WEBHOOKX_SECRET_VAULT_AUTHN_APPROLE_ROLE_ID":   "test-role-id",
+					"WEBHOOKX_SECRET_VAULT_AUTHN_APPROLE_SECRET_ID": "test-secret-id",
 
-				"WEBHOOKX_DATABASE_HOST":       "{secret://vault/webhookx/config.key_boolean}",
-				"WEBHOOKX_DATABASE_USERNAME":   "{secret://vault/webhookx/config.key_string}",
-				"WEBHOOKX_DATABASE_PASSWORD":   "{secret://vault/webhookx/config.key_integer}",
-				"WEBHOOKX_DATABASE_DATABASE":   "{secret://vault/webhookx/config.key_float}",
-				"WEBHOOKX_DATABASE_PARAMETERS": "{secret://vault/webhookx/config.key_array.2}",
+					"WEBHOOKX_DATABASE_HOST":       "{secret://vault/webhookx/config.key_boolean}",
+					"WEBHOOKX_DATABASE_USERNAME":   "{secret://vault/webhookx/config.key_string}",
+					"WEBHOOKX_DATABASE_PASSWORD":   "{secret://vault/webhookx/config.key_integer}",
+					"WEBHOOKX_DATABASE_DATABASE":   "{secret://vault/webhookx/config.key_float}",
+					"WEBHOOKX_DATABASE_PARAMETERS": "{secret://vault/webhookx/config.key_array.2}",
 
-				"WEBHOOKX_REDIS_HOST":     "{secret://vault/webhookx/config.key_nested.key_boolean}",
-				"WEBHOOKX_REDIS_PASSWORD": "{secret://vault/webhookx/config.key_nested.key_string}",
+					"WEBHOOKX_REDIS_HOST":     "{secret://vault/webhookx/config.key_nested.key_boolean}",
+					"WEBHOOKX_REDIS_PASSWORD": "{secret://vault/webhookx/config.key_nested.key_string}",
+				})
+				defer cancel()
+				cfg = config.New()
+				err = config.NewLoader(cfg).Load()
 			})
 			assert.NoError(GinkgoT(), err)
 
-			assert.Equal(GinkgoT(), "true", config.Database.Host)
-			assert.Equal(GinkgoT(), "value", config.Database.Username)
-			assert.EqualValues(GinkgoT(), "1", config.Database.Password)
-			assert.EqualValues(GinkgoT(), "0.5", config.Database.Database)
-			assert.EqualValues(GinkgoT(), "c", config.Database.Parameters)
+			assert.Equal(GinkgoT(), "true", cfg.Database.Host)
+			assert.Equal(GinkgoT(), "value", cfg.Database.Username)
+			assert.EqualValues(GinkgoT(), "1", cfg.Database.Password)
+			assert.EqualValues(GinkgoT(), "0.5", cfg.Database.Database)
+			assert.EqualValues(GinkgoT(), "c", cfg.Database.Parameters)
 
-			assert.Equal(GinkgoT(), "false", config.Redis.Host)
-			assert.EqualValues(GinkgoT(), "nested value", config.Redis.Password)
+			assert.Equal(GinkgoT(), "false", cfg.Redis.Host)
+			assert.EqualValues(GinkgoT(), "nested value", cfg.Redis.Password)
 		})
 
 		It("references should be resolved #kubernetes", func() {
 			server := startHTTP(func(w http.ResponseWriter, request *http.Request) {
-				fmt.Println(request.URL)
-				fmt.Println("doge")
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`{
   "apiVersion": "authentication.k8s.io/v1",
@@ -133,36 +152,94 @@ var _ = Describe("Vault", Ordered, func() {
   }
 }`))
 			}, ":18888")
-			config, err := helper.NewConfig(map[string]string{
-				"WEBHOOKX_SECRET_VAULT_AUTH_METHOD":                 "kubernetes",
-				"WEBHOOKX_SECRET_VAULT_AUTHN_KUBERNETES_ROLE":       "test-role",
-				"WEBHOOKX_SECRET_VAULT_AUTHN_KUBERNETES_TOKEN_PATH": test.FilePath("vault-k8s-token.txt"),
+			var cfg *config.Config
+			var err error
+			withCleanEnv(func() {
+				cancel := helper.SetEnvs(nil, map[string]string{
+					"WEBHOOKX_SECRET_VAULT_AUTH_METHOD":                 "kubernetes",
+					"WEBHOOKX_SECRET_VAULT_AUTHN_KUBERNETES_ROLE":       "test-role",
+					"WEBHOOKX_SECRET_VAULT_AUTHN_KUBERNETES_TOKEN_PATH": test.FilePath("vault-k8s-token.txt"),
 
-				"WEBHOOKX_DATABASE_HOST":       "{secret://vault/webhookx/config.key_boolean}",
-				"WEBHOOKX_DATABASE_USERNAME":   "{secret://vault/webhookx/config.key_string}",
-				"WEBHOOKX_DATABASE_PASSWORD":   "{secret://vault/webhookx/config.key_integer}",
-				"WEBHOOKX_DATABASE_DATABASE":   "{secret://vault/webhookx/config.key_float}",
-				"WEBHOOKX_DATABASE_PARAMETERS": "{secret://vault/webhookx/config.key_array.2}",
+					"WEBHOOKX_DATABASE_HOST":       "{secret://vault/webhookx/config.key_boolean}",
+					"WEBHOOKX_DATABASE_USERNAME":   "{secret://vault/webhookx/config.key_string}",
+					"WEBHOOKX_DATABASE_PASSWORD":   "{secret://vault/webhookx/config.key_integer}",
+					"WEBHOOKX_DATABASE_DATABASE":   "{secret://vault/webhookx/config.key_float}",
+					"WEBHOOKX_DATABASE_PARAMETERS": "{secret://vault/webhookx/config.key_array.2}",
 
-				"WEBHOOKX_REDIS_HOST":     "{secret://vault/webhookx/config.key_nested.key_boolean}",
-				"WEBHOOKX_REDIS_PASSWORD": "{secret://vault/webhookx/config.key_nested.key_string}",
+					"WEBHOOKX_REDIS_HOST":     "{secret://vault/webhookx/config.key_nested.key_boolean}",
+					"WEBHOOKX_REDIS_PASSWORD": "{secret://vault/webhookx/config.key_nested.key_string}",
+				})
+				defer cancel()
+				cfg = config.New()
+				err = config.NewLoader(cfg).Load()
 			})
 			assert.NoError(GinkgoT(), err)
 
-			assert.Equal(GinkgoT(), "true", config.Database.Host)
-			assert.Equal(GinkgoT(), "value", config.Database.Username)
-			assert.EqualValues(GinkgoT(), "1", config.Database.Password)
-			assert.EqualValues(GinkgoT(), "0.5", config.Database.Database)
-			assert.EqualValues(GinkgoT(), "c", config.Database.Parameters)
+			assert.Equal(GinkgoT(), "true", cfg.Database.Host)
+			assert.Equal(GinkgoT(), "value", cfg.Database.Username)
+			assert.EqualValues(GinkgoT(), "1", cfg.Database.Password)
+			assert.EqualValues(GinkgoT(), "0.5", cfg.Database.Database)
+			assert.EqualValues(GinkgoT(), "c", cfg.Database.Parameters)
 
-			assert.Equal(GinkgoT(), "false", config.Redis.Host)
-			assert.EqualValues(GinkgoT(), "nested value", config.Redis.Password)
+			assert.Equal(GinkgoT(), "false", cfg.Redis.Host)
+			assert.EqualValues(GinkgoT(), "nested value", cfg.Redis.Password)
 			assert.Nil(GinkgoT(), server.Shutdown(context.TODO()))
+		})
+
+		Context("errors", func() {
+			It("should return error when approle auth failed", func() {
+				_, err := helper.NewConfig(map[string]string{
+					"WEBHOOKX_SECRET_VAULT_AUTH_METHOD":             "approle",
+					"WEBHOOKX_SECRET_VAULT_AUTHN_APPROLE_ROLE_ID":   "test-role-id",
+					"WEBHOOKX_SECRET_VAULT_AUTHN_APPROLE_SECRET_ID": "unknown",
+				})
+				assert.NotNil(GinkgoT(), err)
+			})
+
+			It("should return error when kubernetes auth failed", func() {
+				_, err := helper.NewConfig(map[string]string{
+					"WEBHOOKX_SECRET_VAULT_AUTH_METHOD":           "kubernetes",
+					"WEBHOOKX_SECRET_VAULT_AUTHN_KUBERNETES_ROLE": "test-role",
+				})
+				assert.NotNil(GinkgoT(), err)
+			})
+
+			It("returns error when secret is not found", func() {
+				var cfg *config.Config
+				var err error
+				withCleanEnv(func() {
+					cancel := helper.SetEnvs(nil, map[string]string{
+						"WEBHOOKX_SECRET_VAULT_AUTHN_TOKEN_TOKEN": "root",
+
+						"WEBHOOKX_DATABASE_HOST": "{secret://vault/webhookx/notfound}",
+					})
+					defer cancel()
+					cfg = config.New()
+					err = config.NewLoader(cfg).Load()
+				})
+				assert.EqualError(GinkgoT(), err, "failed to resolve reference value '{secret://vault/webhookx/notfound}': secret not found")
+			})
+
+			It("should return error when reading a deleted secret", func() {
+				var cfg *config.Config
+				var err error
+				withCleanEnv(func() {
+					cancel := helper.SetEnvs(nil, map[string]string{
+						"WEBHOOKX_SECRET_VAULT_AUTHN_TOKEN_TOKEN": "root",
+
+						"WEBHOOKX_DATABASE_HOST": "{secret://vault/webhookx/secret-deleted.data}",
+					})
+					defer cancel()
+					cfg = config.New()
+					err = config.NewLoader(cfg).Load()
+				})
+				assert.EqualError(GinkgoT(), err, "failed to resolve reference value '{secret://vault/webhookx/secret-deleted.data}': secret no data")
+			})
 		})
 	})
 
 	Context("YAML", func() {
-		yaml1 := `
+		configFile := `
 database:
   host: "{secret://vault/webhookx/config.key_boolean}"
   port: 5432
@@ -185,10 +262,10 @@ redis:
 					"WEBHOOKX_SECRET_VAULT_AUTHN_TOKEN_TOKEN": "root",
 				})
 				defer cancel()
-				cfg, err = config.New(&config.Options{
-					YAML: []byte(yaml1),
-				})
+				cfg = config.New()
+				err = config.NewLoader(cfg).WithFileContent([]byte(configFile)).Load()
 			})
+			assert.NoError(GinkgoT(), err)
 
 			assert.NoError(GinkgoT(), err)
 

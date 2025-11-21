@@ -1,8 +1,10 @@
-package config
+package modules
 
 import (
 	"fmt"
 	"slices"
+
+	"github.com/webhookx-io/webhookx/config/core"
 )
 
 type LogLevel string
@@ -22,6 +24,7 @@ const (
 )
 
 type LogConfig struct {
+	core.BaseConfig
 	Level   LogLevel  `yaml:"level" json:"level" default:"info"`
 	Format  LogFormat `yaml:"format" json:"format" default:"text"`
 	Colored bool      `yaml:"colored" json:"colored" default:"true"`

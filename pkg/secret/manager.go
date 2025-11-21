@@ -14,6 +14,7 @@ import (
 )
 
 var (
+	// TODO: optimize message
 	ErrUnsupportedProvider  = errors.New("unsupported provider")
 	ErrInvalidJson          = errors.New("value is not a valid json")
 	ErrJsonPropertyNotFound = errors.New("json property not found")
@@ -31,7 +32,7 @@ type Manager struct {
 	providers map[string]provider.Provider
 }
 
-func NewManager(log *zap.SugaredLogger, providers map[string]map[string]interface{}) *Manager {
+func NewManager(log *zap.SugaredLogger, providers map[string]map[string]interface{}) (*Manager, error) {
 	manager := &Manager{
 		log:       log,
 		providers: make(map[string]provider.Provider),
@@ -39,10 +40,10 @@ func NewManager(log *zap.SugaredLogger, providers map[string]map[string]interfac
 	for k, v := range providers {
 		err := manager.registerProvider(k, v)
 		if err != nil {
-			panic(err) // todo
+			return nil, err
 		}
 	}
-	return manager
+	return manager, nil
 }
 
 func (p *Manager) registerProvider(name string, cfg map[string]interface{}) error {
@@ -78,7 +79,7 @@ func (p *Manager) ResolveReference(ctx context.Context, ref *reference.Reference
 
 	value, err := provider.GetValue(ctx, ref.Name, ref.Properties)
 	if err != nil {
-		return "", fmt.Errorf("failed to resolve value of reference '%s': %s", ref.Reference, err)
+		return "", fmt.Errorf("failed to resolve reference value '%s': %s", ref.Reference, err)
 	}
 
 	if ref.JsonPointer != "" {
@@ -92,8 +93,7 @@ func (p *Manager) ResolveReference(ctx context.Context, ref *reference.Reference
 		value = result.String()
 	}
 
-	p.log.Warnf("resolved %s to '%s'", ref.Reference, value)
-	fmt.Printf("resolved %s to '%s'\n", ref.Reference, value)
+	//fmt.Printf("resolved %s to '%s'\n", ref.Reference, value)
 
 	return value, nil
 }

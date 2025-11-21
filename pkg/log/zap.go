@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-func NewZapLogger(cfg *config.LogConfig) (*zap.SugaredLogger, error) {
+func NewZapLogger(cfg *modules.LogConfig) (*zap.SugaredLogger, error) {
 	level, err := zapcore.ParseLevel(string(cfg.Level))
 	if err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func NewZapLogger(cfg *config.LogConfig) (*zap.SugaredLogger, error) {
 	zapConfig.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(t.Format("2006/01/02 15:04:05.000"))
 	}
-	if cfg.Format == config.LogFormatText {
+	if cfg.Format == modules.LogFormatText {
 		zapConfig.EncoderConfig.EncodeName = func(loggerName string, enc zapcore.PrimitiveArrayEncoder) {
 			enc.AppendString(fmt.Sprintf("%-8s", "["+loggerName+"]"))
 		}

@@ -12,7 +12,7 @@ var (
 )
 
 // Reference represents the definition of a reference.
-// Syntax: "{secret://<provider>/<name>[.<jsonpath>][?<properties>]}"
+// Syntax: {secret://<provider>/<name>[.<jsonpath>][?<parameters>]}
 type Reference struct {
 	Reference   string
 	Provider    string
@@ -21,17 +21,17 @@ type Reference struct {
 	Properties  map[string]string
 }
 
-func (r *Reference) String() string {
-	values := url.Values{}
-	for k, v := range r.Properties {
-		values.Set(k, v)
-	}
-	name := r.Name
-	if r.JsonPointer != "" {
-		name = name + "." + r.JsonPointer
-	}
-	return fmt.Sprintf("{secret://%s/%s?%s}", r.Provider, name, values.Encode())
-}
+//func (r *Reference) String() string {
+//	values := url.Values{}
+//	for k, v := range r.Properties {
+//		values.Set(k, v)
+//	}
+//	name := r.Name
+//	if r.JsonPointer != "" {
+//		name = name + "." + r.JsonPointer
+//	}
+//	return fmt.Sprintf("{secret://%s/%s?%s}", r.Provider, name, values.Encode())
+//}
 
 func Parse(reference string) (*Reference, error) {
 	s := strings.TrimPrefix(reference, "{")

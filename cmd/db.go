@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/spf13/cobra"
+	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/migrator"
 )
@@ -25,6 +27,7 @@ func newDatabaseResetCmd() *cobra.Command {
 					return errors.New("canceled")
 				}
 			}
+			cfg := cmd.Context().Value("config").(*config.Config)
 			db, err := db.NewSqlDB(cfg.Database)
 			if err != nil {
 				return err
@@ -47,11 +50,18 @@ func newDatabaseResetCmd() *cobra.Command {
 }
 
 func newDatabaseCmd() *cobra.Command {
-
 	database := &cobra.Command{
 		Use:   "db",
 		Short: "Database commands",
 		Long:  ``,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := initConfig(configurationFile)
+			if err != nil {
+				return err
+			}
+			cmd.SetContext(context.WithValue(cmd.Context(), "config", cfg))
+			return nil
+		},
 	}
 
 	database.PersistentFlags().StringVarP(&configurationFile, "config", "", "", "The configuration filename")
@@ -62,6 +72,7 @@ func newDatabaseCmd() *cobra.Command {
 		Short: "Print the migration status",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := cmd.Context().Value("config").(*config.Config)
 			db, err := db.NewSqlDB(cfg.Database)
 			if err != nil {
 				return err
@@ -81,6 +92,7 @@ func newDatabaseCmd() *cobra.Command {
 		Short: "Run any new migrations",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := cmd.Context().Value("config").(*config.Config)
 			db, err := db.NewSqlDB(cfg.Database)
 			if err != nil {
 				return err

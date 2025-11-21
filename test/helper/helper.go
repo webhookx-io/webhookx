@@ -93,14 +93,12 @@ func SetEnvs(defaults map[string]string, sets map[string]string) func() {
 	}
 }
 
-func NewConfig(envs map[string]string, optionFuncs ...func(*config.Options)) (*config.Config, error) {
+func NewConfig(envs map[string]string) (*config.Config, error) {
 	cancel := SetEnvs(Environments, envs)
 	defer cancel()
-	opts := &config.Options{}
-	for _, fn := range optionFuncs {
-		fn(opts)
-	}
-	return config.New(opts)
+	cfg := config.New()
+	err := config.Load("", cfg)
+	return cfg, err
 }
 
 // Start starts application with given environment variables
@@ -113,7 +111,8 @@ func Start(envs map[string]string) (application *app.Application, err error) {
 		}
 	}()
 
-	cfg, err := config.New(nil)
+	cfg := config.New()
+	err = config.Load("", cfg)
 	if err != nil {
 		return
 	}

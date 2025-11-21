@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
@@ -59,7 +59,7 @@ type Gateway struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	cfg *config.ProxyConfig
+	cfg *modules.ProxyConfig
 
 	log *zap.SugaredLogger
 	s   *http.Server
@@ -82,7 +82,7 @@ type Gateway struct {
 }
 
 type Options struct {
-	Cfg         *config.ProxyConfig
+	Cfg         *modules.ProxyConfig
 	Middlewares []mux.MiddlewareFunc
 	DB          *db.DB
 	Dispatcher  *dispatcher.Dispatcher

@@ -2,6 +2,7 @@ package admin
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -28,9 +29,11 @@ var _ = Describe("anonymous reports", Ordered, func() {
 		})
 
 		It("should display log when anonymous_reports is disabled", func() {
-			matched, err := helper.FileHasLine(helper.LogFile, "^.*anonymous reports is disabled$")
-			assert.Nil(GinkgoT(), err)
-			assert.Equal(GinkgoT(), true, matched)
+			assert.Eventually(GinkgoT(), func() bool {
+				matched, err := helper.FileHasLine(helper.LogFile, "^.*anonymous reports is disabled$")
+				assert.Nil(GinkgoT(), err)
+				return matched
+			}, time.Second, time.Millisecond*100)
 		})
 	})
 

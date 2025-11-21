@@ -16,6 +16,11 @@ func newStartCmd() *cobra.Command {
 		Short: "Start server",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := initConfig(configurationFile)
+			if err != nil {
+				return err
+			}
+
 			app, err := app.New(cfg)
 			if err != nil {
 				return err

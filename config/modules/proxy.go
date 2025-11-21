@@ -1,9 +1,11 @@
-package config
+package modules
 
 import (
 	"errors"
 	"fmt"
 	"slices"
+
+	"github.com/webhookx-io/webhookx/config/core"
 )
 
 type ProxyResponse struct {
@@ -37,6 +39,7 @@ func (cfg Queue) Validate() error {
 }
 
 type ProxyConfig struct {
+	core.BaseConfig
 	Listen             string        `yaml:"listen" json:"listen" default:"0.0.0.0:9600"`
 	TLS                TLS           `yaml:"tls" json:"tls"`
 	TimeoutRead        int64         `yaml:"timeout_read" json:"timeout_read" default:"10" envconfig:"TIMEOUT_READ"`

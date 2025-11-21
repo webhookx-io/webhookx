@@ -16,7 +16,12 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/go-resty/resty/v2"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/redis/go-redis/v9"
 	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/app"
@@ -62,6 +67,9 @@ var (
 
 // SetEnvs sets envs and returns a function to restore envs
 func SetEnvs(defaults map[string]string, sets map[string]string) func() {
+	if defaults == nil {
+		defaults = map[string]string{}
+	}
 	envs := maps.Clone(defaults)
 	maps.Copy(envs, sets)
 	originals := make(map[string]*string)
@@ -88,7 +96,9 @@ func SetEnvs(defaults map[string]string, sets map[string]string) func() {
 func NewConfig(envs map[string]string) (*config.Config, error) {
 	cancel := SetEnvs(Environments, envs)
 	defer cancel()
-	return config.New(nil)
+	cfg := config.New()
+	err := config.Load("", cfg)
+	return cfg, err
 }
 
 // Start starts application with given environment variables
@@ -101,7 +111,8 @@ func Start(envs map[string]string) (application *app.Application, err error) {
 		}
 	}()
 
-	cfg, err := config.New(nil)
+	cfg := config.New()
+	err = config.Load("", cfg)
 	if err != nil {
 		return
 	}
@@ -443,4 +454,32 @@ func WaitForServer(urlstring string, timeout time.Duration) error {
 		time.Sleep(100 * time.Millisecond)
 	}
 	return fmt.Errorf("server at %s not ready after %v", u.Host, timeout)
+}
+
+func VaultClient() *vault.Client {
+	cfg := vault.DefaultConfig()
+	cfg.Address = "http://127.0.0.1:8200"
+	client, err := vault.NewClient(cfg)
+	if err != nil {
+		panic(err)
+	}
+	client.SetToken("root")
+	return client
+}
+
+func SecretManangerClient() *secretsmanager.Client {
+	cfg, err := awsconfig.LoadDefaultConfig(context.TODO(),
+		awsconfig.WithBaseEndpoint("http://localhost:4566"),
+		awsconfig.WithRegion("us-east-1"),
+		awsconfig.WithCredentialsProvider(aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(
+			"test",
+			"test",
+			"",
+		))),
+	)
+	if err != nil {
+		panic(err)
+	}
+	client := secretsmanager.NewFromConfig(cfg, func(options *secretsmanager.Options) {})
+	return client
 }

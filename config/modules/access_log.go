@@ -1,11 +1,14 @@
-package config
+package modules
 
 import (
 	"fmt"
 	"slices"
+
+	"github.com/webhookx-io/webhookx/config/core"
 )
 
 type AccessLogConfig struct {
+	core.BaseConfig
 	Enabled bool      `yaml:"enabled" json:"enabled" default:"true"`
 	Format  LogFormat `yaml:"format" json:"format" default:"text"`
 	Colored bool      `yaml:"colored" json:"colored" default:"true"`

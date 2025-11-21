@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/metrics"
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"go.uber.org/zap"
 )
@@ -55,7 +55,7 @@ func (m *Metrics) Stop() error {
 	return nil
 }
 
-func New(cfg config.MetricsConfig) (*Metrics, error) {
+func New(cfg modules.MetricsConfig) (*Metrics, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	m := &Metrics{
 		ctx:     ctx,

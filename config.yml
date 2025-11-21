@@ -180,3 +180,51 @@ tracing:
                                                 # Example of grpc:
                                                 #   protocol: grpc
                                                 #   endpoint: localhost:4317
+
+
+#------------------------------------------------------------------------------
+# Secret Reference (External Secret Reference)
+# Secret Reference allows fetching values from external secret providers.
+#
+# Syntax:
+#   {secret://<provider>/<name>[.<jsonpath>][?<parameters>]}
+#
+# Components:
+# - <provider>       The provider name (e.g.`aws`, `vault`).
+# - <name>           The secret name.
+# - <jsonpath>       A optional JSON Path to extract value from a JSON.
+#                    JSON Path is a series of keys separated by a `.` character.
+#                    Examples: `database.username`, `credentials.1.username`.
+# - <parameters>     The optional parameters.
+#
+# Examples:
+#   {secret://aws/path/to/mysecret}
+#   {secret://aws/path/to/mysecret.password}
+#------------------------------------------------------------------------------
+secret:
+  providers:                                    # Specifies enabled providers.
+    - '@default'                                # Supported values:
+                                                # - `@default`: an alias of built-in providers.
+                                                # - `aws`
+                                                # - `vault`
+
+  aws:                                          # AWS SecretsManager provider
+    region:                                     # AWS region.
+    url:                                        # Optional custom endpoint.
+                                                # If unset, uses AWS default endpoint resolution.
+
+  vault:                                        # HashiCorp Vault provider (KV v2)
+    address: http://127.0.0.1:8200              # Vault server address.
+    mount_path: secret                          # The mount path for KV secrets engine.
+    namespace:                                  # Vault namespace (for Vault Enterprise).
+    auth_method: token                          # Authentication method. Supported values: `token`, `approle`, `kubernetes`.
+    authn:                                      # Authentication configuration.
+      token:
+        token:                                  # The token used to making requests to Vault.
+      approle:
+        role_id:                                # RoleID used for login.
+        secret_id:                              # SecretID used for login.
+        response_wrapping: false                # Whether to use response-wrapping. Defaults to false.
+      kubernetes:
+        role:                                   # Vault role bound to the Kubernetes service account.
+        token_path:                             # Path to JWT token file.

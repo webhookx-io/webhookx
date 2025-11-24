@@ -16,7 +16,13 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/go-resty/resty/v2"
+	vault "github.com/hashicorp/vault/api"
+	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx/app"
@@ -60,12 +66,20 @@ var (
 	}
 )
 
-// SetEnvs sets envs and returns a function to restore envs
-func SetEnvs(defaults map[string]string, sets map[string]string) func() {
-	envs := maps.Clone(defaults)
-	maps.Copy(envs, sets)
+// NewTestEnv returns a map that with default test environment variables set.
+func NewTestEnv(sets map[string]string) map[string]string {
+	env := make(map[string]string)
+	maps.Copy(env, Environments)
+	maps.Copy(env, sets)
+	return env
+}
+
+// SetEnvs sets env variables and returns a function to restore environment variables
+func SetEnvs(sets map[string]string) func() {
+	env := make(map[string]string)
+	maps.Copy(env, sets)
 	originals := make(map[string]*string)
-	for k, v := range envs {
+	for k, v := range env {
 		old, existed := os.LookupEnv(k)
 		if existed {
 			originals[k] = &old
@@ -85,15 +99,10 @@ func SetEnvs(defaults map[string]string, sets map[string]string) func() {
 	}
 }
 
-func NewConfig(envs map[string]string) (*config.Config, error) {
-	cancel := SetEnvs(Environments, envs)
-	defer cancel()
-	return config.New(nil)
-}
-
 // Start starts application with given environment variables
 func Start(envs map[string]string) (application *app.Application, err error) {
-	cancel := SetEnvs(Environments, envs)
+	envs = NewTestEnv(envs)
+	cancel := SetEnvs(envs)
 
 	defer func() {
 		if err != nil {
@@ -101,12 +110,13 @@ func Start(envs map[string]string) (application *app.Application, err error) {
 		}
 	}()
 
-	cfg, err := config.New(nil)
-	if err != nil {
-		return
+	cfg := config.New()
+	if err := config.Load("", cfg); err != nil {
+		return nil, errors.Wrap(err, "could not load configuration")
 	}
-	if err = cfg.Validate(); err != nil {
-		return
+
+	if err := cfg.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid configuration")
 	}
 
 	if _, err := os.Stat(cfg.Log.File); err == nil {
@@ -136,7 +146,7 @@ func Start(envs map[string]string) (application *app.Application, err error) {
 
 // ExecAppCommand executes application command
 func ExecAppCommand(args ...string) (output string, err error) {
-	cancel := SetEnvs(Environments, nil)
+	cancel := SetEnvs(Environments)
 	defer cancel()
 
 	root := cmd.NewRootCmd()
@@ -215,7 +225,9 @@ type EntitiesConfig struct {
 }
 
 func InitDB(truncated bool, entities *EntitiesConfig) *db.DB {
-	cfg, err := NewConfig(nil)
+	cfg, err := LoadConfig(LoadConfigOptions{
+		Envs: NewTestEnv(nil),
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -298,7 +310,9 @@ func InitDB(truncated bool, entities *EntitiesConfig) *db.DB {
 }
 
 func GetDeafultWorkspace() (*entities.Workspace, error) {
-	cfg, err := NewConfig(nil)
+	cfg, err := LoadConfig(LoadConfigOptions{
+		Envs: NewTestEnv(nil),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -443,4 +457,32 @@ func WaitForServer(urlstring string, timeout time.Duration) error {
 		time.Sleep(100 * time.Millisecond)
 	}
 	return fmt.Errorf("server at %s not ready after %v", u.Host, timeout)
+}
+
+func VaultClient() *vault.Client {
+	cfg := vault.DefaultConfig()
+	cfg.Address = "http://127.0.0.1:8200"
+	client, err := vault.NewClient(cfg)
+	if err != nil {
+		panic(err)
+	}
+	client.SetToken("root")
+	return client
+}
+
+func SecretManangerClient() *secretsmanager.Client {
+	cfg, err := awsconfig.LoadDefaultConfig(context.TODO(),
+		awsconfig.WithBaseEndpoint("http://localhost:4566"),
+		awsconfig.WithRegion("us-east-1"),
+		awsconfig.WithCredentialsProvider(aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(
+			"test",
+			"test",
+			"",
+		))),
+	)
+	if err != nil {
+		panic(err)
+	}
+	client := secretsmanager.NewFromConfig(cfg, func(options *secretsmanager.Options) {})
+	return client
 }

@@ -9,7 +9,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/transaction"
 	"github.com/webhookx-io/webhookx/eventbus"
@@ -37,7 +37,7 @@ type DB struct {
 	PluginsWS        dao.PluginDAO
 }
 
-func NewSqlDB(cfg config.DatabaseConfig) (*sql.DB, error) {
+func NewSqlDB(cfg modules.DatabaseConfig) (*sql.DB, error) {
 	db, err := sql.Open("pgx", cfg.GetDSN())
 	if err != nil {
 		return nil, err

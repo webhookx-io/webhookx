@@ -1,4 +1,4 @@
-package config
+package modules
 
 import (
 	"fmt"
@@ -22,6 +22,7 @@ const (
 )
 
 type LogConfig struct {
+	BaseConfig
 	Level   LogLevel  `yaml:"level" json:"level" default:"info"`
 	Format  LogFormat `yaml:"format" json:"format" default:"text"`
 	Colored bool      `yaml:"colored" json:"colored" default:"true"`

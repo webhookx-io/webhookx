@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/config/modules"
 	"go.opentelemetry.io/contrib/propagators/autoprop"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -22,13 +23,14 @@ import (
 
 const instrumentationName = "github.com/webhookx-io/webhookx"
 
-func SetupOTEL(o *config.TracingConfig) (trace.TracerProvider, error) {
+func SetupOTEL(o *modules.TracingConfig) (trace.TracerProvider, error) {
 	var err error
 	var exporter *otlptrace.Exporter
 
-	if o.Opentelemetry.Protocol == config.OtlpProtocolHTTP {
+	switch o.Opentelemetry.Protocol {
+	case modules.OtlpProtocolHTTP:
 		exporter, err = setupHTTPExporter(o.Opentelemetry)
-	} else if o.Opentelemetry.Protocol == config.OtlpProtocolGRPC {
+	case modules.OtlpProtocolGRPC:
 		exporter, err = setupGRPCExporter(o.Opentelemetry)
 	}
 
@@ -65,7 +67,7 @@ func SetupOTEL(o *config.TracingConfig) (trace.TracerProvider, error) {
 	return tracerProvider, err
 }
 
-func setupHTTPExporter(c config.OpentelemetryTracing) (*otlptrace.Exporter, error) {
+func setupHTTPExporter(c modules.OpentelemetryTracing) (*otlptrace.Exporter, error) {
 	endpoint, err := url.Parse(c.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid collector endpoint %q: %w", c.Endpoint, err)
@@ -87,7 +89,7 @@ func setupHTTPExporter(c config.OpentelemetryTracing) (*otlptrace.Exporter, erro
 	return otlptrace.New(context.Background(), otlptracehttp.NewClient(opts...))
 }
 
-func setupGRPCExporter(c config.OpentelemetryTracing) (*otlptrace.Exporter, error) {
+func setupGRPCExporter(c modules.OpentelemetryTracing) (*otlptrace.Exporter, error) {
 	host, port, err := net.SplitHostPort(c.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid collector endpoint %q: %w", c.Endpoint, err)

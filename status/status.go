@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/pkg/accesslog"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/status/health"
@@ -16,7 +17,7 @@ import (
 
 type Status struct {
 	api *API
-	cfg *config.StatusConfig
+	cfg *modules.StatusConfig
 	s   *http.Server
 	log *zap.SugaredLogger
 }
@@ -27,7 +28,7 @@ type Options struct {
 	Indicators []*health.Indicator
 }
 
-func NewStatus(cfg config.StatusConfig, tracer *tracing.Tracer, opts Options) *Status {
+func NewStatus(cfg modules.StatusConfig, tracer *tracing.Tracer, opts Options) *Status {
 	api := &API{
 		debugEndpoints: cfg.DebugEndpoints,
 		tracer:         tracer,

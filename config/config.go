@@ -6,8 +6,8 @@ import (
 	"slices"
 
 	"github.com/creasty/defaults"
-	"github.com/webhookx-io/webhookx/pkg/envconfig"
-	"gopkg.in/yaml.v3"
+	"github.com/webhookx-io/webhookx/config/modules"
+	"github.com/webhookx-io/webhookx/config/types"
 )
 
 var (
@@ -24,19 +24,54 @@ const (
 	RoleDPProxy    Role = "dp_proxy"
 )
 
+var _ types.Config = &Config{}
+
+// Config Configuration
 type Config struct {
-	Log              LogConfig       `yaml:"log" json:"log" envconfig:"LOG"`
-	AccessLog        AccessLogConfig `yaml:"access_log" json:"access_log" envconfig:"ACCESS_LOG"`
-	Database         DatabaseConfig  `yaml:"database" json:"database" envconfig:"DATABASE"`
-	Redis            RedisConfig     `yaml:"redis" json:"redis" envconfig:"REDIS"`
-	Admin            AdminConfig     `yaml:"admin" json:"admin" envconfig:"ADMIN"`
-	Status           StatusConfig    `yaml:"status" json:"status" envconfig:"STATUS"`
-	Proxy            ProxyConfig     `yaml:"proxy" json:"proxy" envconfig:"PROXY"`
-	Worker           WorkerConfig    `yaml:"worker" json:"worker" envconfig:"WORKER"`
-	Metrics          MetricsConfig   `yaml:"metrics" json:"metrics" envconfig:"METRICS"`
-	Tracing          TracingConfig   `yaml:"tracing" json:"tracing" envconfig:"TRACING"`
-	Role             Role            `yaml:"role" json:"role" envconfig:"ROLE" default:"standalone"`
-	AnonymousReports bool            `yaml:"anonymous_reports" json:"anonymous_reports" envconfig:"ANONYMOUS_REPORTS" default:"true"`
+	modules.BaseConfig
+	Log              modules.LogConfig       `yaml:"log" json:"log" envconfig:"LOG"`
+	AccessLog        modules.AccessLogConfig `yaml:"access_log" json:"access_log" envconfig:"ACCESS_LOG"`
+	Database         modules.DatabaseConfig  `yaml:"database" json:"database" envconfig:"DATABASE"`
+	Redis            modules.RedisConfig     `yaml:"redis" json:"redis" envconfig:"REDIS"`
+	Admin            modules.AdminConfig     `yaml:"admin" json:"admin" envconfig:"ADMIN"`
+	Status           modules.StatusConfig    `yaml:"status" json:"status" envconfig:"STATUS"`
+	Proxy            modules.ProxyConfig     `yaml:"proxy" json:"proxy" envconfig:"PROXY"`
+	Worker           modules.WorkerConfig    `yaml:"worker" json:"worker" envconfig:"WORKER"`
+	Metrics          modules.MetricsConfig   `yaml:"metrics" json:"metrics" envconfig:"METRICS"`
+	Tracing          modules.TracingConfig   `yaml:"tracing" json:"tracing" envconfig:"TRACING"`
+	Role             Role                    `yaml:"role" json:"role" envconfig:"ROLE" default:"standalone"`
+	AnonymousReports bool                    `yaml:"anonymous_reports" json:"anonymous_reports" envconfig:"ANONYMOUS_REPORTS" default:"true"`
+	Secret           modules.SecretConfig    `yaml:"secret" json:"secret" envconfig:"SECRET"`
+}
+
+func (c *Config) GetSecret() *modules.SecretConfig {
+	return &c.Secret
+}
+
+func (c *Config) GetLog() *modules.LogConfig {
+	return &c.Log
+}
+
+func (cfg *Config) PostProcess() error {
+	switch cfg.Role {
+	case RoleCP:
+		if cfg.Admin.Listen == "" {
+			cfg.Admin.Listen = "127.0.0.1:9601"
+		}
+		cfg.Proxy.Listen = ""
+		cfg.Worker.Enabled = false
+	case RoleDPProxy:
+		if cfg.Proxy.Listen == "" {
+			cfg.Proxy.Listen = "0.0.0.0:9600"
+		}
+		cfg.Admin.Listen = ""
+		cfg.Worker.Enabled = false
+	case RoleDPWorker:
+		cfg.Admin.Listen = ""
+		cfg.Proxy.Listen = ""
+		cfg.Worker.Enabled = true
+	}
+	return nil
 }
 
 func (cfg Config) String() string {
@@ -81,54 +116,17 @@ func (cfg Config) Validate() error {
 	if !slices.Contains([]Role{RoleStandalone, RoleCP, RoleDPWorker, RoleDPProxy}, cfg.Role) {
 		return fmt.Errorf("invalid role: '%s'", cfg.Role)
 	}
+	if err := cfg.Secret.Validate(); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-type Options struct {
-	YAML []byte
-}
-
-func New(opts *Options) (*Config, error) {
+func New() *Config {
 	var cfg Config
-	err := defaults.Set(&cfg)
-	if err != nil {
-		return nil, err
+	if err := defaults.Set(&cfg); err != nil {
+		panic(err)
 	}
-
-	if opts != nil {
-		if len(opts.YAML) > 0 {
-			if err := yaml.Unmarshal(opts.YAML, &cfg); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	err = envconfig.Process("WEBHOOKX", &cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &cfg, nil
-}
-
-func (cfg *Config) OverrideByRole(role Role) {
-	switch role {
-	case RoleCP:
-		if cfg.Admin.Listen == "" {
-			cfg.Admin.Listen = "127.0.0.1:9601"
-		}
-		cfg.Proxy.Listen = ""
-		cfg.Worker.Enabled = false
-	case RoleDPProxy:
-		if cfg.Proxy.Listen == "" {
-			cfg.Proxy.Listen = "0.0.0.0:9600"
-		}
-		cfg.Admin.Listen = ""
-		cfg.Worker.Enabled = false
-	case RoleDPWorker:
-		cfg.Admin.Listen = ""
-		cfg.Proxy.Listen = ""
-		cfg.Worker.Enabled = true
-	}
+	return &cfg
 }

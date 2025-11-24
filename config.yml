@@ -180,3 +180,57 @@ tracing:
                                                 # Example of grpc:
                                                 #   protocol: grpc
                                                 #   endpoint: localhost:4317
+
+
+#------------------------------------------------------------------------------
+# Secret Reference (External Secret Reference)
+# Secret Reference allows fetching values from external secret providers.
+#
+# Syntax:
+#   {secret://<provider>/<name>[.<jsonpath>]}
+#
+# Components:
+# - <provider>       The provider name (e.g.`aws`, `vault`).
+# - <name>           The secret name.
+# - <jsonpath>       An optional JSON Path used to extract values from a JSON object.
+#                    JSON Path is a series of keys separated by a `.` character.
+#                    Examples:
+#                      - `database.username`
+#                      - `credentials.1.username`
+#
+# Examples:
+#   {secret://aws/path/to/mysecret}
+#   {secret://aws/path/to/mysecret.password}
+#------------------------------------------------------------------------------
+#secret:
+#  providers:                                    # Specifies enabled providers.
+#    - '@default'                                # Supported values:
+#                                                # - `@default`: an alias of built-in providers.
+#                                                # - `aws`
+#                                                # - `vault`
+#
+#  ttl: 0                                        # TTL (in seconds) of in-memory cache for secrets.
+#                                                # Cache is disabled when set to 0.
+#
+#  aws:                                          # AWS SecretsManager provider
+#                                                # The AWS credentials can be provided via standardized credential providers.
+#                                                # See https://docs.aws.amazon.com/sdkref/latest/guide/standardized-credentials.html
+#    region:                                     # AWS region.
+#    url:                                        # AWS SecretsManager service url.
+#                                                # Defaults to `https://secretsmanager.<region>.amazonaws.com`.
+#
+#  vault:                                        # HashiCorp Vault provider (KV v2)
+#    address: http://127.0.0.1:8200              # Vault server address.
+#    mount_path: secret                          # The mount path for KV secrets engine.
+#    namespace:                                  # Vault namespace (for Vault Enterprise).
+#    auth_method: token                          # Authentication method. Supported values: `token`, `approle`, `kubernetes`.
+#    authn:                                      # Authentication configuration.
+#      token:
+#        token:                                  # Vault API token.
+#      approle:
+#        role_id:                                # RoleID used for login.
+#        secret_id:                              # SecretID used for login.
+#        response_wrapping: false                # Whether to use response-wrapping. Defaults to false.
+#      kubernetes:
+#        role:                                   # Vault role bound to the Kubernetes service account.
+#        token_path:                             # Path to JWT token file.

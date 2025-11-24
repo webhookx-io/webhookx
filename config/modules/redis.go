@@ -1,18 +1,20 @@
-package config
+package modules
 
 import (
 	"fmt"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/redis/go-redis/v9/maintnotifications"
+	"github.com/webhookx-io/webhookx/config/types"
 )
 
 type RedisConfig struct {
-	Host        string   `yaml:"host" json:"host" default:"localhost"`
-	Port        uint32   `yaml:"port" json:"port" default:"6379"`
-	Password    Password `yaml:"password" json:"password" default:""`
-	Database    uint32   `yaml:"database" json:"database" default:"0"`
-	MaxPoolSize uint32   `yaml:"max_pool_size" json:"max_pool_size" default:"0"`
+	BaseConfig
+	Host        string         `yaml:"host" json:"host" default:"localhost"`
+	Port        uint32         `yaml:"port" json:"port" default:"6379"`
+	Password    types.Password `yaml:"password" json:"password" default:""`
+	Database    uint32         `yaml:"database" json:"database" default:"0"`
+	MaxPoolSize uint32         `yaml:"max_pool_size" json:"max_pool_size" default:"0"`
 }
 
 func (cfg RedisConfig) GetClient() *redis.Client {

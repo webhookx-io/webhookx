@@ -1,6 +1,11 @@
-package config
+package types
 
 import "encoding/json"
+
+type Config interface {
+	Validate() error
+	PostProcess() error
+}
 
 type Map map[string]string
 

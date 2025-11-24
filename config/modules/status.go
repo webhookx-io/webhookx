@@ -1,4 +1,4 @@
-package config
+package modules
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 )
 
 type StatusConfig struct {
+	BaseConfig
 	Listen         string `yaml:"listen" json:"listen" default:"127.0.0.1:9602"`
 	DebugEndpoints bool   `yaml:"debug_endpoints" json:"debug_endpoints" default:"true" envconfig:"DEBUG_ENDPOINTS"`
 }

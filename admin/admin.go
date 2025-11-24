@@ -7,18 +7,18 @@ import (
 	"os"
 	"time"
 
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/config/modules"
 	"go.uber.org/zap"
 )
 
 // Admin is an HTTP Server
 type Admin struct {
-	cfg *config.AdminConfig
+	cfg *modules.AdminConfig
 	s   *http.Server
 	log *zap.SugaredLogger
 }
 
-func NewAdmin(cfg config.AdminConfig, handler http.Handler) *Admin {
+func NewAdmin(cfg modules.AdminConfig, handler http.Handler) *Admin {
 	s := &http.Server{
 		Handler: handler,
 		Addr:    cfg.Listen,

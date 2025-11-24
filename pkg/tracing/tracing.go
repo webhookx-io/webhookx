@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/config/modules"
 	"go.opentelemetry.io/otel"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 )
 
-func New(conf *config.TracingConfig) (*Tracer, error) {
+func New(conf *modules.TracingConfig) (*Tracer, error) {
 	if !conf.Enabled {
 		otel.SetTracerProvider(noop.NewTracerProvider())
 		return nil, nil

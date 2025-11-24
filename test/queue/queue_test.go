@@ -8,9 +8,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
-	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
+	"github.com/webhookx-io/webhookx/test/helper"
 )
 
 var _ = Describe("processRequeue", Ordered, func() {
@@ -18,7 +18,9 @@ var _ = Describe("processRequeue", Ordered, func() {
 	var queue taskqueue.TaskQueue
 
 	BeforeAll(func() {
-		cfg, err := config.New(nil)
+		cfg, err := helper.LoadConfig(helper.LoadConfigOptions{
+			Envs: helper.NewTestEnv(nil),
+		})
 		assert.Nil(GinkgoT(), err)
 		log, err := log.NewZapLogger(&cfg.Log)
 

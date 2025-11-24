@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/app"
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
@@ -197,7 +197,7 @@ var _ = Describe("tracing proxy", Ordered, func() {
 				"WEBHOOKX_TRACING_ENABLED":                "true",
 				"WEBHOOKX_TRACING_SAMPLING_RATE":          "1",
 				"WEBHOOKX_TRACING_ATTRIBUTES":             `{"env":"test"}`,
-				"WEBHOOKX_TRACING_OPENTELEMETRY_PROTOCOL": string(config.OtlpProtocolHTTP),
+				"WEBHOOKX_TRACING_OPENTELEMETRY_PROTOCOL": string(modules.OtlpProtocolHTTP),
 				"WEBHOOKX_TRACING_OPENTELEMETRY_ENDPOINT": "http://localhost:4318/v1/traces",
 				"OTEL_RESOURCE_ATTRIBUTES":                "service.version=0.3",
 				"OTEL_SERVICE_NAME":                       "WebhookX-Test", // env override

@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
@@ -34,7 +34,9 @@ var _ = Describe("processRequeue", Ordered, func() {
 	endpoint := factory.Endpoint()
 
 	BeforeAll(func() {
-		cfg, err := config.New(nil)
+		cfg, err := helper.LoadConfig(helper.LoadConfigOptions{
+			Envs: helper.NewTestEnv(nil),
+		})
 		assert.NoError(GinkgoT(), err)
 		db = helper.InitDB(true, nil)
 
@@ -45,7 +47,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 		queue.EXPECT().Delete(gomock.Any(), gomock.Any()).AnyTimes()
 		queue.EXPECT().Add(gomock.Any(), gomock.Any()).Times(1)
 
-		metrics, err := metrics.New(config.MetricsConfig{})
+		metrics, err := metrics.New(modules.MetricsConfig{})
 		assert.NoError(GinkgoT(), err)
 		srv := service.NewService(service.Options{
 			DB:        db,

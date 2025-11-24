@@ -1,14 +1,17 @@
-package config
+package modules
 
 import (
 	"errors"
 	"fmt"
 	"slices"
+
+	"github.com/webhookx-io/webhookx/config/types"
 )
 
 type TracingConfig struct {
+	BaseConfig
 	Enabled       bool                 `yaml:"enabled" json:"enabled" default:"false"`
-	Attributes    Map                  `yaml:"attributes" json:"attributes"`
+	Attributes    types.Map            `yaml:"attributes" json:"attributes"`
 	Opentelemetry OpentelemetryTracing `yaml:"opentelemetry" json:"opentelemetry"`
 	SamplingRate  float64              `yaml:"sampling_rate" json:"sampling_rate" default:"1.0" envconfig:"SAMPLING_RATE"`
 }

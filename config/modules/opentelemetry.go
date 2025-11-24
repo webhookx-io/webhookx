@@ -1,4 +1,4 @@
-package config
+package modules
 
 type OtlpProtocol string
 

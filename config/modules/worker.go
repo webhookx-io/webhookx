@@ -1,4 +1,4 @@
-package config
+package modules
 
 import (
 	"fmt"
@@ -47,6 +47,7 @@ type Pool struct {
 }
 
 type WorkerConfig struct {
+	BaseConfig
 	Enabled   bool            `yaml:"enabled" json:"enabled" default:"true"`
 	Deliverer WorkerDeliverer `yaml:"deliverer" json:"deliverer"`
 	Pool      Pool            `yaml:"pool" json:"pool"`

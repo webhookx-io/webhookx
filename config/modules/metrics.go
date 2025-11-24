@@ -1,12 +1,15 @@
-package config
+package modules
 
 import (
 	"fmt"
 	"slices"
+
+	"github.com/webhookx-io/webhookx/config/types"
 )
 
 type MetricsConfig struct {
-	Attributes    Map                  `yaml:"attributes" json:"attributes"`
+	BaseConfig
+	Attributes    types.Map            `yaml:"attributes" json:"attributes"`
 	Exports       []Export             `yaml:"exports" json:"exports"`
 	PushInterval  uint32               `yaml:"push_interval" json:"push_interval" default:"10" envconfig:"PUSH_INTERVAL"`
 	Opentelemetry OpentelemetryMetrics `yaml:"opentelemetry" json:"opentelemetry"`

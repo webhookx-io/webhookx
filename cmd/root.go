@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/webhookx-io/webhookx/config"
 )
@@ -14,24 +15,18 @@ var (
 var (
 	configurationFile string
 	verbose           bool
-	cfg               *config.Config
 )
 
-func initConfig() {
-	var err error
-
-	var options config.Options
-	if configurationFile != "" {
-		buf, err := os.ReadFile(configurationFile)
-		cobra.CheckErr(err)
-		options.YAML = buf
+func initConfig(filename string) (*config.Config, error) {
+	cfg := config.New()
+	if err := config.Load(filename, cfg); err != nil {
+		return nil, errors.Wrap(err, "could not load configuration")
 	}
 
-	cfg, err = config.New(&options)
-	cobra.CheckErr(err)
-
-	err = cfg.Validate()
-	cobra.CheckErr(err)
+	if err := cfg.Validate(); err != nil {
+		return nil, errors.Wrap(err, "invalid configuration")
+	}
+	return cfg, nil
 }
 
 func NewRootCmd() *cobra.Command {
@@ -41,7 +36,6 @@ func NewRootCmd() *cobra.Command {
 		Long:         ``,
 		SilenceUsage: true,
 	}
-	cobra.OnInitialize(initConfig)
 
 	cmd.SetOut(os.Stdout)
 	cmd.PersistentFlags().BoolVarP(&verbose, "verbose", "", false, "Verbose logging.")

@@ -180,30 +180,46 @@ func CheckDisallowed(prefix string, spec interface{}) error {
 	return nil
 }
 
+type Reader interface {
+	Read(string) (string, bool, error)
+}
+
+type ReaderFunc func(string) (string, bool, error)
+
+func (f ReaderFunc) Read(key string) (string, bool, error) {
+	return f(key)
+}
+
+var (
+	EnvironmentReader = ReaderFunc(func(key string) (string, bool, error) {
+		v, ok := os.LookupEnv(key)
+		return v, ok, nil
+	})
+)
+
 // Process populates the specified struct based on environment variables
 func Process(prefix string, spec interface{}) error {
+	return ProcessWithReader(prefix, spec, EnvironmentReader)
+}
+
+func ProcessWithReader(prefix string, spec interface{}, reader Reader) error {
 	infos, err := gatherInfo(prefix, spec)
 
 	for _, info := range infos {
-
-		// `os.Getenv` cannot differentiate between an explicitly set empty value
-		// and an unset value. `os.LookupEnv` is preferred to `syscall.Getenv`,
-		// but it is only available in go1.5 or newer. We're using Go build tags
-		// here to use os.LookupEnv for >=go1.5
-		value, ok := lookupEnv(info.Key)
-		if !ok && info.Alt != "" {
-			value, ok = lookupEnv(info.Alt)
+		value, ok, err := reader.Read(info.Key)
+		if err != nil {
+			return err // todo warp error?
 		}
 
-		//patch: does not handle 'default' tag
-		def := ""
+		//patch: do not handle 'default' tag
+		//def := ""
 		//def := info.Tags.Get("default")
 		//if def != "" && !ok {
 		//	value = def
 		//}
 
 		req := info.Tags.Get("required")
-		if !ok && def == "" {
+		if !ok {
 			if isTrue(req) {
 				key := info.Key
 				if info.Alt != "" {

@@ -93,7 +93,6 @@ func New(cfg *config.Config) (*Application, error) {
 
 func (app *Application) initialize() error {
 	cfg := app.cfg
-	cfg.OverrideByRole(cfg.Role)
 
 	log, err := log.NewZapLogger(&cfg.Log)
 	if err != nil {

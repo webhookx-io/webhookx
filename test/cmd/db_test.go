@@ -51,7 +51,9 @@ var _ = Describe("db", Ordered, func() {
 
 	var m *migrator.Migrator
 	BeforeAll(func() {
-		cfg, err := helper.NewConfig(nil)
+		cfg, err := helper.LoadConfig(helper.LoadConfigOptions{
+			Envs: helper.NewTestEnv(nil),
+		})
 		assert.NoError(GinkgoT(), err)
 		m = migrator.New(helper.NewDB(cfg).SqlDB(), nil)
 	})

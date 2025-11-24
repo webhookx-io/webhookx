@@ -1,4 +1,4 @@
-package config
+package modules
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 )
 
 type AccessLogConfig struct {
+	BaseConfig
 	Enabled bool      `yaml:"enabled" json:"enabled" default:"true"`
 	Format  LogFormat `yaml:"format" json:"format" default:"text"`
 	Colored bool      `yaml:"colored" json:"colored" default:"true"`

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/config/modules"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
@@ -34,13 +35,13 @@ func newGRPCExporter(endpoint string) (metric.Exporter, error) {
 	return otlpmetricgrpc.New(context.Background(), opts...)
 }
 
-func SetupOpentelemetry(attributes map[string]string, cfg config.OpentelemetryMetrics, metrics *Metrics) error {
+func SetupOpentelemetry(attributes map[string]string, cfg modules.OpentelemetryMetrics, metrics *Metrics) error {
 	var err error
 	var exporter metric.Exporter
 	switch cfg.Protocol {
-	case config.OtlpProtocolHTTP:
+	case modules.OtlpProtocolHTTP:
 		exporter, err = newHTTPExporter(cfg.Endpoint)
-	case config.OtlpProtocolGRPC:
+	case modules.OtlpProtocolGRPC:
 		exporter, err = newGRPCExporter(cfg.Endpoint)
 	}
 	if err != nil {

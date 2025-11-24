@@ -17,7 +17,7 @@ type MetricsConfig struct {
 
 type OpentelemetryMetrics struct {
 	Protocol OtlpProtocol `yaml:"protocol" json:"protocol" envconfig:"PROTOCOL" default:"http/protobuf"`
-	Endpoint string       `yaml:"endpoint" json:"endpoint" envconfig:"ENDPOINT" default:"http://localhost:4318/v1/metrics"`
+	Endpoint string       `yaml:"endpoint" json:"endpoint" envconfig:"ENDPOINT" default:"http://127.0.0.1:4318/v1/metrics"`
 }
 
 func (cfg OpentelemetryMetrics) Validate() error {

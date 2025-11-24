@@ -8,7 +8,7 @@ import (
 
 type DatabaseConfig struct {
 	BaseConfig
-	Host        string         `yaml:"host" json:"host" default:"localhost"`
+	Host        string         `yaml:"host" json:"host" default:"127.0.0.1"`
 	Port        uint32         `yaml:"port" json:"port" default:"5432"`
 	Username    string         `yaml:"username" json:"username" default:"webhookx"`
 	Password    types.Password `yaml:"password" json:"password" default:""`

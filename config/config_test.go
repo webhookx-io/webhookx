@@ -241,7 +241,7 @@ func TestTracingConfig(t *testing.T) {
 				SamplingRate: 0,
 				Opentelemetry: modules.OpentelemetryTracing{
 					Protocol: "http/protobuf",
-					Endpoint: "http://localhost:4318/v1/traces",
+					Endpoint: "http://127.0.0.1:4318/v1/traces",
 				},
 			},
 			expectedValidateErr: nil,
@@ -253,7 +253,7 @@ func TestTracingConfig(t *testing.T) {
 				SamplingRate: 1.1,
 				Opentelemetry: modules.OpentelemetryTracing{
 					Protocol: "http/protobuf",
-					Endpoint: "http://localhost:4318/v1/traces",
+					Endpoint: "http://127.0.0.1:4318/v1/traces",
 				},
 			},
 			expectedValidateErr: errors.New("sampling_rate must be in the range [0, 1]"),

@@ -10,7 +10,7 @@ import (
 
 type RedisConfig struct {
 	BaseConfig
-	Host        string         `yaml:"host" json:"host" default:"localhost"`
+	Host        string         `yaml:"host" json:"host" default:"127.0.0.1"`
 	Port        uint32         `yaml:"port" json:"port" default:"6379"`
 	Password    types.Password `yaml:"password" json:"password" default:""`
 	Database    uint32         `yaml:"database" json:"database" default:"0"`

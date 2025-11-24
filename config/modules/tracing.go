@@ -18,7 +18,7 @@ type TracingConfig struct {
 
 type OpentelemetryTracing struct {
 	Protocol OtlpProtocol `yaml:"protocol" json:"protocol" envconfig:"PROTOCOL" default:"http/protobuf"`
-	Endpoint string       `yaml:"endpoint" json:"endpoint" envconfig:"ENDPOINT" default:"http://localhost:4318/v1/traces"`
+	Endpoint string       `yaml:"endpoint" json:"endpoint" envconfig:"ENDPOINT" default:"http://127.0.0.1:4318/v1/traces"`
 }
 
 func (cfg OpentelemetryTracing) Validate() error {

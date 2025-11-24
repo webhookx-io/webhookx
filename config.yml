@@ -15,7 +15,7 @@ access_log:
   file: ''              # By default, logs are written to stdout.
 
 database:
-  host: localhost
+  host: 127.0.0.1
   port: 5432
   username: webhookx
   password:
@@ -27,7 +27,7 @@ database:
   max_lifetime: 1800              # Specifies the maximum lifetime (in seconds) of a connection.
 
 redis:
-  host: localhost
+  host: 127.0.0.1
   port: 6379
   password:
   database: 0
@@ -54,7 +54,7 @@ proxy:
   queue:                            # Queue settings
     type: redis                     # Queue type. Supported values: redis, off.
     redis:
-      host: localhost
+      host: 127.0.0.1
       port: 6379
       password:
       database: 0
@@ -154,13 +154,13 @@ metrics:
   push_interval: 10                             # Specifies the interval (in seconds) at which metrics are sent to the OpenTelemetry Collector
   opentelemetry:
     protocol: http/protobuf                     # Supported values: http/protobuf, grpc.
-    endpoint: http://localhost:4318/v1/metrics  #
+    endpoint: http://127.0.0.1:4318/v1/metrics  #
                                                 # Example of http/protobuf:
                                                 #   protocol: http/protobuf
-                                                #   endpoint: http://localhost:4318/v1/metrics
+                                                #   endpoint: http://127.0.0.1:4318/v1/metrics
                                                 # Example of grpc:
                                                 #   protocol: grpc
-                                                #   endpoint: localhost:4317
+                                                #   endpoint: 127.0.0.1:4317
 
 #------------------------------------------------------------------------------
 # Tracing
@@ -173,13 +173,13 @@ tracing:
                                                 # Example: `0.01`, samples 1% of traces.
   opentelemetry:
     protocol: http/protobuf                     # Supported values: http/protobuf, grpc.
-    endpoint: http://localhost:4318/v1/traces   #
+    endpoint: http://127.0.0.1:4318/v1/traces   #
                                                 # Example of http/protobuf:
                                                 #   protocol: http/protobuf
-                                                #   endpoint: http://localhost:4318/v1/traces
+                                                #   endpoint: http://127.0.0.1:4318/v1/traces
                                                 # Example of grpc:
                                                 #   protocol: grpc
-                                                #   endpoint: localhost:4317
+                                                #   endpoint: 127.0.0.1:4317
 
 
 #------------------------------------------------------------------------------

@@ -75,7 +75,7 @@ func (cfg *AwsProvider) Validate() error {
 }
 
 type VaultProvider struct {
-	Address    string      `json:"address" yaml:"address" default:"http://localhost:8200"`
+	Address    string      `json:"address" yaml:"address" default:"http://127.0.0.1:8200"`
 	MountPath  string      `json:"mount_path" yaml:"mount_path" default:"secret" split_words:"true"`
 	Namespace  string      `json:"namespace" yaml:"namespace"`
 	AuthMethod string      `json:"auth_method" yaml:"auth_method" default:"token" split_words:"true"`

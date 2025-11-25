@@ -32,6 +32,7 @@ func upsertSecret(client *secretsmanager.Client, name string, value string) erro
 
 var _ = Describe("AWS SecretManager", Ordered, func() {
 
+	var licenserCancel func()
 	BeforeAll(func() {
 		data := map[string]interface{}{
 			"key_string":  "value",
@@ -54,13 +55,18 @@ var _ = Describe("AWS SecretManager", Ordered, func() {
 
 		err = upsertSecret(smClient, "webhookx/value", "string value")
 		assert.NoError(GinkgoT(), err)
+		licenserCancel = helper.MockLicenser(nil)
+	})
+
+	AfterAll(func() {
+		licenserCancel()
 	})
 
 	Context("ENV", func() {
 
 		It("references should be resolved", func() {
 			cfg, err := helper.LoadConfig(helper.LoadConfigOptions{
-				Envs: map[string]string{
+				Envs: helper.NewTestEnv(map[string]string{
 					"AWS_ACCESS_KEY_ID":          "test",
 					"AWS_SECRET_ACCESS_KEY":      "test",
 					"WEBHOOKX_SECRET_AWS_REGION": "us-east-1",
@@ -74,7 +80,7 @@ var _ = Describe("AWS SecretManager", Ordered, func() {
 
 					"WEBHOOKX_REDIS_HOST":     "{secret://aws/webhookx/config.key_nested.key_boolean}",
 					"WEBHOOKX_REDIS_PASSWORD": "{secret://aws/webhookx/config.key_nested.key_string}",
-				},
+				}),
 			})
 			assert.NoError(GinkgoT(), err)
 
@@ -91,28 +97,28 @@ var _ = Describe("AWS SecretManager", Ordered, func() {
 		Context("errors", func() {
 			It("returns error when extracting a value from a invalid json", func() {
 				_, err := helper.LoadConfig(helper.LoadConfigOptions{
-					Envs: map[string]string{
+					Envs: helper.NewTestEnv(map[string]string{
 						"AWS_ACCESS_KEY_ID":          "test",
 						"AWS_SECRET_ACCESS_KEY":      "test",
 						"WEBHOOKX_SECRET_AWS_REGION": "us-east-1",
 						"WEBHOOKX_SECRET_AWS_URL":    "http://localhost:4566",
 
 						"WEBHOOKX_DATABASE_HOST": "{secret://aws/webhookx/value.key}",
-					},
+					}),
 				})
 				assert.EqualError(GinkgoT(), err, "failed to resolve reference value '{secret://aws/webhookx/value.key}': value is not a valid JSON string")
 			})
 
 			It("returns error when json path has no value", func() {
 				_, err := helper.LoadConfig(helper.LoadConfigOptions{
-					Envs: map[string]string{
+					Envs: helper.NewTestEnv(map[string]string{
 						"AWS_ACCESS_KEY_ID":          "test",
 						"AWS_SECRET_ACCESS_KEY":      "test",
 						"WEBHOOKX_SECRET_AWS_REGION": "us-east-1",
 						"WEBHOOKX_SECRET_AWS_URL":    "http://localhost:4566",
 
 						"WEBHOOKX_DATABASE_HOST": "{secret://aws/webhookx/config.key_nested.no-value}",
-					},
+					}),
 				})
 				assert.EqualError(GinkgoT(), err, "failed to resolve reference value '{secret://aws/webhookx/config.key_nested.no-value}': no value for json path 'key_nested.no-value'")
 			})

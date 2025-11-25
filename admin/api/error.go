@@ -1,6 +1,7 @@
 package api
 
 var (
-	MsgNotFound    = "Not found"
-	MsgInavlidUUID = "Invalid uuid"
+	MsgNotFound       = "Not found"
+	MsgLicenseInvalid = "license missing or expired"
+	MsgInavlidUUID    = "Invalid uuid"
 )

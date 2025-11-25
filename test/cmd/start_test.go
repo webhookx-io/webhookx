@@ -18,7 +18,7 @@ var _ = Describe("start", Ordered, func() {
 		It("should return error when configuration file is invalid", func() {
 			output, err := helper.ExecAppCommand("start", "--config", test.FilePath("fixtures/malformed-config.yml"))
 			assert.NotNil(GinkgoT(), err)
-			assert.Equal(GinkgoT(), "Error: could not load configuration: yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `👻` into modules.SecretConfig\n", output)
+			assert.Equal(GinkgoT(), "Error: could not load configuration: yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `👻` into config.Config\n", output)
 		})
 
 		It("should return error when configuration is invalid", func() {

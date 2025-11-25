@@ -134,6 +134,7 @@ func (api *API) Handler() http.Handler {
 	r.Use(api.contextMiddleware)
 
 	r.HandleFunc("/", api.Index).Methods("GET")
+	r.HandleFunc("/license", api.GetLicense).Methods("GET")
 
 	r.HandleFunc("/workspaces/{workspace}/config/sync", api.Sync).Methods("POST")
 	r.HandleFunc("/workspaces/{workspace}/config/dump", api.Dump).Methods("POST")

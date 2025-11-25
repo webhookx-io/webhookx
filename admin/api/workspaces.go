@@ -6,6 +6,7 @@ import (
 
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -34,6 +35,10 @@ func (api *API) GetWorkspace(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *API) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
+	if !license.GetLicenser().Allow("workspace") {
+		api.json(403, w, types.ErrorResponse{Message: MsgLicenseInvalid})
+		return
+	}
 	var workspace entities.Workspace
 	defaults := map[string]interface{}{"id": utils.KSUID()}
 	if err := ValidateRequest(r, defaults, &workspace); err != nil {
@@ -81,6 +86,10 @@ func (api *API) UpdateWorkspace(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *API) DeleteWorkspace(w http.ResponseWriter, r *http.Request) {
+	if !license.GetLicenser().Allow("workspace") {
+		api.json(403, w, types.ErrorResponse{Message: MsgLicenseInvalid})
+		return
+	}
 	id := api.param(r, "id")
 
 	workspace, err := api.db.Workspaces.Get(r.Context(), id)

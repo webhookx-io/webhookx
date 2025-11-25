@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/webhookx-io/webhookx/app"
+	"github.com/webhookx-io/webhookx/pkg/license"
 )
 
 func newStartCmd() *cobra.Command {
@@ -16,6 +17,12 @@ func newStartCmd() *cobra.Command {
 		Short: "Start server",
 		Long:  ``,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			lic, err := license.Load()
+			if err != nil {
+				return err
+			}
+			license.SetLicenser(license.NewLicenser(lic))
+
 			cfg, err := initConfig(configurationFile)
 			if err != nil {
 				return err

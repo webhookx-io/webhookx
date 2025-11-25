@@ -32,6 +32,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/migrator"
 	"github.com/webhookx-io/webhookx/eventbus"
+	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/test"
 )
@@ -109,6 +110,12 @@ func Start(envs map[string]string) (application *app.Application, err error) {
 			cancel()
 		}
 	}()
+
+	lic, err := license.Load()
+	if err != nil {
+		return nil, err
+	}
+	license.SetLicenser(license.NewLicenser(lic))
 
 	cfg := config.New()
 	if err := config.Load("", cfg); err != nil {

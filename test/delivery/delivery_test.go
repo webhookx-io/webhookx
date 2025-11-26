@@ -121,14 +121,15 @@ var _ = Describe("delivery", Ordered, func() {
 
 		var app *app.Application
 		var db *db.DB
-		var endpoint = factory.Endpoint()
 
 		BeforeAll(func() {
-			endpoint.Request.Timeout = 1
-			endpoint.Retry.Config.Attempts = []int64{0, 1, 1}
 			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{&endpoint},
-				Sources:   []*entities.Source{factory.SourceP()},
+				Endpoints: []*entities.Endpoint{factory.EndpointP(func(o *entities.Endpoint) {
+					o.Request.Timeout = 1
+					o.Request.URL = "http://localhost:9999/delay/1"
+					o.Retry.Config.Attempts = []int64{0, 0, 0}
+				})},
+				Sources: []*entities.Source{factory.SourceP()},
 			}
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
@@ -151,7 +152,7 @@ var _ = Describe("delivery", Ordered, func() {
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
 			eventId := resp.Header().Get(constants.HeaderEventId)
 
-			time.Sleep(time.Second * 8)
+			time.Sleep(time.Second * 4)
 
 			q := query.AttemptQuery{}
 			q.EventId = &eventId

@@ -22,11 +22,6 @@ const (
 	QueueRedisVisibilityTimeout = time.Second * 60
 )
 
-const (
-	RequeueBatch    = 20
-	RequeueInterval = time.Second * 60
-)
-
 type Header struct {
 	Name  string
 	Value string

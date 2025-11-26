@@ -59,13 +59,13 @@ type Worker struct {
 	metrics     *metrics.Metrics
 	srv         *service.Service
 	rateLimiter ratelimiter.RateLimiter
+	scheduler   schedule.Scheduler
 }
 
 type Options struct {
-	RequeueJobBatch    int
-	RequeueJobInterval time.Duration
-	PoolSize           int
-	PoolConcurrency    int
+	RequeueJobBatch int
+	PoolSize        int
+	PoolConcurrency int
 
 	DB          *db.DB
 	Deliverer   deliverer.Deliverer
@@ -74,6 +74,7 @@ type Options struct {
 	EventBus    eventbus.Bus
 	Srv         *service.Service
 	RedisClient *redis.Client
+	Scheduler   schedule.Scheduler
 }
 
 func init() {
@@ -87,8 +88,7 @@ func init() {
 }
 
 func NewWorker(opts Options) *Worker {
-	opts.RequeueJobBatch = utils.DefaultIfZero(opts.RequeueJobBatch, constants.RequeueBatch)
-	opts.RequeueJobInterval = utils.DefaultIfZero(opts.RequeueJobInterval, constants.RequeueInterval)
+	opts.RequeueJobBatch = utils.DefaultIfZero(opts.RequeueJobBatch, 20)
 	opts.PoolSize = utils.DefaultIfZero(opts.PoolSize, 10000)
 	opts.PoolConcurrency = utils.DefaultIfZero(opts.PoolConcurrency, runtime.NumCPU()*100)
 
@@ -105,6 +105,7 @@ func NewWorker(opts Options) *Worker {
 		tracer:      opts.Tracer,
 		srv:         opts.Srv,
 		rateLimiter: ratelimiter.NewRedisLimiter(opts.RedisClient),
+		scheduler:   opts.Scheduler,
 	}
 
 	worker.registerEventHandler(opts.EventBus)
@@ -259,7 +260,11 @@ func (w *Worker) Start() error {
 
 	go w.run()
 
-	schedule.ScheduleWithoutDelay(w.ctx, w.ProcessRequeue, w.opts.RequeueJobInterval)
+	w.scheduler.AddTask(&schedule.Task{
+		Name:     "worker.requeue",
+		Interval: time.Minute,
+		Do:       w.processRequeue,
+	})
 	return nil
 }
 
@@ -274,7 +279,7 @@ func (w *Worker) Stop() error {
 	return nil
 }
 
-func (w *Worker) ProcessRequeue() {
+func (w *Worker) processRequeue() {
 	batchSize := w.opts.RequeueJobBatch
 
 	var done bool

@@ -79,6 +79,7 @@ type Gateway struct {
 	limiter     *loglimiter.Limiter
 	srv         *service.Service
 	rateLimiter ratelimiter.RateLimiter
+	scheduler   schedule.Scheduler
 }
 
 type Options struct {
@@ -91,6 +92,7 @@ type Options struct {
 	EventBus    eventbus.Bus
 	Srv         *service.Service
 	RateLimiter ratelimiter.RateLimiter
+	Scheduler   schedule.Scheduler
 }
 
 func init() {
@@ -129,6 +131,7 @@ func NewGateway(opts Options) *Gateway {
 		limiter:     loglimiter.NewLimiter(time.Second),
 		srv:         opts.Srv,
 		rateLimiter: opts.RateLimiter,
+		scheduler:   opts.Scheduler,
 	}
 
 	gw.router.Store(router.NewRouter(nil))
@@ -353,20 +356,28 @@ func (gw *Gateway) Start() {
 		gw.queue.StartListen(gw.ctx, gw.HandleMessages)
 	}
 
-	schedule.ScheduleWithoutDelay(gw.ctx, func() {
-		version := store.GetDefault("router:version", "init").(string)
-		if gw.routerVersion == version {
-			return
-		}
-		gw.buildRouter(version)
-	}, time.Second)
+	gw.scheduler.AddTask(&schedule.Task{
+		Name:     "gateway.router_rebuild",
+		Interval: time.Second,
+		Do: func() {
+			version := store.GetDefault("router:version", "init").(string)
+			if gw.routerVersion == version {
+				return
+			}
+			gw.buildRouter(version)
+		},
+	})
 
 	if gw.metrics.Enabled && gw.queue != nil {
-		schedule.ScheduleWithoutDelay(gw.ctx, func() {
-			stats := stats.Stats(gw.queue.Stats())
-			size := stats.Int64("eventqueue.size")
-			gw.metrics.EventPendingGauge.Set(float64(size))
-		}, gw.metrics.Interval)
+		gw.scheduler.AddTask(&schedule.Task{
+			Name:     "gateway.report_metrics",
+			Interval: gw.metrics.Interval,
+			Do: func() {
+				stats := stats.Stats(gw.queue.Stats())
+				size := stats.Int64("eventqueue.size")
+				gw.metrics.EventPendingGauge.Set(float64(size))
+			},
+		})
 	}
 
 	gw.bus.Subscribe("source.crud", func(data interface{}) {

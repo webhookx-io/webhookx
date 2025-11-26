@@ -1,7 +1,6 @@
 package metrics
 
 import (
-	"context"
 	"runtime"
 	"time"
 
@@ -12,11 +11,10 @@ import (
 )
 
 type Metrics struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-
 	Enabled  bool
 	Interval time.Duration
+
+	scheduler schedule.Scheduler
 
 	// runtime metrics
 
@@ -48,32 +46,40 @@ type Metrics struct {
 }
 
 func (m *Metrics) Stop() error {
-	m.cancel()
 	if m.Enabled {
 		return StopOpentelemetry()
 	}
 	return nil
 }
 
-func New(cfg modules.MetricsConfig) (*Metrics, error) {
-	ctx, cancel := context.WithCancel(context.Background())
+func New(cfg modules.MetricsConfig, scheduler schedule.Scheduler) (*Metrics, error) {
 	m := &Metrics{
-		ctx:     ctx,
-		cancel:  cancel,
-		Enabled: len(cfg.Exports) > 0,
+		Enabled:   len(cfg.Exports) > 0,
+		Interval:  time.Second * time.Duration(cfg.PushInterval),
+		scheduler: scheduler,
 	}
 
-	if len(cfg.Exports) > 0 {
-		m.Interval = time.Second * time.Duration(cfg.PushInterval)
+	if m.Enabled {
 		err := SetupOpentelemetry(cfg.Attributes, cfg.Opentelemetry, m)
 		if err != nil {
 			return nil, err
 		}
-		schedule.ScheduleWithoutDelay(m.ctx, m.collectRuntimeStats, m.Interval)
+
 		zap.S().Infof("enabled metric exports: %v", cfg.Exports)
 	}
 
 	return m, nil
+}
+
+func (m *Metrics) Start() error {
+	if m.Enabled {
+		m.scheduler.AddTask(&schedule.Task{
+			Name:     "metrics.collectRuntimeStats",
+			Interval: m.Interval,
+			Do:       m.collectRuntimeStats,
+		})
+	}
+	return nil
 }
 
 func (m *Metrics) collectRuntimeStats() {

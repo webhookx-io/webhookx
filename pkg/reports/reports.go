@@ -2,7 +2,6 @@ package reports
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,14 +9,11 @@ import (
 	"time"
 
 	"github.com/webhookx-io/webhookx/config"
-	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 )
 
 const url = "https://report.webhookx.io/report"
-const interval = time.Hour * 24
-const initialDelay = time.Hour
 
 var uid = utils.UUIDShort()
 
@@ -59,15 +55,9 @@ func send(url string) error {
 	return nil
 }
 
-func Start() {
-	start(url, interval, initialDelay)
-}
-
-func start(url string, interval time.Duration, initialDelay time.Duration) {
-	schedule.Schedule(context.TODO(), func() {
-		err := send(url)
-		if err != nil {
-			zap.S().Debugf("failed to report anonymous data: %v", err)
-		}
-	}, interval, initialDelay)
+func Report() {
+	err := send(url)
+	if err != nil {
+		zap.S().Debugf("failed to report anonymous data: %v", err)
+	}
 }

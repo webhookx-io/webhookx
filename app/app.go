@@ -26,6 +26,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
 	"github.com/webhookx-io/webhookx/pkg/reports"
+	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
@@ -68,12 +69,13 @@ type Application struct {
 	bus     *eventbus.EventBus
 	metrics *metrics.Metrics
 
-	status  *status.Status
-	admin   *admin.Admin
-	gateway *proxy.Gateway
-	worker  *worker.Worker
-	tracer  *tracing.Tracer
-	srv     *service.Service
+	status    *status.Status
+	admin     *admin.Admin
+	gateway   *proxy.Gateway
+	worker    *worker.Worker
+	tracer    *tracing.Tracer
+	srv       *service.Service
+	scheduler schedule.Scheduler
 }
 
 func New(cfg *config.Config) (*Application, error) {
@@ -100,6 +102,8 @@ func (app *Application) initialize() error {
 	}
 	zap.ReplaceGlobals(log.Desugar())
 	app.log = log
+
+	app.scheduler = schedule.NewScheduler()
 
 	// cache
 	client := cfg.Redis.GetClient()
@@ -144,7 +148,7 @@ func (app *Application) initialize() error {
 	app.db = db
 	stats.Register(db)
 
-	app.metrics, err = metrics.New(cfg.Metrics)
+	app.metrics, err = metrics.New(cfg.Metrics, app.scheduler)
 	if err != nil {
 		return err
 	}
@@ -207,6 +211,7 @@ func (app *Application) initialize() error {
 			Metrics:         app.metrics,
 			EventBus:        app.bus,
 			RedisClient:     client,
+			Scheduler:       app.scheduler,
 		}
 		app.worker = worker.NewWorker(opts)
 	}
@@ -248,6 +253,7 @@ func (app *Application) initialize() error {
 			EventBus:    app.bus,
 			Srv:         app.srv,
 			RateLimiter: ratelimiter.NewRedisLimiter(client),
+			Scheduler:   app.scheduler,
 		}
 		if cfg.AccessLog.Enabled {
 			accessLogger, err := accesslog.NewAccessLogger("proxy", accesslog.Options{
@@ -310,6 +316,8 @@ func (app *Application) initialize() error {
 		app.status = status.NewStatus(cfg.Status, app.tracer, opts)
 	}
 
+	app.registerScheduledTasks()
+
 	return nil
 }
 
@@ -349,6 +357,21 @@ func (app *Application) Config() *config.Config {
 	return app.cfg
 }
 
+func (app *Application) Scheduler() schedule.Scheduler {
+	return app.scheduler
+}
+
+func (app *Application) registerScheduledTasks() {
+	if app.cfg.AnonymousReports {
+		app.scheduler.AddTask(&schedule.Task{
+			Name:         "anonymous_reports",
+			InitialDelay: time.Hour,
+			Interval:     time.Hour * 24,
+			Do:           reports.Report,
+		})
+	}
+}
+
 // Start starts application
 func (app *Application) Start() error {
 	app.mux.Lock()
@@ -382,6 +405,9 @@ func (app *Application) Start() error {
 	if err := app.bus.Start(); err != nil {
 		return err
 	}
+	if app.metrics != nil {
+		_ = app.metrics.Start()
+	}
 	if app.admin != nil {
 		app.admin.Start()
 	}
@@ -395,11 +421,11 @@ func (app *Application) Start() error {
 		app.status.Start()
 	}
 
-	if app.cfg.AnonymousReports {
-		reports.Start()
-	} else {
+	if !app.cfg.AnonymousReports {
 		app.log.Info("anonymous reports is disabled")
 	}
+
+	app.scheduler.Start()
 
 	app.started = true
 
@@ -446,6 +472,8 @@ func (app *Application) Stop() error {
 	if app.tracer != nil {
 		_ = app.tracer.Stop()
 	}
+
+	app.scheduler.Stop()
 
 	app.started = false
 	app.stop <- struct{}{}

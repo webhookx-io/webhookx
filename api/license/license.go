@@ -13,6 +13,8 @@ import (
 var (
 	// PublicKey is the public key used for verifying license
 	PublicKey = ""
+	// PrivateKey is the private key used for signing license
+	PrivateKey = ""
 )
 
 var (
@@ -23,7 +25,7 @@ var (
 )
 
 type License struct {
-	License   string    `json:"-"`
+	license   string
 	ID        string    `json:"id"`
 	Plan      string    `json:"plan"`
 	Customer  string    `json:"customer"`
@@ -33,7 +35,7 @@ type License struct {
 	Signature string    `json:"signature"`
 }
 
-// New news a default license
+// New returns a default license
 func New() *License {
 	t := time.Now().UTC().Truncate(time.Second)
 	license := License{
@@ -46,6 +48,7 @@ func New() *License {
 	return &license
 }
 
+// NewFree returns a free license
 func NewFree() *License {
 	license := License{
 		ID:        "00000000-0000-0000-0000-000000000000",
@@ -58,9 +61,43 @@ func NewFree() *License {
 	return &license
 }
 
+// Sign signs the license
+func (l *License) Sign() error {
+	props, err := ParseProperties(l.String())
+	if err != nil {
+		return err
+	}
+	err = l.SignProperties(props)
+	if err != nil {
+		return err
+	}
+	licenseJSON, err := props.JSON()
+	if err != nil {
+		return err
+	}
+	l.license = licenseJSON
+	l.Signature = props.GetString("signature")
+	return nil
+}
+
+func (l *License) SignProperties(props Properties) error {
+	props.Delete("signature")
+	message, err := props.JSON()
+	if err != nil {
+		return err
+	}
+	signer, err := NewSigner(PrivateKey)
+	if err != nil {
+		return err
+	}
+	signature := signer.Sign(message)
+	props.Set("signature", signature)
+	return nil
+}
+
 // Validate validates license
 func (l *License) Validate() error {
-	props, err := ParseProperties(l.License)
+	props, err := ParseProperties(l.license)
 	if err != nil {
 		return err
 	}
@@ -107,13 +144,8 @@ func (l *License) String() string {
 	return string(bytes)
 }
 
-func (l *License) Properties() (Properties, error) {
-	b, err := json.Marshal(l)
-	if err != nil {
-		return nil, err
-	}
-
-	return ParseProperties(string(b))
+func (l *License) GetLicense() string {
+	return l.license
 }
 
 type Properties map[string]interface{}
@@ -158,10 +190,11 @@ func ParseProperties(str string) (Properties, error) {
 }
 
 func ParseLicense(licenseJSON string) (*License, error) {
-	license := License{}
+	license := License{
+		license: licenseJSON,
+	}
 	if err := json.Unmarshal([]byte(licenseJSON), &license); err != nil {
 		return nil, fmt.Errorf("failed to parse license: %w", err)
 	}
-	license.License = licenseJSON
 	return &license, nil
 }

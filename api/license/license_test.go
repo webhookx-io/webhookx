@@ -49,6 +49,17 @@ func TestParseLicense(t *testing.T) {
 	assert.EqualError(t, err, "failed to parse license: unexpected end of JSON input")
 }
 
+func TestSign(t *testing.T) {
+	PublicKey = "3eed19da2c0c83e467c3fe11d758ee3678e15e4b4f6caba2d368b6aa9245e09d"
+	PrivateKey = "d44d89fab9acb2a530656c482196afc2c0a757b1029dc41a383149c1940701603eed19da2c0c83e467c3fe11d758ee3678e15e4b4f6caba2d368b6aa9245e09d"
+	lic := NewFree()
+	err := lic.Sign()
+	assert.NoError(t, err)
+
+	err = lic.Validate()
+	assert.NoError(t, err)
+}
+
 func TestValidate(t *testing.T) {
 	publicKey := `af7de7c014e75770cd22290e44929bd9053011a5065502748ffdc87ce69b9ce2`
 

@@ -26,6 +26,7 @@ var _ = Describe("License", Ordered, func() {
 			})
 			assert.Nil(GinkgoT(), err)
 			assert.NotNil(GinkgoT(), app)
+			app.Stop()
 		})
 
 		Context("errors", func() {

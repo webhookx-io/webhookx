@@ -13,6 +13,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/service"
 	"github.com/webhookx-io/webhookx/test/helper"
@@ -31,6 +32,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 	var ctrl *gomock.Controller
 	var queue *mocks.MockTaskQueue
 	var tracer *tracing.Tracer
+	var scheduler = schedule.NewScheduler()
 	endpoint := factory.Endpoint()
 
 	BeforeAll(func() {
@@ -47,21 +49,21 @@ var _ = Describe("processRequeue", Ordered, func() {
 		queue.EXPECT().Delete(gomock.Any(), gomock.Any()).AnyTimes()
 		queue.EXPECT().Add(gomock.Any(), gomock.Any()).Times(1)
 
-		metrics, err := metrics.New(modules.MetricsConfig{})
+		metrics, err := metrics.New(modules.MetricsConfig{}, scheduler)
 		assert.NoError(GinkgoT(), err)
 		srv := service.NewService(service.Options{
 			DB:        db,
 			TaskQueue: queue,
 		})
 		w = worker.NewWorker(worker.Options{
-			RequeueJobInterval: time.Second,
-			DB:                 db,
-			Deliverer:          deliverer.NewHTTPDeliverer(deliverer.Options{}),
-			Metrics:            metrics,
-			Tracer:             tracer,
-			EventBus:           mocks.MockBus{},
-			Srv:                srv,
-			RedisClient:        cfg.Redis.GetClient(),
+			DB:          db,
+			Deliverer:   deliverer.NewHTTPDeliverer(deliverer.Options{}),
+			Metrics:     metrics,
+			Tracer:      tracer,
+			EventBus:    mocks.MockBus{},
+			Srv:         srv,
+			RedisClient: cfg.Redis.GetClient(),
+			Scheduler:   scheduler,
 		})
 
 		// data
@@ -86,6 +88,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 		db.DB.MustExec("update attempts set created_at = created_at - INTERVAL '60 SECOND'")
 
 		w.Start()
+		scheduler.Start()
 	})
 
 	AfterAll(func() {
@@ -94,7 +97,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 	})
 
 	It("all attempts should become QUEUED", func() {
-		time.Sleep(time.Second * 3) // wait for timer to be executed
+		time.Sleep(time.Second * 1) // wait for timer to be executed
 		var q query.AttemptQuery
 		q.EndpointId = utils.Pointer(endpoint.ID)
 		q.Status = utils.Pointer(entities.AttemptStatusInit)

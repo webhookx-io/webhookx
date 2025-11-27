@@ -29,7 +29,7 @@ var _ = Describe("/license", Ordered, func() {
 			    "id": "00000000-0000-0000-0000-000000000000",
 			    "plan": "free",
 			    "customer": "anonymous",
-			    "expired_at": "2099-12-31T00:00:00Z",
+			    "expired_at": "2099-12-31T23:59:59Z",
 			    "created_at": "1996-08-24T00:00:00Z",
 			    "version": "1",
 			    "signature": ""

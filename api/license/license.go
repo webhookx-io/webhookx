@@ -54,7 +54,7 @@ func NewFree() *License {
 		ID:        "00000000-0000-0000-0000-000000000000",
 		Customer:  "anonymous",
 		Plan:      "free",
-		ExpiredAt: time.Date(2099, 12, 31, 0, 0, 0, 0, time.UTC),
+		ExpiredAt: time.Date(2099, 12, 31, 23, 59, 59, 0, time.UTC),
 		CreatedAt: time.Date(1996, 8, 24, 0, 0, 0, 0, time.UTC),
 		Version:   "1",
 	}

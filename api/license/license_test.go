@@ -23,11 +23,11 @@ func TestNewFree(t *testing.T) {
 	assert.Equal(t, "free", lic.Plan)
 	assert.Equal(t, "anonymous", lic.Customer)
 	assert.Equal(t, "1996-08-24T00:00:00Z", lic.CreatedAt.Format(time.RFC3339))
-	assert.Equal(t, "2099-12-31T00:00:00Z", lic.ExpiredAt.Format(time.RFC3339))
+	assert.Equal(t, "2099-12-31T23:59:59Z", lic.ExpiredAt.Format(time.RFC3339))
 	assert.Equal(t, "", lic.Signature)
 	assert.Equal(t, "1", lic.Version)
 	assert.Equal(t,
-		`{"id":"00000000-0000-0000-0000-000000000000","plan":"free","customer":"anonymous","expired_at":"2099-12-31T00:00:00Z","created_at":"1996-08-24T00:00:00Z","version":"1","signature":""}`,
+		`{"id":"00000000-0000-0000-0000-000000000000","plan":"free","customer":"anonymous","expired_at":"2099-12-31T23:59:59Z","created_at":"1996-08-24T00:00:00Z","version":"1","signature":""}`,
 		lic.String())
 }
 

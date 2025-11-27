@@ -15,8 +15,8 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/db/transaction"
 	"github.com/webhookx-io/webhookx/eventbus"
+	"github.com/webhookx-io/webhookx/pkg/contextx"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
-	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -107,7 +107,7 @@ func (dao *DAO[T]) Get(ctx context.Context, id string) (entity *T, err error) {
 func (dao *DAO[T]) Select(ctx context.Context, field string, value string) (entity *T, err error) {
 	builder := psql.Select("*").From(dao.opts.Table).Where(sq.Eq{field: value})
 	if dao.workspace {
-		wid := ucontext.GetWorkspaceID(ctx)
+		wid := contextx.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
 	}
 	statement, args := builder.MustSql()
@@ -123,7 +123,7 @@ func (dao *DAO[T]) Select(ctx context.Context, field string, value string) (enti
 func (dao *DAO[T]) selectByField(ctx context.Context, field string, value string) (entity *T, err error) {
 	builder := psql.Select("*").From(dao.opts.Table).Where(sq.Eq{field: value})
 	if dao.workspace {
-		wid := ucontext.GetWorkspaceID(ctx)
+		wid := contextx.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
 	}
 	statement, args := builder.MustSql()
@@ -142,7 +142,7 @@ func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
 
 	builder := psql.Delete(dao.opts.Table).Where(sq.Eq{"id": id})
 	if dao.workspace {
-		wid := ucontext.GetWorkspaceID(ctx)
+		wid := contextx.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
 	}
 	statement, args := builder.Suffix("RETURNING *").MustSql()
@@ -182,7 +182,7 @@ func (dao *DAO[T]) Count(ctx context.Context, where map[string]interface{}) (tot
 		builder = builder.Where(where)
 	}
 	if dao.workspace {
-		wid := ucontext.GetWorkspaceID(ctx)
+		wid := contextx.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
 	}
 	statement, args := builder.MustSql()
@@ -201,7 +201,7 @@ func (dao *DAO[T]) List(ctx context.Context, q query.Queryer) (list []*T, err er
 		builder = builder.Where(where)
 	}
 	if dao.workspace {
-		wid := ucontext.GetWorkspaceID(ctx)
+		wid := contextx.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
 	}
 	if q.Limit() != 0 {
@@ -229,7 +229,7 @@ func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 		}
 		value := v.Interface()
 		if column == "ws_id" && dao.workspace {
-			value = ucontext.GetWorkspaceID(ctx)
+			value = contextx.GetWorkspaceID(ctx)
 		}
 		values = append(values, value)
 	})
@@ -265,7 +265,7 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 			}
 			value := v.Interface()
 			if column == "ws_id" && dao.workspace {
-				value = ucontext.GetWorkspaceID(ctx)
+				value = contextx.GetWorkspaceID(ctx)
 			}
 			values = append(values, value)
 		})
@@ -291,7 +291,7 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interface{}) (int64, error) {
 	builder := psql.Update(dao.opts.Table).SetMap(maps).Where(sq.Eq{"id": id})
 	if dao.workspace {
-		wid := ucontext.GetWorkspaceID(ctx)
+		wid := contextx.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
 	}
 	statement, args := builder.MustSql()
@@ -322,7 +322,7 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 		}
 	})
 	if dao.workspace {
-		wid := ucontext.GetWorkspaceID(ctx)
+		wid := contextx.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
 	}
 	statement, args := builder.Where(sq.Eq{"id": id}).Suffix("RETURNING *").MustSql()
@@ -346,7 +346,7 @@ func (dao *DAO[T]) Upsert(ctx context.Context, fields []string, entity *T) error
 			columns = append(columns, column)
 			value := v.Interface()
 			if column == "ws_id" && dao.workspace {
-				value = ucontext.GetWorkspaceID(ctx)
+				value = contextx.GetWorkspaceID(ctx)
 			}
 			values = append(values, value)
 		}

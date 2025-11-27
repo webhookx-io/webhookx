@@ -54,9 +54,7 @@ var _ = Describe("License", Ordered, func() {
 		})
 
 		AfterAll(func() {
-			if app != nil {
-				app.Stop()
-			}
+			app.Stop()
 		})
 
 		It("should log when license expired", func() {

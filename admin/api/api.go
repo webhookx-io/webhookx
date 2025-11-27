@@ -132,6 +132,7 @@ func (api *API) Handler() http.Handler {
 	}
 	r.Use(middlewares.PanicRecovery)
 	r.Use(api.contextMiddleware)
+	r.Use(api.licenseMiddleware)
 
 	r.HandleFunc("/", api.Index).Methods("GET")
 	r.HandleFunc("/license", api.GetLicense).Methods("GET")

@@ -5,8 +5,8 @@ import (
 
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/pkg/contextx"
 	"github.com/webhookx-io/webhookx/pkg/types"
-	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -41,7 +41,7 @@ func (api *API) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	endpoint.WorkspaceId = ucontext.GetWorkspaceID(r.Context())
+	endpoint.WorkspaceId = contextx.GetWorkspaceID(r.Context())
 	err := api.db.EndpointsWS.Insert(r.Context(), &endpoint)
 	api.assert(err)
 

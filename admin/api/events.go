@@ -8,8 +8,8 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/eventbus"
+	"github.com/webhookx-io/webhookx/pkg/contextx"
 	"github.com/webhookx-io/webhookx/pkg/types"
-	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -46,7 +46,7 @@ func (api *API) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	event.IngestedAt = types.Time{Time: time.Now()}
-	event.WorkspaceId = ucontext.GetWorkspaceID(r.Context())
+	event.WorkspaceId = contextx.GetWorkspaceID(r.Context())
 	attempts, err := api.dispatcher.Dispatch(context.WithoutCancel(r.Context()), []*entities.Event{&event})
 	api.assert(err)
 

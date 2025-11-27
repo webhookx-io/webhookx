@@ -23,6 +23,7 @@ import (
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
+	"github.com/webhookx-io/webhookx/pkg/contextx"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/loglimiter"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
@@ -35,7 +36,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/store"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
-	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"github.com/webhookx-io/webhookx/proxy/middlewares"
 	"github.com/webhookx-io/webhookx/proxy/router"
 	"github.com/webhookx-io/webhookx/service"
@@ -198,7 +198,7 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 
-	ctx := ucontext.WithContext(context.WithoutCancel(r.Context()), &ucontext.UContext{
+	ctx := contextx.WithContext(context.WithoutCancel(r.Context()), &contextx.Context{
 		WorkspaceID: source.WorkspaceId,
 	})
 

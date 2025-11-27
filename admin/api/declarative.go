@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/webhookx-io/webhookx/pkg/contextx"
 	"github.com/webhookx-io/webhookx/pkg/declarative"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
-	"github.com/webhookx-io/webhookx/pkg/ucontext"
 	"gopkg.in/yaml.v3"
 )
 
@@ -56,7 +56,7 @@ func (api *API) Sync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wid := ucontext.GetWorkspaceID(r.Context())
+	wid := contextx.GetWorkspaceID(r.Context())
 	err = api.declarative.Sync(wid, &cfg)
 	api.assert(err)
 
@@ -64,7 +64,7 @@ func (api *API) Sync(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *API) Dump(w http.ResponseWriter, r *http.Request) {
-	wid := ucontext.GetWorkspaceID(r.Context())
+	wid := contextx.GetWorkspaceID(r.Context())
 	cfg, err := api.declarative.Dump(r.Context(), wid)
 	if err != nil {
 		api.error(400, w, err)

@@ -2,6 +2,8 @@ module github.com/webhookx-io/webhookx
 
 go 1.25.4
 
+replace github.com/webhookx-io/webhookx/api/license => ./api/license
+
 require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
@@ -41,6 +43,7 @@ require (
 	github.com/tetratelabs/wazero v1.10.0
 	github.com/tidwall/gjson v1.18.0
 	github.com/vmihailenco/msgpack/v5 v5.4.1
+	github.com/webhookx-io/webhookx/api/license v0.1.0
 	go.opentelemetry.io/contrib/propagators/autoprop v0.63.0
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.38.0

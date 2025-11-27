@@ -26,6 +26,7 @@ test-deps:
 
 test-unit: clean
 	go test $$(go list ./... | grep -v /test/ | grep -v /examples/ ) $(FLAGS)
+	cd api/license && go test $(FLAGS)
 
 test-o11: clean
 	ginkgo -r $(FLAGS) ./test/metrics ./test/tracing

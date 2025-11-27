@@ -9,6 +9,7 @@ import (
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/migrator"
+	"github.com/webhookx-io/webhookx/pkg/license"
 )
 
 var (
@@ -55,6 +56,12 @@ func newDatabaseCmd() *cobra.Command {
 		Short: "Database commands",
 		Long:  ``,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			lic, err := license.Load()
+			if err != nil {
+				return err
+			}
+			license.SetLicenser(license.NewLicenser(lic))
+
 			cfg, err := initConfig(configurationFile)
 			if err != nil {
 				return err

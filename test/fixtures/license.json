@@ -1,0 +1,9 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "plan": "test",
+  "customer": "test",
+  "expired_at": "2099-12-31T00:00:00Z",
+  "created_at": "1996-08-24T00:00:00Z",
+  "version": "1",
+  "signature": "51d58eecc5c15534693c025e5c591f4b202fc2d3361f4d47d033d5afc9480e5c1982b6eca3d7b462db01d63790dbf021c50ad2e422c86a3dfdbef68af19d2205"
+}

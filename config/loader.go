@@ -6,6 +6,7 @@ import (
 
 	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/config/providers"
+	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/secret"
 )
@@ -79,25 +80,26 @@ func newSecretManager(cfg modules.SecretConfig) (*secret.SecretManager, error) {
 
 func (l *Loader) Load() error {
 	cfg := l.cfg
-	if err := l.load("SECRET", &cfg.Secret); err != nil {
-		return err
-	}
 
-	if cfg.Secret.Enabled() {
-		secretManager, err := newSecretManager(cfg.Secret)
-		if err != nil {
+	if license.GetLicenser().Allow("secret") {
+		if err := l.load("SECRET", &cfg.Secret); err != nil {
 			return err
 		}
-		l.manager = secretManager
-		if err := l.load("LOG", &cfg.Log); err != nil {
-			return err
+		if cfg.Secret.Enabled() {
+			secretManager, err := newSecretManager(cfg.Secret)
+			if err != nil {
+				return err
+			}
+			l.manager = secretManager
+			if err := l.load("LOG", &cfg.Log); err != nil {
+				return err
+			}
+			logger, err := log.NewZapLogger(&cfg.Log)
+			if err != nil {
+				return err
+			}
+			secretManager.WithLogger(logger.Named("core"))
 		}
-
-		logger, err := log.NewZapLogger(&cfg.Log)
-		if err != nil {
-			return err
-		}
-		secretManager.WithLogger(logger.Named("core"))
 	}
 
 	if err := l.load("", cfg); err != nil {

@@ -22,6 +22,7 @@ import (
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/accesslog"
 	"github.com/webhookx-io/webhookx/pkg/cache"
+	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
@@ -370,6 +371,23 @@ func (app *Application) registerScheduledTasks() {
 			Do:           reports.Report,
 		})
 	}
+
+	app.scheduler.AddTask(&schedule.Task{
+		Name:     "license.expiration",
+		Interval: time.Hour * 24,
+		Do: func() {
+			licenser := license.GetLicenser()
+			delta := time.Until(licenser.License().ExpiredAt)
+			log := app.log.Named("license")
+			if delta < 0 {
+				log.Errorf("license expired")
+			} else if delta < time.Hour*24*30 { // 30 days
+				log.Errorf("license will expire at %s", licenser.License().ExpiredAt.Format(time.RFC3339))
+			} else if delta < time.Hour*24*90 { // 90 days
+				log.Warnf("license will expire on %s", licenser.License().ExpiredAt.Format(time.DateOnly))
+			}
+		},
+	})
 }
 
 // Start starts application

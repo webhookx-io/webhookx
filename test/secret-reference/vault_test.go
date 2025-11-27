@@ -27,6 +27,7 @@ func startHTTP(handler http.HandlerFunc, addr string) *http.Server {
 
 var _ = Describe("Vault", Ordered, func() {
 
+	var licenserCancel func()
 	BeforeAll(func() {
 		vaultClient := helper.VaultClient()
 		data := map[string]interface{}{
@@ -52,12 +53,18 @@ var _ = Describe("Vault", Ordered, func() {
 
 		err = vaultClient.KVv2("secret").Delete(context.TODO(), "webhookx/secret-deleted")
 		assert.NoError(GinkgoT(), err)
+
+		licenserCancel = helper.MockLicenser(nil)
+	})
+
+	AfterAll(func() {
+		licenserCancel()
 	})
 
 	Context("ENV", func() {
 		It("references should be resolved #token", func() {
 			cfg, err := helper.LoadConfig(helper.LoadConfigOptions{
-				Envs: map[string]string{
+				Envs: helper.NewTestEnv(map[string]string{
 					"WEBHOOKX_SECRET_VAULT_AUTHN_TOKEN_TOKEN": "root",
 
 					"WEBHOOKX_DATABASE_HOST":       "{secret://vault/webhookx/config.key_boolean}",
@@ -72,7 +79,7 @@ var _ = Describe("Vault", Ordered, func() {
 
 					"WEBHOOKX_WORKER_ENABLED":        "{secret://vault/webhookx/config.key_nested.key_boolean}",
 					"WEBHOOKX_TRACING_SAMPLING_RATE": "{secret://vault/webhookx/config.key_float}",
-				},
+				}),
 			})
 			assert.NoError(GinkgoT(), err)
 
@@ -92,7 +99,7 @@ var _ = Describe("Vault", Ordered, func() {
 
 		It("references should be resolved #approle", func() {
 			cfg, err := helper.LoadConfig(helper.LoadConfigOptions{
-				Envs: map[string]string{
+				Envs: helper.NewTestEnv(map[string]string{
 					"WEBHOOKX_SECRET_VAULT_AUTH_METHOD":             "approle",
 					"WEBHOOKX_SECRET_VAULT_AUTHN_APPROLE_ROLE_ID":   "test-role-id",
 					"WEBHOOKX_SECRET_VAULT_AUTHN_APPROLE_SECRET_ID": "test-secret-id",
@@ -105,7 +112,7 @@ var _ = Describe("Vault", Ordered, func() {
 
 					"WEBHOOKX_REDIS_HOST":     "{secret://vault/webhookx/config.key_nested.key_boolean}",
 					"WEBHOOKX_REDIS_PASSWORD": "{secret://vault/webhookx/config.key_nested.key_string}",
-				},
+				}),
 			})
 			assert.NoError(GinkgoT(), err)
 
@@ -127,7 +134,7 @@ var _ = Describe("Vault", Ordered, func() {
 			}, ":18888")
 
 			cfg, err := helper.LoadConfig(helper.LoadConfigOptions{
-				Envs: map[string]string{
+				Envs: helper.NewTestEnv(map[string]string{
 					"WEBHOOKX_SECRET_VAULT_AUTH_METHOD":                 "kubernetes",
 					"WEBHOOKX_SECRET_VAULT_AUTHN_KUBERNETES_ROLE":       "test-role",
 					"WEBHOOKX_SECRET_VAULT_AUTHN_KUBERNETES_TOKEN_PATH": test.FilePath("vault-k8s-token.txt"),
@@ -140,7 +147,7 @@ var _ = Describe("Vault", Ordered, func() {
 
 					"WEBHOOKX_REDIS_HOST":     "{secret://vault/webhookx/config.key_nested.key_boolean}",
 					"WEBHOOKX_REDIS_PASSWORD": "{secret://vault/webhookx/config.key_nested.key_string}",
-				},
+				}),
 			})
 			assert.NoError(GinkgoT(), err)
 
@@ -179,22 +186,22 @@ var _ = Describe("Vault", Ordered, func() {
 
 			It("returns error when secret is not found", func() {
 				_, err := helper.LoadConfig(helper.LoadConfigOptions{
-					Envs: map[string]string{
+					Envs: helper.NewTestEnv(map[string]string{
 						"WEBHOOKX_SECRET_VAULT_AUTHN_TOKEN_TOKEN": "root",
 
 						"WEBHOOKX_DATABASE_HOST": "{secret://vault/webhookx/notfound}",
-					},
+					}),
 				})
 				assert.EqualError(GinkgoT(), err, "failed to resolve reference value '{secret://vault/webhookx/notfound}': secret not found")
 			})
 
 			It("should return error when reading a deleted secret", func() {
 				_, err := helper.LoadConfig(helper.LoadConfigOptions{
-					Envs: map[string]string{
+					Envs: helper.NewTestEnv(map[string]string{
 						"WEBHOOKX_SECRET_VAULT_AUTHN_TOKEN_TOKEN": "root",
 
 						"WEBHOOKX_DATABASE_HOST": "{secret://vault/webhookx/secret-deleted.data}",
-					},
+					}),
 				})
 				assert.EqualError(GinkgoT(), err, "failed to resolve reference value '{secret://vault/webhookx/secret-deleted.data}': secret no data")
 			})

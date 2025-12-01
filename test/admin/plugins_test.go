@@ -385,6 +385,36 @@ var _ = Describe("/plugins", Ordered, func() {
 					string(resp.Body()))
 			})
 
+			It("returns HTTP 400 when source_id does not exist", func() {
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"name":      "inbound",
+						"source_id": "foo",
+					}).
+					SetResult(entities.Plugin{}).
+					Post("/workspaces/default/plugins")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"foreign key violation: {source_id='foo                        '} does not reference an existing record in 'sources'"}`,
+					string(resp.Body()))
+			})
+
+			It("returns HTTP 400 when endpoint_id does not exist", func() {
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"name":        "outbound",
+						"endpoint_id": "foo",
+					}).
+					SetResult(entities.Plugin{}).
+					Post("/workspaces/default/plugins")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"foreign key violation: {endpoint_id='foo                        '} does not reference an existing record in 'endpoints'"}`,
+					string(resp.Body()))
+			})
+
 		})
 	})
 

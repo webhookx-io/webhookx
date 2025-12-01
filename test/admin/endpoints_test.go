@@ -137,8 +137,8 @@ var _ = Describe("/endpoints", Ordered, func() {
 					Post("/workspaces/default/endpoints")
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
-				expected := fmt.Sprintf(`{"message": "unique constraint violation: (ws_id, name)=(%s, test)"}`, ws.ID)
-				assert.JSONEq(GinkgoT(), expected, string(resp.Body()))
+				expected := fmt.Sprintf(`{"message":"unique constraint violation: {ws_id='%s',name='test'} already exists"}`, ws.ID)
+				assert.Equal(GinkgoT(), expected, string(resp.Body()))
 
 				resp2, err := adminClient.R().
 					SetBody(map[string]interface{}{

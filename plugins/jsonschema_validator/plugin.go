@@ -3,8 +3,8 @@ package jsonschema_validator
 import (
 	"context"
 	"encoding/json"
-
 	"github.com/getkin/kin-openapi/openapi3"
+	jsonschemaV6 "github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
@@ -12,10 +12,12 @@ import (
 	"github.com/webhookx-io/webhookx/plugins/jsonschema_validator/jsonschema"
 )
 
+const InverboseResponseMessage = "data doesn't conform to schema"
+
 type Config struct {
-	Draft         string             `json:"draft"`
-	DefaultSchema string             `json:"default_schema"`
-	Schemas       map[string]*Schema `json:"schemas"`
+	DefaultSchema   string             `json:"default_schema"`
+	VerboseResponse bool               `json:"verbose_response" default:"false"`
+	Schemas         map[string]*Schema `json:"schemas"`
 }
 
 func (c Config) Schema() *openapi3.Schema {
@@ -28,6 +30,14 @@ type Schema struct {
 
 type SchemaValidatorPlugin struct {
 	plugin.BasePlugin[Config]
+	c *jsonschemaV6.Compiler
+}
+
+func NewSchemaValidatorPlugin() *SchemaValidatorPlugin {
+	c := jsonschemaV6.NewCompiler()
+	c.AssertContent()
+	c.AssertFormat()
+	return &SchemaValidatorPlugin{c: c}
 }
 
 func (p *SchemaValidatorPlugin) Name() string {
@@ -68,7 +78,7 @@ func (p *SchemaValidatorPlugin) ExecuteInbound(ctx context.Context, inbound *plu
 		}
 	}
 
-	validator := jsonschema.New([]byte(schema.Schema))
+	validator := jsonschema.New(schema.Schema, p.c)
 	e := validator.Validate(&jsonschema.ValidatorContext{
 		HTTPRequest: &jsonschema.HTTPRequest{
 			R:    inbound.Request,
@@ -76,10 +86,18 @@ func (p *SchemaValidatorPlugin) ExecuteInbound(ctx context.Context, inbound *plu
 		},
 	})
 	if e != nil {
-		response.JSON(inbound.Response, 400, types.ErrorResponse{
-			Message: "Request Validation",
-			Error:   e,
-		})
+		var resp *types.ErrorResponse
+		if p.Config.VerboseResponse {
+			resp = &types.ErrorResponse{
+				Message: "Request Validation",
+				Error:   e,
+			}
+		} else {
+			resp = &types.ErrorResponse{
+				Message: InverboseResponseMessage,
+			}
+		}
+		response.JSON(inbound.Response, 400, resp)
 		res.Terminated = true
 		return
 	}

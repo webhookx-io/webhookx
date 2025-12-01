@@ -1017,10 +1017,10 @@ components:
       description: "The jsonschema-validator plugin configuration"
       type: object
       properties:
-        draft:
-          type: string
-          enum: ["6"]
-          default: "6"
+        verbose_response:
+          description: "Whether to return detailed validation errors in the response."
+          type: boolean
+          default: false
         default_schema:
           description: "The default schema"
           type: string

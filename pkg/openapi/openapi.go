@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"strconv"
-
+	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/webhookx-io/webhookx/pkg/errs"
+	"github.com/webhookx-io/webhookx/utils"
+	"strings"
 )
 
 type FormatValidatorFunc[T any] func(T) error
@@ -20,7 +22,33 @@ func init() {
 		if err := schema.UnmarshalJSON([]byte(s)); err != nil {
 			return err
 		}
-		if err := schema.Validate(context.TODO(), openapi3.EnableSchemaFormatValidation()); err != nil {
+		if len(schema.Extensions) == 0 || schema.Extensions["$schema"] == nil {
+			if err := schema.Validate(context.TODO(), openapi3.EnableSchemaFormatValidation()); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		doc, err := jsonschema.UnmarshalJSON(strings.NewReader(s))
+		if err != nil {
+			return err
+		}
+		resourceFile := fmt.Sprintf("%x.json", utils.XXHash3(s))
+		c := jsonschema.NewCompiler()
+		err = c.AddResource(resourceFile, doc)
+		var existErr *jsonschema.ResourceExistsError
+		if err != nil && !errors.As(err, &existErr) {
+			return err
+		}
+		_, err = c.Compile(resourceFile)
+		if err != nil {
+			if schemaValidateErr, ok := err.(*jsonschema.SchemaValidationError); ok {
+				if validationErr, ok := schemaValidateErr.Err.(*jsonschema.ValidationError); ok {
+					vErrs := errs.ParseJSONSchemaValidationError(validationErr)
+					b, _ := json.Marshal(vErrs)
+					return fmt.Errorf(`%s`, string(b))
+				}
+			}
 			return err
 		}
 		return nil
@@ -62,7 +90,7 @@ func Validate(schema *openapi3.Schema, value map[string]interface{}) error {
 		default:
 			validateErr.Message = err.Error()
 		}
-		convertArrays(validateErr.Fields)
+		errs.ConvertArrays(validateErr.Fields)
 		return validateErr
 	}
 
@@ -86,7 +114,7 @@ func handleMultiError(me openapi3.MultiError, paths []string, fields map[string]
 			handleMultiError(e, paths, fields)
 		case *openapi3.SchemaError:
 			if e.SchemaField != "allOf" && e.SchemaField != "anyOf" && e.SchemaField != "oneOf" {
-				insertError(fields, 0, append(paths, e.JSONPointer()...), e)
+				errs.InsertError(fields, 0, append(paths, e.JSONPointer()...), &openapiSchemaError{e})
 			}
 			if decoded := decodeMultiError(e); decoded != nil {
 				handleMultiError(decoded, e.JSONPointer(), fields)
@@ -104,80 +132,11 @@ func handleMultiError(me openapi3.MultiError, paths []string, fields map[string]
 	}
 }
 
-func convertArrays(m map[string]interface{}) {
-	for k, v := range m {
-		if val, ok := v.(map[string]interface{}); ok {
-			if arr, ok := val[""].([]interface{}); ok && len(val) == 1 {
-				m[k] = arr
-				for _, arrv := range arr {
-					if arrvalue, ok := arrv.(map[string]interface{}); ok {
-						convertArrays(arrvalue)
-					}
-				}
-			} else {
-				convertArrays(val)
-			}
-		}
-	}
+type openapiSchemaError struct {
+	*openapi3.SchemaError
 }
 
-func insertError(current map[string]interface{}, i int, paths []string, err *openapi3.SchemaError) {
-	if len(paths) == 0 {
-		current[""] = err.Reason
-		return
-	}
-
-	key := paths[i]
-	isIndex := false
-	index := 0
-
-	if i, err := strconv.Atoi(key); err == nil {
-		isIndex = true
-		index = i
-	}
-
-	if i == len(paths)-1 {
-		// is last
-		if isIndex {
-			ensureArray(current, "", index)
-			arr := current[""].([]interface{})
-			arr[index] = formatError(err)
-		} else {
-			current[key] = formatError(err)
-		}
-		return
-	}
-
-	if isIndex {
-		ensureArray(current, "", index)
-		arr := current[""].([]interface{})
-		if arr[index] == nil {
-			arr[index] = make(map[string]interface{})
-		}
-		insertError(arr[index].(map[string]interface{}), i+1, paths, err)
-	} else {
-		if current[key] == nil {
-			current[key] = make(map[string]interface{})
-		}
-		insertError(current[key].(map[string]interface{}), i+1, paths, err)
-	}
-}
-
-func ensureArray(m map[string]interface{}, key string, index int) {
-	if val, ok := m[key]; ok {
-		if arr, ok := val.([]interface{}); ok && len(arr) > index {
-			return
-		}
-	}
-
-	newArr := make([]interface{}, index+1)
-	if old, ok := m[key].([]interface{}); ok {
-		copy(newArr, old)
-	}
-	m[key] = newArr
-}
-
-func formatError(e *openapi3.SchemaError) string {
+func (e *openapiSchemaError) FormatError() string {
 	if e.SchemaField == "required" {
 		return "required field missing"
 	}

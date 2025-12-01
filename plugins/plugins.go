@@ -22,7 +22,7 @@ func LoadPlugins() {
 		return &webhookx_signature.SignaturePlugin{}
 	})
 	plugin.RegisterPlugin(plugin.TypeInbound, "jsonschema-validator", func() plugin.Plugin {
-		return &jsonschema_validator.SchemaValidatorPlugin{}
+		return jsonschema_validator.NewSchemaValidatorPlugin()
 	})
 	plugin.RegisterPlugin(plugin.TypeInbound, "basic-auth", func() plugin.Plugin {
 		return &basic_auth.BasicAuthPlugin{}

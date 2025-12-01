@@ -9,23 +9,32 @@ import (
 	"time"
 
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 )
 
-const url = "https://report.webhookx.io/report"
+var (
+	// URL is report url
+	URL = "https://report.webhookx.io/report"
 
-var uid = utils.UUIDShort()
+	uid = utils.UUIDShort()
+)
 
 type data struct {
-	UID     string `json:"uid"`
-	Version string `json:"version"`
+	UID         string `json:"uid"`
+	Version     string `json:"version"`
+	LicenseID   string `json:"license_id"`
+	LicensePlan string `json:"license_plan"`
 }
 
 func send(url string) error {
+	lic := license.GetLicenser().License()
 	data := data{
-		UID:     uid,
-		Version: config.VERSION,
+		UID:         uid,
+		Version:     config.VERSION,
+		LicenseID:   lic.ID,
+		LicensePlan: lic.Plan,
 	}
 
 	buf := new(bytes.Buffer)
@@ -56,7 +65,7 @@ func send(url string) error {
 }
 
 func Report() {
-	err := send(url)
+	err := send(URL)
 	if err != nil {
 		zap.S().Debugf("failed to report anonymous data: %v", err)
 	}

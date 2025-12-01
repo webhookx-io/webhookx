@@ -79,7 +79,7 @@ var _ = Describe("/workspaces", Ordered, func() {
 					Post("/workspaces")
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
-				expected := `{"message": "unique constraint violation: (name)=(default)"}`
+				expected := `{"message": "unique constraint violation: {name='default'} already exists"}`
 				assert.JSONEq(GinkgoT(), expected, string(resp.Body()))
 			})
 		})

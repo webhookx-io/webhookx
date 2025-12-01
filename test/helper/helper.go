@@ -60,7 +60,7 @@ var (
 		"WEBHOOKX_PROXY_LISTEN":              "127.0.0.1:9700",
 		"WEBHOOKX_ADMIN_LISTEN":              "127.0.0.1:9701",
 		"WEBHOOKX_STATUS_LISTEN":             "127.0.0.1:9702",
-		"WEBHOOKX_DATABASE_DATABASE":         "webhookx",
+		"WEBHOOKX_DATABASE_DATABASE":         "webhookx_test",
 		"WEBHOOKX_WORKER_POOL_SIZE":          "100",
 		"WEBHOOKX_WORKER_POOL_CONCURRENCY":   "10",
 	}

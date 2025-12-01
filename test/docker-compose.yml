@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:13
     environment:
-      POSTGRES_DB: webhookx
+      POSTGRES_DB: webhookx_test
       POSTGRES_USER: webhookx
       POSTGRES_HOST_AUTH_METHOD: trust
     healthcheck:

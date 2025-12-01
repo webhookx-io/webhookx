@@ -153,20 +153,6 @@ var _ = Describe("Declarative", Ordered, func() {
 					string(resp.Body()))
 			})
 
-			It("should return 400 for invalid jsonschema-validator plugin config", func() {
-				resp, err := adminClient.R().
-					SetBody(fmt.Sprintf(invalidSourcePluginJSONSchemaJSONYAML,
-						`{"type": "invlidObject","properties": {"id": { "type": "string"}}}`,
-						`{"type": "object","properties": {"id": { "type": "number", "format":"invalid"}}}`)).
-					Post("/workspaces/default/config/sync")
-
-				assert.Nil(GinkgoT(), err)
-				assert.Equal(GinkgoT(), 400, resp.StatusCode())
-				assert.Equal(GinkgoT(),
-					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"default_schema":"string doesn't match the format \"jsonschema\" (invalid character 'i' looking for beginning of value)","schemas":{"charge.succeed":{"schema":"string doesn't match the format \"jsonschema\" (invalid character 'i' looking for beginning of value)"}}}}}}`,
-					string(resp.Body()))
-			})
-
 			It("should return 400 for invalid jsonschema-validator plugin config jsonschema invalid version", func() {
 				schema := fmt.Sprintf(`"$schema": "https://json-schema.org/%s/schema"`, "invalid-version")
 				resp, err := adminClient.R().

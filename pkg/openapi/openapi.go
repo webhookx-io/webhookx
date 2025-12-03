@@ -44,7 +44,7 @@ func init() {
 		if err != nil {
 			if schemaValidateErr, ok := err.(*jsonschema.SchemaValidationError); ok {
 				if validationErr, ok := schemaValidateErr.Err.(*jsonschema.ValidationError); ok {
-					vErrs := errs.ParseJSONSchemaValidationError(validationErr)
+					vErrs := errs.ParseJSONSchemaValidationError(validationErr, true)
 					b, _ := json.Marshal(vErrs)
 					return fmt.Errorf(`%s`, string(b))
 				}

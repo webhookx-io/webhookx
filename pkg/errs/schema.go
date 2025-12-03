@@ -95,21 +95,27 @@ func ensureArray(m map[string]interface{}, key string, index int) {
 // ParseValidationError analyze ValidationError and convert to map
 // the key is the field,
 // the value is the format error, or nested map
-func ParseJSONSchemaValidationError(err *jsonschema.ValidationError) map[string]interface{} {
+func ParseJSONSchemaValidationError(err *jsonschema.ValidationError, isCompileErr bool) map[string]interface{} {
 	errorMap := make(map[string]interface{})
 
 	var collectErrors func(e *jsonschema.ValidationError, paths []string, fields map[string]interface{})
 	collectErrors = func(e *jsonschema.ValidationError, paths []string, fields map[string]interface{}) {
 		if len(e.Causes) > 0 {
-			switch e.ErrorKind.(type) {
-			case *kind.OneOf, *kind.AnyOf, *kind.AllOf, *kind.Contains, *kind.PropertyNames, *kind.DependentRequired:
-				// skip causes
-				if len(e.InstanceLocation) > 0 {
-					InsertError(fields, 0, e.InstanceLocation, &jsonSchemaError{e})
-				} else {
-					InsertError(fields, 0, append(paths, e.ErrorKind.KeywordPath()...), &jsonSchemaError{e})
+			if !isCompileErr {
+				switch e.ErrorKind.(type) {
+				case *kind.OneOf, *kind.AnyOf, *kind.AllOf, *kind.Contains, *kind.PropertyNames, *kind.DependentRequired:
+					// skip causes
+					if len(e.InstanceLocation) > 0 {
+						InsertError(fields, 0, e.InstanceLocation, &jsonSchemaError{e})
+					} else {
+						InsertError(fields, 0, append(paths, e.ErrorKind.KeywordPath()...), &jsonSchemaError{e})
+					}
+				default:
+					for _, cause := range e.Causes {
+						collectErrors(cause, append(paths, e.InstanceLocation...), fields)
+					}
 				}
-			default:
+			} else {
 				for _, cause := range e.Causes {
 					collectErrors(cause, append(paths, e.InstanceLocation...), fields)
 				}
@@ -117,7 +123,7 @@ func ParseJSONSchemaValidationError(err *jsonschema.ValidationError) map[string]
 		} else {
 			switch e.ErrorKind.(type) {
 			case *kind.Schema:
-				// skip root schema error
+				// skip
 			case *kind.Required:
 				kindErr := e.ErrorKind.(*kind.Required)
 				for _, missing := range kindErr.Missing {

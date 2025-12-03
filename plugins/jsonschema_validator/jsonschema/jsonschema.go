@@ -83,7 +83,7 @@ func (s *JSONSchema) Validate(ctx *ValidatorContext) error {
 		err = sch.Validate(ctx.HTTPRequest.Data)
 		if err != nil {
 			validateErr := errs.NewValidateError(errs.ErrRequestValidation)
-			validateErr.Fields = errs.ParseJSONSchemaValidationError(err.(*jsonschema.ValidationError))
+			validateErr.Fields = errs.ParseJSONSchemaValidationError(err.(*jsonschema.ValidationError), false)
 			return validateErr
 		}
 	}

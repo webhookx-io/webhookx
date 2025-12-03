@@ -55,7 +55,7 @@ func (s *JSONSchema) Validate(ctx *ValidatorContext) error {
 			openapi3Schema = schema.(*openapi3.Schema)
 		}
 
-		err := openapi.Validate(openapi3Schema, ctx.HTTPRequest.Data)
+		err := openapi.Validate(openapi3Schema, ctx.HTTPRequest.Data.(map[string]interface{}))
 		if err != nil {
 			return err
 		}

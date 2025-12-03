@@ -82,7 +82,7 @@ func (p *SchemaValidatorPlugin) ExecuteInbound(ctx context.Context, inbound *plu
 	e := validator.Validate(&jsonschema.ValidatorContext{
 		HTTPRequest: &jsonschema.HTTPRequest{
 			R:    inbound.Request,
-			Data: data.(map[string]any),
+			Data: data,
 		},
 	})
 	if e != nil {

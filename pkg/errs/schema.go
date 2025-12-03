@@ -101,8 +101,18 @@ func ParseJSONSchemaValidationError(err *jsonschema.ValidationError) map[string]
 	var collectErrors func(e *jsonschema.ValidationError, paths []string, fields map[string]interface{})
 	collectErrors = func(e *jsonschema.ValidationError, paths []string, fields map[string]interface{}) {
 		if len(e.Causes) > 0 {
-			for _, cause := range e.Causes {
-				collectErrors(cause, append(paths, e.InstanceLocation...), fields)
+			switch e.ErrorKind.(type) {
+			case *kind.OneOf, *kind.AnyOf, *kind.AllOf, *kind.Contains, *kind.PropertyNames, *kind.DependentRequired:
+				// skip causes
+				if len(e.InstanceLocation) > 0 {
+					InsertError(fields, 0, e.InstanceLocation, &jsonSchemaError{e})
+				} else {
+					InsertError(fields, 0, append(paths, e.ErrorKind.KeywordPath()...), &jsonSchemaError{e})
+				}
+			default:
+				for _, cause := range e.Causes {
+					collectErrors(cause, append(paths, e.InstanceLocation...), fields)
+				}
 			}
 		} else {
 			switch e.ErrorKind.(type) {
@@ -156,13 +166,8 @@ func (e *jsonSchemaError) FormatError() string {
 		enumValues, _ := json.Marshal(eKind.Want)
 		return fmt.Sprintf("value is not one of the allowed values %s", string(enumValues))
 	case *kind.Const:
-		// Format const errors similar to enum
-		wantStr := fmt.Sprintf("%v", eKind.Want)
-		switch eKind.Want.(type) {
-		case string:
-			wantStr = fmt.Sprintf(`"%s"`, eKind.Want)
-		}
-		return fmt.Sprintf("value must be %s", wantStr)
+		constValue, _ := json.Marshal(eKind.Want)
+		return fmt.Sprintf("value must be equal to %s", string(constValue))
 	case *kind.Minimum:
 		want, _ := eKind.Want.Float64()
 		return fmt.Sprintf("number must be at least %g", want)
@@ -185,9 +190,6 @@ func (e *jsonSchemaError) FormatError() string {
 	case *kind.Pattern:
 		return fmt.Sprintf(`string doesn't match the regular expression "%s"`, eKind.Want)
 	case *kind.Format:
-		if eKind.Err != nil {
-			return fmt.Sprintf(`string doesn't match the format %q (%v)`, eKind.Want, eKind.Err)
-		}
 		return fmt.Sprintf(`string doesn't match the format %q`, eKind.Want)
 	case *kind.MinItems:
 		return fmt.Sprintf("minimum number of items is %d", eKind.Want)

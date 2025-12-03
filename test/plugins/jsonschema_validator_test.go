@@ -13,6 +13,7 @@ import (
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/plugins/jsonschema_validator"
 	"github.com/webhookx-io/webhookx/plugins/jsonschema_validator/jsonschema"
 	"github.com/webhookx-io/webhookx/test/helper"
@@ -52,41 +53,33 @@ func getFullVersionFields(baseFields, versionFileds map[string]validateFieldTest
 	invalidData := make(map[string]any)
 	expectedErrors := make(map[string]string)
 
+	for k, v := range fields {
+		invalidData[k] = v.invalidData
+		expectedErrors[k] = v.expectedMsg
+	}
+
 	// Add base fields (all versions)
 	for k, v := range baseFields {
 		fields[k] = v
-		if v.invalidData != nil {
-			invalidData[k] = v.invalidData
-		}
+		invalidData[k] = v.invalidData
 		expectedErrors[k] = v.expectedMsg
 	}
 	return fields, invalidData, expectedErrors
 }
 
-func buildSchema(version string, fields map[string]validateFieldTestContext) string {
-	var props []string
-	for _, field := range fields {
-		props = append(props, field.schemaDef)
-	}
-
-	if version == jsonschema.OpenAPI_3_0 {
-		return fmt.Sprintf(`{
-						"type": "object",
-						"required": ["requiredField"],
-						"properties": {
-							%s
-						}
-					}`, strings.Join(props, ","))
-	} else {
-		return fmt.Sprintf(`{
+func buildSchema(version string, fields map[string]validateFieldTestContext) map[string]string {
+	var results = make(map[string]string)
+	for key, field := range fields {
+		def := field.schemaDef
+		if key == "requiredField" {
+			def = fmt.Sprintf(`"required": ["requiredField"], "properties":{"%s":{%s}}`, key, def)
+		}
+		results[key] = fmt.Sprintf(`{
 					"$schema": "https://json-schema.org/%s/schema",
-					"type": "object",
-					"required": ["requiredField"],
-					"properties": {
-						%s
-					}
-				}`, version, strings.Join(props, ","))
+					%s
+					}`, version, def)
 	}
+	return results
 }
 
 var _ = Describe("jsonschema-validator", Ordered, func() {
@@ -274,26 +267,24 @@ var _ = Describe("jsonschema-validator", Ordered, func() {
 		})
 	})
 
-	versions := []string{
-		jsonschema.Draft_4,
-		jsonschema.Draft_6,
-		jsonschema.Draft_7,
-		jsonschema.Draft_2019,
-		jsonschema.Draft_2020,
-		jsonschema.OpenAPI_3_0,
-	}
-	for _, version := range versions {
-		schema := fmt.Sprintf(`"$schema": "https://json-schema.org/%s/schema"`, version)
-
-		Context(string(version)+" validation", func() {
-			var c *jsonschemaV6.Compiler
-			BeforeAll(func() {
-				c = jsonschemaV6.NewCompiler()
-				c.AssertContent()
-				c.AssertFormat()
-			})
-
-			It("sanity", func() {
+	Context("validation", func() {
+		var c *jsonschemaV6.Compiler
+		versions := []string{
+			jsonschema.Draft_4,
+			jsonschema.Draft_6,
+			jsonschema.Draft_7,
+			jsonschema.Draft_2019,
+			jsonschema.Draft_2020,
+			jsonschema.OpenAPI_3_0,
+		}
+		BeforeAll(func() {
+			c = jsonschemaV6.NewCompiler()
+			c.AssertContent()
+			c.AssertFormat()
+		})
+		for _, version := range versions {
+			schema := fmt.Sprintf(`"$schema": "https://json-schema.org/%s/schema"`, version)
+			It(version+" sanity", func() {
 				schemaDef := `{
 				"type": "object",
 					"properties": {
@@ -373,133 +364,142 @@ var _ = Describe("jsonschema-validator", Ordered, func() {
 				b, _ := json.Marshal(err)
 				Expect(string(b)).To(Equal(`{"message":"request validation","fields":{"age":"number must be at least 0","gender":"value is not one of the allowed values [\"male\",\"female\"]","user":{"email":"required field missing","name":"value must be a string"}}}`))
 			})
-		})
-	}
+		}
+	})
 
-	Context("Validator version support", func() {
+	Context("format error consistent for version", func() {
 		var c *jsonschemaV6.Compiler
 		baseFields := map[string]validateFieldTestContext{
 			"requiredField": {
-				invalidData: nil, // missing field
+				invalidData: map[string]interface{}{},
 				expectedMsg: "required field missing",
-				schemaDef:   `"requiredField": { "type": "string" }`,
+				schemaDef:   `"type": "object"`,
 			},
 			"stringField": {
 				invalidData: 123,
 				expectedMsg: "value must be a string",
-				schemaDef:   `"stringField": { "type": "string" }`,
+				schemaDef:   `"type": "string"`,
 			},
 
 			"integerField": {
 				invalidData: "not-a-number",
 				expectedMsg: "value must be an integer",
-				schemaDef:   `"integerField": { "type": "integer" }`,
+				schemaDef:   `"type": "integer"`,
 			},
 			"arrayField": {
 				invalidData: "not-an-array",
 				expectedMsg: "value must be an array",
-				schemaDef:   `"arrayField": { "type": "array" }`,
+				schemaDef:   `"type": "array"`,
 			},
 			"enumField": {
 				invalidData: "invalid",
 				expectedMsg: `value is not one of the allowed values ["valid1","valid2"]`,
-				schemaDef:   `"enumField": { "type": "string", "enum": ["valid1", "valid2"] }`,
+				schemaDef:   `"type": "string", "enum": ["valid1", "valid2"]`,
 			},
 			"minimumField": {
 				invalidData: -5,
 				expectedMsg: "number must be at least 0",
-				schemaDef:   `"minimumField": { "type": "integer", "minimum": 0 }`,
+				schemaDef:   `"type": "integer", "minimum": 0`,
 			},
 			"maximumField": {
 				invalidData: 150,
 				expectedMsg: "number must be at most 100",
-				schemaDef:   `"maximumField": { "type": "integer", "maximum": 100 }`,
+				schemaDef:   `"type": "integer", "maximum": 100`,
 			},
 			"multipleOfField": {
 				invalidData: 7,
 				expectedMsg: "number must be a multiple of 5",
-				schemaDef:   `"multipleOfField": { "type": "integer", "multipleOf": 5 }`,
+				schemaDef:   `"type": "integer", "multipleOf": 5`,
 			},
 			"minLengthField": {
 				invalidData: "",
 				expectedMsg: "minimum string length is 3",
-				schemaDef:   `"minLengthField": { "type": "string", "minLength": 3 }`,
+				schemaDef:   `"type": "string", "minLength": 3`,
 			},
 			"maxLengthField": {
 				invalidData: "too-long",
 				expectedMsg: "maximum string length is 5",
-				schemaDef:   `"maxLengthField": { "type": "string", "maxLength": 5 }`,
+				schemaDef:   `"type": "string", "maxLength": 5`,
 			},
 			"patternField": {
 				invalidData: "invalid123",
 				expectedMsg: `string doesn't match the regular expression "^[a-z]+$"`,
-				schemaDef:   `"patternField": { "type": "string", "pattern": "^[a-z]+$" }`,
+				schemaDef:   `"type": "string", "pattern": "^[a-z]+$"`,
 			},
 			"minItemsField": {
 				invalidData: []any{1},
 				expectedMsg: "minimum number of items is 2",
-				schemaDef:   `"minItemsField": { "type": "array", "minItems": 2 }`,
+				schemaDef:   `"type": "array", "minItems": 2`,
 			},
 			"maxItemsField": {
 				invalidData: []any{1, 2, 3},
 				expectedMsg: "maximum number of items is 2",
-				schemaDef:   `"maxItemsField": { "type": "array", "maxItems": 2 }`,
+				schemaDef:   `"type": "array", "maxItems": 2`,
 			},
 			"uniqueItemsField": {
 				invalidData: []any{1, 2, 2},
 				expectedMsg: "duplicate items found",
-				schemaDef:   `"uniqueItemsField": { "type": "array", "uniqueItems": true }`,
+				schemaDef:   `"type": "array", "uniqueItems": true`,
 			},
 			"minPropertiesField": {
 				invalidData: map[string]any{"a": 1},
 				expectedMsg: "there must be at least 2 properties",
-				schemaDef:   `"minPropertiesField": { "type": "object", "minProperties": 2 }`,
+				schemaDef:   `"type": "object", "minProperties": 2`,
 			},
 			"maxPropertiesField": {
 				invalidData: map[string]any{"a": 1, "b": 2, "c": 3, "d": 4},
 				expectedMsg: "there must be at most 3 properties",
-				schemaDef:   `"maxPropertiesField": { "type": "object", "maxProperties": 3 }`,
+				schemaDef:   `"type": "object", "maxProperties": 3`,
 			},
 			"additionalPropsField": {
 				invalidData: map[string]any{"allowed": "value", "extra": "not-allowed"},
 				expectedMsg: `property "extra" is unsupported`,
-				schemaDef:   `"additionalPropsField": { "type": "object", "properties": { "allowed": { "type": "string" } }, "additionalProperties": false }`,
+				schemaDef:   `"type": "object", "properties": { "allowed": { "type": "string" } }, "additionalProperties": false `,
 			},
 		}
 
-		jsonschemaComposite := map[string]validateFieldTestContext{
+		jsonschemaExtraFields := map[string]validateFieldTestContext{
 			"formatField": {
-				invalidData: "not-an-email",
+				invalidData: "te..st@example.com",
 				expectedMsg: `string doesn't match the format "email"`,
-				schemaDef:   `"formatField": { "type": "string", "format": "email" }`,
+				schemaDef:   `"type": "string", "format": "email"`,
 			},
-			"oneOfField": {
+			"oneOf": {
 				invalidData: map[string]any{"type": "object"},
 				expectedMsg: `value doesn't match any schema from "oneOf"`,
-				schemaDef:   `"oneOfField": { "oneOf": [ { "type": "integer" }, { "type": "boolean" } ] }`,
+				schemaDef: `"definitions": {
+						"test1": { "type":"string", "minLength": 10000 },
+						"test2": { "type":"string", "minLength": 100000}
+					}, "oneOf": [ {"$ref": "#/definitions/test1"},{"$ref": "#/definitions/test2"}]`,
 			},
-			"anyOfField": {
-				invalidData: map[string]any{"type": "object"},
+			"anyOf": {
+				invalidData: false,
 				expectedMsg: `value doesn't match any schema from "anyOf"`,
-				schemaDef:   `"anyOfField": { "anyOf": [ { "type": "integer" }, { "type": "boolean" } ] }`,
+				schemaDef: `"definitions": {
+						"test1": { "type":"string", "minLength": 10000 },
+						"test2": { "type":"string", "minLength": 100000}
+					}, "anyOf": [{"$ref": "#/definitions/test1"},{"$ref": "#/definitions/test2"}]`,
 			},
-			"allOfField": {
+			"allOf": {
 				invalidData: "short",
 				expectedMsg: `value doesn't match all schemas from "allOf"`,
-				schemaDef:   `"allOfField": { "allOf": [ { "type": "string" }, { "minLength": 10 } ] }`,
+				schemaDef: `"definitions": {
+						"test1": { "type":"string", "minLength": 10000 },
+						"test2": { "type":"string", "minLength": 100000}
+					}, "allOf": [{"$ref": "#/definitions/test1"},{"$ref": "#/definitions/test2"}]`,
 			},
 		}
 
 		draft4SpecificFields := map[string]validateFieldTestContext{
-			"exclusiveMinField": {
+			"exclusiveMinimum": {
 				invalidData: 0,
 				expectedMsg: "number must be more than 0",
-				schemaDef:   fmt.Sprintf(`"exclusiveMinField": { "type": "integer", %s }`, `"minimum": 0, "exclusiveMinimum": true`),
+				schemaDef:   `"type": "integer", "minimum": 0, "exclusiveMinimum": true`,
 			},
-			"exclusiveMaxField": {
+			"exclusiveMaximum": {
 				invalidData: 100,
 				expectedMsg: "number must be less than 100",
-				schemaDef:   fmt.Sprintf(`"exclusiveMaxField": { "type": "integer", %s }`, `"maximum": 100, "exclusiveMaximum": true`),
+				schemaDef:   `"type": "integer", "maximum": 100, "exclusiveMaximum": true`,
 			},
 		}
 
@@ -507,47 +507,47 @@ var _ = Describe("jsonschema-validator", Ordered, func() {
 		draft6PlusFields := map[string]validateFieldTestContext{
 			"constField": {
 				invalidData: "wrong-value",
-				expectedMsg: `value must be "expected-value"`,
-				schemaDef:   `"constField": { "const": "expected-value" }`,
+				expectedMsg: `value must be equal to "expected-value"`,
+				schemaDef:   `"const": "expected-value"`,
 			},
 			"containsField": {
-				invalidData: []any{1, 2, 3},
+				invalidData: []any{"foo", true},
 				expectedMsg: "no items match contains schema",
-				schemaDef:   `"containsField": { "type": "array", "contains": { "type": "integer", "minimum": 10 } }`,
+				schemaDef:   `"contains": {"type": "number","multipleOf": 2}`,
 			},
 			"exclusiveMinField": {
 				invalidData: 0,
 				expectedMsg: "number must be more than 0",
-				schemaDef:   fmt.Sprintf(`"exclusiveMinField": { "type": "integer", %s }`, `"exclusiveMinimum": 0`),
+				schemaDef:   `"type": "integer", "exclusiveMinimum": 0`,
 			},
 			"exclusiveMaxField": {
 				invalidData: 100,
 				expectedMsg: "number must be less than 100",
-				schemaDef:   fmt.Sprintf(`"exclusiveMaxField": { "type": "integer", %s }`, `"exclusiveMaximum": 100`),
+				schemaDef:   `"type": "integer","exclusiveMaximum": 100`,
 			},
 			"propertyNamesField": {
 				invalidData: map[string]any{"validName": 1, "invalid-name!": 2},
 				expectedMsg: `invalid propertyName "invalid-name!"`,
-				schemaDef:   `"propertyNamesField": { "type": "object", "propertyNames": { "type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" } }`,
+				schemaDef:   `"type": "object", "propertyNames": { "type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" }`,
 			},
 		}
 
 		// Draft 2019-09+ fields
 		draft2019PlusFields := map[string]validateFieldTestContext{
-			"minContainsField": {
-				invalidData: []any{1, 2, 15},
+			"minContains": {
+				invalidData: []any{1},
 				expectedMsg: "min 2 items required to match contains schema, but matched 1 items",
-				schemaDef:   `"minContainsField": { "type": "array", "contains": { "type": "integer", "minimum": 10 }, "minContains": 2 }`,
+				schemaDef:   `"contains": {"const": 1}, "minContains": 2`,
 			},
-			"maxContainsField": {
-				invalidData: []any{1, 15, 20, 25},
+			"maxContains": {
+				invalidData: []any{1, 1, 1},
 				expectedMsg: "max 2 items required to match contains schema, but matched 3 items",
-				schemaDef:   `"maxContainsField": { "type": "array", "contains": { "type": "integer", "minimum": 10 }, "maxContains": 2 }`,
+				schemaDef:   `"contains": {"const": 1}, "maxContains": 2`,
 			},
-			"dependentRequiredField": {
+			"dependentRequired": {
 				invalidData: map[string]any{"a": 1},
-				expectedMsg: "properties b required, if a exists",
-				schemaDef:   `"dependentRequiredField": { "type": "object", "properties": { "a": { "type": "integer" }, "b": { "type": "integer" } }, "dependentRequired": { "a": ["b"] } }`,
+				expectedMsg: `{"a":"properties b required, if a exists"}`,
+				schemaDef:   `"dependentRequired": { "a": ["b"] }`,
 			},
 		}
 
@@ -557,17 +557,26 @@ var _ = Describe("jsonschema-validator", Ordered, func() {
 			c.AssertFormat()
 		})
 
-		It(jsonschema.OpenAPI_3_0, func() {
+		It("openapi3.0", func() {
 			versionFields, invalidData, expectedErrors := getFullVersionFields(baseFields, draft4SpecificFields)
-			schemaDef := buildSchema(jsonschema.OpenAPI_3_0, versionFields)
+			delete(invalidData, "requiredField")
+			var fieldsSchemas []string
+			for field, ctx := range versionFields {
+				fieldsSchemas = append(fieldsSchemas, fmt.Sprintf(`"%s": { %s }`, field, ctx.schemaDef))
+			}
+			schemaDef := fmt.Sprintf(`{
+						"type": "object",
+						"required": ["requiredField"],
+						"properties": {
+							%s
+						}
+					}`, strings.Join(fieldsSchemas, ","))
 			validator := jsonschema.New(schemaDef, c)
-			ctx := &jsonschema.ValidatorContext{
+			err := validator.Validate(&jsonschema.ValidatorContext{
 				HTTPRequest: &jsonschema.HTTPRequest{
 					Data: invalidData,
 				},
-			}
-
-			err := validator.Validate(ctx)
+			})
 			Expect(err).ToNot(BeNil(), "Expect not nil error")
 
 			var errMap map[string]interface{}
@@ -576,6 +585,7 @@ var _ = Describe("jsonschema-validator", Ordered, func() {
 
 			actualFields, ok := errMap["fields"].(map[string]interface{})
 			Expect(ok).To(BeTrue(), "Error should have 'fields' map for %s", string(b))
+			Expect(len(actualFields)).To(Equal(19))
 
 			// Verify each expected field error message
 			for field, expectedMsg := range expectedErrors {
@@ -586,101 +596,117 @@ var _ = Describe("jsonschema-validator", Ordered, func() {
 			}
 		})
 
-		It(jsonschema.Draft_4, func() {
-			var draft4Fields map[string]validateFieldTestContext
-			draft4Fields = utils.MergeGenericMap(draft4Fields, draft4SpecificFields)
-			draft4Fields = utils.MergeGenericMap(draft4Fields, jsonschemaComposite)
+		It("draft4", func() {
+			draft4Fields := utils.MergeGenericMap(nil, draft4SpecificFields)
+			draft4Fields = utils.MergeGenericMap(draft4Fields, jsonschemaExtraFields)
 			versionFields, invalidData, expectedErrors := getFullVersionFields(baseFields, draft4Fields)
-			schemaDef := buildSchema(jsonschema.Draft_4, versionFields)
-			validator := jsonschema.New(schemaDef, c)
-			ctx := &jsonschema.ValidatorContext{
-				HTTPRequest: &jsonschema.HTTPRequest{
-					Data: invalidData,
-				},
+
+			actualFields := make(map[string]interface{})
+			schemaDefs := buildSchema(jsonschema.Draft_4, versionFields)
+			for field, schemaDef := range schemaDefs {
+				validator := jsonschema.New(schemaDef, c)
+				err := validator.Validate(&jsonschema.ValidatorContext{
+					HTTPRequest: &jsonschema.HTTPRequest{
+						Data: invalidData[field],
+					},
+				})
+				if vErr, ok := err.(*errs.ValidateError); ok {
+					for _, v := range vErr.Fields {
+						actualFields[field] = v
+					}
+				}
 			}
 
-			err := validator.Validate(ctx)
-			Expect(err).ToNot(BeNil(), "Expect not nil error")
-
-			var errMap map[string]interface{}
-			b, _ := json.Marshal(err)
-			json.Unmarshal(b, &errMap)
-
-			actualFields, ok := errMap["fields"].(map[string]interface{})
-			Expect(ok).To(BeTrue(), "Error should have 'fields' map for %s", string(b))
+			Expect(len(actualFields)).To(Equal(23))
 
 			// Verify each expected field error message
 			for field, expectedMsg := range expectedErrors {
 				actualMsg, exists := actualFields[field]
 
 				Expect(exists).To(BeTrue(), "Field '%s' should have error for %s", field, actualMsg)
-				Expect(expectedMsg).To(Equal(actualMsg), "Field '%s' error message should be consistent for [%s]. Got: [%v]", field, expectedMsg, actualMsg)
+				Expect(actualMsg).To(Equal(expectedMsg), "Field '%s' error message should be consistent for [%s]. Got: [%v]", field, expectedMsg, actualMsg)
 			}
 		})
 
 		// draft 6 and 7 are similar
-		It(jsonschema.Draft_6, func() {
+		It("draft6 or draft7", func() {
 			draft6Fields := draft6PlusFields
-			utils.MergeGenericMap(draft6Fields, jsonschemaComposite)
+			draft6Fields = utils.MergeGenericMap(draft6Fields, jsonschemaExtraFields)
 			versionFields, invalidData, expectedErrors := getFullVersionFields(baseFields, draft6Fields)
-			schemaDef := buildSchema(jsonschema.Draft_6, versionFields)
-			validator := jsonschema.New(schemaDef, c)
-			ctx := &jsonschema.ValidatorContext{
-				HTTPRequest: &jsonschema.HTTPRequest{
-					Data: invalidData,
-				},
+			actualFields := make(map[string]interface{})
+			schemaDefs := buildSchema(jsonschema.Draft_6, versionFields)
+			for field, schemaDef := range schemaDefs {
+				validator := jsonschema.New(schemaDef, c)
+				err := validator.Validate(&jsonschema.ValidatorContext{
+					HTTPRequest: &jsonschema.HTTPRequest{
+						Data: invalidData[field],
+					},
+				})
+
+				if vErr, ok := err.(*errs.ValidateError); ok {
+					for _, v := range vErr.Fields {
+						actualFields[field] = v
+					}
+				}
 			}
+			Expect(len(actualFields)).To(Equal(26))
 
-			err := validator.Validate(ctx)
-			Expect(err).ToNot(BeNil(), "Expect not nil error")
-
-			var errMap map[string]interface{}
-			b, _ := json.Marshal(err)
-			json.Unmarshal(b, &errMap)
-
-			actualFields, ok := errMap["fields"].(map[string]interface{})
-			Expect(ok).To(BeTrue(), "Error should have 'fields' map for %s", string(b))
-
-			// Verify each expected field error message
 			for field, expectedMsg := range expectedErrors {
 				actualMsg, exists := actualFields[field]
-
-				Expect(exists).To(BeTrue(), "Field '%s' should have error for %s", field, actualMsg)
-				Expect(expectedMsg).To(Equal(actualMsg), "Field '%s' error message should be consistent for [%s]. Got: [%v]", field, expectedMsg, actualMsg)
+				Expect(exists).To(BeTrue(), "Field '%s' should have error", field)
+				var msg interface{}
+				switch actualMsg.(type) {
+				case map[string]interface{}, []interface{}:
+					b, _ := json.Marshal(actualMsg)
+					msg = string(b)
+				case string:
+					msg = actualMsg.(string)
+				default:
+					msg = actualMsg
+				}
+				Expect(msg).To(Equal(expectedMsg), "Field '%s' error message should be consistent for [%s]. Got: [%v]", field, expectedMsg, msg)
 			}
 		})
 
 		// draft 2019 and 2020 are similar
-		It(jsonschema.Draft_2019, func() {
+		It("draft2019 or draft2020", func() {
 			draft2019Fields := draft2019PlusFields
-			utils.MergeGenericMap(draft2019Fields, jsonschemaComposite)
-			versionFields, invalidData, expectedErrors := getFullVersionFields(baseFields, draft2019Fields)
-			schemaDef := buildSchema(jsonschema.Draft_6, versionFields)
-			validator := jsonschema.New(schemaDef, c)
-			ctx := &jsonschema.ValidatorContext{
-				HTTPRequest: &jsonschema.HTTPRequest{
-					Data: invalidData,
-				},
+			draft2019Fields = utils.MergeGenericMap(draft2019Fields, draft6PlusFields)
+			draft2019Fields = utils.MergeGenericMap(draft2019Fields, jsonschemaExtraFields)
+			versionFields, invalidData, expectedErrors := getFullVersionFields(nil, draft2019Fields)
+			actualFields := make(map[string]interface{})
+			schemaDefs := buildSchema(jsonschema.Draft_2019, versionFields)
+			for field, schemaDef := range schemaDefs {
+				validator := jsonschema.New(schemaDef, c)
+				err := validator.Validate(&jsonschema.ValidatorContext{
+					HTTPRequest: &jsonschema.HTTPRequest{
+						Data: invalidData[field],
+					},
+				})
+
+				if vErr, ok := err.(*errs.ValidateError); ok {
+					for _, v := range vErr.Fields {
+						actualFields[field] = v
+					}
+				}
 			}
+			Expect(len(actualFields)).To(Equal(29))
 
-			err := validator.Validate(ctx)
-			Expect(err).ToNot(BeNil(), "Expect not nil error")
-
-			var errMap map[string]interface{}
-			b, _ := json.Marshal(err)
-			json.Unmarshal(b, &errMap)
-
-			actualFields, ok := errMap["fields"].(map[string]interface{})
-			Expect(ok).To(BeTrue(), "Error should have 'fields' map for %s", string(b))
-
-			// Verify each expected field error message
 			for field, expectedMsg := range expectedErrors {
 				actualMsg, exists := actualFields[field]
-
-				Expect(exists).To(BeTrue(), "Field '%s' should have error for %s", field, actualMsg)
-				Expect(expectedMsg).To(Equal(actualMsg), "Field '%s' error message should be consistent for [%s]. Got: [%v]", field, expectedMsg, actualMsg)
+				Expect(exists).To(BeTrue(), "Field '%s' should have error", field)
+				var msg interface{}
+				switch actualMsg.(type) {
+				case map[string]interface{}, []interface{}:
+					b, _ := json.Marshal(actualMsg)
+					msg = string(b)
+				case string:
+					msg = actualMsg.(string)
+				default:
+					msg = actualMsg
+				}
+				Expect(msg).To(Equal(expectedMsg), "Field '%s' error message should be consistent for [%s]. Got: [%v]", field, expectedMsg, msg)
 			}
 		})
 	})
-
 })

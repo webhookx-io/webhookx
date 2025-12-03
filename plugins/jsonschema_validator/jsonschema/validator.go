@@ -14,5 +14,5 @@ type ValidatorContext struct {
 
 type HTTPRequest struct {
 	R    *http.Request
-	Data map[string]any
+	Data any
 }

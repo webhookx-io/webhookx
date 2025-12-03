@@ -1,11 +1,9 @@
 package utils
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
+	"github.com/zeebo/xxh3"
 )
 
-func Sha256(s string) string {
-	h := sha256.Sum256([]byte(s))
-	return hex.EncodeToString(h[:])
+func XXHash3(s string) uint64 {
+	return xxh3.HashString(s)
 }

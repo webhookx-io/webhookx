@@ -25,6 +25,17 @@ func MergeMap(dst, src map[string]interface{}) {
 		}
 	}
 }
+func MergeGenericMap[T any](dst, src map[string]T) map[string]T {
+	if dst == nil {
+		dst = make(map[string]T, len(src))
+	}
+
+	for k, v := range src {
+		dst[k] = v
+	}
+
+	return dst
+}
 
 func StructToMap(v interface{}) (map[string]interface{}, error) {
 	b, err := json.Marshal(v)

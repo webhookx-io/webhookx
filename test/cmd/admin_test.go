@@ -4,10 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"os"
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,6 +14,9 @@ import (
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
+	"net/http"
+	"os"
+	"time"
 )
 
 func fullURL(r *http.Request) string {
@@ -110,7 +109,7 @@ var _ = Describe("admin", Ordered, func() {
 				assert.Equal(GinkgoT(), `jsonschema-validator`, plugins[1].Name)
 				assert.Equal(GinkgoT(), true, plugins[1].Enabled)
 				assert.JSONEq(GinkgoT(),
-					`{"draft": "6", "schemas": {"charge.succeeded": {"schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" },\n      \"amount\": { \"type\": \"integer\", \"minimum\": 1 },\n      \"currency\": { \"type\": \"string\", \"minLength\": 3, \"maxLength\": 6 }\n  },\n  \"required\": [\"id\", \"amount\", \"currency\"]\n}\n"}}, "default_schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" }\n  },\n  \"required\": [\"id\"]\n}\n"}`,
+					`{"default_schema":"{\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" }\n  },\n  \"required\": [\"id\"]\n}\n","schemas":{"version.draft04":{"schema":"{\n  \"$schema\": \"https://json-schema.org/draft-04/schema\",\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" },\n      \"amount\": { \"type\": \"integer\", \"minimum\": 1 },\n      \"currency\": { \"type\": \"string\", \"minLength\": 3, \"maxLength\": 6 }\n  },\n  \"required\": [\"id\"]\n}\n"},"version.draft06":{"schema":"{\n  \"$schema\": \"https://json-schema.org/draft-06/schema\",\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" },\n      \"amount\": { \"type\": \"integer\", \"minimum\": 1 },\n      \"currency\": { \"type\": \"string\", \"minLength\": 3, \"maxLength\": 6 }\n  },\n  \"required\": [\"id\"]\n}\n"},"version.draft07":{"schema":"{\n  \"$schema\": \"https://json-schema.org/draft-07/schema\",\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" },\n      \"amount\": { \"type\": \"integer\", \"minimum\": 1 },\n      \"currency\": { \"type\": \"string\", \"minLength\": 3, \"maxLength\": 6 }\n  },\n  \"required\": [\"id\"]\n}\n"},"version.draft2019-09":{"schema":"{\n  \"$schema\": \"https://json-schema.org/draft/2019-09/schema\",\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" },\n      \"amount\": { \"type\": \"integer\", \"minimum\": 1 },\n      \"currency\": { \"type\": \"string\", \"minLength\": 3, \"maxLength\": 6 }\n  },\n  \"required\": [\"id\"]\n}\n"},"version.draft2020-12":{"schema":"{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" },\n      \"amount\": { \"type\": \"integer\", \"minimum\": 1 },\n      \"currency\": { \"type\": \"string\", \"minLength\": 3, \"maxLength\": 6 }\n  },\n  \"required\": [\"id\"]\n}\n"},"version.openapi3.0":{"schema":"{\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" },\n      \"amount\": { \"type\": \"integer\", \"minimum\": 1 },\n      \"currency\": { \"type\": \"string\", \"minLength\": 3, \"maxLength\": 6 }\n  },\n  \"required\": [\"id\", \"amount\", \"currency\"]\n}\n"}},"verbose_response":true}`,
 					string(utils.Must(json.Marshal(plugins[1].Config))))
 			})
 

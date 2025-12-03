@@ -42,7 +42,7 @@ sources:
           function: "function handle() {}"
       - name: "jsonschema-validator"
         config:
-          draft: "6"
+          verbose_response: true
           default_schema: |
             {
               "type": "object",
@@ -52,7 +52,7 @@ sources:
               "required": ["id"]
             }
           schemas:
-            charge.succeeded:
+            version.openapi3.0:
               schema: |
                 {
                   "type": "object",
@@ -63,3 +63,64 @@ sources:
                   },
                   "required": ["id", "amount", "currency"]
                 }
+            version.draft04:
+              schema: |
+                {
+                  "$schema": "https://json-schema.org/draft-04/schema",
+                  "type": "object",
+                  "properties": {
+                      "id": { "type": "string" },
+                      "amount": { "type": "integer", "minimum": 1 },
+                      "currency": { "type": "string", "minLength": 3, "maxLength": 6 }
+                  },
+                  "required": ["id"]
+                }
+            version.draft06:
+              schema: |
+                {
+                  "$schema": "https://json-schema.org/draft-06/schema",
+                  "type": "object",
+                  "properties": {
+                      "id": { "type": "string" },
+                      "amount": { "type": "integer", "minimum": 1 },
+                      "currency": { "type": "string", "minLength": 3, "maxLength": 6 }
+                  },
+                  "required": ["id"]
+                }
+            version.draft07:
+              schema: |
+                {
+                  "$schema": "https://json-schema.org/draft-07/schema",
+                  "type": "object",
+                  "properties": {
+                      "id": { "type": "string" },
+                      "amount": { "type": "integer", "minimum": 1 },
+                      "currency": { "type": "string", "minLength": 3, "maxLength": 6 }
+                  },
+                  "required": ["id"]
+                }
+            version.draft2019-09:
+              schema: |
+                {
+                  "$schema": "https://json-schema.org/draft/2019-09/schema",
+                  "type": "object",
+                  "properties": {
+                      "id": { "type": "string" },
+                      "amount": { "type": "integer", "minimum": 1 },
+                      "currency": { "type": "string", "minLength": 3, "maxLength": 6 }
+                  },
+                  "required": ["id"]
+                }
+            version.draft2020-12:
+              schema: |
+                {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                      "id": { "type": "string" },
+                      "amount": { "type": "integer", "minimum": 1 },
+                      "currency": { "type": "string", "minLength": 3, "maxLength": 6 }
+                  },
+                  "required": ["id"]
+                }
+

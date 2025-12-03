@@ -9,13 +9,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"maps"
-	"net"
-	"net/url"
-	"os"
-	"regexp"
-	"time"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -35,6 +28,12 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/test"
+	"maps"
+	"net"
+	"net/url"
+	"os"
+	"regexp"
+	"time"
 )
 
 var (

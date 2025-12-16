@@ -1103,6 +1103,119 @@ components:
         - signature_header
         - secret
 
+    IntegrationAuthPluginConfiguration:
+      oneOf:
+        - $ref: "#/components/schemas/GitHubProviderConfiguration"
+        - $ref: "#/components/schemas/SlackProviderConfiguration"
+        - $ref: "#/components/schemas/StripeProviderConfiguration"
+        - $ref: "#/components/schemas/XProviderConfiguration"
+        - $ref: "#/components/schemas/GitlabProviderConfiguration"
+        - $ref: "#/components/schemas/DiscordProviderConfiguration"
+        - $ref: "#/components/schemas/ZendeskProviderConfiguration"
+        - $ref: "#/components/schemas/OpenAIProviderConfiguration"
+        - $ref: "#/components/schemas/OktaProviderConfiguration"
+      discriminator:
+        propertyName: provider
+        mapping:
+          github: "#/components/schemas/GitHubProviderConfiguration"
+          slack: "#/components/schemas/SlackProviderConfiguration"
+          stripe: "#/components/schemas/StripeProviderConfiguration"
+          x: "#/components/schemas/XProviderConfiguration"
+          gitlab: "#/components/schemas/GitlabProviderConfiguration"
+          discord: "#/components/schemas/DiscordProviderConfiguration"
+          zendesk: "#/components/schemas/ZendeskProviderConfiguration"
+          openai: "#/components/schemas/OpenAIProviderConfiguration"
+          okta: "#/components/schemas/OktaProviderConfiguration"
+
+    CommonProviderConfig:
+      type: object
+      properties:
+        provider:
+          type: string
+        provider_config:
+          type: object
+          additionalProperties: false
+          properties:
+            secret:
+              description: "The signing secret used to verify request's signature."
+              type: string
+              minLength: 1
+          required:
+            - secret
+      required:
+        - provider
+        - provider_config
+
+    Common2ProviderConfig:
+      type: object
+      properties:
+        provider:
+          type: string
+        provider_config:
+          type: object
+          additionalProperties: false
+          properties:
+            secret:
+              description: "Signing secret for request signature validation."
+              type: string
+              minLength: 1
+            tolerance_window:
+              description: "Tolerance window (in seconds) for signature timestamp validation. A value of 0 disables the tolerance check and may increase the risk of replay attacks."
+              type: integer
+              minimum: 0
+              maximum: 86400
+              default: 300
+          required:
+            - secret
+            - tolerance
+      required:
+        - provider
+        - provider_config
+
+    GitHubProviderConfiguration:
+      $ref: "#/components/schemas/CommonProviderConfig"
+
+    SlackProviderConfiguration:
+      $ref: "#/components/schemas/Common2ProviderConfig"
+
+    GitlabProviderConfiguration:
+      $ref: "#/components/schemas/CommonProviderConfig"
+
+    StripeProviderConfiguration:
+      $ref: "#/components/schemas/Common2ProviderConfig"
+
+    XProviderConfiguration:
+      $ref: "#/components/schemas/CommonProviderConfig"
+
+    DiscordProviderConfiguration:
+      $ref: "#/components/schemas/CommonProviderConfig"
+
+    ZendeskProviderConfiguration:
+      $ref: "#/components/schemas/Common2ProviderConfig"
+
+    OpenAIProviderConfiguration:
+      $ref: "#/components/schemas/Common2ProviderConfig"
+
+    OktaProviderConfiguration:
+      type: object
+      properties:
+        provider:
+          type: string
+        provider_config:
+          type: object
+          additionalProperties: false
+          properties:
+            authentication_field:
+              type: string
+            authentication_secret:
+              type: string
+          required:
+            - authentication_field
+            - authentication_secret
+      required:
+        - provider
+        - provider_config
+
     HTTPSourceConfig:
       type: object
       default:

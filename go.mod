@@ -41,6 +41,7 @@ require (
 	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
+	github.com/stripe/stripe-go/v84 v84.0.0
 	github.com/tetratelabs/wazero v1.10.0
 	github.com/tidwall/gjson v1.18.0
 	github.com/vmihailenco/msgpack/v5 v5.4.1

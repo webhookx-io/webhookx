@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"maps"
+	"regexp"
+	"slices"
 	"strconv"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -86,7 +90,19 @@ func handleMultiError(me openapi3.MultiError, paths []string, fields map[string]
 			handleMultiError(e, paths, fields)
 		case *openapi3.SchemaError:
 			if e.SchemaField != "allOf" && e.SchemaField != "anyOf" && e.SchemaField != "oneOf" {
-				insertError(fields, 0, append(paths, e.JSONPointer()...), e)
+				p := append(paths, e.JSONPointer()...)
+				switch e.SchemaField {
+				case "discriminator":
+					insertError(fields, 0, append(p, e.Schema.Discriminator.PropertyName), e)
+				case "properties":
+					re := regexp.MustCompile(`property "(.*?)" is unsupported`)
+					if matches := re.FindStringSubmatch(e.Reason); len(matches) > 1 {
+						p = append(p, matches[1])
+					}
+					insertError(fields, 0, p, e)
+				default:
+					insertError(fields, 0, p, e)
+				}
 			}
 			if decoded := decodeMultiError(e); decoded != nil {
 				handleMultiError(decoded, e.JSONPointer(), fields)
@@ -178,8 +194,19 @@ func ensureArray(m map[string]interface{}, key string, index int) {
 }
 
 func formatError(e *openapi3.SchemaError) string {
-	if e.SchemaField == "required" {
+	switch e.SchemaField {
+	case "required":
 		return "required field missing"
+	case "properties":
+		return "property is unsupported"
+	case "discriminator":
+		enums := slices.Sorted(maps.Keys(e.Schema.Discriminator.Mapping))
+		if len(enums) > 0 {
+			allowedValues, _ := json.Marshal(enums)
+			return fmt.Sprintf("value is not one of the allowed values %s", string(allowedValues))
+		}
+		return e.Reason
+	default:
+		return e.Reason
 	}
-	return e.Reason
 }

@@ -304,6 +304,123 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 		})
 
+		Context("integration-auth plugin", func() {
+			It("returns 201", func() {
+				cancel := helper.MockLicenser(nil)
+				defer cancel()
+				source := factory.SourceP()
+				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"name":      "integration-auth",
+						"source_id": source.ID,
+						"config": map[string]interface{}{
+							"provider": "github",
+							"provider_config": map[string]interface{}{
+								"secret": "mykey",
+							},
+						},
+					}).
+					SetResult(entities.Plugin{}).
+					Post("/workspaces/default/plugins")
+
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 201, resp.StatusCode())
+
+				result := resp.Result().(*entities.Plugin)
+				assert.Equal(GinkgoT(), "integration-auth", result.Name)
+				assert.Equal(GinkgoT(), source.ID, *result.SourceId)
+				assert.Equal(GinkgoT(), "github", result.Config["provider"])
+				assert.EqualValues(GinkgoT(),
+					map[string]interface{}{"secret": "mykey"},
+					result.Config["provider_config"])
+			})
+
+			It("returns HTTP 403 when creating/updating an enterprise plugin without having a valid license", func() {
+				// create
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"name": "integration-auth",
+					}).
+					SetResult(entities.Plugin{}).
+					Post("/workspaces/default/plugins")
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 403, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"plugin 'integration-auth' is not available for current license"}`,
+					string(resp.Body()))
+
+				source := factory.SourceWS(ws.ID)
+				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), &source))
+				plugin := factory.PluginWS(ws.ID, func(o *entities.Plugin) {
+					o.Name = "integration-auth"
+				})
+				assert.Nil(GinkgoT(), db.Plugins.Insert(context.TODO(), &plugin))
+
+				// update
+				resp, err = adminClient.R().
+					SetBody(map[string]interface{}{
+						"name": "integration-auth",
+					}).
+					SetResult(entities.Plugin{}).
+					Put("/workspaces/default/plugins/" + plugin.ID)
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 403, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"plugin 'integration-auth' is not available for current license"}`,
+					string(resp.Body()))
+			})
+
+			It("returns HTTP 400 for unknown provider", func() {
+				cancel := helper.MockLicenser(nil)
+				defer cancel()
+				source := factory.SourceP()
+				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"name":      "integration-auth",
+						"source_id": source.ID,
+						"config": map[string]interface{}{
+							"provider": "unknown",
+						},
+					}).
+					SetResult(entities.Plugin{}).
+					Post("/workspaces/default/plugins")
+
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.True(GinkgoT(), strings.Contains(string(resp.Body()), `"provider":"value is not one of the allowed values `))
+			})
+
+			It("returns HTTP 400 for invalid provider_config", func() {
+				cancel := helper.MockLicenser(nil)
+				defer cancel()
+				source := factory.SourceP()
+				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
+				resp, err := adminClient.R().
+					SetBody(map[string]interface{}{
+						"name":      "integration-auth",
+						"source_id": source.ID,
+						"config": map[string]interface{}{
+							"provider": "github",
+							"provider_config": map[string]interface{}{
+								"secret": true,
+								"key1":   "v1",
+								"key2":   "v2",
+							},
+						},
+					}).
+					SetResult(entities.Plugin{}).
+					Post("/workspaces/default/plugins")
+
+				assert.Nil(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"provider_config":{"key1":"property is unsupported","key2":"property is unsupported","secret":"value must be a string"}}}}}`,
+					string(resp.Body()))
+			})
+		})
+
 		Context("errors", func() {
 			It("return HTTP 400", func() {
 				resp, err := adminClient.R().
@@ -330,6 +447,8 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("returns HTTP 400 when missing endpoint_id for outbound type plugin", func() {
+				cancel := helper.MockLicenser(nil)
+				defer cancel()
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{"name": "outbound"}).
 					SetResult(entities.Plugin{}).
@@ -342,6 +461,8 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("returns HTTP 400 when missing source_id for inbound type plugin", func() {
+				cancel := helper.MockLicenser(nil)
+				defer cancel()
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{"name": "inbound"}).
 					SetResult(entities.Plugin{}).
@@ -354,6 +475,8 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("returns HTTP 400 when missing required config fields", func() {
+				cancel := helper.MockLicenser(nil)
+				defer cancel()
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
 						"name":        "hello",
@@ -370,6 +493,8 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("return HTTP 400 when configuration filed type does not match", func() {
+				cancel := helper.MockLicenser(nil)
+				defer cancel()
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
 						"name":        "hello",
@@ -386,6 +511,8 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("returns HTTP 400 when source_id does not exist", func() {
+				cancel := helper.MockLicenser(nil)
+				defer cancel()
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
 						"name":      "inbound",
@@ -401,6 +528,8 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("returns HTTP 400 when endpoint_id does not exist", func() {
+				cancel := helper.MockLicenser(nil)
+				defer cancel()
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
 						"name":        "outbound",

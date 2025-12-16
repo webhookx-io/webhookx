@@ -35,3 +35,19 @@ func NewValidateError(err error) *ValidateError {
 func (e *ValidateError) Error() string {
 	return e.err.Error()
 }
+
+type LicenseError struct {
+	err     error
+	Message string `json:"message"`
+}
+
+func NewLicenseError(err error) *LicenseError {
+	return &LicenseError{
+		err:     err,
+		Message: err.Error(),
+	}
+}
+
+func (e *LicenseError) Error() string {
+	return e.err.Error()
+}

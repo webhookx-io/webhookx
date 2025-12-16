@@ -9,6 +9,7 @@ import (
 type Licenser interface {
 	Allow(feature string) bool
 	AllowAPI(workspace string, path string, method string) bool
+	AllowPlugin(plugin string) bool
 	License() *license.License
 }
 
@@ -27,6 +28,11 @@ func NewLicenser(license *license.License) *DefaultLicenser {
 func (l *DefaultLicenser) Allow(feature string) bool {
 	plan := l.plan()
 	return plans[plan].HasFeature(feature)
+}
+
+func (l *DefaultLicenser) AllowPlugin(plugin string) bool {
+	plan := l.plan()
+	return plans[plan].HasPlugin(plugin)
 }
 
 func (l *DefaultLicenser) AllowAPI(workspace string, path string, method string) bool {

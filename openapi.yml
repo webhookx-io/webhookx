@@ -1105,29 +1105,25 @@ components:
 
     IntegrationAuthPluginConfiguration:
       oneOf:
-        - $ref: "#/components/schemas/GitHubProviderConfiguration"
-        - $ref: "#/components/schemas/SlackProviderConfiguration"
-        - $ref: "#/components/schemas/StripeProviderConfiguration"
-        - $ref: "#/components/schemas/XProviderConfiguration"
-        - $ref: "#/components/schemas/GitlabProviderConfiguration"
-        - $ref: "#/components/schemas/DiscordProviderConfiguration"
-        - $ref: "#/components/schemas/ZendeskProviderConfiguration"
-        - $ref: "#/components/schemas/OpenAIProviderConfiguration"
-        - $ref: "#/components/schemas/OktaProviderConfiguration"
+        - $ref: "#/components/schemas/GitHubProviderConfig"
+        - $ref: "#/components/schemas/SlackProviderConfig"
+        - $ref: "#/components/schemas/StripeProviderConfig"
+        - $ref: "#/components/schemas/GitlabProviderConfig"
+        - $ref: "#/components/schemas/ZendeskProviderConfig"
+        - $ref: "#/components/schemas/OpenAIProviderConfig"
+        - $ref: "#/components/schemas/OktaProviderConfig"
       discriminator:
         propertyName: provider
         mapping:
-          github: "#/components/schemas/GitHubProviderConfiguration"
-          slack: "#/components/schemas/SlackProviderConfiguration"
-          stripe: "#/components/schemas/StripeProviderConfiguration"
-          x: "#/components/schemas/XProviderConfiguration"
-          gitlab: "#/components/schemas/GitlabProviderConfiguration"
-          discord: "#/components/schemas/DiscordProviderConfiguration"
-          zendesk: "#/components/schemas/ZendeskProviderConfiguration"
-          openai: "#/components/schemas/OpenAIProviderConfiguration"
-          okta: "#/components/schemas/OktaProviderConfiguration"
+          github: "#/components/schemas/GitHubProviderConfig"
+          slack: "#/components/schemas/SlackProviderConfig"
+          stripe: "#/components/schemas/StripeProviderConfig"
+          gitlab: "#/components/schemas/GitlabProviderConfig"
+          zendesk: "#/components/schemas/ZendeskProviderConfig"
+          openai: "#/components/schemas/OpenAIProviderConfig"
+          okta: "#/components/schemas/OktaProviderConfig"
 
-    CommonProviderConfig:
+    SecretProviderConfig:
       type: object
       properties:
         provider:
@@ -1146,7 +1142,7 @@ components:
         - provider
         - provider_config
 
-    Common2ProviderConfig:
+    SecretWithToleranceProviderConfig:
       type: object
       properties:
         provider:
@@ -1172,31 +1168,28 @@ components:
         - provider
         - provider_config
 
-    GitHubProviderConfiguration:
-      $ref: "#/components/schemas/CommonProviderConfig"
+    GitHubProviderConfig:
+      $ref: "#/components/schemas/SecretProviderConfig"
 
-    SlackProviderConfiguration:
-      $ref: "#/components/schemas/Common2ProviderConfig"
+    SlackProviderConfig:
+      $ref: "#/components/schemas/SecretWithToleranceProviderConfig"
 
-    GitlabProviderConfiguration:
-      $ref: "#/components/schemas/CommonProviderConfig"
+    GitlabProviderConfig:
+      $ref: "#/components/schemas/SecretProviderConfig"
 
-    StripeProviderConfiguration:
-      $ref: "#/components/schemas/Common2ProviderConfig"
+    StripeProviderConfig:
+      $ref: "#/components/schemas/SecretWithToleranceProviderConfig"
 
-    XProviderConfiguration:
-      $ref: "#/components/schemas/CommonProviderConfig"
+    XProviderConfig:
+      $ref: "#/components/schemas/SecretProviderConfig"
 
-    DiscordProviderConfiguration:
-      $ref: "#/components/schemas/CommonProviderConfig"
+    ZendeskProviderConfig:
+      $ref: "#/components/schemas/SecretWithToleranceProviderConfig"
 
-    ZendeskProviderConfiguration:
-      $ref: "#/components/schemas/Common2ProviderConfig"
+    OpenAIProviderConfig:
+      $ref: "#/components/schemas/SecretWithToleranceProviderConfig"
 
-    OpenAIProviderConfiguration:
-      $ref: "#/components/schemas/Common2ProviderConfig"
-
-    OktaProviderConfiguration:
+    OktaProviderConfig:
       type: object
       properties:
         provider:

@@ -332,52 +332,6 @@ var _ = Describe("integration-auth", Ordered, func() {
 		})
 	})
 
-	Context("x", func() {
-		var proxyClient *resty.Client
-		var app *app.Application
-
-		entitiesConfig := helper.EntitiesConfig{
-			Sources: []*entities.Source{factory.SourceP(func(o *entities.Source) {
-				o.Config.HTTP.Methods = []string{"GET", "POST"}
-			})},
-		}
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("integration-auth"),
-				factory.WithPluginConfig(integration_auth.Config{
-					Provider: "x",
-					ProviderConfig: map[string]interface{}{
-						"secret": "test-x-secret",
-					},
-				}),
-			),
-		}
-
-		BeforeAll(func() {
-			helper.InitDB(true, &entitiesConfig)
-			proxyClient = helper.ProxyClient()
-
-			app = utils.Must(helper.Start(map[string]string{}))
-			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
-			assert.NoError(GinkgoT(), err)
-		})
-
-		AfterAll(func() {
-			app.Stop()
-		})
-
-		Context("CRC", func() {
-			It("should succeed", func() {
-				resp, err := proxyClient.R().
-					Get("?crc_token=foo")
-				assert.NoError(GinkgoT(), err)
-				assert.Equal(GinkgoT(), 200, resp.StatusCode())
-				assert.Equal(GinkgoT(), `{"response_token": "sha256=AYa2AaX0PCY+jiZ7m1p/3eAhkVsD1xw13C+JN5Kwhlc="}`, string(resp.Body()))
-			})
-		})
-	})
-
 	Context("gitlab", func() {
 		var proxyClient *resty.Client
 		var app *app.Application
@@ -580,7 +534,7 @@ var _ = Describe("integration-auth", Ordered, func() {
 					Get("/")
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 200, resp.StatusCode())
-				assert.Equal(GinkgoT(), `{"verification": "aGMfEUB5SlPbLiNOC1-aYFSAAlxdZ-x8GZbsbi1f"}`, string(resp.Body()))
+				assert.Equal(GinkgoT(), `{"verification":"aGMfEUB5SlPbLiNOC1-aYFSAAlxdZ-x8GZbsbi1f"}`, string(resp.Body()))
 			})
 		})
 

@@ -1163,7 +1163,7 @@ components:
               default: 300
           required:
             - secret
-            - tolerance
+            - tolerance_window
       required:
         - provider
         - provider_config

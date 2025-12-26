@@ -54,6 +54,10 @@ jobs:
         run: |
           make test-main FLAGS="-coverpkg=github.com/webhookx-io/webhookx/... --cover --coverprofile=coverage.txt"
           cat coverage.txt
+      - name: print webhookx.log
+        if: failure()
+        run: |
+          cat test/webhookx.log
       - name: upload coverage reselt
         uses: codecov/codecov-action@v4
         with:
@@ -81,6 +85,10 @@ jobs:
         run: |
           make test-o11 FLAGS="-coverpkg=github.com/webhookx-io/webhookx/... --cover --coverprofile=coverage.txt"
           cat coverage.txt
+      - name: print webhookx.log
+        if: failure()
+        run: |
+          cat test/webhookx.log
       - name: upload coverage reselt
         uses: codecov/codecov-action@v4
         with:

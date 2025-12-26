@@ -7,6 +7,7 @@ import (
 type Plan struct {
 	Name          string
 	Features      []string
+	Plugins       []string
 	ForbiddenAPIs map[string]*Condition
 	Limits        map[string]int
 }
@@ -15,14 +16,35 @@ func (p Plan) HasFeature(feature string) bool {
 	return slices.Contains(p.Features, feature)
 }
 
+func (p Plan) HasPlugin(name string) bool {
+	return slices.Contains(p.Plugins, name)
+}
+
 type Condition struct {
 	Methods                 []string
 	ExcludeDefaultWorkspace bool
 }
 
+var (
+	FreePlugins = []string{
+		"webhookx-signature",
+		"wasm",
+		"function",
+		"basic-auth",
+		"key-auth",
+		"hmac-auth",
+		"jsonschema-validator",
+	}
+
+	EnterprisePlugins = []string{
+		"connect-auth",
+	}
+)
+
 var plans = map[string]Plan{
 	"free": {
 		Name:     "free",
+		Plugins:  FreePlugins,
 		Features: []string{},
 		ForbiddenAPIs: map[string]*Condition{
 			"/workspaces":                               {Methods: []string{"POST"}},
@@ -42,6 +64,7 @@ var plans = map[string]Plan{
 	},
 	"enterprise": {
 		Name:          "enterprise",
+		Plugins:       append(FreePlugins, EnterprisePlugins...),
 		Features:      []string{"secret"},
 		ForbiddenAPIs: map[string]*Condition{},
 		Limits:        map[string]int{},

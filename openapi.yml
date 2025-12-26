@@ -1103,6 +1103,115 @@ components:
         - signature_header
         - secret
 
+    ConnectAuthPluginConfiguration:
+      oneOf:
+        - $ref: "#/components/schemas/GitHubProviderConfig"
+        - $ref: "#/components/schemas/SlackProviderConfig"
+        - $ref: "#/components/schemas/StripeProviderConfig"
+        - $ref: "#/components/schemas/GitlabProviderConfig"
+        - $ref: "#/components/schemas/ZendeskProviderConfig"
+        - $ref: "#/components/schemas/OpenAIProviderConfig"
+        - $ref: "#/components/schemas/OktaProviderConfig"
+      discriminator:
+        propertyName: provider
+        mapping:
+          github: "#/components/schemas/GitHubProviderConfig"
+          slack: "#/components/schemas/SlackProviderConfig"
+          stripe: "#/components/schemas/StripeProviderConfig"
+          gitlab: "#/components/schemas/GitlabProviderConfig"
+          zendesk: "#/components/schemas/ZendeskProviderConfig"
+          openai: "#/components/schemas/OpenAIProviderConfig"
+          okta: "#/components/schemas/OktaProviderConfig"
+
+    SecretProviderConfig:
+      type: object
+      properties:
+        provider:
+          type: string
+        provider_config:
+          type: object
+          additionalProperties: false
+          properties:
+            secret:
+              description: "The signing secret used to verify request's signature."
+              type: string
+              minLength: 1
+          required:
+            - secret
+      required:
+        - provider
+        - provider_config
+
+    SecretWithToleranceProviderConfig:
+      type: object
+      properties:
+        provider:
+          type: string
+        provider_config:
+          type: object
+          additionalProperties: false
+          properties:
+            secret:
+              description: "Signing secret for request signature validation."
+              type: string
+              minLength: 1
+            tolerance_window:
+              description: "Tolerance window (in seconds) for signature timestamp validation. A value of 0 disables the tolerance check and may increase the risk of replay attacks."
+              type: integer
+              minimum: 0
+              default: 300
+          required:
+            - secret
+            - tolerance_window
+      required:
+        - provider
+        - provider_config
+
+    GitHubProviderConfig:
+      $ref: "#/components/schemas/SecretProviderConfig"
+
+    SlackProviderConfig:
+      $ref: "#/components/schemas/SecretWithToleranceProviderConfig"
+
+    GitlabProviderConfig:
+      $ref: "#/components/schemas/SecretProviderConfig"
+
+    StripeProviderConfig:
+      $ref: "#/components/schemas/SecretWithToleranceProviderConfig"
+
+    XProviderConfig:
+      $ref: "#/components/schemas/SecretProviderConfig"
+
+    ZendeskProviderConfig:
+      $ref: "#/components/schemas/SecretWithToleranceProviderConfig"
+
+    OpenAIProviderConfig:
+      $ref: "#/components/schemas/SecretWithToleranceProviderConfig"
+
+    OktaProviderConfig:
+      type: object
+      properties:
+        provider:
+          type: string
+        provider_config:
+          type: object
+          additionalProperties: false
+          properties:
+            authentication_field:
+              description: "Okta Event Hooks authentication field."
+              minimum: 1
+              type: string
+            authentication_secret:
+              minimum: 1
+              description: "Okta Event Hooks authentication secret."
+              type: string
+          required:
+            - authentication_field
+            - authentication_secret
+      required:
+        - provider
+        - provider_config
+
     HTTPSourceConfig:
       type: object
       default:

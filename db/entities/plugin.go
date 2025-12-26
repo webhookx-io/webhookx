@@ -8,6 +8,7 @@ import (
 
 	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/pkg/errs"
+	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 )
 
@@ -34,6 +35,11 @@ func (m *Plugin) Validate() error {
 		e.Fields["name"] = fmt.Sprintf("unknown plugin name '%s'", m.Name)
 		return e
 	}
+
+	if !license.GetLicenser().AllowPlugin(m.Name) {
+		return errs.NewLicenseError(fmt.Errorf("plugin '%s' is not available for current license", m.Name))
+	}
+
 	if r.Type == plugin.TypeInbound && m.SourceId == nil {
 		e := errs.NewValidateError(errors.New("request validation"))
 		e.Fields["source_id"] = fmt.Sprintf("source_id is required for plugin '%s'", m.Name)

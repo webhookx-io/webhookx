@@ -54,7 +54,7 @@ var _ = Describe("Vault", Ordered, func() {
 		err = vaultClient.KVv2("secret").Delete(context.TODO(), "webhookx/secret-deleted")
 		assert.NoError(GinkgoT(), err)
 
-		licenserCancel = helper.MockLicenser(nil)
+		licenserCancel = helper.ReplaceLicenser(nil)
 	})
 
 	AfterAll(func() {

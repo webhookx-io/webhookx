@@ -55,7 +55,7 @@ var _ = Describe("AWS SecretManager", Ordered, func() {
 
 		err = upsertSecret(smClient, "webhookx/value", "string value")
 		assert.NoError(GinkgoT(), err)
-		licenserCancel = helper.MockLicenser(nil)
+		licenserCancel = helper.ReplaceLicenser(nil)
 	})
 
 	AfterAll(func() {

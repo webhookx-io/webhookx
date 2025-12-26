@@ -1,10 +1,12 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -41,7 +43,12 @@ func (api *API) CreatePlugin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := model.Validate(); err != nil {
-		api.error(400, w, err)
+		var licenseError *errs.LicenseError
+		if errors.As(err, &licenseError) {
+			api.error(403, w, err)
+		} else {
+			api.error(400, w, err)
+		}
 		return
 	}
 
@@ -67,7 +74,12 @@ func (api *API) UpdatePlugin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := model.Validate(); err != nil {
-		api.error(400, w, err)
+		var licenseError *errs.LicenseError
+		if errors.As(err, &licenseError) {
+			api.error(403, w, err)
+		} else {
+			api.error(400, w, err)
+		}
 		return
 	}
 

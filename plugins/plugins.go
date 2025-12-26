@@ -3,6 +3,7 @@ package plugins
 import (
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	basic_auth "github.com/webhookx-io/webhookx/plugins/basic-auth"
+	integration_auth "github.com/webhookx-io/webhookx/plugins/connect-auth"
 	"github.com/webhookx-io/webhookx/plugins/function"
 	hmac_auth "github.com/webhookx-io/webhookx/plugins/hmac-auth"
 	"github.com/webhookx-io/webhookx/plugins/jsonschema_validator"
@@ -32,5 +33,8 @@ func LoadPlugins() {
 	})
 	plugin.RegisterPlugin(plugin.TypeInbound, "hmac-auth", func() plugin.Plugin {
 		return &hmac_auth.HmacAuthPlugin{}
+	})
+	plugin.RegisterPlugin(plugin.TypeInbound, "connect-auth", func() plugin.Plugin {
+		return &integration_auth.ConnectAuthPlugin{}
 	})
 }

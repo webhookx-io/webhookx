@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
@@ -16,12 +15,12 @@ type Plugin struct {
 	ID         string              `json:"id" db:"id"`
 	Name       string              `json:"name" db:"name"`
 	Enabled    bool                `json:"enabled" db:"enabled"`
-	EndpointId *string             `json:"endpoint_id" db:"endpoint_id" yaml:"endpoint_id"`
-	SourceId   *string             `json:"source_id" db:"source_id" yaml:"source_id"`
+	EndpointId *string             `json:"endpoint_id" db:"endpoint_id"`
+	SourceId   *string             `json:"source_id" db:"source_id"`
 	Config     PluginConfiguration `json:"config" db:"config"`
 	Metadata   Metadata            `json:"metadata" db:"metadata"`
 
-	BaseModel `yaml:"-"`
+	BaseModel
 }
 
 func (m *Plugin) SchemaName() string {
@@ -73,15 +72,6 @@ func (m *Plugin) Validate() error {
 	m.Config = p.GetConfig()
 
 	return nil
-}
-
-func (m *Plugin) UnmarshalJSON(data []byte) error {
-	err := defaults.Set(m)
-	if err != nil {
-		return err
-	}
-	type alias Plugin
-	return json.Unmarshal(data, (*alias)(m))
 }
 
 func (m *Plugin) ToPlugin() (plugin.Plugin, error) {

@@ -14,9 +14,11 @@ type Endpoint struct {
 	Retry       Retry         `json:"retry" db:"retry"`
 	Events      Strings       `json:"events" db:"events"`
 	Metadata    Metadata      `json:"metadata" db:"metadata"`
-	RateLimit   *RateLimit    `json:"rate_limit" yaml:"rate_limit" db:"rate_limit"`
+	RateLimit   *RateLimit    `json:"rate_limit" db:"rate_limit"`
 
-	BaseModel `yaml:"-"`
+	Plugins []*Plugin `json:"plugins,omitempty" db:"-"`
+
+	BaseModel
 }
 
 func (m *Endpoint) SchemaName() string {

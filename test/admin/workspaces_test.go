@@ -25,8 +25,9 @@ var _ = Describe("/workspaces", Ordered, func() {
 		db = helper.InitDB(true, nil)
 		var err error
 		adminClient = helper.AdminClient()
-		app, err = helper.Start(map[string]string{})
-		assert.Nil(GinkgoT(), err)
+		app = helper.MustStart(
+			map[string]string{},
+			helper.WithLicenser(&helper.MockLicenser{}))
 		ws, err = db.Workspaces.GetDefault(context.TODO())
 		assert.Nil(GinkgoT(), err)
 	})
@@ -37,8 +38,6 @@ var _ = Describe("/workspaces", Ordered, func() {
 
 	Context("POST", func() {
 		It("creates a workspace", func() {
-			cancel := helper.ReplaceLicenser(nil)
-			defer cancel()
 			resp, err := adminClient.R().
 				SetBody(map[string]interface{}{
 					"name": "foo",
@@ -60,8 +59,6 @@ var _ = Describe("/workspaces", Ordered, func() {
 
 		Context("errors", func() {
 			It("returns HTTP 400 for invalid json", func() {
-				cancel := helper.ReplaceLicenser(nil)
-				defer cancel()
 				resp, err := adminClient.R().
 					SetBody("").
 					Post("/workspaces")
@@ -70,8 +67,6 @@ var _ = Describe("/workspaces", Ordered, func() {
 			})
 
 			It("return HTTP 400 for unique constraint violation", func() {
-				cancel := helper.ReplaceLicenser(nil)
-				defer cancel()
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
 						"name": "default",
@@ -171,8 +166,6 @@ var _ = Describe("/workspaces", Ordered, func() {
 			})
 
 			It("deletes by id", func() {
-				cancel := helper.ReplaceLicenser(nil)
-				defer cancel()
 				resp, err := adminClient.R().Delete("/workspaces/" + entity.ID)
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 204, resp.StatusCode())
@@ -183,15 +176,11 @@ var _ = Describe("/workspaces", Ordered, func() {
 
 			Context("errors", func() {
 				It("return HTTP 204", func() {
-					cancel := helper.ReplaceLicenser(nil)
-					defer cancel()
 					resp, err := adminClient.R().Delete("/workspaces/notfound")
 					assert.Nil(GinkgoT(), err)
 					assert.Equal(GinkgoT(), 204, resp.StatusCode())
 				})
 				It("cannot delete default workspace", func() {
-					cancel := helper.ReplaceLicenser(nil)
-					defer cancel()
 					resp, err := adminClient.R().Delete("/workspaces/" + ws.ID)
 					assert.Nil(GinkgoT(), err)
 					assert.Equal(GinkgoT(), 400, resp.StatusCode())

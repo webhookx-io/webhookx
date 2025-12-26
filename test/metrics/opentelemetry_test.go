@@ -29,14 +29,14 @@ var _ = Describe("opentelemetry", Ordered, func() {
 			var app *app.Application
 
 			BeforeAll(func() {
-				entitiesConfig := helper.EntitiesConfig{
+				entitiesConfig := helper.TestEntities{
 					Endpoints: []*entities.Endpoint{
-						factory.EndpointP(),
-						factory.EndpointP(func(e *entities.Endpoint) {
+						factory.Endpoint(),
+						factory.Endpoint(func(e *entities.Endpoint) {
 							e.Request.Timeout = 1
 						}),
 					},
-					Sources: []*entities.Source{factory.SourceP()},
+					Sources: []*entities.Source{factory.Source()},
 				}
 				helper.InitDB(true, &entitiesConfig)
 				helper.InitOtelOutput()

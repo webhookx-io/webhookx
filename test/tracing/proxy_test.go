@@ -27,9 +27,9 @@ var _ = Describe("tracing proxy", Ordered, func() {
 			var app *app.Application
 			var proxyClient *resty.Client
 
-			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{factory.EndpointP()},
-				Sources:   []*entities.Source{factory.SourceP()},
+			entitiesConfig := helper.TestEntities{
+				Endpoints: []*entities.Endpoint{factory.Endpoint()},
+				Sources:   []*entities.Source{factory.Source()},
 			}
 
 			BeforeAll(func() {
@@ -182,9 +182,9 @@ var _ = Describe("tracing proxy", Ordered, func() {
 		var app *app.Application
 		var proxyClient *resty.Client
 
-		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{factory.EndpointP()},
-			Sources:   []*entities.Source{factory.SourceP()},
+		entitiesConfig := helper.TestEntities{
+			Endpoints: []*entities.Endpoint{factory.Endpoint()},
+			Sources:   []*entities.Source{factory.Source()},
 		}
 
 		BeforeAll(func() {

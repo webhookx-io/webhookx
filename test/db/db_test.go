@@ -26,16 +26,16 @@ var _ = Describe("DB", Ordered, func() {
 				id2 := utils.KSUID()
 				id3 := utils.KSUID()
 				id4 := utils.KSUID()
-				err := db.Events.Insert(context.TODO(), factory.EventP(func(o *entities.Event) { o.ID = id1; o.UniqueId = utils.Pointer("key1") }))
+				err := db.Events.Insert(context.TODO(), factory.Event(func(o *entities.Event) { o.ID = id1; o.UniqueId = utils.Pointer("key1") }))
 				assert.Nil(GinkgoT(), err)
-				err = db.Events.Insert(context.TODO(), factory.EventP(func(o *entities.Event) { o.ID = id2; o.UniqueId = utils.Pointer("key2") }))
+				err = db.Events.Insert(context.TODO(), factory.Event(func(o *entities.Event) { o.ID = id2; o.UniqueId = utils.Pointer("key2") }))
 				assert.Nil(GinkgoT(), err)
 				ids, err := db.Events.BatchInsertIgnoreConflict(context.TODO(), []*entities.Event{
-					factory.EventP(func(o *entities.Event) { o.ID = id1; o.UniqueId = utils.Pointer("key0") }),           // id duplicated
-					factory.EventP(func(o *entities.Event) { o.ID = utils.KSUID(); o.UniqueId = utils.Pointer("key1") }), // key duplicated
-					factory.EventP(func(o *entities.Event) { o.ID = utils.KSUID(); o.UniqueId = utils.Pointer("key2") }), // key duplicated
-					factory.EventP(func(o *entities.Event) { o.ID = id3; o.UniqueId = utils.Pointer("key3") }),           // this should be returned
-					factory.EventP(func(o *entities.Event) { o.ID = id4; o.UniqueId = utils.Pointer("key4") }),           // this should be returned
+					factory.Event(func(o *entities.Event) { o.ID = id1; o.UniqueId = utils.Pointer("key0") }),           // id duplicated
+					factory.Event(func(o *entities.Event) { o.ID = utils.KSUID(); o.UniqueId = utils.Pointer("key1") }), // key duplicated
+					factory.Event(func(o *entities.Event) { o.ID = utils.KSUID(); o.UniqueId = utils.Pointer("key2") }), // key duplicated
+					factory.Event(func(o *entities.Event) { o.ID = id3; o.UniqueId = utils.Pointer("key3") }),           // this should be returned
+					factory.Event(func(o *entities.Event) { o.ID = id4; o.UniqueId = utils.Pointer("key4") }),           // this should be returned
 				})
 				assert.Equal(GinkgoT(), id3, ids[0])
 				assert.Equal(GinkgoT(), id4, ids[1])

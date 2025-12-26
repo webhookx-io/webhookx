@@ -18,7 +18,7 @@ import (
 )
 
 func setupWorkspaceEntities(db *db.DB, wid string) error {
-	err := db.Endpoints.Insert(context.TODO(), factory.EndpointP(func(o *entities.Endpoint) {
+	err := db.Endpoints.Insert(context.TODO(), factory.Endpoint(func(o *entities.Endpoint) {
 		o.WorkspaceId = wid
 	}))
 	if err != nil {

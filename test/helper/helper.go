@@ -35,6 +35,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/test"
+	"github.com/webhookx-io/webhookx/utils"
 )
 
 var (
@@ -251,7 +252,7 @@ func NewDB(cfg *config.Config) *db.DB {
 	return db
 }
 
-type EntitiesConfig struct {
+type TestEntities struct {
 	Endpoints      []*entities.Endpoint
 	Sources        []*entities.Source
 	Events         []*entities.Event
@@ -260,7 +261,26 @@ type EntitiesConfig struct {
 	Plugins        []*entities.Plugin
 }
 
-func InitDB(truncated bool, entities *EntitiesConfig) *db.DB {
+func (t *TestEntities) AddEndpoint(endpoint *entities.Endpoint) {
+	t.Endpoints = append(t.Endpoints, endpoint)
+}
+func (t *TestEntities) AddSource(source *entities.Source) {
+	t.Sources = append(t.Sources, source)
+}
+func (t *TestEntities) AddEvent(event *entities.Event) {
+	t.Events = append(t.Events, event)
+}
+func (t *TestEntities) AddAttempt(attempt *entities.Attempt) {
+	t.Attempts = append(t.Attempts, attempt)
+}
+func (t *TestEntities) AddAttemptDetail(attemptDetail *entities.AttemptDetail) {
+	t.AttemptDetails = append(t.AttemptDetails, attemptDetail)
+}
+func (t *TestEntities) AddPlugin(plugin *entities.Plugin) {
+	t.Plugins = append(t.Plugins, plugin)
+}
+
+func InitDB(truncated bool, entities *TestEntities) *db.DB {
 	cfg, err := LoadConfig(LoadConfigOptions{
 		Envs: NewTestEnv(nil),
 	})
@@ -300,13 +320,29 @@ func InitDB(truncated bool, entities *EntitiesConfig) *db.DB {
 		if err != nil {
 			panic(err)
 		}
+		for _, p := range e.Plugins {
+			p.EndpointId = utils.Pointer(e.ID)
+			p.WorkspaceId = ws.ID
+			err = db.Plugins.Insert(context.TODO(), p)
+			if err != nil {
+				panic(err)
+			}
+		}
 	}
 
-	for _, e := range entities.Sources {
-		e.WorkspaceId = ws.ID
-		err = db.Sources.Insert(context.TODO(), e)
+	for _, s := range entities.Sources {
+		s.WorkspaceId = ws.ID
+		err = db.Sources.Insert(context.TODO(), s)
 		if err != nil {
 			panic(err)
+		}
+		for _, p := range s.Plugins {
+			p.SourceId = utils.Pointer(s.ID)
+			p.WorkspaceId = ws.ID
+			err = db.Plugins.Insert(context.TODO(), p)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 

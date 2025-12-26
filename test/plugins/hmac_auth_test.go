@@ -29,80 +29,77 @@ var _ = Describe("hmac-auth", Ordered, func() {
 
 		var signature []byte
 
-		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{factory.EndpointP()},
+		entitiesConfig := helper.TestEntities{
+			Endpoints: []*entities.Endpoint{factory.Endpoint()},
 			Sources: []*entities.Source{
-				factory.SourceP(func(o *entities.Source) { o.Config.HTTP.Path = "/sha256-hex" }),
-				factory.SourceP(func(o *entities.Source) { o.Config.HTTP.Path = "/sha256-base64" }),
-				factory.SourceP(func(o *entities.Source) { o.Config.HTTP.Path = "/sha256-base64url" }),
-				factory.SourceP(func(o *entities.Source) { o.Config.HTTP.Path = "/md5-hex" }),
-				factory.SourceP(func(o *entities.Source) { o.Config.HTTP.Path = "/sha1-hex" }),
-				factory.SourceP(func(o *entities.Source) { o.Config.HTTP.Path = "/sha512-hex" }),
+				factory.Source(func(o *entities.Source) {
+					o.Config.HTTP.Path = "/sha256-hex"
+					o.Plugins = []*entities.Plugin{factory.Plugin("hmac-auth",
+						factory.WithPluginConfig(hmac_auth.Config{
+							Hash:            "sha-256",
+							Encoding:        "hex",
+							SignatureHeader: "X-Signature",
+							Secret:          "mykey",
+						})),
+					}
+				}),
+				factory.Source(func(o *entities.Source) {
+					o.Config.HTTP.Path = "/sha256-base64"
+					o.Plugins = []*entities.Plugin{factory.Plugin("hmac-auth",
+						factory.WithPluginConfig(hmac_auth.Config{
+							Hash:            "sha-256",
+							Encoding:        "base64",
+							SignatureHeader: "X-Signature",
+							Secret:          "mykey",
+						})),
+					}
+				}),
+				factory.Source(func(o *entities.Source) {
+					o.Config.HTTP.Path = "/sha256-base64url"
+					o.Plugins = []*entities.Plugin{factory.Plugin("hmac-auth",
+						factory.WithPluginConfig(hmac_auth.Config{
+							Hash:            "sha-256",
+							Encoding:        "base64url",
+							SignatureHeader: "X-Signature",
+							Secret:          "mykey",
+						})),
+					}
+				}),
+				factory.Source(func(o *entities.Source) {
+					o.Config.HTTP.Path = "/md5-hex"
+					o.Plugins = []*entities.Plugin{factory.Plugin("hmac-auth",
+						factory.WithPluginConfig(hmac_auth.Config{
+							Hash:            "md5",
+							Encoding:        "hex",
+							SignatureHeader: "X-Signature",
+							Secret:          "mykey",
+						})),
+					}
+				}),
+				factory.Source(func(o *entities.Source) {
+					o.Config.HTTP.Path = "/sha1-hex"
+					o.Plugins = []*entities.Plugin{factory.Plugin("hmac-auth",
+						factory.WithPluginConfig(hmac_auth.Config{
+							Hash:            "sha-1",
+							Encoding:        "hex",
+							SignatureHeader: "X-Signature",
+							Secret:          "mykey",
+						})),
+					}
+				}),
+				factory.Source(func(o *entities.Source) {
+					o.Config.HTTP.Path = "/sha512-hex"
+					o.Plugins = []*entities.Plugin{factory.Plugin("hmac-auth",
+						factory.WithPluginConfig(hmac_auth.Config{
+							Hash:            "sha-512",
+							Encoding:        "hex",
+							SignatureHeader: "X-Signature",
+							Secret:          "mykey",
+						})),
+					}
+				}),
 			},
 		}
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("hmac-auth"),
-				factory.WithPluginConfig(hmac_auth.Config{
-					Hash:            "sha-256",
-					Encoding:        "hex",
-					SignatureHeader: "X-Signature",
-					Secret:          "mykey",
-				}),
-			),
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[1].ID),
-				factory.WithPluginName("hmac-auth"),
-				factory.WithPluginConfig(hmac_auth.Config{
-					Hash:            "sha-256",
-					Encoding:        "base64",
-					SignatureHeader: "X-Signature",
-					Secret:          "mykey",
-				}),
-			),
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[2].ID),
-				factory.WithPluginName("hmac-auth"),
-				factory.WithPluginConfig(hmac_auth.Config{
-					Hash:            "sha-256",
-					Encoding:        "base64url",
-					SignatureHeader: "X-Signature",
-					Secret:          "mykey",
-				}),
-			),
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[3].ID),
-				factory.WithPluginName("hmac-auth"),
-				factory.WithPluginConfig(hmac_auth.Config{
-					Hash:            "md5",
-					Encoding:        "hex",
-					SignatureHeader: "X-Signature",
-					Secret:          "mykey",
-				}),
-			),
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[4].ID),
-				factory.WithPluginName("hmac-auth"),
-				factory.WithPluginConfig(hmac_auth.Config{
-					Hash:            "sha-1",
-					Encoding:        "hex",
-					SignatureHeader: "X-Signature",
-					Secret:          "mykey",
-				}),
-			),
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[5].ID),
-				factory.WithPluginName("hmac-auth"),
-				factory.WithPluginConfig(hmac_auth.Config{
-					Hash:            "sha-512",
-					Encoding:        "hex",
-					SignatureHeader: "X-Signature",
-					Secret:          "mykey",
-				}),
-			),
-		}
-
 		BeforeAll(func() {
 			helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()

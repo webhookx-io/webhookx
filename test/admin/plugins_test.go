@@ -56,7 +56,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.NoError(GinkgoT(), db.Truncate("plugins"))
 				for i := 1; i <= 21; i++ {
 					endpoint := factory.EndpointWS(ws.ID)
-					assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), &endpoint))
+					assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 					plugin := entities.Plugin{
 						ID:         utils.KSUID(),
 						EndpointId: utils.Pointer(endpoint.ID),
@@ -106,7 +106,7 @@ var _ = Describe("/plugins", Ordered, func() {
 
 		Context("webhookx-signature plugin", func() {
 			It("creates plugin with missing config", func() {
-				endpoint := factory.EndpointP()
+				endpoint := factory.Endpoint()
 				assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
@@ -132,7 +132,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("creates plugin with plugin config", func() {
-				endpoint := factory.EndpointP()
+				endpoint := factory.Endpoint()
 				assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
@@ -161,7 +161,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("creates plugin with unknown properties", func() {
-				endpoint := factory.EndpointP()
+				endpoint := factory.Endpoint()
 				assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
@@ -194,7 +194,7 @@ var _ = Describe("/plugins", Ordered, func() {
 
 		Context("function plugin", func() {
 			It("return 400 when function exceed the maximum length", func() {
-				source := factory.SourceP()
+				source := factory.Source()
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
@@ -217,7 +217,7 @@ var _ = Describe("/plugins", Ordered, func() {
 
 		Context("basic-auth plugin", func() {
 			It("return 201", func() {
-				source := factory.SourceP()
+				source := factory.Source()
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
@@ -244,7 +244,7 @@ var _ = Describe("/plugins", Ordered, func() {
 
 		Context("key-auth plugin", func() {
 			It("return 201", func() {
-				source := factory.SourceP()
+				source := factory.Source()
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
@@ -275,7 +275,7 @@ var _ = Describe("/plugins", Ordered, func() {
 
 		Context("hmac-auth plugin", func() {
 			It("return 201", func() {
-				source := factory.SourceP()
+				source := factory.Source()
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
@@ -308,7 +308,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			It("returns 201", func() {
 				cancel := helper.ReplaceLicenser(nil)
 				defer cancel()
-				source := factory.SourceP()
+				source := factory.Source()
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
@@ -351,11 +351,9 @@ var _ = Describe("/plugins", Ordered, func() {
 					string(resp.Body()))
 
 				source := factory.SourceWS(ws.ID)
-				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), &source))
-				plugin := factory.PluginWS(ws.ID, func(o *entities.Plugin) {
-					o.Name = "connect-auth"
-				})
-				assert.Nil(GinkgoT(), db.Plugins.Insert(context.TODO(), &plugin))
+				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
+				plugin := factory.Plugin("connect-auth", func(o *entities.Plugin) { o.WorkspaceId = ws.ID })
+				assert.Nil(GinkgoT(), db.Plugins.Insert(context.TODO(), plugin))
 
 				// update
 				resp, err = adminClient.R().
@@ -374,7 +372,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			It("returns HTTP 400 for unknown provider", func() {
 				cancel := helper.ReplaceLicenser(nil)
 				defer cancel()
-				source := factory.SourceP()
+				source := factory.Source()
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
@@ -395,7 +393,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			It("returns HTTP 400 for invalid provider_config", func() {
 				cancel := helper.ReplaceLicenser(nil)
 				defer cancel()
-				source := factory.SourceP()
+				source := factory.Source()
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
@@ -551,8 +549,8 @@ var _ = Describe("/plugins", Ordered, func() {
 		Context("GET", func() {
 			var entity *entities.Plugin
 			BeforeAll(func() {
-				entitiesConfig := helper.EntitiesConfig{
-					Endpoints: []*entities.Endpoint{factory.EndpointP()},
+				entitiesConfig := helper.TestEntities{
+					Endpoints: []*entities.Endpoint{factory.Endpoint()},
 				}
 				entity = &entities.Plugin{
 					ID:         utils.KSUID(),

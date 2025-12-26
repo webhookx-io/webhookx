@@ -27,9 +27,9 @@ var _ = Describe("tracing worker", Ordered, func() {
 
 			BeforeAll(func() {
 				helper.InitOtelOutput()
-				cfg := &helper.EntitiesConfig{
-					Endpoints: []*entities.Endpoint{factory.EndpointP()},
-					Sources:   []*entities.Source{factory.SourceP(factory.WithSourceAsync(true))},
+				cfg := &helper.TestEntities{
+					Endpoints: []*entities.Endpoint{factory.Endpoint()},
+					Sources:   []*entities.Source{factory.Source(func(o *entities.Source) { o.Async = true })},
 				}
 				helper.InitDB(true, cfg)
 				proxyClient = helper.ProxyClient()

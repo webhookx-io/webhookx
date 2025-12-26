@@ -75,9 +75,9 @@ var _ = Describe("access_log", Ordered, func() {
 		var proxyClient *resty.Client
 
 		BeforeAll(func() {
-			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{factory.EndpointP()},
-				Sources:   []*entities.Source{factory.SourceP()},
+			entitiesConfig := helper.TestEntities{
+				Endpoints: []*entities.Endpoint{factory.Endpoint()},
+				Sources:   []*entities.Source{factory.Source()},
 			}
 			helper.InitDB(true, &entitiesConfig)
 			app = utils.Must(helper.Start(map[string]string{
@@ -158,9 +158,9 @@ var _ = Describe("access_log", Ordered, func() {
 		var proxyClient *resty.Client
 
 		BeforeAll(func() {
-			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{factory.EndpointP()},
-				Sources:   []*entities.Source{factory.SourceP()},
+			entitiesConfig := helper.TestEntities{
+				Endpoints: []*entities.Endpoint{factory.Endpoint()},
+				Sources:   []*entities.Source{factory.Source()},
 			}
 			helper.InitDB(true, &entitiesConfig)
 			app = utils.Must(helper.Start(map[string]string{

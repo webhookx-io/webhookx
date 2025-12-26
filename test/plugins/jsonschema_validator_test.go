@@ -45,14 +45,12 @@ var _ = Describe("jsonschema-validator", Ordered, func() {
 		var app *app.Application
 		var db *db.DB
 
-		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{factory.EndpointP()},
-			Sources:   []*entities.Source{factory.SourceP()},
+		entitiesConfig := helper.TestEntities{
+			Endpoints: []*entities.Endpoint{factory.Endpoint()},
+			Sources:   []*entities.Source{factory.Source()},
 		}
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("jsonschema-validator"),
+		entitiesConfig.Sources[0].Plugins = []*entities.Plugin{
+			factory.Plugin("jsonschema-validator",
 				factory.WithPluginConfig(jsonschema_validator.Config{
 					Draft:         "6",
 					DefaultSchema: jsonString,

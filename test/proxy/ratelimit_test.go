@@ -21,9 +21,9 @@ var _ = Describe("rate-limit", Ordered, func() {
 		var proxyClient *resty.Client
 		var app *app.Application
 
-		entitiesConfig := helper.EntitiesConfig{
+		entitiesConfig := helper.TestEntities{
 			Sources: []*entities.Source{
-				factory.SourceP(func(o *entities.Source) {
+				factory.Source(func(o *entities.Source) {
 					o.RateLimit = &entities.RateLimit{
 						Quota:  3,
 						Period: 3,

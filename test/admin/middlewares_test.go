@@ -71,7 +71,7 @@ var _ = Describe("middlewares", Ordered, func() {
 			testWorkspace = factory.Workspace("test")
 			assert.NoError(GinkgoT(), db.Workspaces.Insert(context.TODO(), testWorkspace))
 			testEndpoint := factory.EndpointWS(testWorkspace.ID)
-			assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), &testEndpoint))
+			assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), testEndpoint))
 
 			adminClient = helper.AdminClient()
 

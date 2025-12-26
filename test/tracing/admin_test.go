@@ -26,9 +26,9 @@ var _ = Describe("tracing admin", Ordered, func() {
 			var app *app.Application
 			var proxyClient *resty.Client
 			var adminClient *resty.Client
-			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{factory.EndpointP()},
-				Sources:   []*entities.Source{factory.SourceP(factory.WithSourceAsync(true))},
+			entitiesConfig := helper.TestEntities{
+				Endpoints: []*entities.Endpoint{factory.Endpoint()},
+				Sources:   []*entities.Source{factory.Source(func(o *entities.Source) { o.Async = true })},
 			}
 			var gotScopeNames map[string]bool
 			var gotSpanAttributes map[string]map[string]string

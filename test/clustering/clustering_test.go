@@ -30,9 +30,9 @@ var _ = Describe("clustering", Ordered, func() {
 		var proxy *app.Application
 		var db *db.DB
 
-		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{factory.EndpointP()},
-			Sources:   []*entities.Source{factory.SourceP()},
+		entitiesConfig := helper.TestEntities{
+			Endpoints: []*entities.Endpoint{factory.Endpoint()},
+			Sources:   []*entities.Source{factory.Source()},
 		}
 
 		BeforeAll(func() {

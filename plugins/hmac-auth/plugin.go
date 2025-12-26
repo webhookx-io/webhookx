@@ -30,6 +30,10 @@ func (p *HmacAuthPlugin) Name() string {
 	return "hmac-auth"
 }
 
+func (p *HmacAuthPlugin) Priority() int {
+	return 107
+}
+
 func (p *HmacAuthPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (result plugin.InboundResult, err error) {
 	cfg := p.Config
 	matched := false

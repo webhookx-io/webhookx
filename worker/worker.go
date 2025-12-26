@@ -29,6 +29,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/plugins"
 	"github.com/webhookx-io/webhookx/service"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
@@ -120,14 +121,6 @@ func (w *Worker) registerEventHandler(bus eventbus.Bus) {
 		if err := json.Unmarshal(data.(*eventbus.CrudData).Data, &plugin); err != nil {
 			w.log.Errorf("failed to unmarshal event data: %s", err)
 			return
-		}
-
-		if plugin.EndpointId != nil {
-			cacheKey := constants.EndpointPluginsKey.Build(*plugin.EndpointId)
-			err := mcache.Invalidate(context.TODO(), cacheKey)
-			if err != nil {
-				w.log.Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
-			}
 		}
 	})
 	bus.ClusteringSubscribe(eventbus.EventEventFanout, func(data []byte) {
@@ -371,11 +364,6 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		data.Event = string(event.Data)
 	}
 
-	plugins, err := listEndpointPlugins(ctx, w.db, endpoint.ID)
-	if err != nil {
-		return err
-	}
-
 	cacheKey = constants.WorkspaceCacheKey.Build(endpoint.WorkspaceId)
 	//workspace, err := mcache.Load(ctx, cacheKey, nil, w.DB.Workspaces.Get, endpoint.WorkspaceId)
 	//if err != nil {
@@ -390,20 +378,11 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	}
 	maps.Copy(outbound.Headers, endpoint.Request.Headers)
 
-	for _, p := range plugins {
-		executor, err := p.ToPlugin()
+	iterator := plugins.LoadIterator()
+	for p := range iterator.Iterate(context.TODO(), plugins.PhaseOutbound, endpoint.ID) {
+		err = p.ExecuteOutbound(ctx, &outbound)
 		if err != nil {
-			return err
-		}
-
-		err = executor.Init(p.Config)
-		if err != nil {
-			return err
-		}
-
-		err = executor.ExecuteOutbound(context.TODO(), &outbound)
-		if err != nil {
-			return fmt.Errorf("failed to execute %s plugin: %v", executor.Name(), err)
+			return fmt.Errorf("failed to execute %s plugin: %v", p.Name(), err)
 		}
 	}
 
@@ -537,20 +516,4 @@ func buildAttemptResult(request *deliverer.Request, response *deliverer.Response
 	}
 
 	return result
-}
-
-func listEndpointPlugins(ctx context.Context, db *db.DB, endpointId string) ([]*entities.Plugin, error) {
-	// refactor me
-	cacheKey := constants.EndpointPluginsKey.Build(endpointId)
-	plugins, err := mcache.Load(ctx, cacheKey, nil, func(ctx context.Context, id string) (*[]*entities.Plugin, error) {
-		plugins, err := db.Plugins.ListEndpointPlugin(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		return &plugins, nil
-	}, endpointId)
-	if err != nil {
-		return nil, err
-	}
-	return *plugins, err
 }

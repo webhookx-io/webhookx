@@ -34,6 +34,10 @@ func (p *SchemaValidatorPlugin) Name() string {
 	return "jsonschema-validator"
 }
 
+func (p *SchemaValidatorPlugin) Priority() int {
+	return 90
+}
+
 func (p *SchemaValidatorPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (res plugin.InboundResult, err error) {
 	var event map[string]any
 	body := inbound.RawBody

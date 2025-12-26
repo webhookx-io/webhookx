@@ -22,6 +22,10 @@ func (p *InboundPlugin) Name() string {
 	return "inbound"
 }
 
+func (p *InboundPlugin) Priority() int {
+	return 0
+}
+
 func (p *InboundPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (res plugin.InboundResult, err error) {
 	return
 }

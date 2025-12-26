@@ -26,6 +26,10 @@ func (p *FunctionPlugin) Name() string {
 	return "function"
 }
 
+func (p *FunctionPlugin) Priority() int {
+	return 80
+}
+
 func (p *FunctionPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (result plugin.InboundResult, err error) {
 	fn := function.New("javascript", p.Config.Function)
 

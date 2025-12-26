@@ -55,7 +55,6 @@ var _ = Describe("tracing worker", Ordered, func() {
 					"worker.submit":              {},
 					"worker.handle_task":         {},
 					"dao.endpoints.get":          {},
-					"dao.plugins.list":           {},
 					"worker.deliver":             {},
 					"dao.attempt_details.insert": {},
 					"taskqueue.redis.delete":     {},

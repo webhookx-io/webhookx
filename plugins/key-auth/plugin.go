@@ -27,6 +27,10 @@ func (p *KeyAuthPlugin) Name() string {
 	return "key-auth"
 }
 
+func (p *KeyAuthPlugin) Priority() int {
+	return 108
+}
+
 func (p *KeyAuthPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (result plugin.InboundResult, err error) {
 	name := p.Config.ParamName
 	key := p.Config.Key

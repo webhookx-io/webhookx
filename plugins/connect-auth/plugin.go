@@ -31,6 +31,10 @@ func (p *ConnectAuthPlugin) Name() string {
 	return "connect-auth"
 }
 
+func (p *ConnectAuthPlugin) Priority() int {
+	return 106
+}
+
 func (p *ConnectAuthPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (result plugin.InboundResult, err error) {
 	v, ok := verifier.LoadVerifier(p.Config.Provider)
 	if !ok {

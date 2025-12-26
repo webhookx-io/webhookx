@@ -22,7 +22,6 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
-	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/contextx"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/loglimiter"
@@ -36,6 +35,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/store"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/plugins"
 	"github.com/webhookx-io/webhookx/proxy/middlewares"
 	"github.com/webhookx-io/webhookx/proxy/router"
 	"github.com/webhookx-io/webhookx/service"
@@ -242,29 +242,15 @@ func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
 		}
 	}
 
-	plugins, err := listSourcePlugins(ctx, gw.db, source.ID)
-	if err != nil {
-		response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
-		return false
-	}
-
-	for _, p := range plugins {
-		executor, err := p.ToPlugin()
-		if err != nil {
-			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
-			return false
-		}
-		err = executor.Init(p.Config)
-		if err != nil {
-			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
-		}
-		result, err := executor.ExecuteInbound(context.TODO(), &plugin.Inbound{
+	iterator := plugins.LoadIterator()
+	for p := range iterator.Iterate(ctx, plugins.PhaseInbound, source.ID) {
+		result, err := p.ExecuteInbound(context.TODO(), &plugin.Inbound{
 			Request:  r,
 			Response: w,
 			RawBody:  body,
 		})
 		if err != nil {
-			gw.log.Errorf("failed to execute %s plugin: %v", executor.Name(), err)
+			gw.log.Errorf("failed to execute %s plugin: %v", p.Name(), err)
 			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
 			return false
 		}
@@ -389,14 +375,6 @@ func (gw *Gateway) Start() {
 			zap.S().Errorf("failed to unmarshal event data: %s", err)
 			return
 		}
-
-		if plugin.SourceId != nil {
-			cacheKey := constants.SourcePluginsKey.Build(*plugin.SourceId)
-			err := mcache.Invalidate(context.TODO(), cacheKey)
-			if err != nil {
-				zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey, err)
-			}
-		}
 	})
 
 	go func() {
@@ -478,20 +456,4 @@ func exit(w http.ResponseWriter, status int, body string, headers Headers) {
 
 	w.WriteHeader(status)
 	_, _ = w.Write([]byte(body))
-}
-
-func listSourcePlugins(ctx context.Context, db *db.DB, sourceId string) ([]*entities.Plugin, error) {
-	// refactor me
-	cacheKey := constants.SourcePluginsKey.Build(sourceId)
-	plugins, err := mcache.Load(ctx, cacheKey, nil, func(ctx context.Context, id string) (*[]*entities.Plugin, error) {
-		plugins, err := db.Plugins.ListSourcePlugin(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		return &plugins, nil
-	}, sourceId)
-	if err != nil {
-		return nil, err
-	}
-	return *plugins, err
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/migrator"
+	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
@@ -29,6 +30,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/reports"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/stats"
+	"github.com/webhookx-io/webhookx/pkg/store"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/plugins"
@@ -37,6 +39,7 @@ import (
 	"github.com/webhookx-io/webhookx/service"
 	"github.com/webhookx-io/webhookx/status"
 	"github.com/webhookx-io/webhookx/status/health"
+	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -322,6 +325,43 @@ func (app *Application) initialize() error {
 	return nil
 }
 
+func (app *Application) buildPluginIterator(version string) (*plugins.Iterator, error) {
+	app.log.Debugw("building plugin iterator", "version", version)
+	list, err := app.db.Plugins.List(context.TODO(), &query.PluginQuery{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to query plugins from database: %v", err)
+	}
+	iterator := plugins.NewIterator(version)
+	if err := iterator.LoadPlugins(list); err != nil {
+		return nil, fmt.Errorf("failed to load plugins: %v", err)
+	}
+	return iterator, nil
+}
+
+func (app *Application) scheduleRebuildPluginIterator() {
+	app.bus.Subscribe("plugin.crud", func(_ interface{}) {
+		store.Set("plugin:version", utils.UUID())
+	})
+
+	app.scheduler.AddTask(&schedule.Task{
+		Name:     "app.plugin_rebuild",
+		Interval: time.Second,
+		Do: func() {
+			version := store.GetDefault("plugin:version", "init").(string)
+			if plugins.LoadIterator().Version == version {
+				return
+			}
+
+			iterator, err := app.buildPluginIterator(version)
+			if err != nil {
+				app.log.Error(err)
+				return
+			}
+			plugins.SetIterator(iterator)
+		},
+	})
+}
+
 func registerEventHandler(bus *eventbus.EventBus) {
 	bus.ClusteringSubscribe(eventbus.EventCRUD, func(data []byte) {
 		eventData := &eventbus.CrudData{}
@@ -419,6 +459,15 @@ func (app *Application) Start() error {
 			"started_at": now,
 		}
 	}))
+
+	if app.worker != nil || app.gateway != nil {
+		iterator, err := app.buildPluginIterator("init")
+		if err != nil {
+			return fmt.Errorf("failed to build plugin iterator: %s", err)
+		}
+		plugins.SetIterator(iterator)
+		app.scheduleRebuildPluginIterator()
+	}
 
 	if err := app.bus.Start(); err != nil {
 		return err

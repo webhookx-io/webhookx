@@ -26,6 +26,10 @@ func (p *BasicAuthPlugin) Name() string {
 	return "basic-auth"
 }
 
+func (p *BasicAuthPlugin) Priority() int {
+	return 109
+}
+
 func (p *BasicAuthPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (result plugin.InboundResult, err error) {
 	username, password, ok := inbound.Request.BasicAuth()
 	if !ok || username != p.Config.Username || password != p.Config.Password {

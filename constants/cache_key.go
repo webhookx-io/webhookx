@@ -23,8 +23,6 @@ func (c CacheKey) Build(id string) string {
 var (
 	EventCacheKey         = register(CacheKey{"events", "v1"})
 	EndpointCacheKey      = register(CacheKey{"endpoints", "v1"})
-	EndpointPluginsKey    = register(CacheKey{"endpoint_plugins", "v1"})
-	SourcePluginsKey      = register(CacheKey{"source_plugins", "v1"})
 	SourceCacheKey        = register(CacheKey{"sources", "v1"})
 	WorkspaceCacheKey     = register(CacheKey{"workspaces", "v1"})
 	AttemptCacheKey       = register(CacheKey{"attempts", "v1"})

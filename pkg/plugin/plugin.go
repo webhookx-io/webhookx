@@ -9,6 +9,9 @@ type Plugin interface {
 	// Name returns plugin's name
 	Name() string
 
+	// Priority returns plugin's priority
+	Priority() int
+
 	// Init inits plugin with configuration
 	Init(config map[string]interface{}) error
 

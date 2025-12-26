@@ -32,6 +32,10 @@ func (p *SignaturePlugin) Name() string {
 	return "webhookx-signature"
 }
 
+func (p *SignaturePlugin) Priority() int {
+	return -100
+}
+
 // TODO
 func (p *SignaturePlugin) ValidateConfig(config map[string]interface{}) error {
 	if _, ok := config["signing_secret"]; !ok {

@@ -22,6 +22,10 @@ func (p *OutboundPlugin) Name() string {
 	return "outbound"
 }
 
+func (p *OutboundPlugin) Priority() int {
+	return 0
+}
+
 func (p *OutboundPlugin) ExecuteOutbound(ctx context.Context, outbound *plugin.Outbound) error {
 	return nil
 }

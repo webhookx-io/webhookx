@@ -29,6 +29,10 @@ func (p *BasePlugin[T]) Init(config map[string]interface{}) error {
 	return decoder.Decode(config)
 }
 
+func (p *BasePlugin[T]) Priority() int {
+	return 0
+}
+
 func (p *BasePlugin[T]) GetConfig() map[string]interface{} {
 	m, err := utils.StructToMap(p.Config)
 	if err != nil {

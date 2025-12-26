@@ -29,6 +29,10 @@ func (p *WasmPlugin) Name() string {
 	return "wasm"
 }
 
+func (p *WasmPlugin) Priority() int {
+	return -90
+}
+
 func (p *WasmPlugin) ExecuteOutbound(ctx context.Context, outbound *plugin.Outbound) error {
 	source, err := os.ReadFile(p.Config.File)
 	if err != nil {

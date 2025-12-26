@@ -41,6 +41,10 @@ func (p *HelloPlugin) Name() string {
 	return "hello"
 }
 
+func (p *HelloPlugin) Priority() int {
+	return 0
+}
+
 func (p *HelloPlugin) ExecuteOutbound(ctx context.Context, outbound *plugin.Outbound) error {
 	fmt.Println(p.Config.Message)
 	return nil

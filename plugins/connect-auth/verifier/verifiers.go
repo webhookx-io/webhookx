@@ -95,7 +95,7 @@ func init() {
 		authHeader := config["authentication_field"].(string)
 		authSecret := config["authentication_secret"].(string)
 		res := &Result{}
-		if authHeader == "" || timingSafeEqual(authSecret, r.Header.Get(authHeader)) {
+		if timingSafeEqual(authSecret, r.Header.Get(authHeader)) {
 			res.Verified = true
 		}
 		return res, nil

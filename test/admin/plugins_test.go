@@ -306,7 +306,7 @@ var _ = Describe("/plugins", Ordered, func() {
 
 		Context("connect-auth plugin", func() {
 			It("returns 201", func() {
-				cancel := helper.MockLicenser(nil)
+				cancel := helper.ReplaceLicenser(nil)
 				defer cancel()
 				source := factory.SourceP()
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
@@ -372,7 +372,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("returns HTTP 400 for unknown provider", func() {
-				cancel := helper.MockLicenser(nil)
+				cancel := helper.ReplaceLicenser(nil)
 				defer cancel()
 				source := factory.SourceP()
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
@@ -393,7 +393,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("returns HTTP 400 for invalid provider_config", func() {
-				cancel := helper.MockLicenser(nil)
+				cancel := helper.ReplaceLicenser(nil)
 				defer cancel()
 				source := factory.SourceP()
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
@@ -447,7 +447,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("returns HTTP 400 when missing endpoint_id for outbound type plugin", func() {
-				cancel := helper.MockLicenser(nil)
+				cancel := helper.ReplaceLicenser(nil)
 				defer cancel()
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{"name": "outbound"}).
@@ -461,7 +461,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("returns HTTP 400 when missing source_id for inbound type plugin", func() {
-				cancel := helper.MockLicenser(nil)
+				cancel := helper.ReplaceLicenser(nil)
 				defer cancel()
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{"name": "inbound"}).
@@ -475,7 +475,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("returns HTTP 400 when missing required config fields", func() {
-				cancel := helper.MockLicenser(nil)
+				cancel := helper.ReplaceLicenser(nil)
 				defer cancel()
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
@@ -493,7 +493,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("return HTTP 400 when configuration filed type does not match", func() {
-				cancel := helper.MockLicenser(nil)
+				cancel := helper.ReplaceLicenser(nil)
 				defer cancel()
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
@@ -511,7 +511,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("returns HTTP 400 when source_id does not exist", func() {
-				cancel := helper.MockLicenser(nil)
+				cancel := helper.ReplaceLicenser(nil)
 				defer cancel()
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
@@ -528,7 +528,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 
 			It("returns HTTP 400 when endpoint_id does not exist", func() {
-				cancel := helper.MockLicenser(nil)
+				cancel := helper.ReplaceLicenser(nil)
 				defer cancel()
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{

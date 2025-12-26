@@ -13,7 +13,7 @@ var _ = Describe("Secret", Ordered, func() {
 
 	var licenserCancel func()
 	BeforeAll(func() {
-		licenserCancel = helper.MockLicenser(nil)
+		licenserCancel = helper.ReplaceLicenser(nil)
 	})
 
 	AfterAll(func() {

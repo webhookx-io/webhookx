@@ -100,8 +100,28 @@ func SetEnvs(sets map[string]string) func() {
 	}
 }
 
+type Options struct {
+	Licenser license.Licenser
+}
+
+type Option func(*Options)
+
+func WithLicenser(licenser license.Licenser) Option {
+	return func(opts *Options) {
+		opts.Licenser = licenser
+	}
+}
+
+func MustStart(envs map[string]string, opts ...Option) *app.Application {
+	app, err := Start(envs, opts...)
+	if err != nil {
+		panic(err)
+	}
+	return app
+}
+
 // Start starts application with given environment variables
-func Start(envs map[string]string) (application *app.Application, err error) {
+func Start(envs map[string]string, opts ...Option) (application *app.Application, err error) {
 	envs = NewTestEnv(envs)
 	cancel := SetEnvs(envs)
 
@@ -111,11 +131,20 @@ func Start(envs map[string]string) (application *app.Application, err error) {
 		}
 	}()
 
-	lic, err := license.Load()
-	if err != nil {
-		return nil, err
+	options := &Options{}
+	for _, opt := range opts {
+		opt(options)
 	}
-	license.SetLicenser(license.NewLicenser(lic))
+
+	if options.Licenser == nil {
+		lic, err := license.Load()
+		if err != nil {
+			return nil, err
+		}
+		options.Licenser = license.NewLicenser(lic)
+	}
+
+	license.SetLicenser(options.Licenser)
 
 	cfg := config.New()
 	if err := config.Load("", cfg); err != nil {

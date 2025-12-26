@@ -1199,8 +1199,12 @@ components:
           additionalProperties: false
           properties:
             authentication_field:
+              description: "Okta Event Hooks Authentication field."
+              minimum: 1
               type: string
             authentication_secret:
+              minimum: 1
+              description: "Okta Event Hooks Authentication secret."
               type: string
           required:
             - authentication_field

@@ -1159,7 +1159,6 @@ components:
               description: "Tolerance window (in seconds) for signature timestamp validation. A value of 0 disables the tolerance check and may increase the risk of replay attacks."
               type: integer
               minimum: 0
-              maximum: 86400
               default: 300
           required:
             - secret

@@ -304,7 +304,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			})
 		})
 
-		Context("integration-auth plugin", func() {
+		Context("connect-auth plugin", func() {
 			It("returns 201", func() {
 				cancel := helper.MockLicenser(nil)
 				defer cancel()
@@ -312,7 +312,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
-						"name":      "integration-auth",
+						"name":      "connect-auth",
 						"source_id": source.ID,
 						"config": map[string]interface{}{
 							"provider": "github",
@@ -328,7 +328,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Equal(GinkgoT(), 201, resp.StatusCode())
 
 				result := resp.Result().(*entities.Plugin)
-				assert.Equal(GinkgoT(), "integration-auth", result.Name)
+				assert.Equal(GinkgoT(), "connect-auth", result.Name)
 				assert.Equal(GinkgoT(), source.ID, *result.SourceId)
 				assert.Equal(GinkgoT(), "github", result.Config["provider"])
 				assert.EqualValues(GinkgoT(),
@@ -340,34 +340,34 @@ var _ = Describe("/plugins", Ordered, func() {
 				// create
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
-						"name": "integration-auth",
+						"name": "connect-auth",
 					}).
 					SetResult(entities.Plugin{}).
 					Post("/workspaces/default/plugins")
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 403, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"plugin 'integration-auth' is not available for current license"}`,
+					`{"message":"plugin 'connect-auth' is not available for current license"}`,
 					string(resp.Body()))
 
 				source := factory.SourceWS(ws.ID)
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), &source))
 				plugin := factory.PluginWS(ws.ID, func(o *entities.Plugin) {
-					o.Name = "integration-auth"
+					o.Name = "connect-auth"
 				})
 				assert.Nil(GinkgoT(), db.Plugins.Insert(context.TODO(), &plugin))
 
 				// update
 				resp, err = adminClient.R().
 					SetBody(map[string]interface{}{
-						"name": "integration-auth",
+						"name": "connect-auth",
 					}).
 					SetResult(entities.Plugin{}).
 					Put("/workspaces/default/plugins/" + plugin.ID)
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 403, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"plugin 'integration-auth' is not available for current license"}`,
+					`{"message":"plugin 'connect-auth' is not available for current license"}`,
 					string(resp.Body()))
 			})
 
@@ -378,7 +378,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
-						"name":      "integration-auth",
+						"name":      "connect-auth",
 						"source_id": source.ID,
 						"config": map[string]interface{}{
 							"provider": "unknown",
@@ -399,7 +399,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), source))
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
-						"name":      "integration-auth",
+						"name":      "connect-auth",
 						"source_id": source.ID,
 						"config": map[string]interface{}{
 							"provider": "github",

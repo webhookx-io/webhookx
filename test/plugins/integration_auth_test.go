@@ -11,13 +11,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db/entities"
-	integration_auth "github.com/webhookx-io/webhookx/plugins/integration-auth"
+	integration_auth "github.com/webhookx-io/webhookx/plugins/connect-auth"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
-var _ = Describe("integration-auth", Ordered, func() {
+var _ = Describe("connect-auth", Ordered, func() {
 
 	Context("github", func() {
 		var proxyClient *resty.Client
@@ -29,7 +29,7 @@ var _ = Describe("integration-auth", Ordered, func() {
 		entitiesConfig.Plugins = []*entities.Plugin{
 			factory.PluginP(
 				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("integration-auth"),
+				factory.WithPluginName("connect-auth"),
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "github",
 					ProviderConfig: map[string]interface{}{
@@ -104,7 +104,7 @@ var _ = Describe("integration-auth", Ordered, func() {
 		entitiesConfig.Plugins = []*entities.Plugin{
 			factory.PluginP(
 				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("integration-auth"),
+				factory.WithPluginName("connect-auth"),
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "slack",
 					ProviderConfig: map[string]interface{}{
@@ -114,7 +114,7 @@ var _ = Describe("integration-auth", Ordered, func() {
 			),
 			factory.PluginP(
 				factory.WithPluginSourceID(entitiesConfig.Sources[1].ID),
-				factory.WithPluginName("integration-auth"),
+				factory.WithPluginName("connect-auth"),
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "slack",
 					ProviderConfig: map[string]interface{}{
@@ -214,7 +214,7 @@ var _ = Describe("integration-auth", Ordered, func() {
 		entitiesConfig.Plugins = []*entities.Plugin{
 			factory.PluginP(
 				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("integration-auth"),
+				factory.WithPluginName("connect-auth"),
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "stripe",
 					ProviderConfig: map[string]interface{}{
@@ -225,7 +225,7 @@ var _ = Describe("integration-auth", Ordered, func() {
 			),
 			factory.PluginP(
 				factory.WithPluginSourceID(entitiesConfig.Sources[1].ID),
-				factory.WithPluginName("integration-auth"),
+				factory.WithPluginName("connect-auth"),
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "stripe",
 					ProviderConfig: map[string]interface{}{
@@ -342,7 +342,7 @@ var _ = Describe("integration-auth", Ordered, func() {
 		entitiesConfig.Plugins = []*entities.Plugin{
 			factory.PluginP(
 				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("integration-auth"),
+				factory.WithPluginName("connect-auth"),
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "gitlab",
 					ProviderConfig: map[string]interface{}{
@@ -397,7 +397,7 @@ var _ = Describe("integration-auth", Ordered, func() {
 		entitiesConfig.Plugins = []*entities.Plugin{
 			factory.PluginP(
 				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("integration-auth"),
+				factory.WithPluginName("connect-auth"),
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "openai",
 					ProviderConfig: map[string]interface{}{
@@ -408,7 +408,7 @@ var _ = Describe("integration-auth", Ordered, func() {
 			),
 			factory.PluginP(
 				factory.WithPluginSourceID(entitiesConfig.Sources[1].ID),
-				factory.WithPluginName("integration-auth"),
+				factory.WithPluginName("connect-auth"),
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "openai",
 					ProviderConfig: map[string]interface{}{
@@ -502,7 +502,7 @@ var _ = Describe("integration-auth", Ordered, func() {
 		entitiesConfig.Plugins = []*entities.Plugin{
 			factory.PluginP(
 				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("integration-auth"),
+				factory.WithPluginName("connect-auth"),
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "okta",
 					ProviderConfig: map[string]interface{}{
@@ -570,7 +570,7 @@ var _ = Describe("integration-auth", Ordered, func() {
 		entitiesConfig.Plugins = []*entities.Plugin{
 			factory.PluginP(
 				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("integration-auth"),
+				factory.WithPluginName("connect-auth"),
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "zendesk",
 					ProviderConfig: map[string]interface{}{
@@ -580,7 +580,7 @@ var _ = Describe("integration-auth", Ordered, func() {
 			),
 			factory.PluginP(
 				factory.WithPluginSourceID(entitiesConfig.Sources[1].ID),
-				factory.WithPluginName("integration-auth"),
+				factory.WithPluginName("connect-auth"),
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "zendesk",
 					ProviderConfig: map[string]interface{}{

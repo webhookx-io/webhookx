@@ -1,4 +1,4 @@
-package integration_auth
+package connect_auth
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/types"
-	"github.com/webhookx-io/webhookx/plugins/integration-auth/verifier"
+	"github.com/webhookx-io/webhookx/plugins/connect-auth/verifier"
 )
 
 type Config struct {
@@ -20,18 +20,18 @@ type Config struct {
 }
 
 func (c Config) Schema() *openapi3.Schema {
-	return entities.LookupSchema("IntegrationAuthPluginConfiguration")
+	return entities.LookupSchema("ConnectAuthPluginConfiguration")
 }
 
-type IntegrationAuthPlugin struct {
+type ConnectAuthPlugin struct {
 	plugin.BasePlugin[Config]
 }
 
-func (p *IntegrationAuthPlugin) Name() string {
-	return "integration-auth"
+func (p *ConnectAuthPlugin) Name() string {
+	return "connect-auth"
 }
 
-func (p *IntegrationAuthPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (result plugin.InboundResult, err error) {
+func (p *ConnectAuthPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (result plugin.InboundResult, err error) {
 	v, ok := verifier.LoadVerifier(p.Config.Provider)
 	if !ok {
 		return result, errors.New("unknown provider: " + p.Config.Provider)

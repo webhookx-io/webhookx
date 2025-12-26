@@ -1103,7 +1103,7 @@ components:
         - signature_header
         - secret
 
-    IntegrationAuthPluginConfiguration:
+    ConnectAuthPluginConfiguration:
       oneOf:
         - $ref: "#/components/schemas/GitHubProviderConfig"
         - $ref: "#/components/schemas/SlackProviderConfig"

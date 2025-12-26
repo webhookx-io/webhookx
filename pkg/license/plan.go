@@ -37,7 +37,7 @@ var (
 	}
 
 	EnterprisePlugins = []string{
-		"integration-auth",
+		"connect-auth",
 	}
 )
 

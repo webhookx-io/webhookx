@@ -8,16 +8,14 @@ import (
 	"github.com/webhookx-io/webhookx/utils"
 )
 
-type Provider string
-
 const (
-	ProviderAWS   Provider = "aws"
-	ProviderVault Provider = "vault"
+	ProviderAWS   string = "aws"
+	ProviderVault string = "vault"
 )
 
 type SecretConfig struct {
 	BaseConfig
-	Providers []Provider    `json:"providers" yaml:"providers" default:"[\"@default\"]"`
+	Providers []string      `json:"providers" yaml:"providers" default:"[\"@default\"]"`
 	TTL       uint32        `json:"ttl" yaml:"ttl"`
 	Aws       AwsProvider   `json:"aws" yaml:"aws"`
 	Vault     VaultProvider `json:"vault" yaml:"vault"`
@@ -25,7 +23,7 @@ type SecretConfig struct {
 
 func (cfg *SecretConfig) Validate() error {
 	for _, name := range cfg.Providers {
-		if !slices.Contains([]Provider{"@default", ProviderAWS, ProviderVault}, name) {
+		if !slices.Contains([]string{"@default", ProviderAWS, ProviderVault}, name) {
 			return fmt.Errorf("invalid provider: %s", name)
 		}
 	}
@@ -42,8 +40,8 @@ func (cfg *SecretConfig) Enabled() bool {
 	return len(cfg.Providers) > 0
 }
 
-func (cfg *SecretConfig) GetProviders() []Provider {
-	names := make([]Provider, 0)
+func (cfg *SecretConfig) GetProviders() []string {
+	names := make([]string, 0)
 	for _, p := range cfg.Providers {
 		if p == "@default" {
 			names = append(names, ProviderAWS, ProviderVault)
@@ -55,7 +53,7 @@ func (cfg *SecretConfig) GetProviders() []Provider {
 }
 
 func (cfg *SecretConfig) GetProviderConfiguration(name string) map[string]interface{} {
-	switch Provider(name) {
+	switch name {
 	case ProviderAWS:
 		return utils.Must(utils.StructToMap(cfg.Aws))
 	case ProviderVault:

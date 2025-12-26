@@ -29,6 +29,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
 	"github.com/webhookx-io/webhookx/pkg/reports"
 	"github.com/webhookx-io/webhookx/pkg/schedule"
+	"github.com/webhookx-io/webhookx/pkg/secret"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/store"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
@@ -80,6 +81,7 @@ type Application struct {
 	tracer    *tracing.Tracer
 	srv       *service.Service
 	scheduler schedule.Scheduler
+	sm        *secret.SecretManager
 }
 
 func New(cfg *config.Config) (*Application, error) {
@@ -322,6 +324,15 @@ func (app *Application) initialize() error {
 
 	app.registerScheduledTasks()
 
+	if license.GetLicenser().Allow("secret") && cfg.Secret.Enabled() {
+		manager, err := secret.NewManagerFromConfig(cfg.Secret)
+		if err != nil {
+			return err
+		}
+		manager.WithLogger(app.log.Named("core"))
+		app.sm = manager
+	}
+
 	return nil
 }
 
@@ -332,6 +343,7 @@ func (app *Application) buildPluginIterator(version string) (*plugins.Iterator, 
 		return nil, fmt.Errorf("failed to query plugins from database: %v", err)
 	}
 	iterator := plugins.NewIterator(version)
+	iterator.WithSecretManager(app.sm)
 	if err := iterator.LoadPlugins(list); err != nil {
 		return nil, fmt.Errorf("failed to load plugins: %v", err)
 	}
@@ -348,7 +360,8 @@ func (app *Application) scheduleRebuildPluginIterator() {
 		Interval: time.Second,
 		Do: func() {
 			version := store.GetDefault("plugin:version", "init").(string)
-			if plugins.LoadIterator().Version == version {
+			iterator := plugins.LoadIterator()
+			if iterator.Version == version && time.Since(iterator.Created) < time.Minute {
 				return
 			}
 

@@ -154,11 +154,11 @@ var _ = Describe("/sources", Ordered, func() {
 		})
 
 		Context("PUT", func() {
-			var entity entities.Source
+			var entity *entities.Source
 
 			BeforeAll(func() {
 				entity = factory.SourceWS(ws.ID)
-				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), &entity))
+				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), entity))
 			})
 
 			It("updates by id", func() {
@@ -198,11 +198,11 @@ var _ = Describe("/sources", Ordered, func() {
 		})
 
 		Context("DELETE", func() {
-			var entity entities.Source
+			var entity *entities.Source
 
 			BeforeAll(func() {
 				entity = factory.SourceWS(ws.ID)
-				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), &entity))
+				assert.Nil(GinkgoT(), db.Sources.Insert(context.TODO(), entity))
 			})
 
 			It("deletes by id", func() {

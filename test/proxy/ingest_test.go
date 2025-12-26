@@ -24,11 +24,11 @@ var _ = Describe("ingest", Ordered, func() {
 		var app *app.Application
 		var db *db.DB
 
-		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{factory.EndpointP()},
+		entitiesConfig := helper.TestEntities{
+			Endpoints: []*entities.Endpoint{factory.Endpoint()},
 			Sources: []*entities.Source{
-				factory.SourceP(),
-				factory.SourceP(
+				factory.Source(),
+				factory.Source(
 					func(o *entities.Source) {
 						o.Config.HTTP.Path = "/custom-response"
 						o.Config.HTTP.Response = &entities.CustomResponse{
@@ -100,9 +100,9 @@ var _ = Describe("ingest", Ordered, func() {
 		var proxyClient *resty.Client
 		var app *app.Application
 
-		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{factory.EndpointP()},
-			Sources:   []*entities.Source{factory.SourceP()},
+		entitiesConfig := helper.TestEntities{
+			Endpoints: []*entities.Endpoint{factory.Endpoint()},
+			Sources:   []*entities.Source{factory.Source()},
 		}
 		entitiesConfig.Sources[0].Async = true
 

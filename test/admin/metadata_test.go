@@ -36,9 +36,8 @@ var _ = Describe("metadata", Ordered, func() {
 
 	Context("endpoints", func() {
 		It("retrieve a endpoint with empty metadata", func() {
-			endpoint := factory.Endpoint()
-			endpoint.WorkspaceId = ws.ID
-			assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), &endpoint))
+			endpoint := factory.EndpointWS(ws.ID)
+			assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 
 			resp, err := adminClient.R().
 				SetResult(entities.Endpoint{}).
@@ -49,9 +48,11 @@ var _ = Describe("metadata", Ordered, func() {
 		})
 
 		It("retrieve a endpoint with non-empty metadata", func() {
-			endpoint := factory.Endpoint(factory.WithEndpointMetadata(map[string]string{"k1": "v1", "k2": "v2"}))
-			endpoint.WorkspaceId = ws.ID
-			assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), &endpoint))
+			endpoint := factory.Endpoint(func(o *entities.Endpoint) {
+				o.Metadata = map[string]string{"k1": "v1", "k2": "v2"}
+				o.WorkspaceId = ws.ID
+			})
+			assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 
 			resp, err := adminClient.R().
 				SetResult(entities.Endpoint{}).
@@ -88,7 +89,7 @@ var _ = Describe("metadata", Ordered, func() {
 		})
 
 		It("updates a endpoint's metadata", func() {
-			endpoint := factory.EndpointP()
+			endpoint := factory.Endpoint()
 			endpoint.WorkspaceId = ws.ID
 			assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 
@@ -113,8 +114,9 @@ var _ = Describe("metadata", Ordered, func() {
 		})
 
 		It("updates a endpoint's metadata that has existing keys", func() {
-			endpoint := factory.EndpointP(factory.WithEndpointMetadata(map[string]string{"key1": "value1", "key2": "value2"}))
-			endpoint.WorkspaceId = ws.ID
+			endpoint := factory.EndpointWS(ws.ID, func(o *entities.Endpoint) {
+				o.Metadata = map[string]string{"key1": "value1", "key2": "value2"}
+			})
 			assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 
 			// override metadata
@@ -138,8 +140,9 @@ var _ = Describe("metadata", Ordered, func() {
 		})
 
 		It("updates a endpoint's metadata to be empty", func() {
-			endpoint := factory.EndpointP(factory.WithEndpointMetadata(map[string]string{"key1": "value1", "key2": "value2"}))
-			endpoint.WorkspaceId = ws.ID
+			endpoint := factory.EndpointWS(ws.ID, func(o *entities.Endpoint) {
+				o.Metadata = map[string]string{"key1": "value1", "key2": "value2"}
+			})
 			assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 
 			resp, err := adminClient.R().

@@ -21,9 +21,9 @@ var _ = Describe("tracing disabled", Ordered, func() {
 		Context(protocol, func() {
 			var app *app.Application
 
-			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{factory.EndpointP()},
-				Sources:   []*entities.Source{factory.SourceP()},
+			entitiesConfig := helper.TestEntities{
+				Endpoints: []*entities.Endpoint{factory.Endpoint()},
+				Sources:   []*entities.Source{factory.Source()},
 			}
 
 			BeforeAll(func() {

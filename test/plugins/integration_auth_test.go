@@ -23,21 +23,21 @@ var _ = Describe("connect-auth", Ordered, func() {
 		var proxyClient *resty.Client
 		var app *app.Application
 
-		entitiesConfig := helper.EntitiesConfig{
-			Sources: []*entities.Source{factory.SourceP()},
-		}
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("connect-auth"),
-				factory.WithPluginConfig(integration_auth.Config{
-					Provider: "github",
-					ProviderConfig: map[string]interface{}{
-						"secret": "test-github-secret",
-					},
-				}),
+		entitiesConfig := helper.TestEntities{}
+		entitiesConfig.AddSource(
+			factory.Source(
+				factory.WithSourcePlugins(
+					factory.Plugin("connect-auth",
+						factory.WithPluginConfig(integration_auth.Config{
+							Provider: "github",
+							ProviderConfig: map[string]interface{}{
+								"secret": "test-github-secret",
+							},
+						}),
+					),
+				),
 			),
-		}
+		)
 
 		BeforeAll(func() {
 			helper.InitDB(true, &entitiesConfig)
@@ -95,26 +95,20 @@ var _ = Describe("connect-auth", Ordered, func() {
 		var proxyClient *resty.Client
 		var app *app.Application
 
-		entitiesConfig := helper.EntitiesConfig{
-			Sources: []*entities.Source{
-				factory.SourceP(),
-				factory.SourceP(func(o *entities.Source) { o.Config.HTTP.Path = "/validate-tolerance" }),
-			},
-		}
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("connect-auth"),
+		entitiesConfig := helper.TestEntities{}
+		entitiesConfig.AddSource(factory.Source(func(o *entities.Source) {
+			o.Plugins = append(o.Plugins, factory.Plugin("connect-auth",
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "slack",
 					ProviderConfig: map[string]interface{}{
 						"secret": "test-slack-secret",
 					},
 				}),
-			),
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[1].ID),
-				factory.WithPluginName("connect-auth"),
+			))
+		}))
+		entitiesConfig.AddSource(factory.Source(func(o *entities.Source) {
+			o.Config.HTTP.Path = "/validate-tolerance"
+			o.Plugins = append(o.Plugins, factory.Plugin("connect-auth",
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "slack",
 					ProviderConfig: map[string]interface{}{
@@ -122,8 +116,8 @@ var _ = Describe("connect-auth", Ordered, func() {
 						"tolerance_window": 300,
 					},
 				}),
-			),
-		}
+			))
+		}))
 
 		BeforeAll(func() {
 			helper.InitDB(true, &entitiesConfig)
@@ -203,18 +197,9 @@ var _ = Describe("connect-auth", Ordered, func() {
 		var proxyClient *resty.Client
 		var app *app.Application
 
-		entitiesConfig := helper.EntitiesConfig{
-			Sources: []*entities.Source{
-				factory.SourceP(),
-				factory.SourceP(func(o *entities.Source) {
-					o.Config.HTTP.Path = "/v2"
-				}),
-			},
-		}
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("connect-auth"),
+		entitiesConfig := helper.TestEntities{}
+		entitiesConfig.AddSource(factory.Source(func(o *entities.Source) {
+			o.Plugins = append(o.Plugins, factory.Plugin("connect-auth",
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "stripe",
 					ProviderConfig: map[string]interface{}{
@@ -222,10 +207,11 @@ var _ = Describe("connect-auth", Ordered, func() {
 						"tolerance_window": 300,
 					},
 				}),
-			),
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[1].ID),
-				factory.WithPluginName("connect-auth"),
+			))
+		}))
+		entitiesConfig.AddSource(factory.Source(func(o *entities.Source) {
+			o.Config.HTTP.Path = "/v2"
+			o.Plugins = append(o.Plugins, factory.Plugin("connect-auth",
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "stripe",
 					ProviderConfig: map[string]interface{}{
@@ -233,8 +219,8 @@ var _ = Describe("connect-auth", Ordered, func() {
 						"tolerance_window": 0,
 					},
 				}),
-			),
-		}
+			))
+		}))
 
 		BeforeAll(func() {
 			helper.InitDB(true, &entitiesConfig)
@@ -336,20 +322,16 @@ var _ = Describe("connect-auth", Ordered, func() {
 		var proxyClient *resty.Client
 		var app *app.Application
 
-		entitiesConfig := helper.EntitiesConfig{
-			Sources: []*entities.Source{factory.SourceP()},
-		}
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("connect-auth"),
-				factory.WithPluginConfig(integration_auth.Config{
-					Provider: "gitlab",
-					ProviderConfig: map[string]interface{}{
-						"secret": "test-gitlab-secret",
-					},
-				}),
-			),
+		entitiesConfig := helper.TestEntities{
+			Sources: []*entities.Source{factory.Source(func(o *entities.Source) {
+				o.Plugins = append(o.Plugins, factory.Plugin("connect-auth",
+					factory.WithPluginConfig(integration_auth.Config{
+						Provider: "gitlab",
+						ProviderConfig: map[string]interface{}{
+							"secret": "test-gitlab-secret",
+						},
+					})))
+			})},
 		}
 
 		BeforeAll(func() {
@@ -388,16 +370,9 @@ var _ = Describe("connect-auth", Ordered, func() {
 		var proxyClient *resty.Client
 		var app *app.Application
 
-		entitiesConfig := helper.EntitiesConfig{
-			Sources: []*entities.Source{
-				factory.SourceP(),
-				factory.SourceP(func(o *entities.Source) { o.Config.HTTP.Path = "/validate-tolerance" }),
-			},
-		}
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("connect-auth"),
+		entitiesConfig := helper.TestEntities{}
+		entitiesConfig.AddSource(factory.Source(func(o *entities.Source) {
+			o.Plugins = append(o.Plugins, factory.Plugin("connect-auth",
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "openai",
 					ProviderConfig: map[string]interface{}{
@@ -405,10 +380,11 @@ var _ = Describe("connect-auth", Ordered, func() {
 						"tolerance_window": 0,
 					},
 				}),
-			),
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[1].ID),
-				factory.WithPluginName("connect-auth"),
+			))
+		}))
+		entitiesConfig.AddSource(factory.Source(func(o *entities.Source) {
+			o.Config.HTTP.Path = "/validate-tolerance"
+			o.Plugins = append(o.Plugins, factory.Plugin("connect-auth",
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "openai",
 					ProviderConfig: map[string]interface{}{
@@ -416,8 +392,8 @@ var _ = Describe("connect-auth", Ordered, func() {
 						"tolerance_window": 300,
 					},
 				}),
-			),
-		}
+			))
+		}))
 
 		BeforeAll(func() {
 			helper.InitDB(true, &entitiesConfig)
@@ -494,23 +470,19 @@ var _ = Describe("connect-auth", Ordered, func() {
 		var proxyClient *resty.Client
 		var app *app.Application
 
-		entitiesConfig := helper.EntitiesConfig{
-			Sources: []*entities.Source{factory.SourceP(func(o *entities.Source) {
+		entitiesConfig := helper.TestEntities{
+			Sources: []*entities.Source{factory.Source(func(o *entities.Source) {
 				o.Config.HTTP.Methods = []string{"GET", "POST"}
+				o.Plugins = append(o.Plugins, factory.Plugin("connect-auth",
+					factory.WithPluginConfig(integration_auth.Config{
+						Provider: "okta",
+						ProviderConfig: map[string]interface{}{
+							"authentication_field":  "X-Okta-Token",
+							"authentication_secret": "test-secret",
+						},
+					}),
+				))
 			})},
-		}
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("connect-auth"),
-				factory.WithPluginConfig(integration_auth.Config{
-					Provider: "okta",
-					ProviderConfig: map[string]interface{}{
-						"authentication_field":  "X-Okta-Token",
-						"authentication_secret": "test-secret",
-					},
-				}),
-			),
 		}
 
 		BeforeAll(func() {
@@ -561,26 +533,20 @@ var _ = Describe("connect-auth", Ordered, func() {
 		var proxyClient *resty.Client
 		var app *app.Application
 
-		entitiesConfig := helper.EntitiesConfig{
-			Sources: []*entities.Source{
-				factory.SourceP(),
-				factory.SourceP(func(o *entities.Source) { o.Config.HTTP.Path = "/validate-tolerance" }),
-			},
-		}
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("connect-auth"),
+		entitiesConfig := helper.TestEntities{}
+		entitiesConfig.AddSource(factory.Source(func(o *entities.Source) {
+			o.Plugins = append(o.Plugins, factory.Plugin("connect-auth",
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "zendesk",
 					ProviderConfig: map[string]interface{}{
 						"secret": "dGhpc19zZWNyZXRfaXNfZm9yX3Rlc3Rpbmdfb25seQ==",
 					},
 				}),
-			),
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[1].ID),
-				factory.WithPluginName("connect-auth"),
+			))
+		}))
+		entitiesConfig.AddSource(factory.Source(func(o *entities.Source) {
+			o.Config.HTTP.Path = "/validate-tolerance"
+			o.Plugins = append(o.Plugins, factory.Plugin("connect-auth",
 				factory.WithPluginConfig(integration_auth.Config{
 					Provider: "zendesk",
 					ProviderConfig: map[string]interface{}{
@@ -588,8 +554,8 @@ var _ = Describe("connect-auth", Ordered, func() {
 						"tolerance_window": 300,
 					},
 				}),
-			),
-		}
+			))
+		}))
 
 		BeforeAll(func() {
 			helper.InitDB(true, &entitiesConfig)

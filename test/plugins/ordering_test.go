@@ -29,56 +29,22 @@ var _ = Describe("ordering", Ordered, func() {
 
 		var app *app.Application
 
-		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{factory.EndpointP()},
-			Sources:   []*entities.Source{factory.SourceP()},
-		}
-
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(func(o *entities.Plugin) {
-				o.Name = "basic-auth"
-				o.SourceId = utils.Pointer(entitiesConfig.Sources[0].ID)
-			}),
-			factory.PluginP(func(o *entities.Plugin) {
-				o.Name = "function"
-				o.SourceId = utils.Pointer(entitiesConfig.Sources[0].ID)
-			}),
-			factory.PluginP(func(o *entities.Plugin) {
-				o.Name = "hmac-auth"
-				o.SourceId = utils.Pointer(entitiesConfig.Sources[0].ID)
-			}),
-			factory.PluginP(func(o *entities.Plugin) {
-				o.Name = "connect-auth"
-				o.SourceId = utils.Pointer(entitiesConfig.Sources[0].ID)
-			}),
-			factory.PluginP(func(o *entities.Plugin) {
-				o.Name = "jsonschema-validator"
-				o.SourceId = utils.Pointer(entitiesConfig.Sources[0].ID)
-			}),
-			factory.PluginP(func(o *entities.Plugin) {
-				o.Name = "key-auth"
-				o.SourceId = utils.Pointer(entitiesConfig.Sources[0].ID)
-			}),
-			factory.PluginP(func(o *entities.Plugin) {
-				o.Name = "wasm"
-				o.EndpointId = utils.Pointer(entitiesConfig.Endpoints[0].ID)
-			}),
-			factory.PluginP(func(o *entities.Plugin) {
-				o.Name = "webhookx-signature"
-				o.EndpointId = utils.Pointer(entitiesConfig.Endpoints[0].ID)
-			}),
-			factory.PluginP(func(o *entities.Plugin) {
-				o.Name = "hello"
-				o.EndpointId = utils.Pointer(entitiesConfig.Endpoints[0].ID)
-			}),
-			factory.PluginP(func(o *entities.Plugin) {
-				o.Name = "outbound"
-				o.EndpointId = utils.Pointer(entitiesConfig.Endpoints[0].ID)
-			}),
-			factory.PluginP(func(o *entities.Plugin) {
-				o.Name = "a-disabled-plugin"
-				o.Enabled = false
-			}),
+		entitiesConfig := helper.TestEntities{
+			Endpoints: []*entities.Endpoint{factory.Endpoint(factory.WithEndpointPlugins(
+				factory.Plugin("wasm"),
+				factory.Plugin("webhookx-signature"),
+				factory.Plugin("hello"),
+				factory.Plugin("outbound"),
+				factory.Plugin("a-disabled-plugin", func(o *entities.Plugin) { o.Enabled = false }),
+			))},
+			Sources: []*entities.Source{factory.Source(factory.WithSourcePlugins(
+				factory.Plugin("basic-auth"),
+				factory.Plugin("function"),
+				factory.Plugin("hmac-auth"),
+				factory.Plugin("connect-auth"),
+				factory.Plugin("jsonschema-validator"),
+				factory.Plugin("key-auth"),
+			))},
 		}
 
 		BeforeAll(func() {

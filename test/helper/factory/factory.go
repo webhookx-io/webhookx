@@ -44,41 +44,24 @@ func defaultEndpoint() entities.Endpoint {
 
 type EndpointOption func(*entities.Endpoint)
 
-func WithEndpointID(id string) EndpointOption {
-	return func(e *entities.Endpoint) {
-		e.ID = id
-	}
-}
-
-func WithEndpointName(name string) EndpointOption {
-	return func(e *entities.Endpoint) {
-		e.Name = &name
-	}
-}
-
-func WithEndpointMetadata(metadata map[string]string) EndpointOption {
-	return func(e *entities.Endpoint) {
-		e.Metadata = metadata
-	}
-}
-
-func Endpoint(opts ...EndpointOption) entities.Endpoint {
+func Endpoint(opts ...EndpointOption) *entities.Endpoint {
 	e := defaultEndpoint()
 	for _, opt := range opts {
 		opt(&e)
 	}
-	return e
-}
-
-func EndpointP(opts ...EndpointOption) *entities.Endpoint {
-	e := Endpoint(opts...)
 	return &e
 }
 
-func EndpointWS(wid string, opts ...EndpointOption) entities.Endpoint {
+func EndpointWS(wid string, opts ...EndpointOption) *entities.Endpoint {
 	p := Endpoint(opts...)
 	p.WorkspaceId = wid
 	return p
+}
+
+func WithEndpointPlugins(plugins ...*entities.Plugin) EndpointOption {
+	return func(o *entities.Endpoint) {
+		o.Plugins = append(o.Plugins, plugins...)
+	}
 }
 
 // Source
@@ -97,41 +80,24 @@ func defaultSource() entities.Source {
 
 type SourceOption func(*entities.Source)
 
-func WithSourceID(id string) SourceOption {
-	return func(e *entities.Source) {
-		e.ID = id
-	}
-}
-
-func WithSourceAsync(async bool) SourceOption {
-	return func(e *entities.Source) {
-		e.Async = async
-	}
-}
-
-func WithSourceMetadata(metadata map[string]string) SourceOption {
-	return func(e *entities.Source) {
-		e.Metadata = metadata
-	}
-}
-
-func Source(opts ...SourceOption) entities.Source {
+func Source(opts ...SourceOption) *entities.Source {
 	e := defaultSource()
 	for _, opt := range opts {
 		opt(&e)
 	}
-	return e
-}
-
-func SourceP(opts ...SourceOption) *entities.Source {
-	e := Source(opts...)
 	return &e
 }
 
-func SourceWS(wid string, opts ...SourceOption) entities.Source {
+func SourceWS(wid string, opts ...SourceOption) *entities.Source {
 	p := Source(opts...)
 	p.WorkspaceId = wid
 	return p
+}
+
+func WithSourcePlugins(plugins ...*entities.Plugin) SourceOption {
+	return func(o *entities.Source) {
+		o.Plugins = append(o.Plugins, plugins...)
+	}
 }
 
 // Plugin
@@ -148,36 +114,6 @@ func defaultPlugin() entities.Plugin {
 
 type PluginOption func(*entities.Plugin)
 
-func WithPluginID(id string) PluginOption {
-	return func(e *entities.Plugin) {
-		e.ID = id
-	}
-}
-
-func WithPluginEndpointID(endpointID string) PluginOption {
-	return func(e *entities.Plugin) {
-		e.EndpointId = &endpointID
-	}
-}
-
-func WithPluginSourceID(sourceID string) PluginOption {
-	return func(e *entities.Plugin) {
-		e.SourceId = &sourceID
-	}
-}
-
-func WithPluginName(name string) PluginOption {
-	return func(e *entities.Plugin) {
-		e.Name = name
-	}
-}
-
-func WithPluginMetadata(metadata map[string]string) PluginOption {
-	return func(e *entities.Plugin) {
-		e.Metadata = metadata
-	}
-}
-
 func WithPluginConfig(config plugin.Configuration) PluginOption {
 	return func(e *entities.Plugin) {
 		properties, err := utils.StructToMap(config)
@@ -188,21 +124,17 @@ func WithPluginConfig(config plugin.Configuration) PluginOption {
 	}
 }
 
-func Plugin(opts ...PluginOption) entities.Plugin {
+func Plugin(name string, opts ...PluginOption) *entities.Plugin {
 	e := defaultPlugin()
+	e.Name = name
 	for _, opt := range opts {
 		opt(&e)
 	}
-	return e
-}
-
-func PluginP(opts ...PluginOption) *entities.Plugin {
-	e := Plugin(opts...)
 	return &e
 }
 
-func PluginWS(wid string, opts ...PluginOption) entities.Plugin {
-	p := Plugin(opts...)
+func PluginWS(name string, wid string, opts ...PluginOption) *entities.Plugin {
+	p := Plugin(name, opts...)
 	p.WorkspaceId = wid
 	return p
 }
@@ -222,20 +154,15 @@ func defaultEvent() entities.Event {
 
 type EventOption func(*entities.Event)
 
-func Event(opts ...EventOption) entities.Event {
+func Event(opts ...EventOption) *entities.Event {
 	e := defaultEvent()
 	for _, opt := range opts {
 		opt(&e)
 	}
-	return e
-}
-
-func EventP(opts ...EventOption) *entities.Event {
-	e := Event(opts...)
 	return &e
 }
 
-func EventWS(wid string, opts ...EventOption) entities.Event {
+func EventWS(wid string, opts ...EventOption) *entities.Event {
 	p := Event(opts...)
 	p.WorkspaceId = wid
 	return p

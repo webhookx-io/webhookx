@@ -114,21 +114,21 @@ var _ = Describe("Proxy", Ordered, func() {
 		var app *app.Application
 		var db *db.DB
 
-		entitiesConfig := helper.EntitiesConfig{
+		entitiesConfig := helper.TestEntities{
 			Endpoints: []*entities.Endpoint{
-				factory.EndpointP(func(o *entities.Endpoint) {
+				factory.Endpoint(func(o *entities.Endpoint) {
 					o.Events = []string{"http"}
 				}),
-				factory.EndpointP(func(o *entities.Endpoint) {
+				factory.Endpoint(func(o *entities.Endpoint) {
 					o.Request.URL = httpsBinURL + "/anything"
 					o.Events = []string{"https"}
 				}),
-				factory.EndpointP(func(o *entities.Endpoint) {
+				factory.Endpoint(func(o *entities.Endpoint) {
 					o.Request.URL = "https://deny.localhost"
 					o.Events = []string{"deny"}
 				}),
 			},
-			Sources: []*entities.Source{factory.SourceP()},
+			Sources: []*entities.Source{factory.Source()},
 		}
 
 		BeforeAll(func() {
@@ -276,17 +276,17 @@ var _ = Describe("Proxy", Ordered, func() {
 			var app *app.Application
 			var db *db.DB
 
-			entitiesConfig := helper.EntitiesConfig{
+			entitiesConfig := helper.TestEntities{
 				Endpoints: []*entities.Endpoint{
-					factory.EndpointP(func(o *entities.Endpoint) {
+					factory.Endpoint(func(o *entities.Endpoint) {
 						o.Events = []string{"http"}
 					}),
-					factory.EndpointP(func(o *entities.Endpoint) {
+					factory.Endpoint(func(o *entities.Endpoint) {
 						o.Request.URL = httpsBinURL + "/anything"
 						o.Events = []string{"https"}
 					}),
 				},
-				Sources: []*entities.Source{factory.SourceP()},
+				Sources: []*entities.Source{factory.Source()},
 			}
 
 			BeforeAll(func() {
@@ -406,17 +406,17 @@ var _ = Describe("Proxy", Ordered, func() {
 			var app *app.Application
 			var db *db.DB
 
-			entitiesConfig := helper.EntitiesConfig{
+			entitiesConfig := helper.TestEntities{
 				Endpoints: []*entities.Endpoint{
-					factory.EndpointP(func(o *entities.Endpoint) {
+					factory.Endpoint(func(o *entities.Endpoint) {
 						o.Events = []string{"http"}
 					}),
-					factory.EndpointP(func(o *entities.Endpoint) {
+					factory.Endpoint(func(o *entities.Endpoint) {
 						o.Request.URL = httpsBinURL + "/anything"
 						o.Events = []string{"https"}
 					}),
 				},
-				Sources: []*entities.Source{factory.SourceP()},
+				Sources: []*entities.Source{factory.Source()},
 			}
 
 			BeforeAll(func() {

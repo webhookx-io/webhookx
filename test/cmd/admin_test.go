@@ -14,7 +14,7 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/cmd"
 	"github.com/webhookx-io/webhookx/db"
-	"github.com/webhookx-io/webhookx/plugins/webhookx_signature"
+	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
@@ -119,11 +119,11 @@ var _ = Describe("admin", Ordered, func() {
 				assert.NoError(GinkgoT(), err)
 
 				endpoint := factory.EndpointWS(ws.ID)
-				err = db.Endpoints.Insert(context.TODO(), &endpoint)
+				err = db.Endpoints.Insert(context.TODO(), endpoint)
 				assert.NoError(GinkgoT(), err)
 
 				source := factory.SourceWS(ws.ID)
-				err = db.Sources.Insert(context.TODO(), &source)
+				err = db.Sources.Insert(context.TODO(), source)
 				assert.NoError(GinkgoT(), err)
 
 				_, err = helper.ExecAppCommand("admin", "sync", "../fixtures/webhookx.yml")
@@ -231,26 +231,25 @@ var _ = Describe("admin", Ordered, func() {
 				ws, err := helper.GetDeafultWorkspace()
 				assert.Nil(GinkgoT(), err)
 
-				endpoint := factory.EndpointWS(ws.ID,
-					factory.WithEndpointID("2q6ItdkHcFz8jQaXxrGp35xsShS"),
-					factory.WithEndpointMetadata(map[string]string{"k": "v"}),
-				)
-				assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), &endpoint))
+				endpoint := factory.EndpointWS(ws.ID, func(o *entities.Endpoint) {
+					o.ID = "2q6ItdkHcFz8jQaXxrGp35xsShS"
+					o.Metadata = map[string]string{"k": "v"}
+				})
+				assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 
-				source := factory.SourceWS(ws.ID,
-					factory.WithSourceID("2q6ItgNdNEIvoJ2wffn5G5j8HYC"),
-					factory.WithSourceMetadata(map[string]string{"k": "v"}),
-				)
-				assert.NoError(GinkgoT(), db.Sources.Insert(context.TODO(), &source))
+				source := factory.SourceWS(ws.ID, func(o *entities.Source) {
+					o.ID = "2q6ItgNdNEIvoJ2wffn5G5j8HYC"
+					o.Metadata = map[string]string{"k": "v"}
+				})
+				assert.NoError(GinkgoT(), db.Sources.Insert(context.TODO(), source))
 
-				plugin := factory.PluginWS(
-					ws.ID,
-					factory.WithPluginID("2q6ItZRVNB0EyVr6j8Pxa7VTohU"),
-					factory.WithPluginEndpointID(endpoint.ID),
-					factory.WithPluginName("webhookx-signature"),
-					factory.WithPluginConfig(&webhookx_signature.Config{SigningSecret: "test"}),
-					factory.WithPluginMetadata(map[string]string{"k": "v"}))
-				assert.NoError(GinkgoT(), db.Plugins.Insert(context.TODO(), &plugin))
+				plugin := factory.PluginWS("webhookx-signature", ws.ID, func(o *entities.Plugin) {
+					o.ID = "2q6ItZRVNB0EyVr6j8Pxa7VTohU"
+					o.EndpointId = utils.Pointer(endpoint.ID)
+					o.Metadata = map[string]string{"k": "v"}
+					o.Config = map[string]interface{}{"signing_secret": "test"}
+				})
+				assert.NoError(GinkgoT(), db.Plugins.Insert(context.TODO(), plugin))
 
 				output, err := helper.ExecAppCommand("admin", "dump")
 				assert.Nil(GinkgoT(), err)

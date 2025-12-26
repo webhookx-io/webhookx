@@ -150,7 +150,7 @@ var _ = Describe("/attempts", Ordered, func() {
 			var undeliveredAttempt *entities.Attempt
 			var detail *entities.AttemptDetail
 			BeforeAll(func() {
-				entitiesConfig := helper.EntitiesConfig{
+				entitiesConfig := helper.TestEntities{
 					Endpoints: []*entities.Endpoint{
 						{
 							ID:      utils.KSUID(),

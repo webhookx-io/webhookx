@@ -127,7 +127,7 @@ var _ = Describe("/events", Ordered, func() {
 		Context("GET", func() {
 			var entity *entities.Event
 			BeforeAll(func() {
-				entitiesConfig := helper.EntitiesConfig{
+				entitiesConfig := helper.TestEntities{
 					Events: []*entities.Event{
 						{
 							ID:         utils.KSUID(),
@@ -169,9 +169,9 @@ var _ = Describe("/events", Ordered, func() {
 			var endpointId, eventId string
 
 			BeforeAll(func() {
-				entitiesConfig := helper.EntitiesConfig{
-					Endpoints: []*entities.Endpoint{factory.EndpointP()},
-					Events:    []*entities.Event{factory.EventP()},
+				entitiesConfig := helper.TestEntities{
+					Endpoints: []*entities.Endpoint{factory.Endpoint()},
+					Events:    []*entities.Event{factory.Event()},
 				}
 				endpointId = entitiesConfig.Endpoints[0].ID
 				eventId = entitiesConfig.Events[0].ID

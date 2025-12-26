@@ -47,7 +47,7 @@ type Source struct {
 	Metadata  Metadata     `json:"metadata" db:"metadata"`
 	RateLimit *RateLimit   `json:"rate_limit" db:"rate_limit"`
 
-	Plugins []*Plugin `json:"plugins,omitempty" db:"-"`
+	Plugins []*Plugin `json:"-" db:"-"`
 
 	BaseModel
 }

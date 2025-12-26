@@ -28,20 +28,18 @@ var _ = Describe("webhookx-signature", Ordered, func() {
 		var app *app.Application
 		var db *db.DB
 
-		endpoint := factory.EndpointP()
+		endpoint := factory.Endpoint()
 		endpoint.Request.Headers = map[string]string{
 			"foo": "bar",
 		}
 
-		entitiesConfig := helper.EntitiesConfig{
+		entitiesConfig := helper.TestEntities{
 			Endpoints: []*entities.Endpoint{endpoint},
-			Sources:   []*entities.Source{factory.SourceP()},
+			Sources:   []*entities.Source{factory.Source()},
 		}
 
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(
-				factory.WithPluginEndpointID(entitiesConfig.Endpoints[0].ID),
-				factory.WithPluginName("webhookx-signature"),
+		entitiesConfig.Endpoints[0].Plugins = []*entities.Plugin{
+			factory.Plugin("webhookx-signature",
 				factory.WithPluginConfig(webhookx_signature.Config{
 					SigningSecret: "abcdefg",
 				}),

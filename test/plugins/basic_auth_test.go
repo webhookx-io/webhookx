@@ -19,33 +19,27 @@ var _ = Describe("basic-auth", Ordered, func() {
 		var proxyClient *resty.Client
 		var app *app.Application
 
-		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{factory.EndpointP()},
+		entitiesConfig := helper.TestEntities{
+			Endpoints: []*entities.Endpoint{factory.Endpoint()},
 			Sources: []*entities.Source{
-				factory.SourceP(func(o *entities.Source) {
+				factory.Source(func(o *entities.Source) {
 					o.Config.HTTP.Path = "/"
+					o.Plugins = append(o.Plugins, factory.Plugin("basic-auth",
+						factory.WithPluginConfig(basic_auth.Config{
+							Username: "username",
+							Password: "password",
+						}),
+					))
 				}),
-				factory.SourceP(func(o *entities.Source) {
+				factory.Source(func(o *entities.Source) {
 					o.Config.HTTP.Path = "/empty-password"
+					o.Plugins = append(o.Plugins, factory.Plugin("basic-auth",
+						factory.WithPluginConfig(basic_auth.Config{
+							Username: "username",
+							Password: "",
+						}),
+					))
 				})},
-		}
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("basic-auth"),
-				factory.WithPluginConfig(basic_auth.Config{
-					Username: "username",
-					Password: "password",
-				}),
-			),
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[1].ID),
-				factory.WithPluginName("basic-auth"),
-				factory.WithPluginConfig(basic_auth.Config{
-					Username: "username",
-					Password: "",
-				}),
-			),
 		}
 
 		BeforeAll(func() {

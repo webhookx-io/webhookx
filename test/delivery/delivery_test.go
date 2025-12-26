@@ -29,9 +29,9 @@ var _ = Describe("delivery", Ordered, func() {
 		var app *app.Application
 		var db *db.DB
 
-		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{factory.EndpointP()},
-			Sources:   []*entities.Source{factory.SourceP()},
+		entitiesConfig := helper.TestEntities{
+			Endpoints: []*entities.Endpoint{factory.Endpoint()},
+			Sources:   []*entities.Source{factory.Source()},
 		}
 		entitiesConfig.Plugins = []*entities.Plugin{{
 			ID:         utils.KSUID(),
@@ -123,13 +123,13 @@ var _ = Describe("delivery", Ordered, func() {
 		var db *db.DB
 
 		BeforeAll(func() {
-			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{factory.EndpointP(func(o *entities.Endpoint) {
+			entitiesConfig := helper.TestEntities{
+				Endpoints: []*entities.Endpoint{factory.Endpoint(func(o *entities.Endpoint) {
 					o.Request.Timeout = 1
 					o.Request.URL = "http://localhost:9999/delay/1"
 					o.Retry.Config.Attempts = []int64{0, 0, 0}
 				})},
-				Sources: []*entities.Source{factory.SourceP()},
+				Sources: []*entities.Source{factory.Source()},
 			}
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
@@ -190,9 +190,9 @@ var _ = Describe("delivery", Ordered, func() {
 
 		BeforeAll(func() {
 			endpoint.Retry.Config.Attempts = []int64{3, 1, 1}
-			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{&endpoint},
-				Sources:   []*entities.Source{factory.SourceP()},
+			entitiesConfig := helper.TestEntities{
+				Endpoints: []*entities.Endpoint{endpoint},
+				Sources:   []*entities.Source{factory.Source()},
 			}
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
@@ -249,12 +249,12 @@ var _ = Describe("delivery", Ordered, func() {
 		var db *db.DB
 
 		BeforeAll(func() {
-			entitiesConfig := helper.EntitiesConfig{
-				Endpoints: []*entities.Endpoint{factory.EndpointP(func(o *entities.Endpoint) {
+			entitiesConfig := helper.TestEntities{
+				Endpoints: []*entities.Endpoint{factory.Endpoint(func(o *entities.Endpoint) {
 					o.Retry.Config.Attempts = []int64{
 						int64(constants.TaskQueuePreScheduleTimeWindow.Seconds()) + 3}
 				})},
-				Sources: []*entities.Source{factory.SourceP()},
+				Sources: []*entities.Source{factory.Source()},
 			}
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
@@ -310,14 +310,14 @@ var _ = Describe("delivery", Ordered, func() {
 		var db *db.DB
 		period := 5
 
-		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{factory.EndpointP(func(o *entities.Endpoint) {
+		entitiesConfig := helper.TestEntities{
+			Endpoints: []*entities.Endpoint{factory.Endpoint(func(o *entities.Endpoint) {
 				o.RateLimit = &entities.RateLimit{
 					Quota:  3,
 					Period: period,
 				}
 			})},
-			Sources: []*entities.Source{factory.SourceP()},
+			Sources: []*entities.Source{factory.Source()},
 		}
 
 		BeforeAll(func() {
@@ -367,9 +367,9 @@ var _ = Describe("delivery", Ordered, func() {
 		var app *app.Application
 		var db *db.DB
 
-		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{factory.EndpointP()},
-			Sources:   []*entities.Source{factory.SourceP()},
+		entitiesConfig := helper.TestEntities{
+			Endpoints: []*entities.Endpoint{factory.Endpoint()},
+			Sources:   []*entities.Source{factory.Source()},
 		}
 
 		BeforeAll(func() {

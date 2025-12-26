@@ -6,7 +6,6 @@ import (
 
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/query"
-	"github.com/webhookx-io/webhookx/plugins/function"
 	"github.com/webhookx-io/webhookx/plugins/function/sdk"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 
@@ -42,19 +41,15 @@ var _ = Describe("function", Ordered, func() {
 		var app *app.Application
 		var db *db.DB
 
-		entitiesConfig := helper.EntitiesConfig{
-			Endpoints: []*entities.Endpoint{factory.EndpointP()},
-			Sources:   []*entities.Source{factory.SourceP()},
-		}
-		entitiesConfig.Plugins = []*entities.Plugin{
-			factory.PluginP(
-				factory.WithPluginSourceID(entitiesConfig.Sources[0].ID),
-				factory.WithPluginName("function"),
-				factory.WithPluginConfig(function.Config{
-					Function: function_verify_signature,
-				}),
-			),
-		}
+		entitiesConfig := helper.TestEntities{}
+		entitiesConfig.AddEndpoint(factory.Endpoint())
+		entitiesConfig.AddSource(factory.Source())
+		entitiesConfig.Sources[0].Plugins = []*entities.Plugin{factory.Plugin("function",
+			func(o *entities.Plugin) {
+				o.Config = map[string]interface{}{
+					"function": function_verify_signature,
+				}
+			})}
 
 		BeforeAll(func() {
 			db = helper.InitDB(true, &entitiesConfig)

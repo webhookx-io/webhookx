@@ -1,9 +1,6 @@
 package declarative
 
 import (
-	"encoding/json"
-
-	"github.com/creasty/defaults"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -70,29 +67,11 @@ func (cfg *Configuration) Validate() error {
 }
 
 type Endpoint struct {
-	entities.Endpoint `yaml:",inline"`
-	Plugins           []*entities.Plugin `json:"plugins"`
-}
-
-func (m *Endpoint) UnmarshalJSON(data []byte) error {
-	err := defaults.Set(m)
-	if err != nil {
-		return err
-	}
-	type alias Endpoint
-	return json.Unmarshal(data, (*alias)(m))
+	entities.Endpoint
+	Plugins []*entities.Plugin `json:"plugins"`
 }
 
 type Source struct {
-	entities.Source `yaml:",inline"`
-	Plugins         []*entities.Plugin `json:"plugins"`
-}
-
-func (m *Source) UnmarshalJSON(data []byte) error {
-	err := defaults.Set(m)
-	if err != nil {
-		return err
-	}
-	type alias Source
-	return json.Unmarshal(data, (*alias)(m))
+	entities.Source
+	Plugins []*entities.Plugin `json:"plugins"`
 }

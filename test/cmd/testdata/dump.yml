@@ -1,48 +1,48 @@
 endpoints:
-  - id: 2q6ItdkHcFz8jQaXxrGp35xsShS
-    name: null
-    description: null
+  - description: null
     enabled: true
+    events:
+      - foo.bar
+    id: 2q6ItdkHcFz8jQaXxrGp35xsShS
+    metadata:
+      k: v
+    name: null
+    plugins:
+      - config:
+          signing_secret: test
+        enabled: true
+        endpoint_id: 2q6ItdkHcFz8jQaXxrGp35xsShS
+        id: 2q6ItZRVNB0EyVr6j8Pxa7VTohU
+        metadata:
+          k: v
+        name: webhookx-signature
+        source_id: null
+    rate_limit: null
     request:
-      url: http://localhost:9999/anything
+      headers: null
       method: POST
-      headers: {}
       timeout: 0
+      url: http://localhost:9999/anything
     retry:
-      strategy: fixed
       config:
         attempts:
           - 0
           - 3
           - 3
-    events:
-      - foo.bar
-    metadata:
-      k: v
-    rate_limit: null
-    plugins:
-      - id: 2q6ItZRVNB0EyVr6j8Pxa7VTohU
-        name: webhookx-signature
-        enabled: true
-        endpoint_id: 2q6ItdkHcFz8jQaXxrGp35xsShS
-        source_id: null
-        config:
-          signing_secret: test
-        metadata:
-          k: v
+      strategy: fixed
 sources:
-  - id: 2q6ItgNdNEIvoJ2wffn5G5j8HYC
-    name: null
-    enabled: true
-    type: http
+  - async: false
     config:
       http:
-        path: /
         methods:
           - POST
+        path: /
         response: null
-    async: false
+    enabled: true
+    id: 2q6ItgNdNEIvoJ2wffn5G5j8HYC
     metadata:
       k: v
-    rate_limit: null
+    name: null
     plugins: []
+    rate_limit: null
+    type: http

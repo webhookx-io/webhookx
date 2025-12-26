@@ -7,7 +7,7 @@ import (
 
 type CustomResponse struct {
 	Code        int    `json:"code"`
-	ContentType string `json:"content_type" yaml:"content_type"`
+	ContentType string `json:"content_type"`
 	Body        string `json:"body"`
 }
 
@@ -45,9 +45,11 @@ type Source struct {
 	Config    SourceConfig `json:"config" db:"config"`
 	Async     bool         `json:"async" db:"async"`
 	Metadata  Metadata     `json:"metadata" db:"metadata"`
-	RateLimit *RateLimit   `json:"rate_limit" yaml:"rate_limit" db:"rate_limit"`
+	RateLimit *RateLimit   `json:"rate_limit" db:"rate_limit"`
 
-	BaseModel `yaml:"-"`
+	Plugins []*Plugin `json:"plugins,omitempty" db:"-"`
+
+	BaseModel
 }
 
 func (m *Source) SchemaName() string {

@@ -31,9 +31,9 @@ func (m *Metadata) UnmarshalJSON(data []byte) error {
 }
 
 type BaseModel struct {
-	CreatedAt   types.Time `db:"created_at" json:"created_at"`
-	UpdatedAt   types.Time `db:"updated_at" json:"updated_at"`
-	WorkspaceId string     `db:"ws_id" json:"-"`
+	CreatedAt   *types.Time `db:"created_at" json:"created_at,omitempty"`
+	UpdatedAt   *types.Time `db:"updated_at" json:"updated_at,omitempty"`
+	WorkspaceId string      `db:"ws_id" json:"-"`
 }
 
 type Headers map[string]string

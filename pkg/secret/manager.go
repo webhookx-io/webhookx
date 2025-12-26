@@ -7,18 +7,12 @@ import (
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/tidwall/gjson"
+	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/pkg/secret/provider"
 	"github.com/webhookx-io/webhookx/pkg/secret/provider/aws"
 	"github.com/webhookx-io/webhookx/pkg/secret/provider/vault"
 	"github.com/webhookx-io/webhookx/pkg/secret/reference"
 	"go.uber.org/zap"
-)
-
-type ProviderType string
-
-const (
-	AwsProviderType   ProviderType = "aws"
-	VaultProviderType ProviderType = "vault"
 )
 
 type SecretManager struct {
@@ -44,27 +38,35 @@ func NewManager(opts Options) *SecretManager {
 	return manager
 }
 
+func NewManagerFromConfig(cfg modules.SecretConfig) (*SecretManager, error) {
+	manager := NewManager(Options{
+		TTL: time.Second * time.Duration(cfg.TTL),
+	})
+
+	for _, name := range cfg.GetProviders() {
+		var prov provider.Provider
+		var err error
+		switch name {
+		case modules.ProviderAWS:
+			prov, err = aws.NewProvider(cfg.GetProviderConfiguration(name))
+		case modules.ProviderVault:
+			prov, err = vault.NewProvider(cfg.GetProviderConfiguration(name))
+		}
+		if err != nil {
+			return nil, err
+		}
+		manager.AddProvider(name, prov)
+	}
+	return manager, nil
+}
+
 func (p *SecretManager) WithLogger(log *zap.SugaredLogger) *SecretManager {
 	p.log = log
 	return p
 }
 
-func (p *SecretManager) RegisterProvider(name string, cfg map[string]interface{}) error {
-	switch ProviderType(name) {
-	case AwsProviderType:
-		prov, err := aws.NewProvider(cfg)
-		if err != nil {
-			return err
-		}
-		p.providers[name] = prov
-	case VaultProviderType:
-		prov, err := vault.NewProvider(cfg)
-		if err != nil {
-			return err
-		}
-		p.providers[name] = prov
-	}
-	return nil
+func (p *SecretManager) AddProvider(name string, prov provider.Provider) {
+	p.providers[name] = prov
 }
 
 func referenceKey(ref *reference.Reference) string {

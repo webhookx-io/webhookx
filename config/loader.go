@@ -2,9 +2,7 @@ package config
 
 import (
 	"strings"
-	"time"
 
-	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/config/providers"
 	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/pkg/log"
@@ -64,20 +62,6 @@ func (l *Loader) load(module string, value any) (err error) {
 	return nil
 }
 
-func newSecretManager(cfg modules.SecretConfig) (*secret.SecretManager, error) {
-	manager := secret.NewManager(secret.Options{
-		TTL: time.Second * time.Duration(cfg.TTL),
-	})
-	for _, p := range cfg.GetProviders() {
-		name := string(p)
-		err := manager.RegisterProvider(name, cfg.GetProviderConfiguration(name))
-		if err != nil {
-			return nil, err
-		}
-	}
-	return manager, nil
-}
-
 func (l *Loader) Load() error {
 	cfg := l.cfg
 
@@ -86,7 +70,7 @@ func (l *Loader) Load() error {
 			return err
 		}
 		if cfg.Secret.Enabled() {
-			secretManager, err := newSecretManager(cfg.Secret)
+			secretManager, err := secret.NewManagerFromConfig(cfg.Secret)
 			if err != nil {
 				return err
 			}

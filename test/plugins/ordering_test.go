@@ -42,7 +42,7 @@ var _ = Describe("ordering", Ordered, func() {
 				factory.Plugin("function"),
 				factory.Plugin("hmac-auth"),
 				factory.Plugin("connect-auth"),
-				factory.Plugin("jsonschema-validator"),
+				factory.Plugin("event-validation"),
 				factory.Plugin("key-auth"),
 			))},
 		}
@@ -69,7 +69,7 @@ var _ = Describe("ordering", Ordered, func() {
 				"key-auth",
 				"hmac-auth",
 				"connect-auth",
-				"jsonschema-validator",
+				"event-validation",
 				"function",
 			}
 			assert.Equal(GinkgoT(), expectedOrdered, names)

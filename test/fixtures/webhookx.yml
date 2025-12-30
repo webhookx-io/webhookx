@@ -40,26 +40,8 @@ sources:
       - name: function
         config:
           function: "function handle() {}"
-      - name: "jsonschema-validator"
+      - name: "event-validation"
         config:
-          draft: "6"
-          default_schema: |
-            {
-              "type": "object",
-              "properties": {
-                  "id": { "type": "string" }
-              },
-              "required": ["id"]
-            }
+          version: "draft-04"
           schemas:
-            charge.succeeded:
-              schema: |
-                {
-                  "type": "object",
-                  "properties": {
-                      "id": { "type": "string" },
-                      "amount": { "type": "integer", "minimum": 1 },
-                      "currency": { "type": "string", "minLength": 3, "maxLength": 6 }
-                  },
-                  "required": ["id", "amount", "currency"]
-                }
+            charge.succeeded: '{"type":"object"}'

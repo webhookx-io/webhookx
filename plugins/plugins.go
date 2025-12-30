@@ -4,9 +4,9 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	basic_auth "github.com/webhookx-io/webhookx/plugins/basic-auth"
 	integration_auth "github.com/webhookx-io/webhookx/plugins/connect-auth"
+	"github.com/webhookx-io/webhookx/plugins/event-validation"
 	"github.com/webhookx-io/webhookx/plugins/function"
 	hmac_auth "github.com/webhookx-io/webhookx/plugins/hmac-auth"
-	"github.com/webhookx-io/webhookx/plugins/jsonschema_validator"
 	key_auth "github.com/webhookx-io/webhookx/plugins/key-auth"
 	"github.com/webhookx-io/webhookx/plugins/wasm"
 	"github.com/webhookx-io/webhookx/plugins/webhookx_signature"
@@ -22,8 +22,8 @@ func LoadPlugins() {
 	plugin.RegisterPlugin(plugin.TypeOutbound, "webhookx-signature", func() plugin.Plugin {
 		return &webhookx_signature.SignaturePlugin{}
 	})
-	plugin.RegisterPlugin(plugin.TypeInbound, "jsonschema-validator", func() plugin.Plugin {
-		return &jsonschema_validator.SchemaValidatorPlugin{}
+	plugin.RegisterPlugin(plugin.TypeInbound, "event-validation", func() plugin.Plugin {
+		return &event_validation.EventValidationPlugin{}
 	})
 	plugin.RegisterPlugin(plugin.TypeInbound, "basic-auth", func() plugin.Plugin {
 		return &basic_auth.BasicAuthPlugin{}

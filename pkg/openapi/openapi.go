@@ -1,7 +1,6 @@
 package openapi
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/tidwall/gjson"
 	"github.com/webhookx-io/webhookx/pkg/errs"
 )
 
@@ -19,13 +19,9 @@ type FormatValidatorFunc[T any] func(T) error
 func (fn FormatValidatorFunc[T]) Validate(value T) error { return fn(value) }
 
 func init() {
-	openapi3.DefineStringFormatValidator("jsonschema", FormatValidatorFunc[string](func(s string) error {
-		schema := &openapi3.Schema{}
-		if err := schema.UnmarshalJSON([]byte(s)); err != nil {
-			return err
-		}
-		if err := schema.Validate(context.TODO(), openapi3.EnableSchemaFormatValidation()); err != nil {
-			return err
+	openapi3.DefineStringFormatValidator("json", FormatValidatorFunc[string](func(s string) error {
+		if !gjson.Valid(s) {
+			return errors.New("not a valid JSON")
 		}
 		return nil
 	}))

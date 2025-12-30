@@ -33,7 +33,7 @@ var (
 		"basic-auth",
 		"key-auth",
 		"hmac-auth",
-		"jsonschema-validator",
+		"event-validation",
 	}
 
 	EnterprisePlugins = []string{

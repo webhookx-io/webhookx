@@ -34,7 +34,9 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
   - `wasm`: Transform outbound requests using high-level languages such as AssemblyScript, Rust or TinyGo. See [plugin/wasm](plugins/wasm).
   - `function`: Customize inbound behavior with JavaScript, e.g. signature verification or request body transformation.
   - `event-validation`: Validate event's data against JSON Schema definition. 
+  - Security: Built-in authn plugins `hmac-auth`, `basic-auth`, `key-auth`, and `connect-auth`.  
 - **Observability:** OpenTelemetry metrics and tracing for monitoring and troubleshooting.
+- **Secret Management:** Define secrets in configuration and plugin's configuration, and reference them from external providers (e.g., AWS Secrets Manager, HashiCorp Vault).
 
 
 

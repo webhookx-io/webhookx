@@ -1,6 +1,6 @@
 module github.com/webhookx-io/webhookx/api/license
 
-go 1.25.4
+go 1.25.5
 
 require github.com/satori/go.uuid v1.2.0
 

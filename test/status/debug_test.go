@@ -17,6 +17,7 @@ var _ = Describe("/debug", Ordered, func() {
 	var app *app.Application
 
 	BeforeAll(func() {
+		helper.InitDB(true, nil)
 		app = utils.Must(helper.Start(map[string]string{}))
 		statusClient = helper.StatusClient()
 

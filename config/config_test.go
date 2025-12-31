@@ -498,7 +498,7 @@ func TestSecretConfig(t *testing.T) {
 		{
 			desc: "invalid provider",
 			cfg: modules.SecretConfig{
-				Providers: []modules.Provider{"aws", "vault", "unknown"},
+				Providers: []string{"aws", "vault", "unknown"},
 				Vault: modules.VaultProvider{
 					AuthMethod: "token",
 				},

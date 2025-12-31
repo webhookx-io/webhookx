@@ -44,14 +44,6 @@ type Config struct {
 	Secret           modules.SecretConfig    `yaml:"secret" json:"secret" envconfig:"SECRET"`
 }
 
-func (c *Config) GetSecret() *modules.SecretConfig {
-	return &c.Secret
-}
-
-func (c *Config) GetLog() *modules.LogConfig {
-	return &c.Log
-}
-
 func (cfg *Config) PostProcess() error {
 	switch cfg.Role {
 	case RoleCP:

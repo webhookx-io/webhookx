@@ -34,7 +34,7 @@ sources:
           content_type: application/json
           body: '{"message": "OK"}'
     plugins:
-      - name: "jsonschema-validator"
+      - name: "event-validation"
         config:
           draft: "6"
           schemas:

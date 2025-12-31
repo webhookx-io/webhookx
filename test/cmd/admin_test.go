@@ -15,6 +15,7 @@ import (
 	"github.com/webhookx-io/webhookx/cmd"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
@@ -94,24 +95,37 @@ var _ = Describe("admin", Ordered, func() {
 				assert.Equal(GinkgoT(), "application/json", source.Config.HTTP.Response.ContentType)
 				assert.Equal(GinkgoT(), `{"message": "OK"}`, source.Config.HTTP.Response.Body)
 
-				plugins, err := db.Plugins.ListEndpointPlugin(context.TODO(), endpoint.ID)
+				q := query.PluginQuery{}
+				q.EndpointId = &endpoint.ID
+				q.Enabled = utils.Pointer(true)
+				plugins, err := db.Plugins.List(context.TODO(), &q)
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 1, len(plugins))
 				assert.Equal(GinkgoT(), "webhookx-signature", plugins[0].Name)
 				assert.Equal(GinkgoT(), true, plugins[0].Enabled)
 				assert.EqualValues(GinkgoT(), map[string]interface{}{"signing_secret": "foo"}, plugins[0].Config)
 
-				plugins, err = db.Plugins.ListSourcePlugin(context.TODO(), source.ID)
+				q = query.PluginQuery{}
+				q.SourceId = &source.ID
+				q.Enabled = utils.Pointer(true)
+				plugins, err = db.Plugins.List(context.TODO(), &q)
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 2, len(plugins))
-				assert.Equal(GinkgoT(), "function", plugins[0].Name)
-				assert.Equal(GinkgoT(), true, plugins[0].Enabled)
-				assert.EqualValues(GinkgoT(), map[string]interface{}{"function": "function handle() {}"}, plugins[0].Config)
-				assert.Equal(GinkgoT(), `jsonschema-validator`, plugins[1].Name)
-				assert.Equal(GinkgoT(), true, plugins[1].Enabled)
+				names := make(map[string]*entities.Plugin)
+				for _, plugin := range plugins {
+					names[plugin.Name] = plugin
+				}
+				assert.NotNil(GinkgoT(), names["function"])
+				assert.Equal(GinkgoT(), "function", names["function"].Name)
+				assert.Equal(GinkgoT(), true, names["function"].Enabled)
+				assert.EqualValues(GinkgoT(), map[string]interface{}{"function": "function handle() {}"}, names["function"].Config)
+
+				assert.NotNil(GinkgoT(), names["event-validation"])
+				assert.Equal(GinkgoT(), `event-validation`, names["event-validation"].Name)
+				assert.Equal(GinkgoT(), true, names["event-validation"].Enabled)
 				assert.JSONEq(GinkgoT(),
-					`{"draft": "6", "schemas": {"charge.succeeded": {"schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" },\n      \"amount\": { \"type\": \"integer\", \"minimum\": 1 },\n      \"currency\": { \"type\": \"string\", \"minLength\": 3, \"maxLength\": 6 }\n  },\n  \"required\": [\"id\", \"amount\", \"currency\"]\n}\n"}}, "default_schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n      \"id\": { \"type\": \"string\" }\n  },\n  \"required\": [\"id\"]\n}\n"}`,
-					string(utils.Must(json.Marshal(plugins[1].Config))))
+					`{"default_schema":null,"schemas":{"charge.succeeded":"{\"type\":\"object\"}"},"verbose_response":false,"version":"draft-04"}`,
+					string(utils.Must(json.Marshal(names["event-validation"].Config))))
 			})
 
 			It("entities not defined in the declarative configuration should be deleted", func() {

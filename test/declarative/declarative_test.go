@@ -50,33 +50,13 @@ sources:
       path: /
       methods: ["POST"]
     plugins:
-      - name: "jsonschema-validator"
+      - name: "event-validation"
         config:
           default_schema: |
             %s
           schemas:
-            charge.succeed:
-              schema: |
-                %s
-`
-
-	invalidSourcePluginJSONSchemaJSONYAML = `
-sources:
-  - name: default-source
-    config:
-      path: /
-      methods: ["POST"]
-    plugins:
-      - name: "jsonschema-validator"
-        config:
-          draft: "6"
-          default_schema: |
-            %s
-          schemas:
-            charge.succeed:
-              schema: |
-                %s
-            reuse.default_schema:
+            charge.succeed: |
+              %s
 `
 )
 
@@ -140,7 +120,7 @@ var _ = Describe("Declarative", Ordered, func() {
 				assert.Equal(GinkgoT(), `{"message":"Request Validation","error":{"message":"request validation","fields":{"name":"unknown plugin name 'foo'"}}}`, string(resp.Body()))
 			})
 
-			It("should return 400 for invalid jsonschema-validator plugin config", func() {
+			It("should return 400 for invalid event-validation plugin config", func() {
 				resp, err := adminClient.R().
 					SetBody(
 						fmt.Sprintf(invalidSourcePluginJSONSchemaConfigYAML, "invalid jsonschema", "invalid jsonschema"),
@@ -150,20 +130,7 @@ var _ = Describe("Declarative", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"default_schema":"string doesn't match the format \"jsonschema\" (invalid character 'i' looking for beginning of value)","schemas":{"charge.succeed":{"schema":"string doesn't match the format \"jsonschema\" (invalid character 'i' looking for beginning of value)"}}}}}}`,
-					string(resp.Body()))
-			})
-
-			It("should return 400 for invalid jsonschema-validator plugin config jsonschema string", func() {
-				resp, err := adminClient.R().
-					SetBody(fmt.Sprintf(invalidSourcePluginJSONSchemaJSONYAML,
-						`{"type": "invlidObject","properties": {"id": { "type": "string"}}}`,
-						`{"type": "object","properties": {"id": { "type": "number", "format":"invalid"}}}`)).
-					Post("/workspaces/default/config/sync")
-				assert.Nil(GinkgoT(), err)
-				assert.Equal(GinkgoT(), 400, resp.StatusCode())
-				assert.Equal(GinkgoT(),
-					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"default_schema":"string doesn't match the format \"jsonschema\" (unsupported 'type' value \"invlidObject\")","schemas":{"charge.succeed":{"schema":"string doesn't match the format \"jsonschema\" (unsupported 'format' value \"invalid\")"},"reuse.default_schema":"Value is not nullable"}}}}}`,
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"config":{"default_schema":"string doesn't match the format \"json\" (not a valid JSON)","schemas":{"charge.succeed":"string doesn't match the format \"json\" (not a valid JSON)"},"version":"required field missing"}}}}`,
 					string(resp.Body()))
 			})
 		})

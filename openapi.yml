@@ -1013,29 +1013,45 @@ components:
           type: string
           minLength: 1
 
-    JsonschemaValidatorPluginConfiguration:
-      description: "The jsonschema-validator plugin configuration"
+    EventValidationPluginConfiguration:
+      description: "The event-validation plugin configuration"
       type: object
       properties:
-        draft:
+        version:
+          description: "The JSON Schema version used to validate request payloads."
           type: string
-          enum: ["6"]
-          default: "6"
-        default_schema:
-          description: "The default schema"
-          type: string
-          format: jsonschema
-          maxLength: 1048576
+          enum:
+            - "draft-04"
+            - "draft-06"
+            - "draft-07"
+            - "draft-2019-09"
+            - "draft-2020-12"
+            - "openapi-3.0"
+        verbose_response:
+          description: "Whether to include the detailed validation error in the response."
+          type: boolean
+          default: false
         schemas:
-          description: "Defines event's schema."
+          description: "A map to define event's JSON Schema."
           type: object
           additionalProperties:
-            type: object
-            properties:
-              schema:
-                type: string
-                format: jsonschema
-                maxLength: 1048576
+            type: string
+            description: "JSON Schema definition."
+            format: json
+            maxLength: 1048576
+            default: { }
+          example:
+            foo.bar: '{"type": "object"}'
+        default_schema:
+          description: "The default schema is used when the event type does not exist in the schemas. Setting to null will skip validation when the event's schema is not found."
+          type: string
+          format: json
+          maxLength: 1048576
+          nullable: true
+      required:
+        - version
+        - verbose_response
+        - schemas
 
     BasicAuthPluginConfiguration:
       description: "The basic auth plugin configuration"

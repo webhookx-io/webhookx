@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
@@ -32,7 +32,7 @@ func send(url string) error {
 	lic := license.GetLicenser().License()
 	data := data{
 		UID:         uid,
-		Version:     config.VERSION,
+		Version:     webhookx.VERSION,
 		LicenseID:   lic.ID,
 		LicensePlan: lic.Plan,
 	}

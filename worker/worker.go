@@ -68,14 +68,14 @@ type Options struct {
 	PoolSize        int
 	PoolConcurrency int
 
-	DB          *db.DB
-	Deliverer   deliverer.Deliverer
-	Metrics     *metrics.Metrics
-	Tracer      *tracing.Tracer
-	EventBus    eventbus.Bus
-	Srv         *service.Service
-	RedisClient *redis.Client
-	Scheduler   schedule.Scheduler
+	DB               *db.DB
+	DelivererOptions deliverer.Options
+	Metrics          *metrics.Metrics
+	Tracer           *tracing.Tracer
+	EventBus         eventbus.Bus
+	Srv              *service.Service
+	RedisClient      *redis.Client
+	Scheduler        schedule.Scheduler
 }
 
 func init() {
@@ -99,7 +99,6 @@ func NewWorker(opts Options) *Worker {
 		cancel:      cancel,
 		opts:        opts,
 		log:         zap.S().Named("worker"),
-		deliverer:   opts.Deliverer,
 		db:          opts.DB,
 		pool:        pool.NewPool(opts.PoolSize, opts.PoolConcurrency),
 		metrics:     opts.Metrics,
@@ -250,6 +249,13 @@ func (w *Worker) Start() error {
 		"size":      w.opts.PoolSize,
 		"consumers": w.opts.PoolConcurrency,
 	}))
+
+	httpDeliverer := deliverer.NewHTTPDeliverer(w.opts.DelivererOptions)
+	err := httpDeliverer.Setup()
+	if err != nil {
+		return err
+	}
+	w.deliverer = httpDeliverer
 
 	go w.run()
 

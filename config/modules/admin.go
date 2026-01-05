@@ -1,5 +1,9 @@
 package modules
 
+import (
+	"github.com/webhookx-io/webhookx/utils"
+)
+
 type AdminConfig struct {
 	BaseConfig
 	Listen         string `yaml:"listen" json:"listen" default:"127.0.0.1:9601"`
@@ -9,6 +13,13 @@ type AdminConfig struct {
 
 func (cfg AdminConfig) Validate() error {
 	return nil
+}
+
+func (cfg AdminConfig) URL() string {
+	if !cfg.IsEnabled() {
+		return "disabled"
+	}
+	return utils.ListenAddrToURL(cfg.TLS.Enabled(), cfg.Listen)
 }
 
 func (cfg AdminConfig) IsEnabled() bool {

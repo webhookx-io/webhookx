@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 
@@ -14,7 +15,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/app"
-	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
@@ -106,7 +106,7 @@ var _ = Describe("delivery", Ordered, func() {
 
 			// attemptDetail.request
 			assert.Equal(GinkgoT(), "application/json; charset=utf-8", attemptDetail.RequestHeaders["Content-Type"])
-			assert.Equal(GinkgoT(), "WebhookX/"+config.VERSION, attemptDetail.RequestHeaders["User-Agent"])
+			assert.Equal(GinkgoT(), "WebhookX/"+webhookx.VERSION, attemptDetail.RequestHeaders["User-Agent"])
 			assert.Regexp(GinkgoT(), "v1=[0-9a-f]{64}", attemptDetail.RequestHeaders["Webhookx-Signature"])
 			timestamp := attemptDetail.RequestHeaders["Webhookx-Timestamp"]
 			assert.True(GinkgoT(), utils.Must(strconv.ParseInt(timestamp, 10, 0)) >= attempt.AttemptedAt.Unix())

@@ -10,11 +10,6 @@ import (
 	"github.com/webhookx-io/webhookx/config/types"
 )
 
-var (
-	VERSION = "dev"
-	COMMIT  = "unknown"
-)
-
 type Role string
 
 const (

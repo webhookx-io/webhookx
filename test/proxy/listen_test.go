@@ -4,8 +4,8 @@ import (
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/app"
-	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/test"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
@@ -32,7 +32,7 @@ var _ = Describe("proxy", Ordered, func() {
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 404, resp.StatusCode())
 			assert.Equal(GinkgoT(), "application/json; charset=utf-8", resp.Header().Get("Content-Type"))
-			assert.Equal(GinkgoT(), "WebhookX/"+config.VERSION, resp.Header().Get("Server"))
+			assert.Equal(GinkgoT(), "WebhookX/"+webhookx.VERSION, resp.Header().Get("Server"))
 		})
 	})
 
@@ -58,7 +58,7 @@ var _ = Describe("proxy", Ordered, func() {
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 404, resp.StatusCode())
 			assert.Equal(GinkgoT(), "application/json; charset=utf-8", resp.Header().Get("Content-Type"))
-			assert.Equal(GinkgoT(), "WebhookX/"+config.VERSION, resp.Header().Get("Server"))
+			assert.Equal(GinkgoT(), "WebhookX/"+webhookx.VERSION, resp.Header().Get("Server"))
 		})
 	})
 

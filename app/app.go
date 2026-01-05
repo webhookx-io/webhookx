@@ -13,6 +13,7 @@ import (
 	"github.com/webhookx-io/webhookx/admin"
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
@@ -185,41 +186,37 @@ func (app *Application) initialize() error {
 
 	// worker
 	if cfg.Worker.Enabled {
-		d := deliverer.NewHTTPDeliverer(deliverer.Options{
+		delivererOptions := deliverer.Options{
 			Logger:         log.Named("deliverer"),
 			RequestTimeout: time.Duration(cfg.Worker.Deliverer.Timeout) * time.Millisecond,
-		})
+		}
 		if cfg.Worker.Deliverer.Proxy != "" {
-			err := d.SetupProxy(deliverer.ProxyOptions{
+			delivererOptions.ProxyOptions = &deliverer.ProxyOptions{
 				URL:              cfg.Worker.Deliverer.Proxy,
 				TLSCert:          cfg.Worker.Deliverer.ProxyTLSCert,
 				TLSKey:           cfg.Worker.Deliverer.ProxyTLSKey,
 				TLSCaCertificate: cfg.Worker.Deliverer.ProxyTLSCaCert,
 				TLSVerify:        cfg.Worker.Deliverer.ProxyTLSVerify,
-			})
-			if err != nil {
-				return err
 			}
 		}
 		if len(cfg.Worker.Deliverer.ACL.Deny) > 0 {
-			err := d.SetupACL(deliverer.AclOptions{Rules: cfg.Worker.Deliverer.ACL.Deny})
-			if err != nil {
-				return err
+			delivererOptions.AclOptions = &deliverer.AclOptions{
+				Rules: cfg.Worker.Deliverer.ACL.Deny,
 			}
 		}
-		opts := worker.Options{
-			PoolSize:        int(cfg.Worker.Pool.Size),
-			PoolConcurrency: int(cfg.Worker.Pool.Concurrency),
-			Deliverer:       d,
-			DB:              db,
-			Srv:             app.srv,
-			Tracer:          tracer,
-			Metrics:         app.metrics,
-			EventBus:        app.bus,
-			RedisClient:     client,
-			Scheduler:       app.scheduler,
-		}
-		app.worker = worker.NewWorker(opts)
+
+		app.worker = worker.NewWorker(worker.Options{
+			PoolSize:         int(cfg.Worker.Pool.Size),
+			PoolConcurrency:  int(cfg.Worker.Pool.Concurrency),
+			DelivererOptions: delivererOptions,
+			DB:               db,
+			Srv:              app.srv,
+			Tracer:           tracer,
+			Metrics:          app.metrics,
+			EventBus:         app.bus,
+			RedisClient:      client,
+			Scheduler:        app.scheduler,
+		})
 	}
 
 	// admin
@@ -452,6 +449,17 @@ func (app *Application) Start() error {
 		return ErrApplicationStarted
 	}
 
+	if app.cfg.Log.Format == modules.LogFormatText && app.cfg.Log.File == "" {
+		colored := app.cfg.Log.Colored
+		fmt.Println(webhookx.Logo)
+		fmt.Println("- Version:", utils.Colorize(webhookx.VERSION, utils.ColorDarkBlue, colored))
+		fmt.Println("- Proxy URL:", utils.Colorize(app.cfg.Proxy.URL(), utils.ColorDarkBlue, colored))
+		fmt.Println("- Admin URL:", utils.Colorize(app.cfg.Admin.URL(), utils.ColorDarkBlue, colored))
+		fmt.Println("- Status URL:", utils.Colorize(app.cfg.Status.URL(), utils.ColorDarkBlue, colored))
+		fmt.Println("- Worker:", utils.Colorize(app.cfg.Worker.Status(), utils.ColorDarkBlue, colored))
+		fmt.Println()
+	}
+
 	migrator := migrator.New(app.db.DB.DB, nil)
 	dbStatus, err := migrator.Status()
 	if err != nil {
@@ -464,7 +472,7 @@ func (app *Application) Start() error {
 		return errors.New("database is not up to date. Run 'webhookx db up' before starting")
 	}
 
-	app.log.Infof("starting WebhookX %s", config.VERSION)
+	app.log.Infof("starting WebhookX %s", webhookx.VERSION)
 
 	now := time.Now()
 	stats.Register(stats.ProviderFunc(func() map[string]interface{} {
@@ -492,7 +500,9 @@ func (app *Application) Start() error {
 		app.admin.Start()
 	}
 	if app.worker != nil {
-		app.worker.Start()
+		if err := app.worker.Start(); err != nil {
+			return err
+		}
 	}
 	if app.gateway != nil {
 		app.gateway.Start()

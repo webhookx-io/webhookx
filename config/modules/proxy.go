@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+
+	"github.com/webhookx-io/webhookx/utils"
 )
 
 type ProxyResponse struct {
@@ -61,6 +63,14 @@ func (cfg ProxyConfig) Validate() error {
 		return errors.New("invalid queue: " + err.Error())
 	}
 	return nil
+}
+
+func (cfg ProxyConfig) URL() string {
+	if !cfg.IsEnabled() {
+		return "disabled"
+	}
+
+	return utils.ListenAddrToURL(cfg.TLS.Enabled(), cfg.Listen)
 }
 
 func (cfg ProxyConfig) IsEnabled() bool {

@@ -6,7 +6,7 @@ import (
 	"net"
 	"net/url"
 
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/config/modules"
 	"go.opentelemetry.io/contrib/propagators/autoprop"
 	"go.opentelemetry.io/otel"
@@ -40,7 +40,7 @@ func SetupOTEL(o *modules.TracingConfig) (trace.TracerProvider, error) {
 
 	attr := []attribute.KeyValue{
 		semconv.ServiceNameKey.String("webhookx"),
-		semconv.ServiceVersionKey.String(config.VERSION),
+		semconv.ServiceVersionKey.String(webhookx.VERSION),
 	}
 
 	for k, v := range o.Attributes {

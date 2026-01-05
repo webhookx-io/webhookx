@@ -6,6 +6,7 @@ import (
 
 const (
 	ColorDarkGray = 90
+	ColorDarkBlue = 94
 )
 
 func Colorize(s interface{}, color int, enabled bool) string {

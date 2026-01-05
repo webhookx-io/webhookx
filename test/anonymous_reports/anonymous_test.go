@@ -9,8 +9,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
+	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/app"
-	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/pkg/reports"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
@@ -53,7 +53,7 @@ var _ = Describe("anonymous reports", Ordered, func() {
 
 				assert.Equal(GinkgoT(), "free", data["license_plan"])
 				assert.Equal(GinkgoT(), "00000000-0000-0000-0000-000000000000", data["license_id"])
-				assert.Equal(GinkgoT(), config.VERSION, data["version"])
+				assert.Equal(GinkgoT(), webhookx.VERSION, data["version"])
 				server.Close()
 			})
 		})

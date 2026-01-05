@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 
+	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/config"
 )
 
@@ -15,7 +16,7 @@ type IndexResponse struct {
 func (api *API) Index(w http.ResponseWriter, r *http.Request) {
 	var response IndexResponse
 
-	response.Version = config.VERSION
+	response.Version = webhookx.VERSION
 	response.Message = "Welcome to WebhookX"
 	response.Configuration = api.cfg
 

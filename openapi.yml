@@ -27,8 +27,50 @@ paths:
                 properties:
                   version:
                     type: string
+                  message:
+                    type: string
+                  configuration:
+                    type: object
               example:
                 version: 1.0.0
+                message: "Welcome to WebhookX"
+                configuration: {}
+
+  /license:
+    get:
+      summary: doge
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  plan:
+                    type: string
+                  customer:
+                    type: string
+                  expired_at:
+                    type: string
+                  created_at:
+                    type: string
+                  version:
+                    type: string
+                  signature:
+                    type: string
+              example:
+                {
+                  "id": "00000000-0000-0000-0000-000000000000",
+                  "plan": "free",
+                  "customer": "anonymous",
+                  "expired_at": "2099-12-31T23:59:59Z",
+                  "created_at": "1996-08-24T00:00:00Z",
+                  "version": "1",
+                  "signature": ""
+                }
 
   /workspaces:
     get:

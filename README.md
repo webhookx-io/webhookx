@@ -11,7 +11,7 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 ## Architecture
 
 <p align="center">
-<img src="./architecture.png" alt="webhookx architecture" width="100%" />
+<img src="./docs/architecture.png" alt="webhookx architecture" width="100%" />
 </p>
 
 ## Posts
@@ -289,7 +289,7 @@ Thank you for your contribution to WebhookX!
 
 Star WebhookX on GitHub for instant updates on new releases.
 
-<img src="./star.gif" alt="star" width="100%"/>
+<img src="./docs/star.gif" alt="star" width="100%"/>
 
 
 

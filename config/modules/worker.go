@@ -53,6 +53,13 @@ type WorkerConfig struct {
 	Pool      Pool            `yaml:"pool" json:"pool"`
 }
 
+func (cfg *WorkerConfig) Status() string {
+	if cfg.Enabled {
+		return "on"
+	}
+	return "off"
+}
+
 type ACLConfig struct {
 	Deny []string `yaml:"deny" json:"deny" default:"[\"@default\"]"`
 }

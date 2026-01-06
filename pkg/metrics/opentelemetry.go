@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/config/modules"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -57,7 +57,7 @@ func SetupOpentelemetry(attributes map[string]string, cfg modules.OpentelemetryM
 	res, err := resource.New(
 		context.Background(),
 		resource.WithAttributes(semconv.ServiceNameKey.String("webhookx")),
-		resource.WithAttributes(semconv.ServiceVersionKey.String(config.VERSION)),
+		resource.WithAttributes(semconv.ServiceVersionKey.String(webhookx.VERSION)),
 		resource.WithFromEnv(),
 		resource.WithAttributes(attrs...),
 	)

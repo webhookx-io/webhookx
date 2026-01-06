@@ -30,8 +30,8 @@ type contextKey struct{}
 // HTTPDeliverer delivers via HTTP
 type HTTPDeliverer struct {
 	log            *zap.SugaredLogger
-	requestTimeout time.Duration
 	client         *http.Client
+	opts           Options
 }
 
 func restrictedDialFunc(acl *ACL) func(context.Context, string, string) (net.Conn, error) {
@@ -72,6 +72,8 @@ type ProxyOptions struct {
 type Options struct {
 	Logger         *zap.SugaredLogger
 	RequestTimeout time.Duration
+	AclOptions     *AclOptions
+	ProxyOptions   *ProxyOptions
 }
 
 func NewHTTPDeliverer(opts Options) *HTTPDeliverer {
@@ -88,13 +90,29 @@ func NewHTTPDeliverer(opts Options) *HTTPDeliverer {
 	}
 
 	return &HTTPDeliverer{
-		log:            opts.Logger,
-		requestTimeout: opts.RequestTimeout,
-		client:         client,
+		log:    opts.Logger,
+		client: client,
+		opts:   opts,
 	}
 }
 
-func (d *HTTPDeliverer) SetupACL(opts AclOptions) error {
+func (d *HTTPDeliverer) Setup() error {
+	if d.opts.ProxyOptions != nil {
+		err := d.setupProxy(*d.opts.ProxyOptions)
+		if err != nil {
+			return err
+		}
+	}
+	if d.opts.AclOptions != nil {
+		err := d.setupACL(*d.opts.AclOptions)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *HTTPDeliverer) setupACL(opts AclOptions) error {
 	transport := d.client.Transport.(*http.Transport)
 	if transport.Proxy != nil {
 		d.log.Debugf("ACL is disabled as HTTP proxy is configured")
@@ -107,7 +125,7 @@ func (d *HTTPDeliverer) SetupACL(opts AclOptions) error {
 	return nil
 }
 
-func (d *HTTPDeliverer) SetupProxy(opts ProxyOptions) error {
+func (d *HTTPDeliverer) setupProxy(opts ProxyOptions) error {
 	proxyURL, err := url.Parse(opts.URL)
 	if err != nil {
 		return fmt.Errorf("invalid proxy url '%s': %s", opts.URL, err)
@@ -179,7 +197,7 @@ func timing(fn func()) time.Duration {
 func (d *HTTPDeliverer) Deliver(ctx context.Context, req *Request) (res *Response) {
 	timeout := req.Timeout
 	if timeout == 0 {
-		timeout = d.requestTimeout
+		timeout = d.opts.RequestTimeout
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)

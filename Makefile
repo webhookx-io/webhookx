@@ -1,8 +1,8 @@
 DIR := $(shell pwd)
 
 LDFLAGS = --ldflags "\
-		-X github.com/webhookx-io/webhookx/config.COMMIT=`git rev-parse --verify --short HEAD` \
-		-X github.com/webhookx-io/webhookx/config.VERSION=`git tag -l --points-at HEAD | head -n 1 | sed 's/^v//'`"
+		-X github.com/webhookx-io/webhookx.COMMIT=`git rev-parse --verify --short HEAD` \
+		-X github.com/webhookx-io/webhookx.VERSION=`git tag -l --points-at HEAD | head -n 1 | sed 's/^v//'`"
 
 .PHONY: clean build install generate test test-coverage test-integration \
 	test-integration-coverage goreleaser migrate-create test-deps

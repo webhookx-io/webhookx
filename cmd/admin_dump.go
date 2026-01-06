@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx"
 )
 
 func newAdminDumpCmd() *cobra.Command {
@@ -28,7 +28,7 @@ func newAdminDumpCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			r.Header.Set("User-Agent", "WebhookX/"+config.VERSION)
+			r.Header.Set("User-Agent", "WebhookX/"+webhookx.VERSION)
 
 			if verbose {
 				requestDump, err := httputil.DumpRequestOut(r, true)

@@ -3,6 +3,8 @@ package modules
 import (
 	"fmt"
 	"net"
+
+	"github.com/webhookx-io/webhookx/utils"
 )
 
 type StatusConfig struct {
@@ -26,4 +28,11 @@ func (cfg StatusConfig) IsEnabled() bool {
 		return false
 	}
 	return true
+}
+
+func (cfg StatusConfig) URL() string {
+	if !cfg.IsEnabled() {
+		return "disabled"
+	}
+	return utils.ListenAddrToURL(false, cfg.Listen)
 }

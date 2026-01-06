@@ -60,3 +60,11 @@ func TestMergeMap(t *testing.T) {
 		},
 	}, dst)
 }
+
+func TestToURL(t *testing.T) {
+	assert.Equal(t, "http://127.0.0.1:1", ListenAddrToURL(false, "0.0.0.0:1"))
+	assert.Equal(t, "http://127.0.0.1:1", ListenAddrToURL(false, ":1"))
+	assert.Equal(t, "https://127.0.0.1:1", ListenAddrToURL(true, "0.0.0.0:1"))
+	assert.Equal(t, "https://127.0.0.1:1", ListenAddrToURL(true, ":1"))
+	assert.Equal(t, "https://invalid", ListenAddrToURL(true, "invalid"))
+}

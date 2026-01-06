@@ -3,7 +3,7 @@ package constants
 import (
 	"time"
 
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx"
 )
 
 // Task Queue
@@ -30,10 +30,10 @@ type Header struct {
 var (
 	HeaderEventId          = "X-Webhookx-Event-Id"
 	DefaultResponseHeaders = []Header{
-		{Name: "Server", Value: "WebhookX/" + config.VERSION},
+		{Name: "Server", Value: "WebhookX/" + webhookx.VERSION},
 	}
 	DefaultDelivererRequestHeaders = []Header{
-		{Name: "User-Agent", Value: "WebhookX/" + config.VERSION},
+		{Name: "User-Agent", Value: "WebhookX/" + webhookx.VERSION},
 		{Name: "Content-Type", Value: "application/json; charset=utf-8"},
 	}
 )

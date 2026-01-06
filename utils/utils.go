@@ -2,6 +2,8 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
+	"net"
 	"reflect"
 )
 
@@ -46,4 +48,22 @@ func MapToStruct(data map[string]interface{}, v interface{}) error {
 	}
 
 	return json.Unmarshal(b, v)
+}
+
+func ListenAddrToURL(https bool, listen string) string {
+	scheme := "http"
+	if https {
+		scheme = "https"
+	}
+
+	host, port, err := net.SplitHostPort(listen)
+	if err != nil {
+		return fmt.Sprintf("%s://%s", scheme, listen)
+	}
+
+	if host == "" || host == "0.0.0.0" {
+		host = "127.0.0.1"
+	}
+
+	return fmt.Sprintf("%s://%s:%s", scheme, host, port)
 }

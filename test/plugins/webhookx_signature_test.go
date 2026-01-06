@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/plugins/webhookx_signature"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 
@@ -116,7 +116,7 @@ var _ = Describe("webhookx-signature", Ordered, func() {
 
 			// attemptDetail.request
 			assert.Equal(GinkgoT(), "application/json; charset=utf-8", attemptDetail.RequestHeaders["Content-Type"])
-			assert.Equal(GinkgoT(), "WebhookX/"+config.VERSION, attemptDetail.RequestHeaders["User-Agent"])
+			assert.Equal(GinkgoT(), "WebhookX/"+webhookx.VERSION, attemptDetail.RequestHeaders["User-Agent"])
 			assert.Regexp(GinkgoT(), "v1=[0-9a-f]{64}", attemptDetail.RequestHeaders["Webhookx-Signature"])
 			timestamp := attemptDetail.RequestHeaders["Webhookx-Timestamp"]
 			assert.True(GinkgoT(), utils.Must(strconv.ParseInt(timestamp, 10, 0)) >= attempt.AttemptedAt.Unix())

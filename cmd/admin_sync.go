@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/webhookx-io/webhookx/config"
+	"github.com/webhookx-io/webhookx"
 )
 
 func newAdminSyncCmd() *cobra.Command {
@@ -37,7 +37,7 @@ func newAdminSyncCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			r.Header.Set("User-Agent", "WebhookX/"+config.VERSION)
+			r.Header.Set("User-Agent", "WebhookX/"+webhookx.VERSION)
 			r.Header.Set("Content-Type", "text/plain")
 
 			if verbose {

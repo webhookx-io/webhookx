@@ -34,6 +34,7 @@ type EndpointDAO interface {
 type EventDAO interface {
 	BaseDAO[entities.Event]
 	BatchInsertIgnoreConflict(ctx context.Context, events []*entities.Event) ([]string, error)
+	ListUniqueIds(ctx context.Context, uniques []string) ([]string, error)
 }
 
 type AttemptDAO interface {

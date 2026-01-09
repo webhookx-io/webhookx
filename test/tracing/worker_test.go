@@ -52,12 +52,12 @@ var _ = Describe("tracing worker", Ordered, func() {
 					"github.com/webhookx-io/webhookx",
 				}
 				expectedScopeSpans := map[string]map[string]string{
-					"worker.submit":              {},
-					"worker.handle_task":         {},
-					"dao.endpoints.get":          {},
-					"worker.deliver":             {},
-					"dao.attempt_details.insert": {},
-					"taskqueue.redis.delete":     {},
+					"worker.submit":                    {},
+					"worker.handle_task":               {},
+					"dao.endpoints.get":                {},
+					"worker.deliver":                   {},
+					"dao.attempt_details.batch_insert": {},
+					"taskqueue.redis.delete":           {},
 				}
 
 				n, err := helper.FileCountLine(helper.OtelCollectorTracesFile)

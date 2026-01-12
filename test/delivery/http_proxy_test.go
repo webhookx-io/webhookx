@@ -23,7 +23,6 @@ import (
 	"github.com/webhookx-io/webhookx/test"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
-	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 )
 
@@ -135,10 +134,11 @@ var _ = Describe("Proxy", Ordered, func() {
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{
+			app = helper.MustStart(map[string]string{
 				"WEBHOOKX_WORKER_DELIVERER_PROXY": httpProxyURL,
-			}))
-
+			})
+			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
+			assert.NoError(GinkgoT(), err)
 		})
 
 		AfterAll(func() {
@@ -146,9 +146,6 @@ var _ = Describe("Proxy", Ordered, func() {
 		})
 
 		It("http delivery request should be proxied", func() {
-			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
-			assert.NoError(GinkgoT(), err)
-
 			resp, err := proxyClient.R().
 				SetBody(`{"event_type": "http","data": {"key": "value"}}`).
 				Post("/")
@@ -182,6 +179,7 @@ var _ = Describe("Proxy", Ordered, func() {
 			assert.Nil(GinkgoT(), attempt.Response.Headers)
 			assert.Nil(GinkgoT(), attempt.Response.Body)
 
+			time.Sleep(time.Second)
 			detail, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
 			assert.NoError(GinkgoT(), err)
 			assert.NotNil(GinkgoT(), detail)
@@ -193,9 +191,6 @@ var _ = Describe("Proxy", Ordered, func() {
 		})
 
 		It("https delivery request should be proxied", func() {
-			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
-			assert.NoError(GinkgoT(), err)
-
 			resp, err := proxyClient.R().
 				SetBody(`{"event_type": "https","data": {"key": "value"}}`).
 				Post("/")
@@ -239,9 +234,6 @@ var _ = Describe("Proxy", Ordered, func() {
 		})
 
 		It("should be failed when connect ", func() {
-			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
-			assert.NoError(GinkgoT(), err)
-
 			resp, err := proxyClient.R().
 				SetBody(`{"event_type": "deny","data": {"key": "value"}}`).
 				Post("/")
@@ -294,11 +286,12 @@ var _ = Describe("Proxy", Ordered, func() {
 				db = helper.InitDB(true, &entitiesConfig)
 				proxyClient = helper.ProxyClient()
 
-				app = utils.Must(helper.Start(map[string]string{
+				app = helper.MustStart(map[string]string{
 					"WEBHOOKX_WORKER_DELIVERER_PROXY":            httpsProxyURL,
 					"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_VERIFY": "TRUE",
-				}))
-
+				})
+				err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
+				assert.NoError(GinkgoT(), err)
 			})
 
 			AfterAll(func() {
@@ -307,9 +300,6 @@ var _ = Describe("Proxy", Ordered, func() {
 			})
 
 			It("http delivery request should be proxied", func() {
-				err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
-				assert.NoError(GinkgoT(), err)
-
 				resp, err := proxyClient.R().
 					SetBody(`{"event_type": "http","data": {"key": "value"}}`).
 					Post("/")
@@ -343,7 +333,7 @@ var _ = Describe("Proxy", Ordered, func() {
 				assert.Nil(GinkgoT(), attempt.Response.Headers)
 				assert.Nil(GinkgoT(), attempt.Response.Body)
 
-				time.Sleep(time.Millisecond * 100)
+				time.Sleep(time.Second)
 				detail, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
 				assert.NoError(GinkgoT(), err)
 				assert.NotNil(GinkgoT(), detail.RequestHeaders)
@@ -354,9 +344,6 @@ var _ = Describe("Proxy", Ordered, func() {
 			})
 
 			It("https delivery request should be proxied", func() {
-				err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
-				assert.NoError(GinkgoT(), err)
-
 				resp, err := proxyClient.R().
 					SetBody(`{"event_type": "https","data": {"key": "value"}}`).
 					Post("/")
@@ -390,6 +377,7 @@ var _ = Describe("Proxy", Ordered, func() {
 				assert.Nil(GinkgoT(), attempt.Response.Headers)
 				assert.Nil(GinkgoT(), attempt.Response.Body)
 
+				time.Sleep(time.Second)
 				detail, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
 				assert.NoError(GinkgoT(), err)
 				assert.NotNil(GinkgoT(), detail.RequestHeaders)
@@ -424,13 +412,15 @@ var _ = Describe("Proxy", Ordered, func() {
 				db = helper.InitDB(true, &entitiesConfig)
 				proxyClient = helper.ProxyClient()
 
-				app = utils.Must(helper.Start(map[string]string{
+				app = helper.MustStart(map[string]string{
 					"WEBHOOKX_WORKER_DELIVERER_PROXY":             mtlsProxyURL,
 					"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CERT":    test.FilePath("fixtures/mtls/client.crt"),
 					"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_KEY":     test.FilePath("fixtures/mtls/client.key"),
 					"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CA_CERT": test.FilePath("fixtures/mtls/server-ca.crt"),
-				}))
+				})
 
+				err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
+				assert.NoError(GinkgoT(), err)
 			})
 
 			AfterAll(func() {
@@ -439,9 +429,6 @@ var _ = Describe("Proxy", Ordered, func() {
 			})
 
 			It("http delivery request should be proxied", func() {
-				err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
-				assert.NoError(GinkgoT(), err)
-
 				resp, err := proxyClient.R().
 					SetBody(`{"event_type": "http","data": {"key": "value"}}`).
 					Post("/")
@@ -475,7 +462,7 @@ var _ = Describe("Proxy", Ordered, func() {
 				assert.Nil(GinkgoT(), attempt.Response.Headers)
 				assert.Nil(GinkgoT(), attempt.Response.Body)
 
-				time.Sleep(time.Millisecond * 100)
+				time.Sleep(time.Second)
 				detail, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
 				assert.NoError(GinkgoT(), err)
 				assert.NotNil(GinkgoT(), detail.RequestHeaders)
@@ -486,9 +473,6 @@ var _ = Describe("Proxy", Ordered, func() {
 			})
 
 			It("https delivery request should be proxied", func() {
-				err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
-				assert.NoError(GinkgoT(), err)
-
 				resp, err := proxyClient.R().
 					SetBody(`{"event_type": "https","data": {"key": "value"}}`).
 					Post("/")
@@ -522,6 +506,7 @@ var _ = Describe("Proxy", Ordered, func() {
 				assert.Nil(GinkgoT(), attempt.Response.Headers)
 				assert.Nil(GinkgoT(), attempt.Response.Body)
 
+				time.Sleep(time.Second)
 				detail, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
 				assert.NoError(GinkgoT(), err)
 				assert.NotNil(GinkgoT(), detail.RequestHeaders)

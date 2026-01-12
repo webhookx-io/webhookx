@@ -455,19 +455,9 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		return err
 	}
 
-	attemptDetail := &entities.AttemptDetail{
-		ID:             task.ID,
-		RequestHeaders: utils.HeaderMap(request.Request.Header),
-		RequestBody:    utils.Pointer(string(request.Payload)),
-	}
-	if len(response.Header) > 0 {
-		attemptDetail.ResponseHeaders = utils.Pointer(entities.Headers(utils.HeaderMap(response.Header)))
-	}
-	if response.ResponseBody != nil {
-		attemptDetail.ResponseBody = utils.Pointer(string(response.ResponseBody))
-	}
-	attemptDetail.WorkspaceId = endpoint.WorkspaceId
-	w.queue.Add(attemptDetail)
+	ad := newAttemptDetail(task.ID, request, response)
+	ad.WorkspaceId = endpoint.WorkspaceId
+	w.queue.Add(ad)
 
 	if result.Status == entities.AttemptStatusSuccess {
 		return nil
@@ -531,4 +521,18 @@ func buildAttemptResult(request *deliverer.Request, response *deliverer.Response
 	}
 
 	return result
+}
+
+func newAttemptDetail(id string, request *deliverer.Request, response *deliverer.Response) *entities.AttemptDetail {
+	ad := &entities.AttemptDetail{}
+	ad.ID = id
+	ad.RequestHeaders = utils.HeaderMap(request.Request.Header)
+	ad.RequestBody = utils.Pointer(string(request.Payload))
+	if len(response.Header) > 0 {
+		ad.ResponseHeaders = utils.Pointer(entities.Headers(utils.HeaderMap(response.Header)))
+	}
+	if response.ResponseBody != nil {
+		ad.ResponseBody = utils.Pointer(string(response.ResponseBody))
+	}
+	return ad
 }

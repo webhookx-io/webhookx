@@ -44,7 +44,6 @@ func (q *BatchQueue[T]) Consume(fn func([]T)) {
 		}
 		fn(buffer)
 		buffer = buffer[:0]
-		timeout.Reset(q.FlushTimeout)
 	}
 
 	for {
@@ -57,9 +56,11 @@ func (q *BatchQueue[T]) Consume(fn func([]T)) {
 			buffer = append(buffer, item)
 			if len(buffer) >= q.MaxBatchSize {
 				flush()
+				timeout.Reset(q.FlushTimeout)
 			}
 		case <-timeout.C:
 			flush()
+			timeout.Reset(q.FlushTimeout)
 		}
 	}
 }

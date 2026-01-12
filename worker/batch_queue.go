@@ -31,9 +31,10 @@ func (q *BatchQueue[T]) Close() {
 }
 
 func (q *BatchQueue[T]) Consume(fn func([]T)) {
-	q.wg.Add(1)
-	defer q.wg.Done()
+	q.wg.Go(func() { q.consume(fn) })
+}
 
+func (q *BatchQueue[T]) consume(fn func([]T)) {
 	buffer := make([]T, 0, q.MaxBatchSize)
 	timeout := time.NewTimer(q.FlushTimeout)
 	defer timeout.Stop()

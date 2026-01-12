@@ -260,7 +260,7 @@ func (w *Worker) Start() error {
 	w.deliverer = httpDeliverer
 
 	for range runtime.NumCPU() {
-		go w.queue.Consume(w.consumeQueue)
+		w.queue.Consume(w.consumeQueue)
 	}
 
 	go w.run()
@@ -455,8 +455,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		return err
 	}
 
-	ad := newAttemptDetail(task.ID, request, response)
-	ad.WorkspaceId = endpoint.WorkspaceId
+	ad := newAttemptDetail(task.ID, endpoint.WorkspaceId, request, response)
 	w.queue.Add(ad)
 
 	if result.Status == entities.AttemptStatusSuccess {
@@ -523,9 +522,10 @@ func buildAttemptResult(request *deliverer.Request, response *deliverer.Response
 	return result
 }
 
-func newAttemptDetail(id string, request *deliverer.Request, response *deliverer.Response) *entities.AttemptDetail {
+func newAttemptDetail(id string, wid string, request *deliverer.Request, response *deliverer.Response) *entities.AttemptDetail {
 	ad := &entities.AttemptDetail{}
 	ad.ID = id
+	ad.WorkspaceId = wid
 	ad.RequestHeaders = utils.HeaderMap(request.Request.Header)
 	ad.RequestBody = utils.Pointer(string(request.Payload))
 	if len(response.Header) > 0 {

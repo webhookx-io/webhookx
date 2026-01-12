@@ -64,7 +64,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, events []*entities.Event) ([]
 	}
 
 	if len(uids) > 0 {
-		exists, err := d.db.Events.ListUniqueIds(ctx, uids)
+		exists, err := d.db.Events.ListExistingUniqueIDs(ctx, uids)
 		if err != nil {
 			return nil, err
 		}

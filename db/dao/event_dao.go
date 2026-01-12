@@ -30,7 +30,7 @@ func NewEventDao(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) EventDAO {
 	}
 }
 
-func (dao *eventDao) ListUniqueIds(ctx context.Context, uniques []string) (ids []string, err error) {
+func (dao *eventDao) ListExistingUniqueIDs(ctx context.Context, uniques []string) (list []string, err error) {
 	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.list_unique_ids", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 	statement, args := psql.Select("unique_id").
@@ -38,7 +38,7 @@ func (dao *eventDao) ListUniqueIds(ctx context.Context, uniques []string) (ids [
 		Where(sq.Eq{"unique_id": uniques}).
 		MustSql()
 	dao.debugSQL(statement, args)
-	err = dao.UnsafeDB(ctx).SelectContext(ctx, &ids, statement, args...)
+	err = dao.UnsafeDB(ctx).SelectContext(ctx, &list, statement, args...)
 	return
 }
 

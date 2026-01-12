@@ -2,6 +2,7 @@ package dispatcher
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/webhookx-io/webhookx/db"
@@ -46,6 +47,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, events []*entities.Event) ([]
 		return nil, nil
 	}
 
+	uids := make([]string, 0)
 	maps := make(map[string][]*entities.Attempt)
 	for _, event := range events {
 		endpoints, err := d.registry.LookUp(ctx, event)
@@ -55,6 +57,28 @@ func (d *Dispatcher) Dispatch(ctx context.Context, events []*entities.Event) ([]
 		if len(endpoints) != 0 {
 			attempts := fanout(event, endpoints, entities.AttemptTriggerModeInitial)
 			maps[event.ID] = attempts
+		}
+		if event.UniqueId != nil {
+			uids = append(uids, *event.UniqueId)
+		}
+	}
+
+	if len(uids) > 0 {
+		exists, err := d.db.Events.ListExistingUniqueIDs(ctx, uids)
+		if err != nil {
+			return nil, err
+		}
+		if len(exists) > 0 {
+			for _, id := range exists {
+				delete(maps, id)
+			}
+			filtered := events[:0]
+			for _, event := range events {
+				if event.UniqueId == nil || !slices.Contains(exists, *event.UniqueId) {
+					filtered = append(filtered, event)
+				}
+			}
+			events = filtered
 		}
 	}
 

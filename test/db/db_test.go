@@ -25,20 +25,16 @@ var _ = Describe("DB", Ordered, func() {
 				id1 := utils.KSUID()
 				id2 := utils.KSUID()
 				id3 := utils.KSUID()
-				id4 := utils.KSUID()
-				err := db.Events.Insert(context.TODO(), factory.Event(func(o *entities.Event) { o.ID = id1; o.UniqueId = utils.Pointer("key1") }))
-				assert.Nil(GinkgoT(), err)
-				err = db.Events.Insert(context.TODO(), factory.Event(func(o *entities.Event) { o.ID = id2; o.UniqueId = utils.Pointer("key2") }))
+				err := db.Events.Insert(context.TODO(), factory.Event(func(o *entities.Event) { o.ID = id1 }))
 				assert.Nil(GinkgoT(), err)
 				ids, err := db.Events.BatchInsertIgnoreConflict(context.TODO(), []*entities.Event{
-					factory.Event(func(o *entities.Event) { o.ID = id1; o.UniqueId = utils.Pointer("key0") }),           // id duplicated
-					factory.Event(func(o *entities.Event) { o.ID = utils.KSUID(); o.UniqueId = utils.Pointer("key1") }), // key duplicated
-					factory.Event(func(o *entities.Event) { o.ID = utils.KSUID(); o.UniqueId = utils.Pointer("key2") }), // key duplicated
-					factory.Event(func(o *entities.Event) { o.ID = id3; o.UniqueId = utils.Pointer("key3") }),           // this should be returned
-					factory.Event(func(o *entities.Event) { o.ID = id4; o.UniqueId = utils.Pointer("key4") }),           // this should be returned
+					factory.Event(func(o *entities.Event) { o.ID = id1 }), // id duplicated
+					factory.Event(func(o *entities.Event) { o.ID = id2 }),
+					factory.Event(func(o *entities.Event) { o.ID = id3 }),
 				})
-				assert.Equal(GinkgoT(), id3, ids[0])
-				assert.Equal(GinkgoT(), id4, ids[1])
+				assert.Equal(GinkgoT(), 2, len(ids))
+				assert.Equal(GinkgoT(), id2, ids[0])
+				assert.Equal(GinkgoT(), id3, ids[1])
 			})
 		})
 	})

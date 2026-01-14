@@ -94,15 +94,10 @@ var _ = Describe("delivery", Ordered, func() {
 			assert.Nil(GinkgoT(), attempt.Response.Headers)
 			assert.Nil(GinkgoT(), attempt.Response.Body)
 
-			var attemptDetail *entities.AttemptDetail
-			assert.Eventually(GinkgoT(), func() bool {
-				val, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
-				if err != nil || val == nil {
-					return false
-				}
-				attemptDetail = val
-				return true
-			}, time.Second*5, time.Second)
+			time.Sleep(time.Second)
+			attemptDetail, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
+			assert.NoError(GinkgoT(), err)
+			assert.NotNil(GinkgoT(), attemptDetail)
 
 			// attemptDetail.request
 			assert.Equal(GinkgoT(), "application/json; charset=utf-8", attemptDetail.RequestHeaders["Content-Type"])

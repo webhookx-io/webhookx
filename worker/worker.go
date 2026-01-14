@@ -61,6 +61,7 @@ type Worker struct {
 	srv         *service.Service
 	rateLimiter ratelimiter.RateLimiter
 	scheduler   schedule.Scheduler
+	queue       *BatchQueue[*entities.AttemptDetail]
 }
 
 type Options struct {
@@ -106,6 +107,7 @@ func NewWorker(opts Options) *Worker {
 		srv:         opts.Srv,
 		rateLimiter: ratelimiter.NewRedisLimiter(opts.RedisClient),
 		scheduler:   opts.Scheduler,
+		queue:       NewBatchQueue[*entities.AttemptDetail](1000, 50, time.Millisecond*500),
 	}
 
 	worker.registerEventHandler(opts.EventBus)
@@ -257,6 +259,10 @@ func (w *Worker) Start() error {
 	}
 	w.deliverer = httpDeliverer
 
+	for range runtime.NumCPU() {
+		w.queue.Consume(w.consumeQueue)
+	}
+
 	go w.run()
 
 	w.scheduler.AddTask(&schedule.Task{
@@ -273,9 +279,17 @@ func (w *Worker) Stop() error {
 	w.log.Named("pool").Infow("closing pool", "handling", w.pool.GetHandling())
 	w.pool.Shutdown()
 	w.log.Named("pool").Info("closed pool")
+	w.queue.Close()
 	w.log.Info("worker stopped")
 
 	return nil
+}
+
+func (w *Worker) consumeQueue(list []*entities.AttemptDetail) {
+	err := w.db.AttemptDetails.BatchInsert(context.TODO(), list)
+	if err != nil {
+		w.log.Errorf("failed to batch insert: %v", err)
+	}
 }
 
 func (w *Worker) processRequeue() {
@@ -441,24 +455,8 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		return err
 	}
 
-	go func() {
-		attemptDetail := &entities.AttemptDetail{
-			ID:             task.ID,
-			RequestHeaders: utils.HeaderMap(request.Request.Header),
-			RequestBody:    utils.Pointer(string(request.Payload)),
-		}
-		if len(response.Header) > 0 {
-			attemptDetail.ResponseHeaders = utils.Pointer(entities.Headers(utils.HeaderMap(response.Header)))
-		}
-		if response.ResponseBody != nil {
-			attemptDetail.ResponseBody = utils.Pointer(string(response.ResponseBody))
-		}
-		attemptDetail.WorkspaceId = endpoint.WorkspaceId
-		err = w.db.AttemptDetails.Insert(ctx, attemptDetail)
-		if err != nil {
-			w.log.Errorf("failed to insert attempt detail: %v", err)
-		}
-	}()
+	ad := newAttemptDetail(task.ID, endpoint.WorkspaceId, request, response)
+	w.queue.Add(ad)
 
 	if result.Status == entities.AttemptStatusSuccess {
 		return nil
@@ -522,4 +520,19 @@ func buildAttemptResult(request *deliverer.Request, response *deliverer.Response
 	}
 
 	return result
+}
+
+func newAttemptDetail(id string, wid string, request *deliverer.Request, response *deliverer.Response) *entities.AttemptDetail {
+	ad := &entities.AttemptDetail{}
+	ad.ID = id
+	ad.WorkspaceId = wid
+	ad.RequestHeaders = utils.HeaderMap(request.Request.Header)
+	ad.RequestBody = utils.Pointer(string(request.Payload))
+	if len(response.Header) > 0 {
+		ad.ResponseHeaders = utils.Pointer(entities.Headers(utils.HeaderMap(response.Header)))
+	}
+	if response.ResponseBody != nil {
+		ad.ResponseBody = utils.Pointer(string(response.ResponseBody))
+	}
+	return ad
 }

@@ -15,7 +15,6 @@ import (
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
-	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 )
 
@@ -66,10 +65,12 @@ var _ = Describe("network acl", Ordered, func() {
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{
+			app = helper.MustStart(map[string]string{
 				"WEBHOOKX_WORKER_DELIVERER_ACL_DENY": "@default,*.example.com,xn--e1aybc.foo.com",
-			}))
+			})
 
+			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
+			assert.NoError(GinkgoT(), err)
 		})
 
 		AfterAll(func() {
@@ -78,9 +79,6 @@ var _ = Describe("network acl", Ordered, func() {
 		})
 
 		It("request denied", func() {
-			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
-			assert.NoError(GinkgoT(), err)
-
 			resp, err := proxyClient.R().
 				SetBody(`{"event_type": "test1","data": {"key": "value"}}`).
 				Post("/")
@@ -105,6 +103,7 @@ var _ = Describe("network acl", Ordered, func() {
 			assert.Equal(GinkgoT(), true, attempt.Exhausted)
 			assert.Nil(GinkgoT(), attempt.Response)
 
+			time.Sleep(time.Second)
 			detail, err := db.AttemptDetails.Get(context.TODO(), attempt.ID)
 			assert.NoError(GinkgoT(), err)
 			assert.NotNil(GinkgoT(), detail.RequestHeaders)
@@ -114,9 +113,6 @@ var _ = Describe("network acl", Ordered, func() {
 		})
 
 		It("request denied by hostname", func() {
-			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
-			assert.NoError(GinkgoT(), err)
-
 			resp, err := proxyClient.R().
 				SetBody(`{"event_type": "test2","data": {"key": "value"}}`).
 				Post("/")
@@ -143,9 +139,6 @@ var _ = Describe("network acl", Ordered, func() {
 		})
 
 		It("request denied by unicode hostname", func() {
-			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
-			assert.NoError(GinkgoT(), err)
-
 			resp, err := proxyClient.R().
 				SetBody(`{"event_type": "unicode-test","data": {"key": "value"}}`).
 				Post("/")
@@ -172,9 +165,6 @@ var _ = Describe("network acl", Ordered, func() {
 		})
 
 		It("request denied by ip resolved by dns", func() {
-			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
-			assert.NoError(GinkgoT(), err)
-
 			resp, err := proxyClient.R().
 				SetBody(`{"event_type": "test3","data": {"key": "value"}}`).
 				Post("/")

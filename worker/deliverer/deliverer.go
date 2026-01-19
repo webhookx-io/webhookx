@@ -8,15 +8,12 @@ import (
 )
 
 type Deliverer interface {
-	Deliver(ctx context.Context, req *Request) (res *Response)
+	Send(ctx context.Context, request *Request) (res *Response)
 }
 
 type Request struct {
 	Request *http.Request
-	URL     string
-	Method  string
-	Payload []byte
-	Headers map[string]string
+	Body    []byte
 	Timeout time.Duration
 }
 
@@ -40,5 +37,10 @@ func (r *Response) Is2xx() bool {
 }
 
 func (r *Response) String() string {
-	return fmt.Sprintf("%s %s %d %dms", r.Request.Method, r.Request.URL, r.StatusCode, r.Latancy.Milliseconds())
+	return fmt.Sprintf("%s %s %d %dms",
+		r.Request.Request.Method,
+		r.Request.Request.URL,
+		r.StatusCode,
+		r.Latancy.Milliseconds(),
+	)
 }

@@ -58,5 +58,7 @@ func NewZapLogger(cfg *modules.LogConfig) (*zap.SugaredLogger, error) {
 		return nil, err
 	}
 
+	zap.ReplaceGlobals(logger)
+
 	return logger.Sugar(), nil
 }

@@ -1,7 +1,6 @@
 package hello
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -45,7 +44,7 @@ func (p *HelloPlugin) Priority() int {
 	return 0
 }
 
-func (p *HelloPlugin) ExecuteOutbound(ctx context.Context, outbound *plugin.Outbound) error {
+func (p *HelloPlugin) ExecuteOutbound(c *plugin.Context) error {
 	fmt.Println(p.Config.Message)
 	return nil
 }

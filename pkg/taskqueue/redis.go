@@ -11,7 +11,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/utils"
-	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -22,19 +22,17 @@ var (
 		local key_queue_data = KEYS[2]
 		local time = redis.call('TIME')
 		local now = time[1] * 1000 + math.floor(time[2] / 1000)
-		local task_ids = redis.call('ZRANGEBYSCORE', key_queue, 0, now, 'LIMIT', 0, ARGV[1])
+		local timeout = now + ARGV[2]
+		local res = redis.call('ZRANGE', key_queue, 0, now, 'BYSCORE', 'LIMIT', 0, ARGV[1], 'WITHSCORES')
+		local n = 1
 		local list = {}
-	
-		if task_ids and task_ids[1] then
-			local timeout = now + ARGV[2]
-			for i, task_id in ipairs(task_ids) do
-				local data = redis.call('HGET', key_queue_data, task_id)
-				if not data then
-					redis.call("ZREM", key_queue, task_id)
-				end
-				redis.call('ZADD', key_queue, timeout, task_id)
-				list[i] = { task_id, data }
-			end
+		for i = 1, #res, 2 do
+			local id = res[i]
+			local score = tonumber(res[i + 1])
+			local data = redis.call('HGET', key_queue_data, id)
+			redis.call('ZADD', key_queue, timeout, id)
+			list[n] = { id, score, data }
+			n = n + 1
 		end
 		
 		return list
@@ -77,23 +75,25 @@ func NewRedisQueue(opts RedisTaskQueueOptions, logger *zap.SugaredLogger, metric
 }
 
 func (q *RedisTaskQueue) Add(ctx context.Context, tasks []*TaskMessage) error {
-	ctx, span := tracing.Start(ctx, "taskqueue.redis.add", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := tracing.Start(ctx, "task_queue.redis.add")
 	defer span.End()
 
-	members := make([]redis.Z, 0, len(tasks))
+	// TODO: inject trace context
+
+	members := make([]redis.Z, len(tasks))
 	strs := make([]interface{}, 0, len(tasks)*2)
-	ids := make([]string, 0, len(tasks))
-	for _, task := range tasks {
-		members = append(members, redis.Z{
+	ids := make([]string, len(tasks))
+	for i, task := range tasks {
+		members[i] = redis.Z{
 			Score:  float64(task.ScheduledAt.UnixMilli()),
 			Member: task.ID,
-		})
+		}
 		data, err := task.MarshalData()
 		if err != nil {
 			return err
 		}
 		strs = append(strs, task.ID, data)
-		ids = append(ids, task.ID)
+		ids[i] = task.ID
 	}
 	q.log.Debugw("adding tasks", "tasks", ids)
 	pipeline := q.c.Pipeline()
@@ -103,16 +103,32 @@ func (q *RedisTaskQueue) Add(ctx context.Context, tasks []*TaskMessage) error {
 	return err
 }
 
-func (q *RedisTaskQueue) Schedule(ctx context.Context, task *TaskMessage) error {
-	q.log.Debugf("scheduling task %s at %s", task.ID, task.ScheduledAt)
+func (q *RedisTaskQueue) Schedule(ctx context.Context, id string, scheduledAt time.Time) error {
+	ctx, span := tracing.Start(ctx, "task_queue.redis.schedule")
+	span.SetAttributes(attribute.String("id", id))
+	span.SetAttributes(attribute.Int64("timestamp", scheduledAt.UnixMilli()))
+	defer span.End()
+
+	q.log.Debugf("scheduling task %s at %s", id, scheduledAt)
 	return q.c.ZAdd(ctx, q.queue, redis.Z{
-		Score:  float64(task.ScheduledAt.UnixMilli()),
-		Member: task.ID,
+		Score:  float64(scheduledAt.UnixMilli()),
+		Member: id,
 	}).Err()
 }
 
+func decode(parts []interface{}) *TaskMessage {
+	// TODO: extract trace context
+	task := &TaskMessage{}
+	task.ID = parts[0].(string)
+	task.ScheduledAt = time.UnixMilli(parts[1].(int64))
+	if len(parts) >= 3 {
+		task.data = []byte((parts[2].(string)))
+	}
+	return task
+}
+
 func (q *RedisTaskQueue) Get(ctx context.Context, opts *GetOptions) ([]*TaskMessage, error) {
-	ctx, span := tracing.Start(ctx, "taskqueue.redis.get", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := tracing.Start(ctx, "task_queue.redis.get")
 	defer span.End()
 
 	keys := []string{q.queue, q.queueData}
@@ -129,15 +145,9 @@ func (q *RedisTaskQueue) Get(ctx context.Context, opts *GetOptions) ([]*TaskMess
 		if len(list) == 0 {
 			return nil, nil
 		}
-		tasks := make([]*TaskMessage, 0, len(list))
-		for _, e := range list {
-			array := e.([]interface{})
-			if len(array) == 2 {
-				tasks = append(tasks, &TaskMessage{
-					ID:   array[0].(string),
-					data: []byte((array[1].(string))),
-				})
-			}
+		tasks := make([]*TaskMessage, len(list))
+		for i, v := range list {
+			tasks[i] = decode(v.([]interface{}))
 		}
 		return tasks, nil
 	default:
@@ -145,14 +155,20 @@ func (q *RedisTaskQueue) Get(ctx context.Context, opts *GetOptions) ([]*TaskMess
 	}
 }
 
-func (q *RedisTaskQueue) Delete(ctx context.Context, task *TaskMessage) error {
-	ctx, span := tracing.Start(ctx, "taskqueue.redis.delete", trace.WithSpanKind(trace.SpanKindServer))
+func (q *RedisTaskQueue) Delete(ctx context.Context, ids ...string) error {
+	ctx, span := tracing.Start(ctx, "task_queue.redis.delete")
+	span.SetAttributes(attribute.StringSlice("id", ids))
 	defer span.End()
 
-	q.log.Debugf("deleting task %s", task.ID)
+	q.log.Debugw("deleting task", "ids", ids)
+
 	pipeline := q.c.Pipeline()
-	pipeline.HDel(ctx, q.queueData, task.ID)
-	pipeline.ZRem(ctx, q.queue, task.ID)
+	pipeline.HDel(ctx, q.queueData, ids...)
+	members := make([]interface{}, len(ids))
+	for i, id := range ids {
+		members[i] = id
+	}
+	pipeline.ZRem(ctx, q.queue, members...)
 	_, err := pipeline.Exec(ctx)
 	return err
 }

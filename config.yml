@@ -166,12 +166,20 @@ metrics:
 # Tracing
 #------------------------------------------------------------------------------
 tracing:
-  enabled: false
+  instrumentations: []                          # The list of enabled tracing instrumentations.
+                                                # By default, no instrumentations are enabled.
+                                                # Supported values are:
+                                                # - `request`: HTTP request instrumentation.
+                                                # - `plugin`: Plugin instrumentation.
+                                                # - `dao`: DAO instrumentation.
+                                                # - `@all`: an alias of all instrumentations.
+
   #attributes:                                  # Specifies the custom attributes in key-value pair for each trace.
   #  foo: bar
   sampling_rate: 1                              # Specifies the trace sampling rate.
                                                 # Example: `0.01`, samples 1% of traces.
-  opentelemetry:
+
+  opentelemetry:                                # OpenTelemetry
     protocol: http/protobuf                     # Supported values: http/protobuf, grpc.
     endpoint: http://127.0.0.1:4318/v1/traces   #
                                                 # Example of http/protobuf:

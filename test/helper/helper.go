@@ -31,9 +31,9 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/migrator"
-	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/pkg/log"
+	"github.com/webhookx-io/webhookx/services/eventbus"
 	"github.com/webhookx-io/webhookx/test"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -240,7 +240,7 @@ func NewDB(cfg *config.Config) *db.DB {
 	if err != nil {
 		return nil
 	}
-	eventbus := eventbus.NewEventBus(
+	eventbus := eventbus.NewPostgresEventBus(
 		uuid.NewV4().String(),
 		cfg.Database.GetDSN(),
 		logger, sqlDB)

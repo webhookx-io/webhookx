@@ -3,12 +3,20 @@ package queue
 import (
 	"context"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 type Message struct {
-	Value       []byte
-	Time        time.Time
-	WorkspaceID string
+	Value        []byte
+	Time         time.Time
+	WorkspaceID  string
+	TraceContext map[string]string
+}
+
+func (m *Message) GetTraceContext(ctx context.Context) context.Context {
+	return otel.GetTextMapPropagator().Extract(ctx, propagation.MapCarrier(m.TraceContext))
 }
 
 type HandlerFunc func(ctx context.Context, messages []*Message) error

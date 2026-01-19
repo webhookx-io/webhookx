@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -13,88 +12,77 @@ var (
 	ErrTimeout        = errors.New("timeout")
 )
 
-type Pool struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-
-	workers int
-
-	tasks    chan Task
-	wait     sync.WaitGroup
-	handling atomic.Int64
+type item[T any] struct {
+	ctx   context.Context
+	value T
 }
 
-func NewPool(size int, workers int) *Pool {
+type Handler[T any] interface {
+	Handle(ctx context.Context, value T)
+}
+
+type HandlerFunc[T any] func(ctx context.Context, value T)
+
+func (fn HandlerFunc[T]) Handle(ctx context.Context, value T) {
+	fn(ctx, value)
+}
+
+type Pool[T any] struct {
+	ctx     context.Context
+	cancel  context.CancelFunc
+	queue   chan item[T]
+	handler Handler[T]
+	wg      sync.WaitGroup
+}
+
+func New[T any](size int, consumers int, handler Handler[T]) *Pool[T] {
 	ctx, cancel := context.WithCancel(context.Background())
-	pool := &Pool{
+	pool := &Pool[T]{
 		ctx:     ctx,
 		cancel:  cancel,
-		workers: workers,
-		tasks:   make(chan Task, size),
+		queue:   make(chan item[T], size),
+		handler: handler,
 	}
 
-	pool.wait.Add(workers)
-
-	for i := 0; i < workers; i++ {
-		go pool.consume()
+	for i := 0; i < consumers; i++ {
+		pool.wg.Go(pool.consume)
 	}
 
 	return pool
 }
 
-func (p *Pool) SubmitFn(timeout time.Duration, fn func()) error {
-	if fn == nil {
-		return errors.New("fn is nil")
-	}
-
-	taks := &task{
-		fn: fn,
-	}
-	return p.Submit(timeout, taks)
-}
-
-func (p *Pool) Submit(timeout time.Duration, task Task) error {
-	if task == nil {
-		return errors.New("task is nil")
-	}
-
+func (p *Pool[T]) Submit(ctx context.Context, timeout time.Duration, value T) error {
 	if p.ctx.Err() != nil {
 		return ErrPoolTernimated
 	}
 
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
+	it := item[T]{
+		ctx:   ctx,
+		value: value,
+	}
+
 	select {
-	case p.tasks <- task:
+	case <-p.ctx.Done():
+		return ErrPoolTernimated
+	case p.queue <- it:
 		return nil
-	case <-timer.C:
+	case <-time.After(timeout):
 		return ErrTimeout
 	}
 }
 
-func (p *Pool) consume() {
-	defer p.wait.Done()
+func (p *Pool[T]) consume() {
 	for {
 		select {
 		case <-p.ctx.Done():
 			return
-		case t := <-p.tasks:
-			p.handling.Add(1)
-			t.Execute()
-			p.handling.Add(-1)
+		case t := <-p.queue:
+			p.handler.Handle(t.ctx, t.value)
 		}
 	}
 }
 
-func (p *Pool) GetHandling() int64 {
-	return p.handling.Load()
-}
-
-func (p *Pool) Shutdown() {
-	if err := p.ctx.Err(); err != nil {
-		return
-	}
-
+func (p *Pool[T]) Shutdown() {
 	p.cancel()
-	p.wait.Wait()
+	p.wg.Wait()
 }

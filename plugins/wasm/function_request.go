@@ -3,11 +3,33 @@ package wasm
 import (
 	"context"
 	"encoding/json"
+	"net/url"
 
 	"github.com/tetratelabs/wazero/api"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"go.uber.org/zap"
 )
+
+type Request struct {
+	URL     string            `json:"url"`
+	Method  string            `json:"method"`
+	Headers map[string]string `json:"headers"`
+	Payload string            `json:"payload"`
+}
+
+func toRequest(c *plugin.Context) *Request {
+	r := c.Request
+	req := &Request{
+		URL:     r.URL.String(),
+		Method:  r.Method,
+		Headers: make(map[string]string),
+	}
+	for header := range r.Header {
+		req.Headers[header] = r.Header.Get(header)
+	}
+	req.Payload = string(c.GetRequestBody())
+	return req
+}
 
 func GetRequestJSON(ctx context.Context, m api.Module, jsonPtr, jsonSizePtr uint32) Status {
 	value, ok := fromContext(ctx)
@@ -16,7 +38,7 @@ func GetRequestJSON(ctx context.Context, m api.Module, jsonPtr, jsonSizePtr uint
 		return StatusInternalFailure
 	}
 
-	bytes, err := json.Marshal(value)
+	bytes, err := json.Marshal(toRequest(value))
 	if err != nil {
 		zap.S().Errorf("[wasm] failed to marshal value: %v", err)
 		return StatusInternalFailure
@@ -54,20 +76,26 @@ func SetRequestJSON(ctx context.Context, m api.Module, jsonPtr, jsonSize uint32)
 		return StatusInvalidMemoryAccess
 	}
 
-	var value plugin.Outbound
-	if err := json.Unmarshal([]byte(str), &value); err != nil {
+	var req Request
+	if err := json.Unmarshal([]byte(str), &req); err != nil {
 		return StatusInvalidJSON
 	}
 
-	req, ok := fromContext(ctx)
+	c, ok := fromContext(ctx)
 	if !ok {
 		return StatusInternalFailure
 	}
 
-	req.URL = value.URL
-	req.Headers = value.Headers
-	req.Method = value.Method
-	req.Payload = value.Payload
+	u, err := url.Parse(req.URL)
+	if err != nil {
+		return StatusInternalFailure
+	}
+	c.Request.URL = u
+	c.Request.Method = req.Method
+	for k, v := range req.Headers {
+		c.Request.Header.Set(k, v)
+	}
+	c.SetRequestBody([]byte(req.Payload))
 
 	return StatusOk
 }

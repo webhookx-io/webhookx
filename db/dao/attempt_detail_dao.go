@@ -5,34 +5,29 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/webhookx-io/webhookx/eventbus"
-
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/pkg/tracing"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type attemptDetailDao struct {
 	*DAO[entities.AttemptDetail]
 }
 
-func NewAttemptDetailDao(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) AttemptDetailDAO {
+func NewAttemptDetailDao(db *sqlx.DB, fns ...OptionFunc) AttemptDetailDAO {
 	opts := Options{
 		Table:          "attempt_details",
 		EntityName:     "attempt_detail",
-		Workspace:      workspace,
 		CachePropagate: false,
 		CacheName:      constants.AttemptDetailCacheKey.Name,
 	}
 	return &attemptDetailDao{
-		DAO: NewDAO[entities.AttemptDetail](db, bus, opts),
+		DAO: NewDAO[entities.AttemptDetail](db, opts, fns...),
 	}
 }
 
 func (dao *attemptDetailDao) BatchInsert(ctx context.Context, entities []*entities.AttemptDetail) error {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.batch_insert", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.batch_insert", dao.opts.Table))
 	defer span.End()
 
 	now := time.Now()

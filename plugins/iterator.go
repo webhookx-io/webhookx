@@ -13,6 +13,8 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/secret"
 	"github.com/webhookx-io/webhookx/pkg/secret/reference"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
+	"github.com/webhookx-io/webhookx/pkg/tracing/instrumentations"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -57,11 +59,11 @@ func NewIterator(version string) *Iterator {
 func (it *Iterator) LoadPlugins(plugins []*entities.Plugin) error {
 	indexes := it.indexes
 	group, ctx := errgroup.WithContext(context.TODO())
-	for _, plugin := range plugins {
-		if !plugin.Enabled {
+	for _, model := range plugins {
+		if !model.Enabled {
 			continue
 		}
-		p, err := plugin.ToPlugin()
+		p, err := model.ToPlugin()
 		if err != nil {
 			return err
 		}
@@ -69,27 +71,30 @@ func (it *Iterator) LoadPlugins(plugins []*entities.Plugin) error {
 		// resolve references
 		if it.sm != nil {
 			group.Go(func() error {
-				_, err := resolveReference(ctx, it.sm, map[string]interface{}(plugin.Config), nil)
+				_, err := resolveReference(ctx, it.sm, map[string]interface{}(model.Config), nil)
 				if err != nil {
-					return fmt.Errorf("plugin{id=%s} configuration reference resolve failed: %w", plugin.ID, err)
+					return fmt.Errorf("plugin{id=%s} configuration reference resolve failed: %w", model.ID, err)
 				}
-				if err := p.Init(plugin.Config); err != nil {
-					return fmt.Errorf("plugin{id=%s} configuration init failed: %w", plugin.ID, err)
+				if err := p.Init(model.Config); err != nil {
+					return fmt.Errorf("plugin{id=%s} configuration init failed: %w", model.ID, err)
 				}
 				return nil
 			})
 		} else {
-			if err := p.Init(plugin.Config); err != nil {
-				return fmt.Errorf("plugin{id=%s} configuration init failed: %w", plugin.ID, err)
+			if err := p.Init(model.Config); err != nil {
+				return fmt.Errorf("plugin{id=%s} configuration init failed: %w", model.ID, err)
 			}
 		}
 
-		if plugin.SourceId != nil {
-			index := it.index(PhaseInbound, *plugin.SourceId)
+		if tracing.Enabled("plugin") {
+			p = instrumentations.NewInstrumentedPlugin(p)
+		}
+		if model.SourceId != nil {
+			index := it.index(PhaseInbound, *model.SourceId)
 			indexes[index] = append(indexes[index], p)
 		}
-		if plugin.EndpointId != nil {
-			index := it.index(PhaseOutbound, *plugin.EndpointId)
+		if model.EndpointId != nil {
+			index := it.index(PhaseOutbound, *model.EndpointId)
 			indexes[index] = append(indexes[index], p)
 		}
 	}

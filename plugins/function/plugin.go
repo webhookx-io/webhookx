@@ -1,8 +1,6 @@
 package function
 
 import (
-	"context"
-
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
@@ -30,31 +28,24 @@ func (p *FunctionPlugin) Priority() int {
 	return 80
 }
 
-func (p *FunctionPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (result plugin.InboundResult, err error) {
+func (p *FunctionPlugin) ExecuteInbound(c *plugin.Context) error {
 	fn := function.New("javascript", p.Config.Function)
 
 	req := sdk.HTTPRequest{
-		R:    inbound.Request,
-		Body: inbound.RawBody,
+		R:    c.Request,
+		Body: c.GetRequestBody(),
 	}
-
 	res, err := fn.Execute(&sdk.ExecutionContext{
 		HTTPRequest: &req,
 	})
 	if err != nil {
-		return
+		return err
 	}
 
+	c.SetRequestBody(req.Body)
 	if res.HTTPResponse != nil {
-		for k, v := range res.HTTPResponse.Headers {
-			inbound.Response.Header().Set(k, v)
-		}
-		inbound.Response.WriteHeader(res.HTTPResponse.Code)
-		_, _ = inbound.Response.Write([]byte(res.HTTPResponse.Body))
-		result.Terminated = true
-		return
+		c.Response(res.HTTPResponse.Headers, res.HTTPResponse.Code, []byte(res.HTTPResponse.Body))
 	}
 
-	result.Payload = req.Body
-	return
+	return nil
 }

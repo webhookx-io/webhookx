@@ -10,9 +10,12 @@ import (
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/pkg/accesslog"
-	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/status/health"
 	"go.uber.org/zap"
+)
+
+var (
+	TestIndicators []*health.Indicator // only for testing
 )
 
 type Status struct {
@@ -28,12 +31,11 @@ type Options struct {
 	Indicators []*health.Indicator
 }
 
-func NewStatus(cfg modules.StatusConfig, tracer *tracing.Tracer, opts Options) *Status {
+func NewStatus(cfg modules.StatusConfig, opts Options) *Status {
 	api := &API{
 		debugEndpoints: cfg.DebugEndpoints,
-		tracer:         tracer,
 		accessLogger:   opts.AccessLog,
-		indicators:     opts.Indicators,
+		indicators:     append(opts.Indicators, TestIndicators...),
 	}
 	s := &http.Server{
 		Handler:      api.Handler(),
@@ -52,25 +54,31 @@ func NewStatus(cfg modules.StatusConfig, tracer *tracing.Tracer, opts Options) *
 	return status
 }
 
-func (a *Status) Start() {
+func (s *Status) Name() string {
+	return "status"
+}
+
+func (s *Status) Start() error {
 	go func() {
-		if err := a.s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := s.s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			zap.S().Errorf("Failed to start status HTTP server: %v", err)
 			os.Exit(1)
 		}
 	}()
 
-	a.log.Infow(fmt.Sprintf(`listening on address "%s"`, a.cfg.Listen))
+	s.log.Infow(fmt.Sprintf(`listening on address "%s"`, s.cfg.Listen))
 
-	if a.cfg.DebugEndpoints {
-		a.log.Infow("serving debug endpoints at /debug", "pprof", "/debug/pprof/")
+	if s.cfg.DebugEndpoints {
+		s.log.Infow("serving debug endpoints at /debug", "pprof", "/debug/pprof/")
 	}
+	return nil
 }
 
-func (a *Status) Stop() error {
-	if err := a.s.Shutdown(context.TODO()); err != nil {
+func (s *Status) Stop(ctx context.Context) error {
+	s.log.Infof("exiting")
+	if err := s.s.Shutdown(ctx); err != nil {
 		return err
 	}
-	a.log.Infof("status stopped")
+	s.log.Infof("exit")
 	return nil
 }

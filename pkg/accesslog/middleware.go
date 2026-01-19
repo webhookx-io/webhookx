@@ -32,7 +32,7 @@ func (m *middleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http
 	entry.Response.Status = rw.statusCode
 	entry.Response.Size = rw.bytesWritten
 
-	m.logger.Log(entry)
+	m.logger.Log(r.Context(), entry)
 }
 
 type responseWriter struct {

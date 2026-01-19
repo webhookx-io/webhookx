@@ -71,19 +71,21 @@ var _ = Describe("status", Ordered, func() {
 			var statusClient *resty.Client
 
 			BeforeAll(func() {
-				app.Indicators = append(app.Indicators, &health.Indicator{
-					Name: "always failed",
-					Check: func() error {
-						return errors.New("always failed")
+				status.TestIndicators = []*health.Indicator{
+					{
+						Name: "always failed",
+						Check: func() error {
+							return errors.New("always failed")
+						},
 					},
-				})
+				}
 				helper.InitDB(true, nil)
 				a = utils.Must(helper.Start(map[string]string{}))
 				statusClient = helper.StatusClient()
 			})
 
 			AfterAll(func() {
-				app.Indicators = nil
+				status.TestIndicators = nil
 				a.Stop()
 			})
 

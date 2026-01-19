@@ -1,8 +1,6 @@
 package mock
 
 import (
-	"context"
-
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 )
@@ -54,13 +52,7 @@ func (p *Plugin) Priority() int {
 	return 0
 }
 
-func (p *Plugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (res plugin.InboundResult, err error) {
-	for k, v := range p.Config.Headers {
-		inbound.Response.Header().Set(k, v)
-	}
-	inbound.Response.WriteHeader(p.Config.Status)
-	_, _ = inbound.Response.Write([]byte(p.Config.Body))
-	res.Terminated = true
-
-	return
+func (p *Plugin) ExecuteInbound(c *plugin.Context) error {
+	c.Response(p.Config.Headers, p.Config.Status, []byte(p.Config.Body))
+	return nil
 }

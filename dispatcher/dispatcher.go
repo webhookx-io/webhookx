@@ -11,7 +11,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -40,7 +39,7 @@ func NewDispatcher(opts Options) *Dispatcher {
 }
 
 func (d *Dispatcher) Dispatch(ctx context.Context, events []*entities.Event) ([]*entities.Attempt, error) {
-	ctx, span := tracing.Start(ctx, "dispatcher.dispatch", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := tracing.Start(ctx, "event.fanout")
 	defer span.End()
 
 	if len(events) == 0 {

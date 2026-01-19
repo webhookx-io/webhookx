@@ -140,12 +140,11 @@ func (app *Application) initialize() error {
 	}))
 
 	// tracing
-	tracer, err := tracing.New(&cfg.Tracing)
+	err = tracing.Init(&cfg.Tracing)
 	if err != nil {
 		return err
 	}
-
-	app.tracer = tracer
+	app.tracer = tracing.GetTracer()
 
 	// db
 	db, err := db.NewDB(sqlDB, log, app.bus)
@@ -211,7 +210,6 @@ func (app *Application) initialize() error {
 			DelivererOptions: delivererOptions,
 			DB:               db,
 			Srv:              app.srv,
-			Tracer:           tracer,
 			Metrics:          app.metrics,
 			EventBus:         app.bus,
 			RedisClient:      client,
@@ -238,11 +236,7 @@ func (app *Application) initialize() error {
 			}
 			opts.Middlewares = append(opts.Middlewares, accesslog.NewMiddleware(accessLogger))
 		}
-		if app.tracer != nil {
-			opts.Middlewares = append(opts.Middlewares, otelhttp.NewMiddleware("api.admin"))
-		}
-		api := api.NewAPI(opts)
-		app.admin = admin.NewAdmin(cfg.Admin, api.Handler())
+		app.admin = admin.NewAdmin(cfg.Admin, api.NewAPI(opts).Handler())
 	}
 
 	// gateway
@@ -252,11 +246,13 @@ func (app *Application) initialize() error {
 			DB:          db,
 			Dispatcher:  dispatcher,
 			Metrics:     app.metrics,
-			Tracer:      tracer,
 			EventBus:    app.bus,
 			Srv:         app.srv,
 			RateLimiter: ratelimiter.NewRedisLimiter(client),
 			Scheduler:   app.scheduler,
+		}
+		if tracing.Enabled("request") {
+			opts.Middlewares = append(opts.Middlewares, otelhttp.NewMiddleware("request"))
 		}
 		if cfg.AccessLog.Enabled {
 			accessLogger, err := accesslog.NewAccessLogger("proxy", accesslog.Options{
@@ -268,9 +264,6 @@ func (app *Application) initialize() error {
 				return err
 			}
 			opts.Middlewares = append(opts.Middlewares, accesslog.NewMiddleware(accessLogger))
-		}
-		if app.tracer != nil {
-			opts.Middlewares = append(opts.Middlewares, otelhttp.NewMiddleware("api.proxy"))
 		}
 		if app.metrics.Enabled {
 			opts.Middlewares = append(opts.Middlewares, middlewares.NewMetricsMiddleware(app.metrics).Handle)
@@ -316,7 +309,7 @@ func (app *Application) initialize() error {
 			Config:     cfg,
 			Indicators: indicators,
 		}
-		app.status = status.NewStatus(cfg.Status, app.tracer, opts)
+		app.status = status.NewStatus(cfg.Status, opts)
 	}
 
 	app.registerScheduledTasks()

@@ -10,16 +10,20 @@ import (
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
+	dberrs "github.com/webhookx-io/webhookx/db/errs"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
-	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/declarative"
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/openapi"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
+	"github.com/webhookx-io/webhookx/pkg/tracing/instrumentations"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/services/eventbus"
 	"github.com/webhookx-io/webhookx/utils"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type API struct {
@@ -27,7 +31,7 @@ type API struct {
 	db          *db.DB
 	dispatcher  *dispatcher.Dispatcher
 	declarative *declarative.Declarative
-	bus         eventbus.Bus
+	bus         eventbus.EventBus
 	middlewares []mux.MiddlewareFunc
 }
 
@@ -36,7 +40,7 @@ type Options struct {
 	DB          *db.DB
 	Dispatcher  *dispatcher.Dispatcher
 	Middlewares []mux.MiddlewareFunc
-	EventBus    eventbus.Bus
+	EventBus    eventbus.EventBus
 }
 
 func NewAPI(opts Options) *API {
@@ -119,6 +123,14 @@ func ValidateRequest(r *http.Request, defaults map[string]interface{}, target en
 	return nil
 }
 
+func customizeErrorResponse(err error, w http.ResponseWriter) bool {
+	if e, ok := err.(*dberrs.DBError); ok {
+		response.JSON(w, 400, types.ErrorResponse{Message: e.Error()})
+		return true
+	}
+	return false
+}
+
 // Handler returns a http.Handler
 func (api *API) Handler() http.Handler {
 	r := mux.NewRouter()
@@ -130,7 +142,9 @@ func (api *API) Handler() http.Handler {
 	for _, m := range api.middlewares {
 		r.Use(m)
 	}
-	r.Use(middlewares.PanicRecovery)
+
+	r.Use(instrumentations.NewInstrumentedMux().Handle)
+	r.Use(middlewares.NewRecovery(customizeErrorResponse).Handle)
 	r.Use(api.contextMiddleware)
 	r.Use(api.licenseMiddleware)
 
@@ -155,11 +169,11 @@ func (api *API) Handler() http.Handler {
 	}
 
 	for _, prefix := range []string{"", "/workspaces/{workspace}"} {
-		r.HandleFunc(prefix+"/endpoints", api.PageEndpoint).Methods("GET")
-		r.HandleFunc(prefix+"/endpoints", api.CreateEndpoint).Methods("POST")
-		r.HandleFunc(prefix+"/endpoints/{id}", api.GetEndpoint).Methods("GET")
-		r.HandleFunc(prefix+"/endpoints/{id}", api.UpdateEndpoint).Methods("PUT")
-		r.HandleFunc(prefix+"/endpoints/{id}", api.DeleteEndpoint).Methods("DELETE")
+		r.HandleFunc(prefix+"/endpoints", api.PageEndpoint).Methods("GET").Name("endpoints.page")
+		r.HandleFunc(prefix+"/endpoints", api.CreateEndpoint).Methods("POST").Name("endpoints.create")
+		r.HandleFunc(prefix+"/endpoints/{id}", api.GetEndpoint).Methods("GET").Name("endpoints.get")
+		r.HandleFunc(prefix+"/endpoints/{id}", api.UpdateEndpoint).Methods("PUT").Name("endpoints.update")
+		r.HandleFunc(prefix+"/endpoints/{id}", api.DeleteEndpoint).Methods("DELETE").Name("endpoints.delete")
 	}
 
 	for _, prefix := range []string{"", "/workspaces/{workspace}"} {
@@ -190,5 +204,8 @@ func (api *API) Handler() http.Handler {
 		r.HandleFunc(prefix+"/plugins/{id}", api.DeletePlugin).Methods("DELETE")
 	}
 
+	if tracing.Enabled("request") {
+		return otelhttp.NewHandler(r, "admin.request")
+	}
 	return r
 }

@@ -45,9 +45,9 @@ type Metrics struct {
 	EventPendingGauge   metrics.Gauge
 }
 
-func (m *Metrics) Stop() error {
+func (m *Metrics) Stop(timeout time.Duration) error {
 	if m.Enabled {
-		return StopOpentelemetry()
+		return StopOpentelemetry(timeout)
 	}
 	return nil
 }

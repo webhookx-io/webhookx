@@ -3,6 +3,8 @@ package plugin
 import (
 	"context"
 	"net/http"
+
+	"github.com/webhookx-io/webhookx/pkg/http/response"
 )
 
 type Plugin interface {
@@ -22,10 +24,10 @@ type Plugin interface {
 	ValidateConfig(config map[string]interface{}) error
 
 	// ExecuteInbound executes inbound
-	ExecuteInbound(ctx context.Context, inbound *Inbound) (InboundResult, error)
+	ExecuteInbound(c *Context) error
 
 	// ExecuteOutbound executes outbound
-	ExecuteOutbound(ctx context.Context, outbound *Outbound) error
+	ExecuteOutbound(c *Context) error
 }
 
 func New(name string) (Plugin, bool) {
@@ -36,20 +38,49 @@ func New(name string) (Plugin, bool) {
 	return r.Factory(), true
 }
 
-type Outbound struct {
-	URL     string            `json:"url"`
-	Method  string            `json:"method"`
-	Headers map[string]string `json:"headers"`
-	Payload string            `json:"payload"`
+type Context struct {
+	Request    *http.Request
+	ctx        context.Context
+	rw         http.ResponseWriter
+	body       []byte
+	terminated bool
 }
 
-type Inbound struct {
-	Request  *http.Request
-	Response http.ResponseWriter
-	RawBody  []byte
+func NewContext(ctx context.Context, r *http.Request, w http.ResponseWriter) *Context {
+	return &Context{
+		Request: r,
+		ctx:     ctx,
+		rw:      w,
+	}
 }
 
-type InboundResult struct {
-	Terminated bool
-	Payload    []byte
+func (c *Context) GetRequestBody() []byte {
+	return c.body
+}
+
+func (c *Context) SetRequestBody(body []byte) {
+	c.body = body
+}
+
+func (c *Context) Response(headers map[string]string, code int, body []byte) {
+	response.Response(c.rw, headers, code, body)
+	c.terminated = true
+}
+
+func (c *Context) JSON(code int, obj interface{}) {
+	response.JSON(c.rw, code, obj)
+	c.terminated = true
+}
+
+func (c *Context) Context() context.Context {
+	return c.ctx
+}
+
+func (c *Context) WithContext(ctx context.Context) *Context {
+	c.ctx = ctx
+	return c
+}
+
+func (c *Context) IsTerminated() bool {
+	return c.terminated
 }

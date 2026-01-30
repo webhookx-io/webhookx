@@ -4,22 +4,20 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/eventbus"
 )
 
 type endpointDAO struct {
 	*DAO[entities.Endpoint]
 }
 
-func NewEndpointDAO(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) EndpointDAO {
+func NewEndpointDAO(db *sqlx.DB, fns ...OptionFunc) EndpointDAO {
 	opts := Options{
 		Table:          "endpoints",
 		EntityName:     "endpoint",
-		Workspace:      workspace,
 		CachePropagate: true,
 		CacheName:      constants.EndpointCacheKey.Name,
 	}
 	return &endpointDAO{
-		DAO: NewDAO[entities.Endpoint](db, bus, opts),
+		DAO: NewDAO[entities.Endpoint](db, opts, fns...),
 	}
 }

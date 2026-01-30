@@ -6,13 +6,20 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/webhookx-io/webhookx/db/errs"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"go.uber.org/zap"
 )
 
-func PanicRecovery(h http.Handler) http.Handler {
+type Recovery struct {
+	CustomizeError func(err error, w http.ResponseWriter) (customized bool)
+}
+
+func NewRecovery(customizeError func(err error, w http.ResponseWriter) (customized bool)) *Recovery {
+	return &Recovery{CustomizeError: customizeError}
+}
+
+func (m *Recovery) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if e := recover(); e != nil {
@@ -24,8 +31,7 @@ func PanicRecovery(h http.Handler) http.Handler {
 					err = errors.New(fmt.Sprint(e))
 				}
 
-				if e, ok := err.(*errs.DBError); ok {
-					response.JSON(w, 400, types.ErrorResponse{Message: e.Error()})
+				if m.CustomizeError != nil && m.CustomizeError(err, w) {
 					return
 				}
 
@@ -38,6 +44,6 @@ func PanicRecovery(h http.Handler) http.Handler {
 			}
 		}()
 
-		h.ServeHTTP(w, r)
+		next.ServeHTTP(w, r)
 	})
 }

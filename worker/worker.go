@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
+	"net/http"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -18,21 +18,21 @@ import (
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
-	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
-	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/batchqueue"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/pool"
-	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
-	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/plugins"
-	"github.com/webhookx-io/webhookx/service"
+	"github.com/webhookx-io/webhookx/services"
+	"github.com/webhookx-io/webhookx/services/eventbus"
+	"github.com/webhookx-io/webhookx/services/schedule"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
@@ -43,7 +43,10 @@ var (
 	processing atomic.Int64
 )
 
-var ErrRateLimitExceeded = errors.New("rate limit exceeded")
+var (
+	ErrRateLimitExceeded = errors.New("rate limit exceeded")
+	ErrTerminated        = errors.New("terminated")
+)
 
 type Worker struct {
 	ctx    context.Context
@@ -53,15 +56,12 @@ type Worker struct {
 
 	log *zap.SugaredLogger
 
-	deliverer   deliverer.Deliverer
-	db          *db.DB
-	tracer      *tracing.Tracer
-	pool        *pool.Pool
-	metrics     *metrics.Metrics
-	srv         *service.Service
-	rateLimiter ratelimiter.RateLimiter
-	scheduler   schedule.Scheduler
-	queue       *BatchQueue[*entities.AttemptDetail]
+	services *services.Services
+
+	deliverer       deliverer.Deliverer
+	db              *db.DB
+	pool            *pool.Pool[*taskqueue.TaskMessage]
+	queueRequestLog *batchqueue.BatchQueue[*entities.AttemptDetail]
 }
 
 type Options struct {
@@ -71,12 +71,7 @@ type Options struct {
 
 	DB               *db.DB
 	DelivererOptions deliverer.Options
-	Metrics          *metrics.Metrics
-	Tracer           *tracing.Tracer
-	EventBus         eventbus.Bus
-	Srv              *service.Service
 	RedisClient      *redis.Client
-	Scheduler        schedule.Scheduler
 }
 
 func init() {
@@ -89,48 +84,95 @@ func init() {
 	}))
 }
 
-func NewWorker(opts Options) *Worker {
-	opts.RequeueJobBatch = utils.DefaultIfZero(opts.RequeueJobBatch, 20)
+func NewWorker(opts Options, services *services.Services) *Worker {
+	opts.RequeueJobBatch = utils.DefaultIfZero(opts.RequeueJobBatch, 50)
 	opts.PoolSize = utils.DefaultIfZero(opts.PoolSize, 10000)
 	opts.PoolConcurrency = utils.DefaultIfZero(opts.PoolConcurrency, runtime.NumCPU()*100)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	worker := &Worker{
-		ctx:         ctx,
-		cancel:      cancel,
-		opts:        opts,
-		log:         zap.S().Named("worker"),
-		db:          opts.DB,
-		pool:        pool.NewPool(opts.PoolSize, opts.PoolConcurrency),
-		metrics:     opts.Metrics,
-		tracer:      opts.Tracer,
-		srv:         opts.Srv,
-		rateLimiter: ratelimiter.NewRedisLimiter(opts.RedisClient),
-		scheduler:   opts.Scheduler,
-		queue:       NewBatchQueue[*entities.AttemptDetail](1000, 50, time.Millisecond*500),
+		ctx:             ctx,
+		cancel:          cancel,
+		opts:            opts,
+		log:             zap.S().Named("worker"),
+		db:              opts.DB,
+		services:        services,
+		queueRequestLog: batchqueue.New[*entities.AttemptDetail]("request_log", 1000, 50, time.Millisecond*500),
 	}
 
-	worker.registerEventHandler(opts.EventBus)
+	worker.pool = pool.New[*taskqueue.TaskMessage](
+		opts.PoolSize,
+		opts.PoolConcurrency,
+		pool.HandlerFunc[*taskqueue.TaskMessage](worker.runTask),
+	)
+
+	worker.registerEventHandler(services.EventBus)
 
 	return worker
 }
 
-func (w *Worker) registerEventHandler(bus eventbus.Bus) {
-	rs := redsync.New(goredis.NewPool(w.opts.RedisClient))
-	bus.Subscribe("plugin.crud", func(data interface{}) {
-		plugin := entities.Plugin{}
-		if err := json.Unmarshal(data.(*eventbus.CrudData).Data, &plugin); err != nil {
-			w.log.Errorf("failed to unmarshal event data: %s", err)
+func (w *Worker) Name() string {
+	return "worker"
+}
+
+func (w *Worker) submitTask(ctx context.Context, task *taskqueue.TaskMessage) (bool, error) {
+	ctx, span := tracing.Start(ctx, "worker.task.submit")
+	span.SetAttributes(attribute.String("id", task.ID))
+	defer span.End()
+
+	err := w.pool.Submit(ctx, time.Second, task)
+	if err != nil {
+		if e := w.services.Task.ScheduleTask(ctx, task.ID, task.ScheduledAt); e != nil {
+			w.log.Warnf("failed to update task %s scheduled_at to %d: %v", task.ID, task.ScheduledAt.UnixMilli(), e)
+		}
+		switch {
+		case errors.Is(err, pool.ErrPoolTernimated):
+			return false, errors.New("pool ternimated")
+		case errors.Is(err, pool.ErrTimeout):
+			w.log.Warnf("pool is busy")
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func (w *Worker) runTask(ctx context.Context, task *taskqueue.TaskMessage) {
+	ctx, span := tracing.Start(ctx, "worker.task.run",
+		trace.WithAttributes(attribute.String("id", task.ID)))
+	defer span.End()
+
+	processing.Add(1)
+	defer processing.Add(-1)
+
+	task.Data = &taskqueue.MessageData{}
+	err := task.UnmarshalData(task.Data)
+	if err != nil {
+		w.log.Errorf("failed to unmarshal task: %v", err)
+		_ = w.services.Task.DeleteTask(ctx, task)
+		return
+	}
+
+	err = w.handleTask(ctx, task)
+	if err != nil {
+		if errors.Is(ErrRateLimitExceeded, err) {
 			return
 		}
-	})
+		// TODO: delete task when causes error too many times (maxReceiveCount)
+		w.log.Errorf("failed to handle task: %v", err)
+		return
+	}
+	_ = w.services.Task.DeleteTask(ctx, task)
+}
+
+func (w *Worker) registerEventHandler(bus eventbus.EventBus) {
+	rs := redsync.New(goredis.NewPool(w.opts.RedisClient))
 	bus.ClusteringSubscribe(eventbus.EventEventFanout, func(data []byte) {
 		eventData := &eventbus.EventFanoutData{}
 		if err := json.Unmarshal(data, eventData); err != nil {
 			w.log.Errorf("failed to unmarshal event: %s", err)
 			return
 		}
-		bus.Broadcast(eventbus.EventEventFanout, eventData)
+		bus.Broadcast(context.TODO(), eventbus.EventEventFanout, eventData)
 	})
 	bus.Subscribe(eventbus.EventEventFanout, func(data interface{}) {
 		ctx := context.TODO()
@@ -169,78 +211,57 @@ func (w *Worker) registerEventHandler(bus eventbus.Bus) {
 			e.Event = event
 		}
 
-		w.srv.ScheduleAttempts(ctx, attempts)
+		w.services.Task.ScheduleAttempts(ctx, attempts)
 	})
 }
 
 func (w *Worker) run() {
+	options := &taskqueue.GetOptions{Count: 20}
+
+	fetch := func(ctx context.Context) bool {
+		ctx, span := tracing.Start(ctx, "worker.fetch")
+		defer span.End()
+
+		tasks, err := w.services.Task.GetTasks(ctx, options)
+		if err != nil {
+			w.log.Errorf("failed to fetch task: %v", err)
+			return false
+		}
+		if len(tasks) == 0 {
+			return false
+		}
+
+		continued := true
+		for _, task := range tasks {
+			_, err := w.submitTask(ctx, task)
+			if err != nil {
+				continued = false
+			}
+		}
+		return continued
+	}
+
+	drain := func() {
+		ctx, span := tracing.Start(context.Background(), "worker.drain")
+		defer span.End()
+		for {
+			continued := fetch(ctx)
+			if !continued {
+				return
+			}
+		}
+	}
+
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
-
-	options := &taskqueue.GetOptions{
-		Count: 20,
-	}
 	for {
 		select {
 		case <-w.ctx.Done():
 			return
+		case <-w.services.Task.NotificationChannel():
+			drain()
 		case <-ticker.C:
-			for {
-				tasks, err := w.srv.GetTasks(context.TODO(), options)
-				if err != nil {
-					w.log.Errorf("failed to fetch tasks from queue: %v", err)
-					break
-				}
-				if len(tasks) == 0 {
-					break
-				}
-
-				w.log.Debugf("received tasks: %d", len(tasks))
-				var errs []error
-				for _, task := range tasks {
-					err = w.pool.SubmitFn(time.Second*5, func() {
-						processing.Add(1)
-						defer processing.Add(-1)
-
-						// TODO: start trace with task Context
-						ctx := context.TODO()
-						if w.tracer != nil {
-							tracingCtx, span := w.tracer.Start(ctx, "worker.submit", trace.WithSpanKind(trace.SpanKindServer))
-							defer span.End()
-							ctx = tracingCtx
-						}
-						task.Data = &taskqueue.MessageData{}
-						err = task.UnmarshalData(task.Data)
-						if err != nil {
-							w.log.Errorf("failed to unmarshal task: %v", err)
-							_ = w.srv.DeleteTask(ctx, task)
-							return
-						}
-
-						err = w.handleTask(ctx, task)
-						if err != nil {
-							if errors.Is(ErrRateLimitExceeded, err) {
-								return
-							}
-							// TODO: delete task when causes error too many times (maxReceiveCount)
-							w.log.Errorf("failed to handle task: %v", err)
-							return
-						}
-
-						_ = w.srv.DeleteTask(ctx, task)
-					})
-					if err != nil {
-						if errors.Is(err, pool.ErrPoolTernimated) {
-							return // worker is shutting down
-						}
-						errs = append(errs, err)
-					}
-				}
-				if len(errs) > 0 { // pool.ErrTimeout
-					w.log.Warnf("failed to submit tasks to pool: %v", errs) // consider tuning pool configuration
-					break
-				}
-			}
+			drain()
 		}
 	}
 }
@@ -260,71 +281,77 @@ func (w *Worker) Start() error {
 	w.deliverer = httpDeliverer
 
 	for range runtime.NumCPU() {
-		w.queue.Consume(w.consumeQueue)
+		w.queueRequestLog.Consume(w.consumeQueue)
 	}
 
 	go w.run()
 
-	w.scheduler.AddTask(&schedule.Task{
+	w.services.Scheduler.AddTask(&schedule.Task{
 		Name:     "worker.requeue",
 		Interval: time.Minute,
-		Do:       w.processRequeue,
+		Do:       w.loadPending,
 	})
 	return nil
 }
 
 // Stop stops worker
-func (w *Worker) Stop() error {
+func (w *Worker) Stop(ctx context.Context) error {
+	w.log.Info("exiting")
 	w.cancel()
-	w.log.Named("pool").Infow("closing pool", "handling", w.pool.GetHandling())
+	w.log.Named("pool").Infow("closing pool", "handling", processing.Load())
 	w.pool.Shutdown()
 	w.log.Named("pool").Info("closed pool")
-	w.queue.Close()
-	w.log.Info("worker stopped")
+	w.queueRequestLog.Close()
+	w.log.Info("exit")
 
 	return nil
 }
 
-func (w *Worker) consumeQueue(list []*entities.AttemptDetail) {
-	err := w.db.AttemptDetails.BatchInsert(context.TODO(), list)
+func (w *Worker) consumeQueue(ctx context.Context, list []*entities.AttemptDetail) {
+	err := w.db.AttemptDetails.BatchInsert(ctx, list)
 	if err != nil {
 		w.log.Errorf("failed to batch insert: %v", err)
 	}
 }
 
-func (w *Worker) processRequeue() {
+func (w *Worker) loadPending() {
 	batchSize := w.opts.RequeueJobBatch
 
 	var done bool
 	for {
-		err := w.db.TX(context.TODO(), func(ctx context.Context) error {
-			maxScheduledAt := time.Now().Add(constants.TaskQueuePreScheduleTimeWindow)
-			attempts, err := w.db.Attempts.ListUnqueuedForUpdate(ctx, maxScheduledAt, batchSize)
-			if err != nil {
-				return err
-			}
-
-			if len(attempts) > 0 {
-				for _, attempt := range attempts {
-					event, err := w.db.Events.Get(ctx, attempt.EventId)
-					if err != nil {
-						return err
-					}
-					attempt.Event = event
-				}
-				w.srv.ScheduleAttempts(ctx, attempts)
-			}
-
-			if len(attempts) < batchSize {
-				done = true
-			}
-
-			return nil
-		})
-
-		if err != nil {
-			w.log.Error(err)
+		select {
+		case <-w.ctx.Done():
 			return
+		default:
+			err := w.db.TX(context.TODO(), func(ctx context.Context) error {
+				maxScheduledAt := time.Now().Add(constants.TaskQueuePreScheduleTimeWindow)
+				attempts, err := w.db.Attempts.ListUnqueuedForUpdate(ctx, maxScheduledAt, batchSize)
+				if err != nil {
+					return err
+				}
+
+				if len(attempts) > 0 {
+					for _, attempt := range attempts {
+						event, err := w.db.Events.Get(ctx, attempt.EventId)
+						if err != nil {
+							return err
+						}
+						attempt.Event = event
+					}
+					w.services.Task.ScheduleAttempts(ctx, attempts)
+				}
+
+				if len(attempts) < batchSize {
+					done = true
+				}
+
+				return nil
+			})
+
+			if err != nil {
+				w.log.Error(err)
+				return
+			}
 		}
 
 		if done {
@@ -334,95 +361,57 @@ func (w *Worker) processRequeue() {
 }
 
 func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) error {
-	if w.tracer != nil {
-		tracingCtx, span := w.tracer.Start(ctx, "worker.handle_task", trace.WithSpanKind(trace.SpanKindServer))
-		defer span.End()
-		ctx = tracingCtx
-	}
 	data := task.Data.(*taskqueue.MessageData)
 
-	// verify endpoint
+	// validate endpoint
 	cacheKey := constants.EndpointCacheKey.Build(data.EndpointId)
 	endpoint, err := mcache.Load(ctx, cacheKey, nil, w.db.Endpoints.Get, data.EndpointId)
 	if err != nil {
 		return err
 	}
-	if endpoint == nil {
-		return w.db.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeEndpointNotFound)
+
+	if err := w.validateEndpoint(ctx, task, endpoint); err != nil {
+		if errors.Is(err, ErrTerminated) {
+			return nil
+		}
+		return err
 	}
-	if !endpoint.Enabled {
-		return w.db.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeEndpointDisabled)
-	}
-	if endpoint.RateLimit != nil {
-		d := time.Duration(endpoint.RateLimit.Period) * time.Second
-		res, err := w.rateLimiter.Allow(ctx, endpoint.ID, endpoint.RateLimit.Quota, d)
-		if err != nil {
+
+	r, err := newRequestFromEndpoint(endpoint)
+	if err != nil {
+		// TODO: optimize error
+		if err := w.db.Attempts.UpdateErrorCode(
+			ctx, task.ID,
+			entities.AttemptStatusCanceled,
+			entities.AttemptErrorCodeUnknown,
+		); err != nil {
 			return err
 		}
-		if !res.Allowed {
-			task.ScheduledAt = time.Now().Add(d)
-			w.log.Debugw("rate limit exceeded", "endpoint", endpoint.ID, "task", task.ID, "next", task.ScheduledAt)
-			err := w.srv.ScheduleTask(ctx, task)
-			if err != nil {
-				return err
-			}
-			return ErrRateLimitExceeded
-		}
+		return nil
 	}
-
-	if data.Event == "" { // backward compatibility
-		// verify event
-		cacheKey = constants.EventCacheKey.Build(data.EventID)
-		opts := &mcache.LoadOptions{DisableLRU: true}
-		event, err := mcache.Load(ctx, cacheKey, opts, w.db.Events.Get, data.EventID)
-		if err != nil {
-			return err
-		}
-		if event == nil {
-			return w.db.Attempts.UpdateErrorCode(ctx, task.ID, entities.AttemptStatusCanceled, entities.AttemptErrorCodeUnknown)
-		}
-		data.Event = string(event.Data)
-	}
-
-	cacheKey = constants.WorkspaceCacheKey.Build(endpoint.WorkspaceId)
-	//workspace, err := mcache.Load(ctx, cacheKey, nil, w.DB.Workspaces.Get, endpoint.WorkspaceId)
-	//if err != nil {
-	//	return err
-	//}
-
-	outbound := plugin.Outbound{
-		URL:     endpoint.Request.URL,
-		Method:  endpoint.Request.Method,
-		Headers: make(map[string]string),
-		Payload: data.Event,
-	}
-	maps.Copy(outbound.Headers, endpoint.Request.Headers)
 
 	iterator := plugins.LoadIterator()
-	for p := range iterator.Iterate(context.TODO(), plugins.PhaseOutbound, endpoint.ID) {
-		err = p.ExecuteOutbound(ctx, &outbound)
+	c := plugin.NewContext(ctx, r, nil)
+	c.SetRequestBody([]byte(data.Event))
+	for p := range iterator.Iterate(ctx, plugins.PhaseOutbound, endpoint.ID) {
+		err = p.ExecuteOutbound(c)
 		if err != nil {
 			return fmt.Errorf("failed to execute %s plugin: %v", p.Name(), err)
 		}
 	}
 
-	outbound.Headers["Webhookx-Event-Id"] = data.EventID
-	outbound.Headers["Webhookx-Delivery-Id"] = task.ID
+	c.Request.Header.Set("Webhookx-Event-Id", data.EventID)
+	c.Request.Header.Set("Webhookx-Delivery-Id", task.ID)
 
 	request := &deliverer.Request{
-		Request: nil,
-		URL:     outbound.URL,
-		Method:  outbound.Method,
-		Payload: []byte(outbound.Payload),
-		Headers: outbound.Headers,
+		Request: c.Request,
+		Body:    c.GetRequestBody(),
 		Timeout: time.Duration(endpoint.Request.Timeout) * time.Millisecond,
 	}
 
 	// deliver the request
 	startAt := time.Now()
-	ctx, span := tracing.Start(ctx, "worker.deliver", trace.WithSpanKind(trace.SpanKindClient))
-	response := w.deliverer.Deliver(ctx, request)
-	span.End()
+	response := w.deliverer.Send(ctx, request)
 	finishAt := time.Now()
 
 	if response.Error != nil {
@@ -431,6 +420,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 	w.log.Debugf("delivery response: %v", response)
 
 	result := buildAttemptResult(request, response)
+	result.ID = task.ID
 	result.AttemptedAt = types.NewTime(startAt)
 	result.Exhausted = data.Attempt >= len(endpoint.Retry.Config.Attempts)
 	if response.ACL.Denied {
@@ -442,21 +432,21 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		failures.Add(1)
 	}
 
-	if w.metrics.Enabled {
-		w.metrics.AttemptTotalCounter.Add(1)
+	if w.services.Metrics.Enabled {
+		w.services.Metrics.AttemptTotalCounter.Add(1)
 		if result.Status == entities.AttemptStatusFailure {
-			w.metrics.AttemptFailedCounter.Add(1)
+			w.services.Metrics.AttemptFailedCounter.Add(1)
 		}
-		w.metrics.AttemptResponseDurationHistogram.Observe(response.Latancy.Seconds())
+		w.services.Metrics.AttemptResponseDurationHistogram.Observe(response.Latancy.Seconds())
 	}
 
-	err = w.db.Attempts.UpdateDelivery(ctx, task.ID, result)
+	err = w.db.Attempts.UpdateDelivery(ctx, result)
 	if err != nil {
 		return err
 	}
 
-	ad := newAttemptDetail(task.ID, endpoint.WorkspaceId, request, response)
-	w.queue.Add(ad)
+	ad := newAttemptDetail(task.ID, endpoint.WorkspaceId, response)
+	w.queueRequestLog.Add(ctx, ad)
 
 	if result.Status == entities.AttemptStatusSuccess {
 		return nil
@@ -485,15 +475,70 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		return err
 	}
 
-	w.srv.ScheduleAttempts(ctx, []*entities.Attempt{nextAttempt})
+	w.services.Task.ScheduleAttempts(ctx, []*entities.Attempt{nextAttempt})
 	return nil
+}
+
+func (w *Worker) validateEndpoint(ctx context.Context, task *taskqueue.TaskMessage, endpoint *entities.Endpoint) error {
+	if endpoint == nil {
+		if err := w.db.Attempts.UpdateErrorCode(
+			ctx, task.ID,
+			entities.AttemptStatusCanceled,
+			entities.AttemptErrorCodeEndpointNotFound,
+		); err != nil {
+			return err
+		}
+		return ErrTerminated
+	}
+
+	if !endpoint.Enabled {
+		if err := w.db.Attempts.UpdateErrorCode(
+			ctx, task.ID,
+			entities.AttemptStatusCanceled,
+			entities.AttemptErrorCodeEndpointDisabled,
+		); err != nil {
+			return err
+		}
+		return ErrTerminated
+	}
+	if endpoint.RateLimit != nil {
+		d := time.Duration(endpoint.RateLimit.Period) * time.Second
+		res, err := w.services.RateLimiter.Allow(ctx, endpoint.ID, endpoint.RateLimit.Quota, d)
+		if err != nil {
+			return err
+		}
+		if !res.Allowed {
+			task.ScheduledAt = time.Now().Add(d)
+			w.log.Debugw("rate limit exceeded", "endpoint", endpoint.ID, "task", task.ID, "next", task.ScheduledAt)
+			err := w.services.Task.ScheduleTask(ctx, task.ID, task.ScheduledAt)
+			if err != nil {
+				return err
+			}
+			return ErrRateLimitExceeded
+		}
+	}
+	return nil
+}
+
+func newRequestFromEndpoint(endpoint *entities.Endpoint) (*http.Request, error) {
+	r, err := http.NewRequest(endpoint.Request.Method, endpoint.Request.URL, nil)
+	if err != nil {
+		return nil, err
+	}
+	for _, header := range constants.DefaultDelivererRequestHeaders {
+		r.Header.Add(header.Name, header.Value)
+	}
+	for k, v := range endpoint.Request.Headers {
+		r.Header.Add(k, v)
+	}
+	return r, nil
 }
 
 func buildAttemptResult(request *deliverer.Request, response *deliverer.Response) *dao.AttemptResult {
 	result := &dao.AttemptResult{
 		Request: &entities.AttemptRequest{
-			URL:    request.URL,
-			Method: request.Method,
+			URL:    request.Request.URL.String(),
+			Method: request.Request.Method,
 		},
 		Status: entities.AttemptStatusSuccess,
 	}
@@ -522,12 +567,12 @@ func buildAttemptResult(request *deliverer.Request, response *deliverer.Response
 	return result
 }
 
-func newAttemptDetail(id string, wid string, request *deliverer.Request, response *deliverer.Response) *entities.AttemptDetail {
+func newAttemptDetail(id string, wid string, response *deliverer.Response) *entities.AttemptDetail {
 	ad := &entities.AttemptDetail{}
 	ad.ID = id
 	ad.WorkspaceId = wid
-	ad.RequestHeaders = utils.HeaderMap(request.Request.Header)
-	ad.RequestBody = utils.Pointer(string(request.Payload))
+	ad.RequestHeaders = utils.HeaderMap(response.Request.Request.Header)
+	ad.RequestBody = utils.Pointer(string(response.Request.Body))
 	if len(response.Header) > 0 {
 		ad.ResponseHeaders = utils.Pointer(entities.Headers(utils.HeaderMap(response.Header)))
 	}

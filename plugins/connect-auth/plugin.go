@@ -8,7 +8,6 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/plugins/connect-auth/verifier"
@@ -35,38 +34,30 @@ func (p *ConnectAuthPlugin) Priority() int {
 	return 106
 }
 
-func (p *ConnectAuthPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (result plugin.InboundResult, err error) {
+func (p *ConnectAuthPlugin) ExecuteInbound(c *plugin.Context) error {
 	v, ok := verifier.LoadVerifier(p.Config.Provider)
 	if !ok {
-		return result, errors.New("unknown provider: " + p.Config.Provider)
+		return errors.New("unknown provider: " + p.Config.Provider)
 	}
 
-	r := inbound.Request.Clone(ctx)
-	r.Body = io.NopCloser(bytes.NewReader(inbound.RawBody))
+	r := c.Request.Clone(context.TODO())
+	r.Body = io.NopCloser(bytes.NewReader(c.GetRequestBody()))
 	request := verifier.Request{
 		R: r,
 	}
-	res, err := v.Verify(ctx, &request, p.Config.ProviderConfig)
+	res, err := v.Verify(c.Context(), &request, p.Config.ProviderConfig)
 	if err != nil {
-		return result, err
+		return err
 	}
 
 	if !res.Verified {
-		response.JSON(inbound.Response, 401, types.ErrorResponse{Message: "Unauthorized"})
-		result.Terminated = true
-		return
+		c.JSON(401, types.ErrorResponse{Message: "Unauthorized"})
+		return nil
 	}
 
 	if res.Response != nil {
-		for k, v := range res.Response.Headers {
-			inbound.Response.Header().Set(k, v)
-		}
-		inbound.Response.WriteHeader(res.Response.StatusCode)
-		_, _ = inbound.Response.Write(res.Response.Body)
-		result.Terminated = true
-		return
+		c.Response(res.Response.Headers, res.Response.StatusCode, res.Response.Body)
 	}
 
-	result.Payload = inbound.RawBody
-	return
+	return nil
 }

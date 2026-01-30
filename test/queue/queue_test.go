@@ -74,7 +74,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 		var data string
 		tasks[0].UnmarshalData(&data)
 		assert.Equal(GinkgoT(), data, "data-one")
-		err = queue.Delete(context.TODO(), tasks[0])
+		err = queue.Delete(context.TODO(), tasks[0].ID)
 		assert.Nil(GinkgoT(), err)
 
 		tasks, err = queue.Get(context.TODO(), &taskqueue.GetOptions{Count: 10})
@@ -82,9 +82,9 @@ var _ = Describe("processRequeue", Ordered, func() {
 		assert.Len(GinkgoT(), tasks, 2)
 		assert.Equal(GinkgoT(), tasks[0].ID, "two")
 		assert.Equal(GinkgoT(), tasks[1].ID, "three")
-		err = queue.Delete(context.TODO(), tasks[0])
+		err = queue.Delete(context.TODO(), tasks[0].ID)
 		assert.Nil(GinkgoT(), err)
-		err = queue.Delete(context.TODO(), tasks[1])
+		err = queue.Delete(context.TODO(), tasks[1].ID)
 		assert.Nil(GinkgoT(), err)
 
 		size, err = queue.Size(context.TODO())

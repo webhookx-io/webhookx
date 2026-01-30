@@ -1,6 +1,7 @@
 package accesslog
 
 import (
+	"context"
 	"io"
 
 	"github.com/rs/zerolog"
@@ -37,6 +38,8 @@ func NewTextLogger(name string, writer io.Writer, colored bool) *TextLogger {
 	}
 }
 
-func (l *TextLogger) Log(entry *Entry) {
-	l.logger.Log().Timestamp().Msg(entry.String())
+func (l *TextLogger) Log(ctx context.Context, entry *Entry) {
+	e := l.logger.Log().Ctx(ctx).Timestamp()
+	msg := entry.String(e)
+	e.Msg(msg)
 }

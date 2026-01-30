@@ -36,8 +36,12 @@ func NewAdmin(cfg modules.AdminConfig, handler http.Handler) *Admin {
 	return admin
 }
 
+func (a *Admin) Name() string {
+	return "admin"
+}
+
 // Start starts an HTTP server
-func (a *Admin) Start() {
+func (a *Admin) Start() error {
 	go func() {
 		tls := a.cfg.TLS
 		if tls.Enabled() {
@@ -59,15 +63,15 @@ func (a *Admin) Start() {
 	if a.cfg.DebugEndpoints {
 		a.log.Infow("serving debug endpoints at /debug", "pprof", "/debug/pprof/")
 	}
+	return nil
 }
 
 // Stop stops the HTTP server
-func (a *Admin) Stop() error {
-	// TODO shutdown timeout
-	if err := a.s.Shutdown(context.TODO()); err != nil {
-		// Error from closing listeners, or context timeout:
+func (a *Admin) Stop(ctx context.Context) error {
+	a.log.Infof("exiting")
+	if err := a.s.Shutdown(ctx); err != nil {
 		return err
 	}
-	a.log.Infof("admin stopped")
+	a.log.Infof("exit")
 	return nil
 }

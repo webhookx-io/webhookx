@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/webhookx-io/webhookx/constants"
+	"go.uber.org/zap"
 )
 
 func JSON(w http.ResponseWriter, code int, data interface{}) {
@@ -12,16 +13,8 @@ func JSON(w http.ResponseWriter, code int, data interface{}) {
 }
 
 func _json(w http.ResponseWriter, code int, data interface{}, pretty bool) {
-	for _, header := range constants.DefaultResponseHeaders {
-		w.Header().Set(header.Name, header.Value)
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-
-	w.WriteHeader(code)
-
-	if data == nil {
-		return
+	headers := map[string]string{
+		"Content-Type": "application/json; charset=utf-8",
 	}
 
 	var bytes []byte
@@ -39,21 +32,32 @@ func _json(w http.ResponseWriter, code int, data interface{}, pretty bool) {
 			panic(err)
 		}
 	}
-	_, err := w.Write(bytes)
-	if err != nil {
-		panic(err)
-	}
+
+	Response(w, headers, code, bytes)
 }
 
 func Text(w http.ResponseWriter, code int, body string) {
+	headers := map[string]string{
+		"Content-Type": "text/plain",
+	}
+	Response(w, headers, code, []byte(body))
+}
+
+func Response(w http.ResponseWriter, headers map[string]string, code int, body []byte) {
 	for _, header := range constants.DefaultResponseHeaders {
 		w.Header().Set(header.Name, header.Value)
 	}
 
-	w.Header().Set("Content-Type", "text/plain")
+	for k, v := range headers {
+		w.Header().Set(k, v)
+	}
+
 	w.WriteHeader(code)
-	_, err := w.Write([]byte(body))
-	if err != nil {
-		panic(err)
+
+	if body != nil {
+		_, err := w.Write(body)
+		if err != nil {
+			zap.S().Error("response write error", zap.Error(err))
+		}
 	}
 }

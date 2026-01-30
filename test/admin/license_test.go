@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/test/helper"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 var _ = Describe("/license", Ordered, func() {
@@ -16,7 +15,7 @@ var _ = Describe("/license", Ordered, func() {
 
 	BeforeAll(func() {
 		adminClient = helper.AdminClient()
-		app = utils.Must(helper.Start(map[string]string{}))
+		app = helper.MustStart(map[string]string{})
 	})
 
 	AfterAll(func() {

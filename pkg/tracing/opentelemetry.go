@@ -18,6 +18,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 	"google.golang.org/grpc/encoding/gzip"
 )
 
@@ -40,6 +41,7 @@ func SetupOTEL(o *modules.TracingConfig) (trace.TracerProvider, error) {
 
 	attr := []attribute.KeyValue{
 		semconv.ServiceNameKey.String("webhookx"),
+		semconv.ServiceInstanceIDKey.String(o.InstanceID),
 		semconv.ServiceVersionKey.String(webhookx.VERSION),
 	}
 
@@ -64,6 +66,9 @@ func SetupOTEL(o *modules.TracingConfig) (trace.TracerProvider, error) {
 	otel.SetTracerProvider(tracerProvider)
 
 	otel.SetTextMapPropagator(autoprop.NewTextMapPropagator())
+
+	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) { zap.S().Error(err) }))
+
 	return tracerProvider, err
 }
 

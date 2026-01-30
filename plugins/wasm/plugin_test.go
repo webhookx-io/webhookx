@@ -3,6 +3,7 @@ package wasm
 import (
 	"bytes"
 	"context"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -10,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
+	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -44,18 +46,15 @@ var _ = Describe("wasm", Ordered, func() {
 			p := new(WasmPlugin)
 			p.Config.File = filename
 
-			pluginReq := &plugin.Outbound{
-				URL:     "https://example.com",
-				Method:  "GET",
-				Headers: make(map[string]string),
-				Payload: "",
-			}
-			err := p.ExecuteOutbound(context.TODO(), pluginReq)
+			r, err := http.NewRequest("GET", "https://example.com", nil)
 			assert.NoError(GinkgoT(), err)
-			assert.Equal(GinkgoT(), "https://httpbin.org/anything", pluginReq.URL)
-			assert.Equal(GinkgoT(), "POST", pluginReq.Method)
-			assert.EqualValues(GinkgoT(), map[string]string{"foo": "bar"}, pluginReq.Headers)
-			assert.Equal(GinkgoT(), "{}", pluginReq.Payload)
+			c := plugin.NewContext(context.TODO(), r, nil)
+			err = p.ExecuteOutbound(c)
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), "https://httpbin.org/anything", c.Request.URL.String())
+			assert.Equal(GinkgoT(), "POST", c.Request.Method)
+			assert.EqualValues(GinkgoT(), map[string]string{"Foo": "bar"}, utils.HeaderMap(c.Request.Header))
+			assert.Equal(GinkgoT(), "{}", string(c.GetRequestBody()))
 			lines := strings.Split(buf.String(), "\n")
 			assert.Equal(GinkgoT(), `DEBUG	[wasm]: {"url":"https://example.com","method":"GET","headers":{},"payload":""}`, lines[0])
 			assert.Equal(GinkgoT(), `INFO	[wasm]: a info message`, lines[1])
@@ -68,7 +67,7 @@ var _ = Describe("wasm", Ordered, func() {
 		It("file not found", func() {
 			p := new(WasmPlugin)
 			p.Config.File = "notfound.wasm"
-			err := p.ExecuteOutbound(context.TODO(), nil)
+			err := p.ExecuteOutbound(plugin.NewContext(context.TODO(), nil, nil))
 			assert.Error(GinkgoT(), err)
 			assert.Equal(GinkgoT(), "open notfound.wasm: no such file or directory", err.Error())
 		})
@@ -76,7 +75,7 @@ var _ = Describe("wasm", Ordered, func() {
 		It("transform not defined", func() {
 			p := new(WasmPlugin)
 			p.Config.File = "./testdata/no_transform.wasm"
-			err := p.ExecuteOutbound(context.TODO(), nil)
+			err := p.ExecuteOutbound(plugin.NewContext(context.TODO(), nil, nil))
 			assert.Error(GinkgoT(), err)
 			assert.Equal(GinkgoT(), "exported function 'transform' is not defined in module", err.Error())
 		})
@@ -84,7 +83,7 @@ var _ = Describe("wasm", Ordered, func() {
 		It("transform return does not return 0", func() {
 			p := new(WasmPlugin)
 			p.Config.File = "./testdata/transform_return_1.wasm"
-			err := p.ExecuteOutbound(context.TODO(), nil)
+			err := p.ExecuteOutbound(plugin.NewContext(context.TODO(), nil, nil))
 			assert.Error(GinkgoT(), err)
 			assert.Equal(GinkgoT(), "transform failed with value 0", err.Error())
 		})

@@ -12,6 +12,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	taskqueue "github.com/webhookx-io/webhookx/pkg/taskqueue"
 	gomock "go.uber.org/mock/gomock"
@@ -56,17 +57,22 @@ func (mr *MockTaskQueueMockRecorder) Add(ctx, tasks any) *gomock.Call {
 }
 
 // Delete mocks base method.
-func (m *MockTaskQueue) Delete(ctx context.Context, task *taskqueue.TaskMessage) error {
+func (m *MockTaskQueue) Delete(ctx context.Context, ids ...string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", ctx, task)
+	varargs := []any{ctx}
+	for _, a := range ids {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Delete", varargs...)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockTaskQueueMockRecorder) Delete(ctx, task any) *gomock.Call {
+func (mr *MockTaskQueueMockRecorder) Delete(ctx any, ids ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockTaskQueue)(nil).Delete), ctx, task)
+	varargs := append([]any{ctx}, ids...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockTaskQueue)(nil).Delete), varargs...)
 }
 
 // Get mocks base method.
@@ -85,17 +91,17 @@ func (mr *MockTaskQueueMockRecorder) Get(ctx, opts any) *gomock.Call {
 }
 
 // Schedule mocks base method.
-func (m *MockTaskQueue) Schedule(ctx context.Context, task *taskqueue.TaskMessage) error {
+func (m *MockTaskQueue) Schedule(ctx context.Context, id string, scheduledAt time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Schedule", ctx, task)
+	ret := m.ctrl.Call(m, "Schedule", ctx, id, scheduledAt)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Schedule indicates an expected call of Schedule.
-func (mr *MockTaskQueueMockRecorder) Schedule(ctx, task any) *gomock.Call {
+func (mr *MockTaskQueueMockRecorder) Schedule(ctx, id, scheduledAt any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Schedule", reflect.TypeOf((*MockTaskQueue)(nil).Schedule), ctx, task)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Schedule", reflect.TypeOf((*MockTaskQueue)(nil).Schedule), ctx, id, scheduledAt)
 }
 
 // Size mocks base method.

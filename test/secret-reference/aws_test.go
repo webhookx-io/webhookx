@@ -65,10 +65,14 @@ var _ = Describe("AWS SecretManager", Ordered, func() {
 	Context("ENV", func() {
 
 		It("references should be resolved", func() {
+			reset := helper.SetEnvs(map[string]string{
+				"AWS_ACCESS_KEY_ID":     "test",
+				"AWS_SECRET_ACCESS_KEY": "test",
+			})
+			defer reset()
+
 			cfg, err := helper.LoadConfig(helper.LoadConfigOptions{
 				Envs: helper.NewTestEnv(map[string]string{
-					"AWS_ACCESS_KEY_ID":          "test",
-					"AWS_SECRET_ACCESS_KEY":      "test",
 					"WEBHOOKX_SECRET_AWS_REGION": "us-east-1",
 					"WEBHOOKX_SECRET_AWS_URL":    "http://localhost:4566",
 
@@ -96,10 +100,13 @@ var _ = Describe("AWS SecretManager", Ordered, func() {
 
 		Context("errors", func() {
 			It("returns error when extracting a value from a invalid json", func() {
+				reset := helper.SetEnvs(map[string]string{
+					"AWS_ACCESS_KEY_ID":     "test",
+					"AWS_SECRET_ACCESS_KEY": "test",
+				})
+				defer reset()
 				_, err := helper.LoadConfig(helper.LoadConfigOptions{
 					Envs: helper.NewTestEnv(map[string]string{
-						"AWS_ACCESS_KEY_ID":          "test",
-						"AWS_SECRET_ACCESS_KEY":      "test",
 						"WEBHOOKX_SECRET_AWS_REGION": "us-east-1",
 						"WEBHOOKX_SECRET_AWS_URL":    "http://localhost:4566",
 
@@ -110,10 +117,13 @@ var _ = Describe("AWS SecretManager", Ordered, func() {
 			})
 
 			It("returns error when json path has no value", func() {
+				reset := helper.SetEnvs(map[string]string{
+					"AWS_ACCESS_KEY_ID":     "test",
+					"AWS_SECRET_ACCESS_KEY": "test",
+				})
+				defer reset()
 				_, err := helper.LoadConfig(helper.LoadConfigOptions{
 					Envs: helper.NewTestEnv(map[string]string{
-						"AWS_ACCESS_KEY_ID":          "test",
-						"AWS_SECRET_ACCESS_KEY":      "test",
 						"WEBHOOKX_SECRET_AWS_REGION": "us-east-1",
 						"WEBHOOKX_SECRET_AWS_URL":    "http://localhost:4566",
 

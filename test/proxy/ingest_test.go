@@ -2,6 +2,8 @@ package proxy
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -80,18 +82,36 @@ var _ = Describe("ingest", Ordered, func() {
 
 		It("custom response", func() {
 			resp, err := proxyClient.R().
-				SetBody(`{
-					    "event_type": "foo.bar",
-					    "data": {
-							"key": "value"
-						}
-					}`).
+				SetBody(`{"event_type": "foo.bar","data": {"key": "value"}}`).
 				Post("/custom-response")
 			assert.NoError(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 201, resp.StatusCode())
 			assert.Equal(GinkgoT(), "application/xml", resp.Header().Get("Content-Type"))
 			assert.Equal(GinkgoT(), "<message>ok</message>", string(resp.Body()))
 			assert.NotEmpty(GinkgoT(), resp.Header().Get("X-Webhookx-Event-Id"))
+		})
+
+		Context("errors", func() {
+			It("should return 400", func() {
+				resp, err := proxyClient.R().
+					SetBody(`{}`).
+					Post("/")
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 400, resp.StatusCode())
+				assert.Equal(GinkgoT(),
+					`{"message":"Request Validation","error":{"message":"request validation","fields":{"data":"required field missing","event_type":"required field missing"}}}`,
+					string(resp.Body()))
+			})
+
+			It("should return 413 when request body large than max_request_body_size", func() {
+				s := strings.Repeat("s", 1048576)
+				resp, err := proxyClient.R().
+					SetBody(fmt.Sprintf(`{"event_type": "foo.bar","data": {"msg": "%s"}}`, s)).
+					Post("/")
+				assert.NoError(GinkgoT(), err)
+				assert.Equal(GinkgoT(), 413, resp.StatusCode())
+				assert.Equal(GinkgoT(), "Request Entity Too Large\n", string(resp.Body()))
+			})
 		})
 
 	})

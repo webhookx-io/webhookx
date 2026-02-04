@@ -1,156 +1,100 @@
 package tracing
 
 import (
-	"encoding/json"
-	"fmt"
+	"context"
 	"time"
 
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/app"
+	"github.com/webhookx-io/webhookx/constants"
+	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/pkg/plugin"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
+	"github.com/webhookx-io/webhookx/test/fixtures/plugins/outbound"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
-	"github.com/webhookx-io/webhookx/utils"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 var _ = Describe("tracing worker", Ordered, func() {
+
+	plugin.RegisterPlugin(plugin.TypeOutbound, "outbound", func() plugin.Plugin { return &outbound.OutboundPlugin{} })
+
 	endpoints := map[string]string{
-		"http/protobuf": "http://localhost:4318/v1/traces",
 		"grpc":          "localhost:4317",
+		"http/protobuf": "http://localhost:4318/v1/traces",
 	}
-	for protocol, address := range endpoints {
+	for _, protocol := range []string{"grpc", "http/protobuf"} {
 		Context(protocol, func() {
+			var exportor = tracetest.NewInMemoryExporter()
+			var spanProcessor = sdktrace.NewSimpleSpanProcessor(exportor)
 			var app *app.Application
 			var proxyClient *resty.Client
+			var db *db.DB
+
+			entitiesConfig := helper.TestEntities{
+				Endpoints: []*entities.Endpoint{factory.Endpoint(factory.WithEndpointPlugins(
+					factory.Plugin("outbound", factory.WithPluginConfig(outbound.Config{}))))},
+				Sources: []*entities.Source{factory.Source()},
+			}
 
 			BeforeAll(func() {
-				helper.InitOtelOutput()
-				cfg := &helper.TestEntities{
-					Endpoints: []*entities.Endpoint{factory.Endpoint()},
-					Sources:   []*entities.Source{factory.Source(func(o *entities.Source) { o.Async = true })},
-				}
-				helper.InitDB(true, cfg)
+				db = helper.InitDB(true, &entitiesConfig)
 				proxyClient = helper.ProxyClient()
+
 				envs := map[string]string{
-					"WEBHOOKX_TRACING_ENABLED":                "true",
+					"WEBHOOKX_TRACING_INSTRUMENTATIONS":       "@all",
 					"WEBHOOKX_TRACING_SAMPLING_RATE":          "1.0",
 					"WEBHOOKX_TRACING_OPENTELEMETRY_PROTOCOL": protocol,
-					"WEBHOOKX_TRACING_OPENTELEMETRY_ENDPOINT": address,
+					"WEBHOOKX_TRACING_OPENTELEMETRY_ENDPOINT": endpoints[protocol],
 				}
+				app = helper.MustStart(envs)
 
-				app = utils.Must(helper.Start(envs))
+				tp := (tracing.GetTracer().TracerProvider).(*sdktrace.TracerProvider)
+				tp.RegisterSpanProcessor(spanProcessor)
 			})
 
 			AfterAll(func() {
+				tp := (tracing.GetTracer().TracerProvider).(*sdktrace.TracerProvider)
+				tp.UnregisterSpanProcessor(spanProcessor)
 				app.Stop()
 			})
 
 			It("sanity", func() {
-				expectedScopeNames := []string{
-					"github.com/webhookx-io/webhookx",
-				}
-				expectedScopeSpans := map[string]map[string]string{
-					"worker.submit":                    {},
-					"worker.handle_task":               {},
-					"dao.endpoints.get":                {},
-					"worker.deliver":                   {},
-					"taskqueue.redis.delete":           {},
-				}
-
-				n, err := helper.FileCountLine(helper.OtelCollectorTracesFile)
+				resp, err := proxyClient.R().
+					SetBody(`{"event_type": "foo.bar","data": {"key": "value"}}`).
+					Post("/")
 				assert.Nil(GinkgoT(), err)
-				n++
+				assert.Equal(GinkgoT(), 200, resp.StatusCode())
+				eventId := resp.Header().Get(constants.HeaderEventId)
 
-				time.Sleep(time.Second * 3)
-				// wait for export
-				proxyFunc := func() bool {
-					fmt.Println("send...")
-					resp, err := proxyClient.R().
-						SetBody(`{
-							"event_type": "foo.bar",
-							"data": {
-								"key": "value"
-							}
-						}`).Post("/")
-					return err == nil && resp.StatusCode() == 200
-				}
-				assert.Eventually(GinkgoT(), proxyFunc, time.Second*5, time.Second)
-
-				gotScopeNames := make(map[string]bool)
-				gotSpanAttributes := make(map[string]map[string]string)
-
-				fmt.Printf("reading trace file start from line: %d\n", n)
 				assert.Eventually(GinkgoT(), func() bool {
-					line, err := helper.FileLine(helper.OtelCollectorTracesFile, n)
-					if err != nil || line == "" {
+					q := query.AttemptQuery{}
+					q.EventId = &eventId
+					list, err := db.Attempts.List(context.TODO(), &q)
+					if err != nil || len(list) == 0 {
 						return false
 					}
-					n++
+					return list[0].Status == entities.AttemptStatusSuccess
+				}, time.Second*3, time.Second)
 
-					// fmt.Printf("%s\n", line)
-
-					var trace ExportedTrace
-					err = json.Unmarshal([]byte(line), &trace)
-					if err != nil {
-						fmt.Printf("unmarshal err %v\n", err)
-						return false
-					}
-
-					if len(trace.ResourceSpans) == 0 {
-						fmt.Println("no resource spans")
-						return false
-					}
-
-					// make sure worker handle full trace
-					traceID := trace.getTraceIDBySpanName("worker.handle_task")
-					if traceID == "" {
-						fmt.Println("trace id not exist")
-						return false
-					}
-					scopeNames, spanAttrs := trace.filterSpansByTraceID(traceID)
-					for k, v := range scopeNames {
-						gotScopeNames[k] = v
-					}
-					for k, v := range spanAttrs {
-						gotSpanAttributes[k] = v
-					}
-
-					for _, expectedScopeName := range expectedScopeNames {
-						if !gotScopeNames[expectedScopeName] {
-							fmt.Printf("scope %s not exist", expectedScopeName)
-							fmt.Println("")
-							return false
-						}
-					}
-
-					for spanName, expectedAttributes := range expectedScopeSpans {
-						gotAttributes, ok := gotSpanAttributes[spanName]
-						if !ok {
-							fmt.Printf("span %s not exist", spanName)
-							fmt.Println()
-							return false
-						}
-
-						if len(expectedAttributes) > 0 {
-							for k, v := range expectedAttributes {
-								if _, ok := gotAttributes[k]; !ok {
-									fmt.Printf("expected span %s attribute %s not exist", spanName, k)
-									fmt.Println("")
-									return false
-								}
-								valMatch := (v == "*" || gotAttributes[k] == v)
-								if !valMatch {
-									fmt.Printf("expected span %s attribute %s value not match: %s", spanName, k, v)
-									fmt.Println("")
-									return false
-								}
-							}
-						}
-					}
-					return true
-				}, time.Second*60, time.Second)
+				assertor := NewTraceAsserter(exportor.GetSpans().Snapshots())
+				err = assertor.AssertSpans(map[string]map[string]string{
+					"worker.task.submit":         {},
+					"worker.task.run":            {},
+					"dao.endpoints.get":          {},
+					"plugin.outbound.outbound":  {},
+					"http.send":                  {},
+					"queue.request_log.add":      {},
+					"dao.attempts.update_result": {},
+					"task_queue.redis.delete":    {},
+				})
+				assert.NoError(GinkgoT(), err)
 			})
 		})
 	}

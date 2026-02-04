@@ -13,15 +13,17 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
-	"github.com/webhookx-io/webhookx/pkg/schedule"
-	"github.com/webhookx-io/webhookx/pkg/tracing"
-	"github.com/webhookx-io/webhookx/service"
+	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
+	"github.com/webhookx-io/webhookx/services"
+	"github.com/webhookx-io/webhookx/services/schedule"
+	"github.com/webhookx-io/webhookx/services/task"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/test/mocks"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker"
 	"go.uber.org/mock/gomock"
+	"go.uber.org/zap"
 )
 
 var _ = Describe("processRequeue", Ordered, func() {
@@ -30,8 +32,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 	var w *worker.Worker
 	var ctrl *gomock.Controller
 	var queue *mocks.MockTaskQueue
-	var tracer *tracing.Tracer
-	var scheduler = schedule.NewScheduler()
+	var scheduler = schedule.NewSchedulerService()
 	endpoint := factory.Endpoint()
 
 	BeforeAll(func() {
@@ -50,19 +51,16 @@ var _ = Describe("processRequeue", Ordered, func() {
 
 		metrics, err := metrics.New(modules.MetricsConfig{}, scheduler)
 		assert.NoError(GinkgoT(), err)
-		srv := service.NewService(service.Options{
-			DB:        db,
-			TaskQueue: queue,
-		})
-		w = worker.NewWorker(worker.Options{
-			DB:          db,
-			Metrics:     metrics,
-			Tracer:      tracer,
-			EventBus:    mocks.MockBus{},
-			Srv:         srv,
-			RedisClient: cfg.Redis.GetClient(),
+		services := &services.Services{
 			Scheduler:   scheduler,
-		})
+			EventBus:    mocks.MockBus{},
+			Metrics:     metrics,
+			Task:        task.NewTaskService(zap.S(), db, queue),
+			RateLimiter: ratelimiter.NewRedisLimiter(cfg.Redis.GetClient()),
+		}
+		w = worker.NewWorker(worker.Options{
+			DB: db,
+		}, services)
 
 		// data
 		ws := utils.Must(db.Workspaces.GetDefault(context.TODO()))
@@ -90,7 +88,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		w.Stop()
+		w.Stop(context.TODO())
 		ctrl.Finish()
 	})
 

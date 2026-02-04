@@ -1,6 +1,7 @@
 package accesslog
 
 import (
+	"context"
 	"io"
 
 	"github.com/rs/zerolog"
@@ -20,6 +21,6 @@ func NewJsonLogger(name string, writer io.Writer) *JsonLogger {
 	}
 }
 
-func (l *JsonLogger) Log(entry *Entry) {
-	l.logger.Log().Timestamp().EmbedObject(entry).Send()
+func (l *JsonLogger) Log(ctx context.Context, entry *Entry) {
+	l.logger.Log().Ctx(ctx).Timestamp().EmbedObject(entry).Send()
 }

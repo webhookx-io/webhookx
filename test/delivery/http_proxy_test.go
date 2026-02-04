@@ -528,7 +528,7 @@ var _ = Describe("Proxy", Ordered, func() {
 				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CA_CERT": test.FilePath("fixtures/mtls/server-ca.crt"),
 			})
 			assert.Equal(GinkgoT(),
-				fmt.Sprintf("failed to load client certificate: open %s: no such file or directory", test.FilePath("fixtures/mtls/notfound.crt")),
+				fmt.Sprintf("failed to start service 'worker': failed to load client certificate: open %s: no such file or directory", test.FilePath("fixtures/mtls/notfound.crt")),
 				err.Error())
 		})
 		It("returns error when ca cert not found", func() {
@@ -540,7 +540,7 @@ var _ = Describe("Proxy", Ordered, func() {
 				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CA_CERT":     test.FilePath("fixtures/mtls/notfound.crt"),
 			})
 			assert.Equal(GinkgoT(),
-				fmt.Sprintf("failed to read ca certificate: open %s: no such file or directory", test.FilePath("fixtures/mtls/notfound.crt")),
+				fmt.Sprintf("failed to start service 'worker': failed to read ca certificate: open %s: no such file or directory", test.FilePath("fixtures/mtls/notfound.crt")),
 				err.Error())
 		})
 	})

@@ -13,14 +13,13 @@ type LoadConfigOptions struct {
 func LoadConfig(opts LoadConfigOptions) (*config.Config, error) {
 	cfg := config.New()
 
-	reset := SetEnvs(opts.Envs)
-	defer reset()
-
 	loader := config.NewLoader(cfg).
 		WithFilename(opts.File)
 
 	if !opts.ExcludeEnv {
-		loader.WithEnvPrefix("WEBHOOKX")
+		loader = loader.
+			WithEnvPrefix("WEBHOOKX").
+			WithEnv(opts.Envs)
 	}
 
 	if err := loader.Load(); err != nil {

@@ -66,7 +66,7 @@ var _ = Describe("Declarative", Ordered, func() {
 
 	BeforeAll(func() {
 		helper.InitDB(true, nil)
-		app = utils.Must(helper.Start(map[string]string{}))
+		app = utils.Must(helper.Start(nil))
 		adminClient = helper.AdminClient()
 	})
 

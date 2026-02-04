@@ -20,7 +20,6 @@ import (
 
 type API struct {
 	debugEndpoints bool
-	tracer         *tracing.Tracer
 	accessLogger   accesslog.AccessLogger
 	indicators     []*health.Indicator
 }
@@ -104,10 +103,7 @@ func (api *API) Handler() http.Handler {
 		r.Use(accesslog.NewMiddleware(api.accessLogger))
 	}
 
-	if api.tracer != nil {
-		r.Use(otelhttp.NewMiddleware("api.status"))
-	}
-	r.Use(middlewares.PanicRecovery)
+	r.Use(middlewares.NewRecovery(nil).Handle)
 
 	r.HandleFunc("/", api.Status).Methods("GET")
 	r.HandleFunc("/health", api.Health).Methods("GET")
@@ -120,5 +116,8 @@ func (api *API) Handler() http.Handler {
 		r.PathPrefix("/debug/pprof/").HandlerFunc(pprof.Index).Methods("GET")
 	}
 
+	if tracing.Enabled("request") {
+		return otelhttp.NewHandler(r, "status.request")
+	}
 	return r
 }

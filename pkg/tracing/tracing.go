@@ -2,74 +2,85 @@ package tracing
 
 import (
 	"context"
-	"time"
+	"sync/atomic"
 
 	"github.com/webhookx-io/webhookx/config/modules"
-	"go.opentelemetry.io/otel"
+	"github.com/webhookx-io/webhookx/utils"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 )
 
-func New(conf *modules.TracingConfig) (*Tracer, error) {
-	if !conf.Enabled {
-		otel.SetTracerProvider(noop.NewTracerProvider())
-		return nil, nil
+var (
+	NoopTracer = NewTracer(noop.NewTracerProvider(), nil)
+)
+
+var (
+	globalTracer atomic.Pointer[Tracer]
+)
+
+func init() {
+	globalTracer.Store(NoopTracer)
+}
+
+func Init(conf *modules.TracingConfig) error {
+	if !conf.Enabled() {
+		return nil
 	}
 
 	tr, err := SetupOTEL(conf)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return NewTracer(tr), nil
-}
-
-func TracerFromContext(ctx context.Context) trace.Tracer {
-	var tp trace.TracerProvider
-	if !trace.SpanContextFromContext(ctx).IsValid() {
-		tp = otel.GetTracerProvider()
-	} else {
-		tp = trace.SpanFromContext(ctx).TracerProvider()
-	}
-
-	return tp.Tracer(instrumentationName)
+	globalTracer.Store(NewTracer(tr, conf.Instrumentations))
+	return nil
 }
 
 type Tracer struct {
+	instrumented map[string]bool
 	trace.TracerProvider
 }
 
-func NewTracer(tracerProvider trace.TracerProvider) *Tracer {
-	return &Tracer{
-		TracerProvider: tracerProvider,
+func NewTracer(tp trace.TracerProvider, instrumentations []string) *Tracer {
+	presets := map[string][]string{
+		"@all": {"request", "plugin", "dao"},
 	}
-
+	instrumentations = utils.ResolveAlias(presets, instrumentations)
+	instrumented := make(map[string]bool)
+	for _, name := range instrumentations {
+		instrumented[name] = true
+	}
+	return &Tracer{
+		instrumented:   instrumented,
+		TracerProvider: tp,
+	}
 }
 
 func (t *Tracer) Start(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
-	if t == nil {
-		return ctx, trace.SpanFromContext(ctx)
-	}
 	tracer := t.Tracer(instrumentationName)
-	spanCtx, span := tracer.Start(ctx, spanName, opts...)
-	return spanCtx, span
+	return tracer.Start(ctx, spanName, opts...)
 }
 
-func (t *Tracer) Stop() error {
-	if t == nil {
-		return nil
-	}
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
-	defer cancel()
-
+func (t *Tracer) Stop(ctx context.Context) error {
 	if pr, ok := t.TracerProvider.(*sdktrace.TracerProvider); ok {
 		return pr.Shutdown(ctx)
 	}
 	return nil
 }
 
+func (t *Tracer) Enabled(name string) bool {
+	return t.instrumented[name]
+}
+
 func Start(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
-	tracer := TracerFromContext(ctx)
-	return tracer.Start(ctx, spanName, opts...)
+	return globalTracer.Load().Start(ctx, spanName, opts...)
+}
+
+func Enabled(name string) bool {
+	return globalTracer.Load().Enabled(name)
+}
+
+func GetTracer() *Tracer {
+	return globalTracer.Load()
 }

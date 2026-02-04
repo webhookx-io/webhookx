@@ -14,7 +14,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/webhookx-io/webhookx/constants"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -29,9 +31,9 @@ type contextKey struct{}
 
 // HTTPDeliverer delivers via HTTP
 type HTTPDeliverer struct {
-	log            *zap.SugaredLogger
-	client         *http.Client
-	opts           Options
+	log    *zap.SugaredLogger
+	client *http.Client
+	opts   Options
 }
 
 func restrictedDialFunc(acl *ACL) func(context.Context, string, string) (net.Conn, error) {
@@ -194,36 +196,28 @@ func timing(fn func()) time.Duration {
 	return time.Duration(stop.UnixNano() - start.UnixNano())
 }
 
-func (d *HTTPDeliverer) Deliver(ctx context.Context, req *Request) (res *Response) {
-	timeout := req.Timeout
+func (d *HTTPDeliverer) Send(ctx context.Context, request *Request) *Response {
+	ctx, span := tracing.Start(ctx, "http.send", trace.WithSpanKind(trace.SpanKindClient))
+	span.SetAttributes(attribute.String("http.request.method", request.Request.Method))
+	defer span.End()
+
+	timeout := request.Timeout
 	if timeout == 0 {
 		timeout = d.opts.RequestTimeout
 	}
-
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	res = &Response{
-		Request: req,
-	}
+	request.Request.Body = io.NopCloser(bytes.NewReader(request.Body))
 
-	ctx = context.WithValue(ctx, contextKey{}, res)
-	request, err := http.NewRequestWithContext(ctx, req.Method, req.URL, bytes.NewBuffer(req.Payload))
-	if err != nil {
-		res.Error = err
-		return
-	}
-
-	req.Request = request
-	for _, header := range constants.DefaultDelivererRequestHeaders {
-		request.Header.Add(header.Name, header.Value)
-	}
-	for name, value := range req.Headers {
-		request.Header.Add(name, value)
+	res := &Response{
+		Request: request,
 	}
 
 	t := timing(func() {
-		response, err := d.client.Do(request)
+		ctx = context.WithValue(ctx, contextKey{}, res)
+		r := request.Request.WithContext(ctx)
+		response, err := d.client.Do(r)
 		if err != nil {
 			res.Error = err
 			return
@@ -236,11 +230,12 @@ func (d *HTTPDeliverer) Deliver(ctx context.Context, req *Request) (res *Respons
 			res.Error = err
 			return
 		}
-		response.Body.Close()
+		_ = response.Body.Close()
 		res.ResponseBody = body
 	})
 
 	res.Latancy = t
+	span.SetAttributes(attribute.Int("http.response.status_code", res.StatusCode))
 
-	return
+	return res
 }

@@ -1,12 +1,13 @@
 package metrics
 
 import (
+	"context"
 	"runtime"
 	"time"
 
 	"github.com/go-kit/kit/metrics"
 	"github.com/webhookx-io/webhookx/config/modules"
-	"github.com/webhookx-io/webhookx/pkg/schedule"
+	"github.com/webhookx-io/webhookx/services/schedule"
 	"go.uber.org/zap"
 )
 
@@ -45,9 +46,13 @@ type Metrics struct {
 	EventPendingGauge   metrics.Gauge
 }
 
-func (m *Metrics) Stop() error {
+func (m *Metrics) Name() string {
+	return "metrics"
+}
+
+func (m *Metrics) Stop(ctx context.Context) error {
 	if m.Enabled {
-		return StopOpentelemetry()
+		return StopOpentelemetry(ctx)
 	}
 	return nil
 }

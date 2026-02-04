@@ -3,7 +3,6 @@ package dao
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -14,10 +13,8 @@ import (
 	"github.com/webhookx-io/webhookx/db/errs"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/db/transaction"
-	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/contextx"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
-	"github.com/webhookx-io/webhookx/utils"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
@@ -39,7 +36,6 @@ type Queryable interface {
 type DAO[T any] struct {
 	log *zap.SugaredLogger
 	db  *sqlx.DB
-	bus *eventbus.EventBus
 
 	workspace bool
 	opts      Options
@@ -47,18 +43,43 @@ type DAO[T any] struct {
 }
 
 type Options struct {
-	Table          string
-	EntityName     string
-	Workspace      bool
-	CachePropagate bool
-	CacheName      string
+	Table            string
+	EntityName       string
+	Workspace        bool
+	CachePropagate   bool
+	CacheName        string
+	PropagateHandler func(ctx context.Context, opts *Options, id string, entity interface{})
+	Instrumented     bool
 }
 
-func NewDAO[T any](db *sqlx.DB, bus *eventbus.EventBus, opts Options) *DAO[T] {
+type OptionFunc func(*Options)
+
+func WithInstrumented() OptionFunc {
+	return func(o *Options) {
+		o.Instrumented = true
+	}
+}
+
+func WithWorkspace(workspace bool) OptionFunc {
+	return func(o *Options) {
+		o.Workspace = workspace
+	}
+}
+
+func WithPropagateHandler(fn func(ctx context.Context, opts *Options, id string, entity interface{})) OptionFunc {
+	return func(o *Options) {
+		o.PropagateHandler = fn
+	}
+}
+
+func NewDAO[T any](db *sqlx.DB, opts Options, funcs ...OptionFunc) *DAO[T] {
+	for _, fn := range funcs {
+		fn(&opts)
+	}
+
 	dao := DAO[T]{
 		log:       zap.S().Named("dao"),
 		db:        db,
-		bus:       bus,
 		workspace: opts.Workspace,
 		opts:      opts,
 	}
@@ -73,6 +94,13 @@ func NewDAO[T any](db *sqlx.DB, bus *eventbus.EventBus, opts Options) *DAO[T] {
 
 func (dao *DAO[T]) debugSQL(sql string, args []interface{}) {
 	dao.log.Debug(sql)
+}
+
+func (dao *DAO[T]) trace(ctx context.Context, spanName string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+	if dao.opts.Instrumented {
+		return tracing.Start(ctx, spanName, opts...)
+	}
+	return tracing.NoopTracer.Start(ctx, spanName, opts...)
 }
 
 func (dao *DAO[T]) DB(ctx context.Context) Queryable {
@@ -98,7 +126,7 @@ func (dao *DAO[T]) UnsafeDB(ctx context.Context) Queryable {
 }
 
 func (dao *DAO[T]) Get(ctx context.Context, id string) (entity *T, err error) {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.get", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.get", dao.opts.Table))
 	defer span.End()
 
 	return dao.Select(ctx, "id", id)
@@ -137,7 +165,7 @@ func (dao *DAO[T]) selectByField(ctx context.Context, field string, value string
 }
 
 func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.delete", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.delete", dao.opts.Table))
 	defer span.End()
 
 	builder := psql.Delete(dao.opts.Table).Where(sq.Eq{"id": id})
@@ -156,13 +184,13 @@ func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
 		return false, err
 	}
 	if dao.opts.CachePropagate {
-		go dao.propagateEvent(id, entity)
+		go dao.propagateEvent(ctx, id, entity)
 	}
 	return true, nil
 }
 
 func (dao *DAO[T]) Page(ctx context.Context, q query.Queryer) (list []*T, total int64, err error) {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.page", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.page", dao.opts.Table))
 	defer span.End()
 
 	total, err = dao.Count(ctx, q.WhereMap())
@@ -174,7 +202,7 @@ func (dao *DAO[T]) Page(ctx context.Context, q query.Queryer) (list []*T, total 
 }
 
 func (dao *DAO[T]) Count(ctx context.Context, where map[string]interface{}) (total int64, err error) {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.count", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.count", dao.opts.Table))
 	defer span.End()
 
 	builder := psql.Select("COUNT(*)").From(dao.opts.Table)
@@ -192,7 +220,7 @@ func (dao *DAO[T]) Count(ctx context.Context, where map[string]interface{}) (tot
 }
 
 func (dao *DAO[T]) List(ctx context.Context, q query.Queryer) (list []*T, err error) {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.list", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.list", dao.opts.Table))
 	defer span.End()
 
 	builder := psql.Select("*").From(dao.opts.Table)
@@ -219,7 +247,7 @@ func (dao *DAO[T]) List(ctx context.Context, q query.Queryer) (list []*T, err er
 }
 
 func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.insert", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.insert", dao.opts.Table))
 	defer span.End()
 
 	values := make([]interface{}, 0)
@@ -241,14 +269,14 @@ func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 	if dao.opts.CachePropagate && err == nil {
 		id := reflect.ValueOf(*entity).FieldByName("ID")
 		if id.IsValid() {
-			go dao.propagateEvent(id.String(), entity)
+			go dao.propagateEvent(ctx, id.String(), entity)
 		}
 	}
 	return errs.ConvertError(err)
 }
 
 func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.batch_insert", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.batch_insert", dao.opts.Table))
 	defer span.End()
 
 	if len(entities) == 0 {
@@ -305,7 +333,7 @@ func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interf
 }
 
 func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.update", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.update", dao.opts.Table))
 	defer span.End()
 
 	var id string
@@ -329,7 +357,7 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 	dao.debugSQL(statement, args)
 	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
 	if dao.opts.CachePropagate && err == nil {
-		go dao.propagateEvent(id, entity)
+		go dao.propagateEvent(ctx, id, entity)
 	}
 	return errs.ConvertError(err)
 }
@@ -373,22 +401,14 @@ func (dao *DAO[T]) Upsert(ctx context.Context, fields []string, entity *T) error
 	if dao.opts.CachePropagate && err == nil {
 		id := reflect.ValueOf(*entity).FieldByName("ID")
 		if id.IsValid() {
-			go dao.propagateEvent(id.String(), entity)
+			go dao.propagateEvent(ctx, id.String(), entity)
 		}
 	}
 	return errs.ConvertError(err)
 }
 
-func (dao *DAO[T]) propagateEvent(id string, entity *T) {
-	data := &eventbus.CrudData{
-		ID:        id,
-		CacheName: dao.opts.CacheName,
-		Entity:    dao.opts.EntityName,
-		Data:      utils.Must(json.Marshal(entity)),
-	}
-	wid := reflect.ValueOf(*entity).FieldByName("WorkspaceId")
-	if wid.IsValid() {
-		data.WID = wid.String()
-	}
-	_ = dao.bus.ClusteringBroadcast(eventbus.EventCRUD, data)
+func (dao *DAO[T]) propagateEvent(ctx context.Context, id string, entity *T) {
+	ctx, span := dao.trace(ctx, fmt.Sprintf("%s.crud.broadcast", dao.opts.Table))
+	defer span.End()
+	dao.opts.PropagateHandler(ctx, &dao.opts, id, entity)
 }

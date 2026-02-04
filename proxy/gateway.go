@@ -18,30 +18,28 @@ import (
 	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
-	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/contextx"
+	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/loglimiter"
-	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/queue/redis"
 	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
-	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/store"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/plugins"
-	"github.com/webhookx-io/webhookx/proxy/middlewares"
 	"github.com/webhookx-io/webhookx/proxy/router"
-	"github.com/webhookx-io/webhookx/service"
+	"github.com/webhookx-io/webhookx/services"
+	"github.com/webhookx-io/webhookx/services/schedule"
 	"github.com/webhookx-io/webhookx/utils"
 	"go.opentelemetry.io/otel/attribute"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
@@ -64,22 +62,18 @@ type Gateway struct {
 	log *zap.SugaredLogger
 	s   *http.Server
 
-	router        atomic.Value
+	router        atomic.Pointer[router.Router]
 	routerVersion string
 
 	db *db.DB
 
 	dispatcher *dispatcher.Dispatcher
 
-	queue   queue.Queue
-	metrics *metrics.Metrics
-	tracer  *tracing.Tracer
-	bus     eventbus.Bus
+	queue queue.Queue
 
-	limiter     *loglimiter.Limiter
-	srv         *service.Service
-	rateLimiter ratelimiter.RateLimiter
-	scheduler   schedule.Scheduler
+	limiter *loglimiter.Limiter
+
+	services *services.Services
 }
 
 type Options struct {
@@ -87,12 +81,6 @@ type Options struct {
 	Middlewares []mux.MiddlewareFunc
 	DB          *db.DB
 	Dispatcher  *dispatcher.Dispatcher
-	Metrics     *metrics.Metrics
-	Tracer      *tracing.Tracer
-	EventBus    eventbus.Bus
-	Srv         *service.Service
-	RateLimiter ratelimiter.RateLimiter
-	Scheduler   schedule.Scheduler
 }
 
 func init() {
@@ -104,7 +92,7 @@ func init() {
 	}))
 }
 
-func NewGateway(opts Options) *Gateway {
+func NewGateway(opts Options, services *services.Services) *Gateway {
 	var q queue.Queue
 	switch opts.Cfg.Queue.Type {
 	case "redis":
@@ -120,18 +108,13 @@ func NewGateway(opts Options) *Gateway {
 	}
 
 	gw := &Gateway{
-		cfg:         opts.Cfg,
-		log:         zap.S().Named("proxy"),
-		db:          opts.DB,
-		dispatcher:  opts.Dispatcher,
-		queue:       q,
-		metrics:     opts.Metrics,
-		tracer:      opts.Tracer,
-		bus:         opts.EventBus,
-		limiter:     loglimiter.NewLimiter(time.Second),
-		srv:         opts.Srv,
-		rateLimiter: opts.RateLimiter,
-		scheduler:   opts.Scheduler,
+		cfg:        opts.Cfg,
+		log:        zap.S().Named("proxy"),
+		db:         opts.DB,
+		dispatcher: opts.Dispatcher,
+		queue:      q,
+		limiter:    loglimiter.NewLimiter(time.Second),
+		services:   services,
 	}
 
 	gw.router.Store(router.NewRouter(nil))
@@ -147,7 +130,8 @@ func NewGateway(opts Options) *Gateway {
 	for _, m := range opts.Middlewares {
 		r.Use(m)
 	}
-	r.Use(middlewares.PanicRecovery)
+
+	r.Use(middlewares.NewRecovery(customizeErrorResponse).Handle)
 	r.PathPrefix("/").HandlerFunc(gw.Handle)
 
 	gw.s = &http.Server{
@@ -161,12 +145,27 @@ func NewGateway(opts Options) *Gateway {
 	return gw
 }
 
-func (gw *Gateway) buildRouter(version string) {
-	gw.log.Debugw("building router", "version", version)
+func customizeErrorResponse(err error, w http.ResponseWriter) bool {
+	if errors.Is(err, dao.ErrConstraintViolation) {
+		response.JSON(w, 400, types.ErrorResponse{Message: err.Error()})
+		return true
+	}
+	return false
+}
 
-	sources, err := gw.db.Sources.List(context.TODO(), &query.SourceQuery{})
+func (g *Gateway) Name() string {
+	return "proxy"
+}
+
+func (g *Gateway) buildRouter(version string) {
+	ctx, span := tracing.Start(context.Background(), "build_router")
+	defer span.End()
+
+	g.log.Debugw("building router", "version", version)
+
+	sources, err := g.db.Sources.List(ctx, &query.SourceQuery{})
 	if err != nil {
-		gw.log.Warnf("failed to build router: %v", err)
+		g.log.Warnf("failed to build router: %v", err)
 		return
 	}
 
@@ -179,137 +178,157 @@ func (gw *Gateway) buildRouter(version string) {
 		}
 		routes = append(routes, &route)
 	}
-	gw.router.Store(router.NewRouter(routes))
-	gw.routerVersion = version
+	g.router.Store(router.NewRouter(routes))
+	g.routerVersion = version
 }
 
-func (gw *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
-	ok := gw.handle(w, r)
-	if !ok {
+func (g *Gateway) resolveSource(ctx context.Context, r *http.Request) *entities.Source {
+	_, span := tracing.Start(ctx, "resolve_source")
+	defer span.End()
+	source, _ := g.router.Load().Execute(r).(*entities.Source)
+	if source != nil {
+		span.SetAttributes(attribute.String("source.id", source.ID))
+	}
+	return source
+}
+
+func (g *Gateway) checkRateLimit(ctx context.Context, source *entities.Source) (ratelimiter.Result, error) {
+	d := time.Duration(source.RateLimit.Period) * time.Second
+	res, err := g.services.RateLimiter.Allow(ctx, source.ID, source.RateLimit.Quota, d)
+	return res, err
+}
+
+func (g *Gateway) Handle(w http.ResponseWriter, r *http.Request) {
+	res, err := g.handleRequest(w, r)
+	if err != nil {
+		switch e := err.(type) {
+		case *HttpError:
+			response.JSON(w, e.Code, types.ErrorResponse{
+				Message: e.Message,
+				Error:   e.Err,
+			})
+		case *http.MaxBytesError:
+			code := http.StatusRequestEntityTooLarge
+			http.Error(w, http.StatusText(code), code)
+		default:
+			g.log.Errorf("failed to handle request: %v", err)
+			response.JSON(w, http.StatusInternalServerError, types.ErrorResponse{Message: "internal error"})
+		}
+
 		failures.Add(1)
 	}
+	if res != nil {
+		response.Response(w, res.Headers, res.Code, res.Body)
+	}
 }
 
-func (gw *Gateway) handle(w http.ResponseWriter, r *http.Request) bool {
-	router := gw.router.Load().(*router.Router)
-	source, _ := router.Execute(r).(*entities.Source)
+func (g *Gateway) handleRequest(w http.ResponseWriter, r *http.Request) (*Response, error) {
+	ctx := context.WithoutCancel(r.Context())
+
+	source := g.resolveSource(ctx, r)
 	if source == nil {
-		response.JSON(w, 404, types.ErrorResponse{Message: "not found"})
-		return false
+		return nil, &HttpError{
+			Code:    404,
+			Message: "not found",
+		}
 	}
 
-	ctx := contextx.WithContext(context.WithoutCancel(r.Context()), &contextx.Context{
-		WorkspaceID: source.WorkspaceId,
-	})
-
-	if gw.tracer != nil {
-		tracingCtx, span := gw.tracer.Start(ctx, "proxy.handle", trace.WithSpanKind(trace.SpanKindServer))
-		span.SetAttributes(attribute.String("source.id", source.ID))
-		span.SetAttributes(attribute.String("source.name", utils.PointerValue(source.Name)))
-		span.SetAttributes(attribute.String("source.workspace_id", source.WorkspaceId))
-		span.SetAttributes(attribute.Bool("source.async", source.Async))
-		span.SetAttributes(semconv.HTTPRoute(source.Config.HTTP.Path))
-		defer span.End()
-		ctx = tracingCtx
-	}
+	ctx = contextx.WithContext(ctx, &contextx.Context{WorkspaceID: source.WorkspaceId})
 
 	if source.RateLimit != nil {
-		d := time.Duration(source.RateLimit.Period) * time.Second
-		res, err := gw.rateLimiter.Allow(ctx, source.ID, source.RateLimit.Quota, d)
+		res, err := g.checkRateLimit(ctx, source)
 		if err != nil {
-			gw.log.Errorf("failed to execute rate limiting: %v", err)
-			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
-			return false
+			return nil, fmt.Errorf("failed to rate limiting: %w", err)
 		}
 		w.Header().Set("X-RateLimit-Limit", strconv.Itoa(source.RateLimit.Quota))
 		w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(res.Remaining))
 		w.Header().Set("X-RateLimit-Reset", strconv.Itoa(int(math.Ceil(res.Reset.Seconds()))))
 		if !res.Allowed {
 			w.Header().Set("Retry-After", strconv.Itoa(int(math.Ceil(res.RetryAfter.Seconds()))))
-			gw.log.Debugw("rate limit exceeded", "source", source.ID)
-			response.JSON(w, 429, types.ErrorResponse{Message: "rate limit exceeded"})
-			return false
+			return nil, &HttpError{
+				Code:    429,
+				Message: "rate limit exceeded",
+			}
 		}
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, gw.cfg.MaxRequestBodySize)
+	r.Body = http.MaxBytesReader(w, r.Body, g.cfg.MaxRequestBodySize)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		if _, ok := err.(*http.MaxBytesError); ok {
-			code := http.StatusRequestEntityTooLarge
-			http.Error(w, http.StatusText(code), code)
-			return false
-		}
+		return nil, err
 	}
 
 	iterator := plugins.LoadIterator()
+	c := plugin.NewContext(ctx, r, w)
+	c.SetRequestBody(body)
 	for p := range iterator.Iterate(ctx, plugins.PhaseInbound, source.ID) {
-		result, err := p.ExecuteInbound(context.TODO(), &plugin.Inbound{
-			Request:  r,
-			Response: w,
-			RawBody:  body,
-		})
+		err := p.ExecuteInbound(c)
 		if err != nil {
-			gw.log.Errorf("failed to execute %s plugin: %v", p.Name(), err)
-			response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
-			return false
+			return nil, fmt.Errorf("failed to execute %s plugin: %v", p.Name(), err)
 		}
 
-		if result.Terminated {
-			return false
+		if c.IsTerminated() {
+			return nil, nil
 		}
-		body = result.Payload
 	}
 
 	var event entities.Event
-	if err := json.Unmarshal(body, &event); err != nil {
-		response.JSON(w, 400, types.ErrorResponse{Message: err.Error()})
-		return false
+	if err := json.Unmarshal(c.GetRequestBody(), &event); err != nil {
+		return nil, &HttpError{
+			Code:    400,
+			Message: err.Error(),
+		}
 	}
 
 	event.ID = utils.KSUID()
 	event.IngestedAt = types.Time{Time: time.Now()}
 	event.WorkspaceId = source.WorkspaceId
 	if err := event.Validate(); err != nil {
-		response.JSON(w, 400, types.ErrorResponse{
+		return nil, &HttpError{
+			Code:    400,
 			Message: "Request Validation",
-			Error:   err,
-		})
-		return false
+			Err:     err,
+		}
 	}
 
-	err = gw.ingestEvent(ctx, source.Async, &event)
+	err = g.ingestEvent(ctx, source.Async, &event)
 	if err != nil {
-		gw.log.Errorf("failed to ingest event: %v", err)
-		response.JSON(w, 500, types.ErrorResponse{Message: "internal error"})
-		return false
+		return nil, fmt.Errorf("failed to ingest event: %w", err)
 	}
-	if gw.metrics.Enabled {
-		gw.metrics.EventTotalCounter.Add(1)
+	if g.services.Metrics.Enabled {
+		g.services.Metrics.EventTotalCounter.Add(1)
 	}
 
-	headers := Headers{}
-	headers["Content-Type"] = gw.cfg.Response.ContentType
+	res := Response{
+		Headers: map[string]string{
+			"Content-Type": g.cfg.Response.ContentType,
+		},
+		Code: int(g.cfg.Response.Code),
+		Body: []byte(g.cfg.Response.Body),
+	}
 
 	if event.UniqueId == nil {
 		// returns X-Webhookx-Event-Id header only if unique_id is not present
-		headers[constants.HeaderEventId] = event.ID
+		res.Headers[constants.HeaderEventId] = event.ID
 	}
 
 	if source.Config.HTTP.Response != nil {
-		headers["Content-Type"] = source.Config.HTTP.Response.ContentType
-		exit(w, source.Config.HTTP.Response.Code, source.Config.HTTP.Response.Body, headers)
-		return true
+		res.Headers["Content-Type"] = source.Config.HTTP.Response.ContentType
+		res.Code = source.Config.HTTP.Response.Code
+		res.Body = []byte(source.Config.HTTP.Response.Body)
 	}
 
-	// default response
-	exit(w, int(gw.cfg.Response.Code), gw.cfg.Response.Body, headers)
-	return true
+	return &res, nil
 }
 
-func (gw *Gateway) ingestEvent(ctx context.Context, async bool, event *entities.Event) error {
+func (g *Gateway) ingestEvent(ctx context.Context, async bool, event *entities.Event) error {
+	ctx, span := tracing.Start(ctx, "event.ingest")
+	span.SetAttributes(attribute.String("event_id", event.ID))
+	span.SetAttributes(attribute.Bool("async", async))
+	defer span.End()
+
 	if async {
-		if gw.queue == nil {
+		if g.queue == nil {
 			return ErrQueueDisabled
 		}
 
@@ -323,137 +342,118 @@ func (gw *Gateway) ingestEvent(ctx context.Context, async bool, event *entities.
 			Time:        time.Now(),
 			WorkspaceID: event.WorkspaceId,
 		}
-		return gw.queue.Enqueue(ctx, &msg)
+		return g.queue.Enqueue(ctx, &msg)
 	}
 
-	return gw.dispatch(ctx, []*entities.Event{event})
+	return g.dispatch(ctx, []*entities.Event{event})
 }
 
 // Start starts an HTTP server
-func (gw *Gateway) Start() {
-	gw.ctx, gw.cancel = context.WithCancel(context.Background())
+func (g *Gateway) Start() error {
+	g.ctx, g.cancel = context.WithCancel(context.Background())
 
 	// warm-up
-	gw.dispatcher.WarmUp()
+	g.dispatcher.WarmUp()
 
-	gw.buildRouter("init")
+	g.buildRouter("init")
 
-	if gw.queue != nil {
-		gw.queue.StartListen(gw.ctx, gw.HandleMessages)
+	if g.queue != nil {
+		g.queue.StartListen(g.ctx, g.HandleMessages)
 	}
 
-	gw.scheduler.AddTask(&schedule.Task{
+	g.services.Scheduler.AddTask(&schedule.Task{
 		Name:     "gateway.router_rebuild",
 		Interval: time.Second,
 		Do: func() {
 			version := store.GetDefault("router:version", "init").(string)
-			if gw.routerVersion == version {
+			if g.routerVersion == version {
 				return
 			}
-			gw.buildRouter(version)
+			g.buildRouter(version)
 		},
 	})
 
-	if gw.metrics.Enabled && gw.queue != nil {
-		gw.scheduler.AddTask(&schedule.Task{
+	if g.services.Metrics.Enabled && g.queue != nil {
+		g.services.Scheduler.AddTask(&schedule.Task{
 			Name:     "gateway.report_metrics",
-			Interval: gw.metrics.Interval,
+			Interval: g.services.Metrics.Interval,
 			Do: func() {
-				stats := stats.Stats(gw.queue.Stats())
+				stats := stats.Stats(g.queue.Stats())
 				size := stats.Int64("eventqueue.size")
-				gw.metrics.EventPendingGauge.Set(float64(size))
+				g.services.Metrics.EventPendingGauge.Set(float64(size))
 			},
 		})
 	}
 
-	gw.bus.Subscribe("source.crud", func(data interface{}) {
+	g.services.EventBus.Subscribe("source.crud", func(data interface{}) {
 		store.Set("router:version", utils.UUID())
-	})
-	gw.bus.Subscribe("plugin.crud", func(data interface{}) {
-		plugin := entities.Plugin{}
-		if err := json.Unmarshal(data.(*eventbus.CrudData).Data, &plugin); err != nil {
-			zap.S().Errorf("failed to unmarshal event data: %s", err)
-			return
-		}
 	})
 
 	go func() {
-		tls := gw.cfg.TLS
+		tls := g.cfg.TLS
 		if tls.Enabled() {
-			if err := gw.s.ListenAndServeTLS(tls.Cert, tls.Key); err != nil && err != http.ErrServerClosed {
+			if err := g.s.ListenAndServeTLS(tls.Cert, tls.Key); err != nil && err != http.ErrServerClosed {
 				zap.S().Errorf("Failed to start gateway HTTPS server: %v", err)
 				os.Exit(1)
 			}
 		} else {
-			if err := gw.s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			if err := g.s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				zap.S().Errorf("Failed to start gateway HTTP server: %v", err)
 				os.Exit(1)
 			}
 		}
 	}()
 
-	gw.log.Infow(fmt.Sprintf(`listening on address "%s"`, gw.cfg.Listen),
-		"tls", gw.cfg.TLS.Enabled(),
+	g.log.Infow(fmt.Sprintf(`listening on address "%s"`, g.cfg.Listen),
+		"tls", g.cfg.TLS.Enabled(),
 	)
-
-}
-
-// Stop stops the HTTP server
-func (gw *Gateway) Stop() error {
-	gw.cancel()
-
-	if err := gw.s.Shutdown(context.TODO()); err != nil {
-		// Error from closing listeners, or context timeout:
-		return err
-	}
-
-	gw.log.Info("proxy stopped")
 
 	return nil
 }
 
-func (gw *Gateway) HandleMessages(ctx context.Context, messages []*queue.Message) error {
+// Stop stops the HTTP server
+func (g *Gateway) Stop(ctx context.Context) error {
+	g.log.Infof("exiting")
+	g.cancel()
+
+	if err := g.s.Shutdown(ctx); err != nil {
+		return err
+	}
+
+	g.log.Info("exit")
+	return nil
+}
+
+func (g *Gateway) HandleMessages(ctx context.Context, messages []*queue.Message) error {
+	ctx, span := tracing.Start(ctx, "queue.messages.process")
+	defer span.End()
+
 	events := make([]*entities.Event, 0, len(messages))
 	for _, message := range messages {
 		var event entities.Event
 		err := json.Unmarshal(message.Value, &event)
 		if err != nil {
-			gw.log.Warnf("faield to unmarshal message: %v", err)
+			g.log.Warnf("faield to unmarshal message: %v", err)
 			continue
 		}
 		event.WorkspaceId = message.WorkspaceID
 		events = append(events, &event)
+		sc := trace.SpanContextFromContext(message.GetTraceContext(ctx))
+		span.AddLink(trace.Link{SpanContext: sc})
 	}
 
-	err := gw.dispatch(ctx, events)
+	err := g.dispatch(ctx, events)
 	if err != nil {
-		gw.log.Warnf("failed to dispatch event in batch: %v", err)
+		g.log.Warnf("failed to dispatch event in batch: %v", err)
 	}
 	return err
 }
 
-func (gw *Gateway) dispatch(ctx context.Context, events []*entities.Event) error {
-	attempts, err := gw.dispatcher.Dispatch(ctx, events)
+func (g *Gateway) dispatch(ctx context.Context, events []*entities.Event) error {
+	attempts, err := g.dispatcher.Dispatch(ctx, events)
 	if err != nil {
 		return err
 	}
-	gw.srv.ScheduleAttempts(ctx, attempts)
+	g.services.Task.ScheduleAttempts(ctx, attempts)
 	return nil
-}
-
-type Headers map[string]string
-
-func exit(w http.ResponseWriter, status int, body string, headers Headers) {
-	for _, header := range constants.DefaultResponseHeaders {
-		w.Header().Set(header.Name, header.Value)
-	}
-
-	if len(headers) > 0 {
-		for header, value := range headers {
-			w.Header().Set(header, value)
-		}
-	}
-
-	w.WriteHeader(status)
-	_, _ = w.Write([]byte(body))
 }

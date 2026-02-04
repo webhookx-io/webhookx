@@ -35,7 +35,7 @@ var _ = Describe("expired", Ordered, func() {
 		BeforeAll(func() {
 			db := helper.InitDB(true, nil)
 			adminClient = helper.AdminClient()
-			app = utils.Must(helper.Start(map[string]string{}))
+			app = utils.Must(helper.Start(nil))
 
 			// update license to be expired
 			license.GetLicenser().License().ExpiredAt = time.Time{}

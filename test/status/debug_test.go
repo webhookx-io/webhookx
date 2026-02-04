@@ -18,7 +18,7 @@ var _ = Describe("/debug", Ordered, func() {
 
 	BeforeAll(func() {
 		helper.InitDB(true, nil)
-		app = utils.Must(helper.Start(map[string]string{}))
+		app = utils.Must(helper.Start(nil))
 		statusClient = helper.StatusClient()
 
 		assert.Eventually(GinkgoT(), func() bool {

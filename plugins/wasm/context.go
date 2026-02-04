@@ -8,11 +8,11 @@ import (
 
 type key struct{}
 
-func withContext(ctx context.Context, val *plugin.Outbound) context.Context {
+func withContext(ctx context.Context, val *plugin.Context) context.Context {
 	return context.WithValue(ctx, key{}, val)
 }
 
-func fromContext(ctx context.Context) (*plugin.Outbound, bool) {
-	value, ok := ctx.Value(key{}).(*plugin.Outbound)
+func fromContext(ctx context.Context) (*plugin.Context, bool) {
+	value, ok := ctx.Value(key{}).(*plugin.Context)
 	return value, ok
 }

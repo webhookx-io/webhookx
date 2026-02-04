@@ -36,7 +36,7 @@ var _ = Describe("rate-limit", Ordered, func() {
 			helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{}))
+			app = utils.Must(helper.Start(nil))
 		})
 
 		AfterAll(func() {

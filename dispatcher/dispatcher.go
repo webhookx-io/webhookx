@@ -10,8 +10,8 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/services/eventbus"
 	"github.com/webhookx-io/webhookx/utils"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -27,6 +27,7 @@ type Options struct {
 	DB       *db.DB
 	Metrics  *metrics.Metrics
 	Registry *Registry
+	EventBus eventbus.EventBus
 }
 
 func NewDispatcher(opts Options) *Dispatcher {
@@ -36,11 +37,15 @@ func NewDispatcher(opts Options) *Dispatcher {
 		opts:     opts,
 		registry: opts.Registry,
 	}
+	opts.EventBus.Subscribe("endpoint.crud", func(v interface{}) {
+		data := v.(*eventbus.CrudData)
+		opts.Registry.Unregister(data.WID)
+	})
 	return dispatcher
 }
 
 func (d *Dispatcher) Dispatch(ctx context.Context, events []*entities.Event) ([]*entities.Attempt, error) {
-	ctx, span := tracing.Start(ctx, "dispatcher.dispatch", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := tracing.Start(ctx, "event.fanout")
 	defer span.End()
 
 	if len(events) == 0 {
@@ -147,8 +152,8 @@ func (d *Dispatcher) WarmUp() {
 	t := time.Now()
 	err := d.registry.Warmup()
 	if err != nil {
-		d.log.Warnf("failed to warm-up: %v", err)
+		d.log.Named("core").Warnf("failed to warm-up: %v", err)
 		return
 	}
-	d.log.Debugf("warm-up finished in %dms", time.Since(t).Milliseconds())
+	d.log.Named("core").Debugf("warm-up finished in %dms", time.Since(t).Milliseconds())
 }

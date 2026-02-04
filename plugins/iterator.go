@@ -13,6 +13,8 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/secret"
 	"github.com/webhookx-io/webhookx/pkg/secret/reference"
+	"github.com/webhookx-io/webhookx/pkg/tracing"
+	"github.com/webhookx-io/webhookx/pkg/tracing/instrumentations"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -84,6 +86,9 @@ func (it *Iterator) LoadPlugins(plugins []*entities.Plugin) error {
 			}
 		}
 
+		if tracing.Enabled("plugin") {
+			p = instrumentations.NewInstrumentedPlugin(p)
+		}
 		if plugin.SourceId != nil {
 			index := it.index(PhaseInbound, *plugin.SourceId)
 			indexes[index] = append(indexes[index], p)

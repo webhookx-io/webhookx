@@ -1,6 +1,7 @@
 package pool
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -9,76 +10,47 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestError(t *testing.T) {
-	pool := NewPool(0, 1)
+var NoopHandler = HandlerFunc[any](func(_ context.Context, _ any) {})
 
-	err := pool.SubmitFn(time.Second, nil)
-	assert.Equal(t, "fn is nil", err.Error())
-
-	err = pool.Submit(time.Second, nil)
-	assert.Equal(t, "task is nil", err.Error())
-
-	// panic should be recovered
-	err = pool.SubmitFn(time.Second, func() {
-		panic("foo")
+func Test(t *testing.T) {
+	t.Run("should return ErrPoolTernimated", func(t *testing.T) {
+		pool := New(1, 1, NoopHandler)
+		pool.Shutdown()
+		err := pool.Submit(context.TODO(), time.Second, nil)
+		assert.Equal(t, ErrPoolTernimated, err)
 	})
-	assert.NoError(t, err)
 
-	pool.Shutdown()
-	pool.Shutdown() // no panic
-}
+	t.Run("should return ErrTimeout", func(t *testing.T) {
+		pool := New(1, 1, HandlerFunc[any](func(_ context.Context, _ any) { time.Sleep(time.Second * 1) }))
 
-func TestSubmit(t *testing.T) {
-	pool := NewPool(5, 1)
-	wait := sync.WaitGroup{}
-	for i := 0; i < 5; i++ {
-		wait.Add(1)
-		err := pool.SubmitFn(time.Second, func() {
-			wait.Done()
-		})
+		err := pool.Submit(context.TODO(), time.Millisecond*100, nil)
 		assert.NoError(t, err)
-	}
-	wait.Wait()
-}
 
-func TestSubmitWithTimeout(t *testing.T) {
-	pool := NewPool(1, 1)
-	err := pool.SubmitFn(time.Second, func() {
-		time.Sleep(time.Second * 5)
+		err = pool.Submit(context.TODO(), time.Millisecond*100, nil)
+		assert.NoError(t, err)
+
+		err = pool.Submit(context.TODO(), time.Millisecond*100, nil)
+		assert.Equal(t, ErrTimeout, err)
 	})
-	assert.NoError(t, err)
-	err = pool.SubmitFn(time.Second, func() {
-		time.Sleep(time.Second * 5)
-	})
-	assert.NoError(t, err)
-	err = pool.SubmitFn(time.Second, func() {})
-	assert.Equal(t, ErrTimeout, err)
-}
 
-func TestShutdown(t *testing.T) {
-	pool := NewPool(1, 1)
-	pool.Shutdown()
-	err := pool.SubmitFn(time.Second, func() {})
-	assert.Equal(t, ErrPoolTernimated, err)
-}
-
-func TestGracefulShutdown(t *testing.T) {
-	var counter atomic.Int64
-
-	pool := NewPool(100, 100)
-
-	wait := sync.WaitGroup{}
-	wait.Add(100)
-	for i := 0; i < 100; i++ {
-		err := pool.SubmitFn(time.Second, func() {
+	t.Run("running tasks should be executed after shutdown", func(t *testing.T) {
+		var n atomic.Int64
+		wait := sync.WaitGroup{}
+		wait.Add(100)
+		pool := New(100, 100, HandlerFunc[any](func(ctx context.Context, v any) {
 			wait.Done()
 			time.Sleep(time.Second)
-			counter.Add(1)
-		})
-		assert.NoError(t, err)
-	}
-	wait.Wait() // wait for all tasks to be scheduled
+			n.Add(1)
+		}))
 
-	pool.Shutdown()
-	assert.EqualValues(t, 100, counter.Load()) // all submitted and scheduled tasks should be executed successfully
+		for i := 1; i <= 100; i++ {
+			err := pool.Submit(context.TODO(), time.Second, i)
+			assert.NoError(t, err)
+		}
+
+		wait.Wait() // wait for all tasks to be scheduled
+
+		pool.Shutdown()
+		assert.EqualValues(t, 100, n.Load()) // all the scheduled tasks should be executed successfully
+	})
 }

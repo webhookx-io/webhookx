@@ -1,6 +1,76 @@
 package tracing
 
-import "fmt"
+import (
+	"fmt"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/sdk/trace"
+)
+
+type TraceAsserter struct {
+	spans []trace.ReadOnlySpan
+}
+
+func NewTraceAsserter(spans []trace.ReadOnlySpan) *TraceAsserter {
+	return &TraceAsserter{
+		spans: spans,
+	}
+}
+
+func (ta *TraceAsserter) FilterTraceID(traceID string) {
+	spans := make([]trace.ReadOnlySpan, 0)
+	for _, span := range ta.spans {
+		if traceID == span.SpanContext().TraceID().String() {
+			spans = append(spans, span)
+		}
+	}
+	ta.spans = spans
+}
+
+func (ta *TraceAsserter) FindSpan(name string) trace.ReadOnlySpan {
+	for _, span := range ta.spans {
+		if span.Name() == name {
+			return span
+		}
+	}
+	return nil
+}
+
+func (ta *TraceAsserter) AssertSpans(spans map[string]map[string]string) error {
+	for name, attrs := range spans {
+		err := ta.AssertSpan(name, attrs)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (ta *TraceAsserter) AssertSpan(name string, attributes map[string]string) error {
+	for _, span := range ta.spans {
+		if span.Name() == name {
+			return ta.AssertAttributes(span.Attributes(), attributes)
+		}
+	}
+	return fmt.Errorf("span '%s' not found", name)
+}
+
+func (ta *TraceAsserter) AssertAttributes(attributes []attribute.KeyValue, expected map[string]string) error {
+	attrs := make(map[string]string)
+	for _, a := range attributes {
+		attrs[string(a.Key)] = a.Value.Emit()
+	}
+	for key, value := range expected {
+		actual, exist := attrs[key]
+		if !exist {
+			return fmt.Errorf("span attribute '%s' not found", key)
+		}
+		if actual != value && value != "*" {
+			return fmt.Errorf("span attribute '%s' expecte to '%s', but got '%s'", key, value, actual)
+		}
+	}
+	return nil
+}
 
 type ExportedTrace struct {
 	ResourceSpans []struct {

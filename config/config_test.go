@@ -237,7 +237,6 @@ func TestTracingConfig(t *testing.T) {
 		{
 			desc: "sanity",
 			cfg: modules.TracingConfig{
-				Enabled:      true,
 				SamplingRate: 0,
 				Opentelemetry: modules.OpentelemetryTracing{
 					Protocol: "http/protobuf",
@@ -249,7 +248,6 @@ func TestTracingConfig(t *testing.T) {
 		{
 			desc: "invalid sampling rate",
 			cfg: modules.TracingConfig{
-				Enabled:      true,
 				SamplingRate: 1.1,
 				Opentelemetry: modules.OpentelemetryTracing{
 					Protocol: "http/protobuf",
@@ -266,6 +264,17 @@ func TestTracingConfig(t *testing.T) {
 				},
 			},
 			expectedValidateErr: errors.New("invalid protocol: unknown"),
+		},
+		{
+			desc: "invalid instrumentations",
+			cfg: modules.TracingConfig{
+				Instrumentations: []string{"unknown"},
+				Opentelemetry: modules.OpentelemetryTracing{
+					Protocol: "http/protobuf",
+					Endpoint: "http://127.0.0.1:4318/v1/traces",
+				},
+			},
+			expectedValidateErr: errors.New("invalid instrumentations: unknown"),
 		},
 	}
 	for _, test := range tests {

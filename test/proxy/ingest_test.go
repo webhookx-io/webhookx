@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/app"
+	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
@@ -67,11 +68,14 @@ var _ = Describe("ingest", Ordered, func() {
 				Post("/")
 			assert.NoError(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
-			assert.NotEmpty(GinkgoT(), resp.Header().Get("X-Webhookx-Event-Id"))
+			assert.NotEmpty(GinkgoT(), resp.Header().Get(constants.HeaderEventId))
+			eventId := resp.Header().Get(constants.HeaderEventId)
 
 			var attempt *entities.Attempt
 			assert.Eventually(GinkgoT(), func() bool {
-				list, err := db.Attempts.List(context.TODO(), &query.AttemptQuery{})
+				q := query.AttemptQuery{}
+				q.EventId = &eventId
+				list, err := db.Attempts.List(context.TODO(), &q)
 				if err != nil || len(list) == 0 {
 					return false
 				}

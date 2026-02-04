@@ -80,10 +80,10 @@ curl http://localhost:9601
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json; charset=utf-8
-Server: WebhookX/0.9.0
+Server: WebhookX/{version}
 
 {
-    "version": "0.9.0",
+    "version": "{version}",
     "message": "Welcome to WebhookX",
   	"configuration": {}
 }
@@ -204,7 +204,7 @@ http://localhost:9601/workspaces/default/attempts/338lax8Xe774EhimzBukip37Zne
     "url": "https://httpbin.org/anything",
     "headers": {
       "Content-Type": "application/json; charset=utf-8",
-      "User-Agent": "WebhookX/0.9.0",
+      "User-Agent": "WebhookX/{version}",
       "Webhookx-Delivery-Id": "338lax8Xe774EhimzBukip37Zne",
       "Webhookx-Event-Id": "338las8UmbKJZl3aikM44ZWh71P",
       "Webhookx-Signature": "v1=37e25342d983c26d783eafe50fe170eaac731383439568e3354315c2e84c5173",
@@ -224,7 +224,7 @@ http://localhost:9601/workspaces/default/attempts/338lax8Xe774EhimzBukip37Zne
       "Date": "Wed, 24 Sep 2025 09:37:29 GMT",
       "Server": "gunicorn/19.9.0"
     },
-    "body": "{\n  \"args\": {}, \n  \"data\": \"{\\n        \\\"key\\\": \\\"value\\\"\\n    }\", \n  \"files\": {}, \n  \"form\": {}, \n  \"headers\": {\n    \"Accept-Encoding\": \"gzip\", \n    \"Content-Length\": \"30\", \n    \"Content-Type\": \"application/json; charset=utf-8\", \n    \"Host\": \"httpbin.org\", \n    \"User-Agent\": \"WebhookX/0.9.0\", \n    \"Webhookx-Delivery-Id\": \"338lax8Xe774EhimzBukip37Zne\", \n    \"Webhookx-Event-Id\": \"338las8UmbKJZl3aikM44ZWh71P\", \n    \"Webhookx-Signature\": \"v1=37e25342d983c26d783eafe50fe170eaac731383439568e3354315c2e84c5173\", \n    \"Webhookx-Timestamp\": \"1758706646\", \n    \"X-Amzn-Trace-Id\": \"Root=1-68d3bbd7-195b190632c27c547358dbee\", \n    \"X-Apikey\": \"secret\"\n  }, \n  \"json\": {\n    \"key\": \"value\"\n  }, \n  \"method\": \"POST\", \n  \"origin\": \"0.0.0.0\", \n  \"url\": \"https://httpbin.org/anything\"\n}\n"
+    "body": "{\n  \"args\": {}, \n  \"data\": \"{\\n        \\\"key\\\": \\\"value\\\"\\n    }\", \n  \"files\": {}, \n  \"form\": {}, \n  \"headers\": {\n    \"Accept-Encoding\": \"gzip\", \n    \"Content-Length\": \"30\", \n    \"Content-Type\": \"application/json; charset=utf-8\", \n    \"Host\": \"httpbin.org\", \n    \"User-Agent\": \"WebhookX/{version}\", \n    \"Webhookx-Delivery-Id\": \"338lax8Xe774EhimzBukip37Zne\", \n    \"Webhookx-Event-Id\": \"338las8UmbKJZl3aikM44ZWh71P\", \n    \"Webhookx-Signature\": \"v1=37e25342d983c26d783eafe50fe170eaac731383439568e3354315c2e84c5173\", \n    \"Webhookx-Timestamp\": \"1758706646\", \n    \"X-Amzn-Trace-Id\": \"Root=1-68d3bbd7-195b190632c27c547358dbee\", \n    \"X-Apikey\": \"secret\"\n  }, \n  \"json\": {\n    \"key\": \"value\"\n  }, \n  \"method\": \"POST\", \n  \"origin\": \"0.0.0.0\", \n  \"url\": \"https://httpbin.org/anything\"\n}\n"
   },
   "created_at": 1758706646769,
   "updated_at": 1758706649223

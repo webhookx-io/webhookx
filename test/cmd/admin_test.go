@@ -60,7 +60,7 @@ var _ = Describe("admin", Ordered, func() {
 
 			BeforeAll(func() {
 				db = helper.InitDB(true, nil)
-				app = utils.Must(helper.Start(map[string]string{}))
+				app = utils.Must(helper.Start(nil))
 			})
 
 			AfterAll(func() {
@@ -234,7 +234,7 @@ var _ = Describe("admin", Ordered, func() {
 
 			BeforeAll(func() {
 				db = helper.InitDB(true, nil)
-				app = utils.Must(helper.Start(map[string]string{}))
+				app = utils.Must(helper.Start(nil))
 			})
 
 			AfterAll(func() {

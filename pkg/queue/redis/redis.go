@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -11,6 +12,8 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/loglimiter"
 	"github.com/webhookx-io/webhookx/pkg/queue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
@@ -36,49 +39,69 @@ func NewRedisQueue(opts Options, logger *zap.SugaredLogger) (queue.Queue, error)
 	q := &RedisQueue{
 		opts:    opts,
 		c:       opts.Client,
-		log:     logger.Named("queue-redis"),
+		log:     logger.Named("queue.redis"),
 		limiter: loglimiter.NewLimiter(time.Second),
 	}
 	return q, nil
 }
 
 func (q *RedisQueue) Enqueue(ctx context.Context, message *queue.Message) error {
-	ctx, span := tracing.Start(ctx, "redis.queue.enqueue", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := tracing.Start(ctx, "queue.enqueue")
 	defer span.End()
+
+	fields := map[string]interface{}{
+		"data":  message.Value,
+		"time":  message.Time.UnixMilli(),
+		"ws_id": message.WorkspaceID,
+	}
+
+	if trace.SpanContextFromContext(ctx).IsSampled() {
+		message.TraceContext = make(map[string]string)
+		otel.GetTextMapPropagator().Inject(ctx, propagation.MapCarrier(message.TraceContext))
+		for k, v := range message.TraceContext {
+			fields[k] = v
+		}
+	}
 
 	args := &redis.XAddArgs{
 		Stream: q.opts.StreamName,
 		ID:     "*",
-		Values: []interface{}{
-			"data", message.Value,
-			"time", message.Time.UnixMilli(),
-			"ws_id", message.WorkspaceID,
-		},
+		Values: fields,
 	}
 	return q.c.XAdd(ctx, args).Err()
 }
 
-func toMessage(values map[string]interface{}) *queue.Message {
+func toMessage(fields map[string]interface{}) *queue.Message {
 	message := &queue.Message{}
 
-	if data, ok := values["data"].(string); ok {
+	if data, ok := fields["data"].(string); ok {
 		message.Value = []byte(data)
+		delete(fields, "data")
 	}
 
-	if timestr, ok := values["time"].(string); ok {
+	if timestr, ok := fields["time"].(string); ok {
 		t, _ := strconv.ParseInt(timestr, 10, 64)
 		message.Time = time.UnixMilli(t)
+		delete(fields, "time")
 	}
 
-	if wsid, ok := values["ws_id"].(string); ok {
+	if wsid, ok := fields["ws_id"].(string); ok {
 		message.WorkspaceID = wsid
+		delete(fields, "ws_id")
+	}
+
+	if len(fields) > 0 {
+		message.TraceContext = make(map[string]string)
+		for k, v := range fields {
+			message.TraceContext[k] = fmt.Sprintf("%v", v)
+		}
 	}
 
 	return message
 }
 
 func (q *RedisQueue) dequeue(ctx context.Context) ([]redis.XMessage, error) {
-	ctx, span := tracing.Start(ctx, "redis.queue.dequeue", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := tracing.Start(ctx, "queue.dequeue")
 	defer span.End()
 
 	args := &redis.XReadGroupArgs{
@@ -103,7 +126,7 @@ func (q *RedisQueue) dequeue(ctx context.Context) ([]redis.XMessage, error) {
 }
 
 func (q *RedisQueue) delete(ctx context.Context, xmessages []redis.XMessage) error {
-	ctx, span := tracing.Start(ctx, "redis.queue.delete", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := tracing.Start(ctx, "queue.delete")
 	defer span.End()
 
 	ids := make([]string, 0, len(xmessages))
@@ -127,35 +150,44 @@ func (q *RedisQueue) StartListen(ctx context.Context, handler queue.HandlerFunc)
 }
 
 func (q *RedisQueue) listen(ctx context.Context, handler queue.HandlerFunc) {
+	consume := func() {
+		ctx, span := tracing.Start(context.Background(), "queue.consume",
+			trace.WithSpanKind(trace.SpanKindConsumer))
+		defer span.End()
+
+		xmessages, err := q.dequeue(ctx)
+		if err != nil && q.limiter.Allow(err.Error()) {
+			q.log.Warnf("failed to dequeue: %v", err)
+			time.Sleep(time.Second)
+			return
+		}
+		if len(xmessages) == 0 {
+			return
+		}
+
+		messages := make([]*queue.Message, len(xmessages))
+		for i, m := range xmessages {
+			messages[i] = toMessage(m.Values)
+		}
+
+		err = handler(ctx, messages)
+		if err != nil {
+			q.log.Warnf("failed to handle message: %v", err)
+			return
+		}
+
+		err = q.delete(ctx, xmessages)
+		if err != nil {
+			q.log.Warnf("failed to delete message: %v", err)
+		}
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			xmessages, err := q.dequeue(ctx)
-			if err != nil && q.limiter.Allow(err.Error()) {
-				q.log.Warnf("failed to dequeue: %v", err)
-				time.Sleep(time.Second)
-				continue
-			}
-			if len(xmessages) == 0 {
-				continue
-			}
-
-			messages := make([]*queue.Message, 0, len(xmessages))
-			for _, msg := range xmessages {
-				messages = append(messages, toMessage(msg.Values))
-			}
-
-			err = handler(ctx, messages)
-			if err != nil {
-				q.log.Warnf("failed to handle message: %v", err)
-				continue
-			}
-			err = q.delete(ctx, xmessages)
-			if err != nil {
-				q.log.Warnf("failed to delete message: %v", err)
-			}
+			consume()
 		}
 	}
 }

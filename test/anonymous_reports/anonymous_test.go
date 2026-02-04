@@ -3,6 +3,7 @@ package admin
 import (
 	"encoding/json"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
@@ -32,7 +33,7 @@ var _ = Describe("anonymous reports", Ordered, func() {
 			var app *app.Application
 
 			BeforeAll(func() {
-				app = utils.Must(helper.Start(map[string]string{}))
+				app = utils.Must(helper.Start(nil))
 			})
 
 			AfterAll(func() {
@@ -41,16 +42,20 @@ var _ = Describe("anonymous reports", Ordered, func() {
 
 			It("report anonymous data", func() {
 				var data map[string]interface{}
+				var g sync.WaitGroup
+				g.Add(1)
 				server := helper.StartHttpServer(func(w http.ResponseWriter, r *http.Request) {
 					err := json.NewDecoder(r.Body).Decode(&data)
 					if err != nil {
 						panic(err)
 					}
+					g.Done()
 				}, ":8888")
 
 				task := app.Scheduler().GetTask("anonymous_reports")
 				task.Do()
 
+				g.Wait()
 				assert.Equal(GinkgoT(), "free", data["license_plan"])
 				assert.Equal(GinkgoT(), "00000000-0000-0000-0000-000000000000", data["license_id"])
 				assert.Equal(GinkgoT(), webhookx.VERSION, data["version"])

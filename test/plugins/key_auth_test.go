@@ -37,7 +37,7 @@ var _ = Describe("key-auth", Ordered, func() {
 			helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{}))
+			app = utils.Must(helper.Start(nil))
 			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
 			assert.NoError(GinkgoT(), err)
 		})

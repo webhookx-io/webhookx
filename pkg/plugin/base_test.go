@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"context"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -25,6 +24,6 @@ func (m MyPlugin) Name() string {
 
 func Test(t *testing.T) {
 	myPlugin := &MyPlugin{}
-	assert.PanicsWithValue(t, "not implemented", func() { myPlugin.ExecuteInbound(context.TODO(), nil) })
-	assert.PanicsWithValue(t, "not implemented", func() { myPlugin.ExecuteOutbound(context.TODO(), nil) })
+	assert.PanicsWithValue(t, "not implemented", func() { myPlugin.ExecuteInbound(nil) })
+	assert.PanicsWithValue(t, "not implemented", func() { myPlugin.ExecuteOutbound(nil) })
 }

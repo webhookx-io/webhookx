@@ -10,6 +10,7 @@ import (
 
 type EnvProvider struct {
 	prefix  string
+	env     map[string]string
 	manager *secret.SecretManager
 }
 
@@ -18,11 +19,23 @@ func (p *EnvProvider) WithManager(manager *secret.SecretManager) *EnvProvider {
 	return p
 }
 
+func (p *EnvProvider) WithEnv(env map[string]string) *EnvProvider {
+	p.env = env
+	return p
+}
+
 func (p *EnvProvider) Load(cfg any) error {
 	var reader = envconfig.EnvironmentReader
-	if p.manager != nil {
+	if p.env != nil {
 		reader = func(key string) (string, bool, error) {
-			value, ok, _ := envconfig.EnvironmentReader.Read(key)
+			value, ok := p.env[key]
+			return value, ok, nil
+		}
+	}
+	if p.manager != nil {
+		r := reader
+		reader = func(key string) (string, bool, error) {
+			value, ok, _ := r(key)
 			if ok && reference.IsReference(value) {
 				ref, err := reference.Parse(value)
 				if err != nil {

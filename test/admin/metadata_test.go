@@ -24,7 +24,7 @@ var _ = Describe("metadata", Ordered, func() {
 		db = helper.InitDB(true, nil)
 		var err error
 		adminClient = helper.AdminClient()
-		app, err = helper.Start(map[string]string{})
+		app, err = helper.Start(nil)
 		assert.Nil(GinkgoT(), err)
 		ws, err = helper.GetDeafultWorkspace()
 		assert.Nil(GinkgoT(), err)

@@ -122,22 +122,26 @@ var _ = Describe("opentelemetry", Ordered, func() {
 
 	Context("SDK configuration by env", func() {
 		var app *app.Application
+		var cancel func()
 
 		BeforeAll(func() {
 			var err error
 			helper.InitOtelOutput()
+			cancel = helper.SetEnvs(map[string]string{
+				"OTEL_RESOURCE_ATTRIBUTES": "key1=value1,key2=value2",
+			})
 			app, err = helper.Start(map[string]string{
 				"WEBHOOKX_METRICS_ATTRIBUTES":             `{"env": "prod"}`,
 				"WEBHOOKX_METRICS_EXPORTS":                "opentelemetry",
 				"WEBHOOKX_METRICS_OPENTELEMETRY_PROTOCOL": "http/protobuf",
 				"WEBHOOKX_METRICS_OPENTELEMETRY_ENDPOINT": "http://localhost:4318/v1/metrics",
-				"OTEL_RESOURCE_ATTRIBUTES":                "key1=value1,key2=value2",
 				"WEBHOOKX_METRICS_PUSH_INTERVAL":          "3",
 			})
 			assert.Nil(GinkgoT(), err)
 		})
 
 		AfterAll(func() {
+			cancel()
 			app.Stop()
 		})
 
@@ -168,7 +172,7 @@ var _ = Describe("opentelemetry", Ordered, func() {
 					}
 				}
 				return true
-			}, time.Second*60, time.Millisecond*100)
+			}, time.Second*30, time.Millisecond*100)
 		})
 	})
 })

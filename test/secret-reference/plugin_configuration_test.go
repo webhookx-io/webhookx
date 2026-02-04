@@ -58,9 +58,12 @@ var _ = Describe("Plugin Configuration", Ordered, func() {
 
 			helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
+			reset := helper.SetEnvs(map[string]string{
+				"AWS_ACCESS_KEY_ID":     "test",
+				"AWS_SECRET_ACCESS_KEY": "test",
+			})
+			defer reset()
 			app = helper.MustStart(map[string]string{
-				"AWS_ACCESS_KEY_ID":          "test",
-				"AWS_SECRET_ACCESS_KEY":      "test",
 				"WEBHOOKX_SECRET_AWS_REGION": "us-east-1",
 				"WEBHOOKX_SECRET_AWS_URL":    "http://localhost:4566",
 			}, helper.WithLicenser(&helper.MockLicenser{}))
@@ -104,9 +107,12 @@ var _ = Describe("Plugin Configuration", Ordered, func() {
 			}))
 			helper.InitDB(true, &entitiesConfig)
 
+			reset := helper.SetEnvs(map[string]string{
+				"AWS_ACCESS_KEY_ID":     "test",
+				"AWS_SECRET_ACCESS_KEY": "test",
+			})
+			defer reset()
 			_, err := helper.Start(map[string]string{
-				"AWS_ACCESS_KEY_ID":          "test",
-				"AWS_SECRET_ACCESS_KEY":      "test",
 				"WEBHOOKX_SECRET_AWS_REGION": "us-east-1",
 				"WEBHOOKX_SECRET_AWS_URL":    "http://localhost:4566",
 			}, helper.WithLicenser(&helper.MockLicenser{}))
@@ -131,10 +137,12 @@ var _ = Describe("Plugin Configuration", Ordered, func() {
 				}
 			}))
 			helper.InitDB(true, &entitiesConfig)
-
+			reset := helper.SetEnvs(map[string]string{
+				"AWS_ACCESS_KEY_ID":     "test",
+				"AWS_SECRET_ACCESS_KEY": "test",
+			})
+			defer reset()
 			_, err := helper.Start(map[string]string{
-				"AWS_ACCESS_KEY_ID":          "test",
-				"AWS_SECRET_ACCESS_KEY":      "test",
 				"WEBHOOKX_SECRET_AWS_REGION": "us-east-1",
 				"WEBHOOKX_SECRET_AWS_URL":    "http://localhost:4566",
 			}, helper.WithLicenser(&helper.MockLicenser{}))

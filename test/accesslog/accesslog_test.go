@@ -85,6 +85,9 @@ var _ = Describe("access_log", Ordered, func() {
 			}))
 			adminClient = helper.AdminClient()
 			proxyClient = helper.ProxyClient()
+
+			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
+			assert.NoError(GinkgoT(), err)
 		})
 
 		AfterAll(func() {
@@ -122,18 +125,14 @@ var _ = Describe("access_log", Ordered, func() {
 		It("proxy accesslog", func() {
 			u, err := url.Parse(proxyClient.BaseURL)
 			newURL := fmt.Sprintf("%s://username:password@%s/%s", u.Scheme, u.Host, u.Path)
-			assert.Eventually(GinkgoT(), func() bool {
-				resp, err := proxyClient.R().
-					SetHeader("User-Agent", "WebhookX/dev").
-					SetBody(`{
-					    "event_type": "foo.bar",
-					    "data": {
-							"key": "value"
-						}
-					}`).
-					Post(newURL)
-				return err == nil && resp.StatusCode() == 200
-			}, time.Second*5, time.Second)
+
+			resp, err := proxyClient.R().
+				SetBody(`{"event_type": "foo.bar","data": {"key": "value"}}`).
+				SetHeader("User-Agent", "WebhookX/dev").
+				Post(newURL)
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 200, resp.StatusCode())
+
 			line, err := helper.FileLine("webhookx-access.log", 1)
 			assert.Nil(GinkgoT(), err)
 			entryMap, err := parse(line)

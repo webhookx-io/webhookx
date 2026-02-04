@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"time"
+
 	"github.com/go-resty/resty/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +21,7 @@ var _ = Describe("proxy", Ordered, func() {
 
 		BeforeAll(func() {
 			helper.InitDB(true, nil)
-			app = utils.Must(helper.Start(map[string]string{}))
+			app = utils.Must(helper.Start(nil))
 			proxyClient = helper.ProxyClient()
 		})
 
@@ -42,11 +44,13 @@ var _ = Describe("proxy", Ordered, func() {
 
 		BeforeAll(func() {
 			helper.InitDB(true, nil)
-			app = utils.Must(helper.Start(map[string]string{
+			proxyClient = helper.ProxyTLSClient()
+			app = helper.MustStart(map[string]string{
 				"WEBHOOKX_PROXY_TLS_CERT": test.FilePath("server.crt"),
 				"WEBHOOKX_PROXY_TLS_KEY":  test.FilePath("server.key"),
-			}))
-			proxyClient = helper.ProxyTLSClient()
+			})
+			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
+			assert.NoError(GinkgoT(), err)
 		})
 
 		AfterAll(func() {

@@ -3,7 +3,9 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -12,9 +14,9 @@ import (
 	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/transaction"
-	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
-	"go.opentelemetry.io/otel/trace"
+	"github.com/webhookx-io/webhookx/services/eventbus"
+	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 )
 
@@ -48,25 +50,47 @@ func NewSqlDB(cfg modules.DatabaseConfig) (*sql.DB, error) {
 	return db, nil
 }
 
-func NewDB(sqlDB *sql.DB, log *zap.SugaredLogger, bus *eventbus.EventBus) (*DB, error) {
+func NewDB(sqlDB *sql.DB, log *zap.SugaredLogger, bus eventbus.EventBus) (*DB, error) {
 	sqlxDB := sqlx.NewDb(sqlDB, "pgx")
+
+	opts := make([]dao.OptionFunc, 0)
+	opts = append(opts, dao.WithPropagateHandler(func(ctx context.Context, opts *dao.Options, id string, entity interface{}) {
+		data := &eventbus.CrudData{
+			ID:        id,
+			CacheName: opts.CacheName,
+			Entity:    opts.EntityName,
+			Data:      utils.Must(json.Marshal(entity)),
+		}
+		v := reflect.ValueOf(entity)
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		wid := v.FieldByName("WorkspaceId")
+		if wid.IsValid() {
+			data.WID = wid.String()
+		}
+		_ = bus.ClusteringBroadcast(ctx, eventbus.EventCRUD, data)
+	}))
+	if tracing.Enabled("dao") {
+		opts = append(opts, dao.WithInstrumented())
+	}
 
 	db := &DB{
 		DB:               sqlxDB,
 		log:              log,
-		Workspaces:       dao.NewWorkspaceDAO(sqlxDB, bus),
-		Endpoints:        dao.NewEndpointDAO(sqlxDB, bus, false),
-		EndpointsWS:      dao.NewEndpointDAO(sqlxDB, bus, true),
-		Events:           dao.NewEventDao(sqlxDB, bus, false),
-		EventsWS:         dao.NewEventDao(sqlxDB, bus, true),
-		Attempts:         dao.NewAttemptDao(sqlxDB, bus, false),
-		AttemptsWS:       dao.NewAttemptDao(sqlxDB, bus, true),
-		Sources:          dao.NewSourceDAO(sqlxDB, bus, false),
-		SourcesWS:        dao.NewSourceDAO(sqlxDB, bus, true),
-		AttemptDetails:   dao.NewAttemptDetailDao(sqlxDB, bus, false),
-		AttemptDetailsWS: dao.NewAttemptDetailDao(sqlxDB, bus, true),
-		Plugins:          dao.NewPluginDAO(sqlxDB, bus, false),
-		PluginsWS:        dao.NewPluginDAO(sqlxDB, bus, true),
+		Workspaces:       dao.NewWorkspaceDAO(sqlxDB, opts...),
+		Endpoints:        dao.NewEndpointDAO(sqlxDB, opts...),
+		EndpointsWS:      dao.NewEndpointDAO(sqlxDB, append(opts, dao.WithWorkspace(true))...),
+		Events:           dao.NewEventDao(sqlxDB, opts...),
+		EventsWS:         dao.NewEventDao(sqlxDB, append(opts, dao.WithWorkspace(true))...),
+		Attempts:         dao.NewAttemptDao(sqlxDB, opts...),
+		AttemptsWS:       dao.NewAttemptDao(sqlxDB, append(opts, dao.WithWorkspace(true))...),
+		Sources:          dao.NewSourceDAO(sqlxDB, opts...),
+		SourcesWS:        dao.NewSourceDAO(sqlxDB, append(opts, dao.WithWorkspace(true))...),
+		AttemptDetails:   dao.NewAttemptDetailDao(sqlxDB, opts...),
+		AttemptDetailsWS: dao.NewAttemptDetailDao(sqlxDB, append(opts, dao.WithWorkspace(true))...),
+		Plugins:          dao.NewPluginDAO(sqlxDB, opts...),
+		PluginsWS:        dao.NewPluginDAO(sqlxDB, append(opts, dao.WithWorkspace(true))...),
 	}
 
 	return db, nil
@@ -85,7 +109,7 @@ func (db *DB) Stats() map[string]interface{} {
 }
 
 func (db *DB) TX(ctx context.Context, fn func(ctx context.Context) error) error {
-	ctx, span := tracing.Start(ctx, "db.transaction", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := tracing.Start(ctx, "db.transaction")
 	defer span.End()
 
 	tx, err := db.DB.Beginx()
@@ -95,9 +119,9 @@ func (db *DB) TX(ctx context.Context, fn func(ctx context.Context) error) error 
 
 	defer func() {
 		if err := recover(); err != nil {
-			db.log.Errorf("[db] panic recovered: %v", err)
+			db.log.Errorf("panic recovered: %v", err)
 			if rbErr := tx.Rollback(); rbErr != nil {
-				db.log.Errorf("[db] failed to rollback the tx: %v", rbErr)
+				db.log.Errorf("failed to rollback the tx: %v", rbErr)
 			}
 			panic(err)
 		}
@@ -124,4 +148,8 @@ func (db *DB) Truncate(table string) error {
 
 func (db *DB) SqlDB() *sql.DB {
 	return db.DB.DB
+}
+
+func (db *DB) Close() error {
+	return db.DB.Close()
 }

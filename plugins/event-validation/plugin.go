@@ -1,12 +1,10 @@
 package event_validation
 
 import (
-	"context"
 	"encoding/json"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/plugins/event-validation/validator"
@@ -39,11 +37,10 @@ func (p *EventValidationPlugin) ValidateConfig(config map[string]interface{}) er
 	return p.BasePlugin.ValidateConfig(config)
 }
 
-func (p *EventValidationPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (res plugin.InboundResult, err error) {
+func (p *EventValidationPlugin) ExecuteInbound(c *plugin.Context) error {
 	var event map[string]any
-	body := inbound.RawBody
-	if err = json.Unmarshal(body, &event); err != nil {
-		return
+	if err := json.Unmarshal(c.GetRequestBody(), &event); err != nil {
+		return err
 	}
 
 	eventType, _ := event["event_type"].(string)
@@ -56,13 +53,12 @@ func (p *EventValidationPlugin) ExecuteInbound(ctx context.Context, inbound *plu
 
 	if schema == nil {
 		// no schema found
-		res.Payload = body
-		return
+		return nil
 	}
 
 	v, err := validator.NewValidator(p.Config.Version, *schema)
 	if err != nil {
-		return
+		return err
 	}
 	validateErr := v.Validate(data)
 	if validateErr != nil {
@@ -76,11 +72,8 @@ func (p *EventValidationPlugin) ExecuteInbound(ctx context.Context, inbound *plu
 				resp.Error = validateErr.Error()
 			}
 		}
-		response.JSON(inbound.Response, 400, resp)
-		res.Terminated = true
-		return
+		c.JSON(400, resp)
 	}
 
-	res.Payload = body
-	return
+	return nil
 }

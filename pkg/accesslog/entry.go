@@ -7,27 +7,27 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/webhookx-io/webhookx/utils"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Entry struct {
-	Username string        `json:"username"`
-	Latency  time.Duration `json:"latency"`
-	ClientIP string        `json:"client_ip"`
-
-	Request  Request  `json:"request"`
-	Response Response `json:"response"`
+	Username string
+	Latency  time.Duration
+	ClientIP string
+	Request  Request
+	Response Response
 }
 
 type Request struct {
-	Method  string            `json:"method"`
-	Path    string            `json:"path"`
-	Proto   string            `json:"proto"`
-	Headers map[string]string `json:"headers"`
+	Method  string
+	Path    string
+	Proto   string
+	Headers map[string]string
 }
 
 type Response struct {
-	Status int `json:"status"`
-	Size   int `json:"size"`
+	Status int
+	Size   int
 }
 
 func NewEntry(r *http.Request) *Entry {
@@ -52,12 +52,28 @@ func NewEntry(r *http.Request) *Entry {
 func (m *Entry) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("client_ip", m.ClientIP)
 	e.Str("username", m.Username)
-	e.Any("request", m.Request)
-	e.Any("response", m.Response)
+	e.Dict("request", zerolog.Dict().
+		Str("method", m.Request.Method).
+		Str("path", m.Request.Path).
+		Str("proto", m.Request.Proto).
+		Dict("headers", zerolog.Dict().
+			Str("user-agent", m.Request.Headers["user-agent"]).
+			Str("referer", m.Request.Headers["referer"])),
+	)
+	e.Dict("response",
+		zerolog.Dict().
+			Int("status", m.Response.Status).
+			Int("size", m.Response.Size),
+	)
 	e.Int64("latency", m.Latency.Milliseconds())
+
+	sc := trace.SpanContextFromContext(e.GetCtx())
+	if sc.IsValid() {
+		e.Str("trace_id", sc.TraceID().String())
+	}
 }
 
-func (m *Entry) String() string {
+func (m *Entry) String(e *zerolog.Event) string {
 	return fmt.Sprintf(`%s - %s "%s %s %s" %d %d %dms "%s" "%s"`,
 		m.ClientIP,
 		utils.DefaultIfZero(m.Username, "-"),
@@ -68,5 +84,6 @@ func (m *Entry) String() string {
 		m.Response.Size,
 		m.Latency.Milliseconds(),
 		utils.DefaultIfZero(m.Request.Headers["referer"], "-"),
-		utils.DefaultIfZero(m.Request.Headers["user-agent"], "-"))
+		utils.DefaultIfZero(m.Request.Headers["user-agent"], "-"),
+	)
 }

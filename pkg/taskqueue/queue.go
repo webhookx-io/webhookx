@@ -32,8 +32,8 @@ type GetOptions struct {
 type TaskQueue interface {
 	Add(ctx context.Context, tasks []*TaskMessage) error
 	Get(ctx context.Context, opts *GetOptions) (tasks []*TaskMessage, err error)
-	Delete(ctx context.Context, task *TaskMessage) error
+	Delete(ctx context.Context, ids ...string) error
 	Size(ctx context.Context) (int64, error)
-	Schedule(ctx context.Context, task *TaskMessage) error
+	Schedule(ctx context.Context, id string, scheduledAt time.Time) error
 	Stats() map[string]interface{}
 }

@@ -7,9 +7,9 @@ import (
 
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
-	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/contextx"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/services/eventbus"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -55,7 +55,7 @@ func (api *API) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		for i, attempt := range attempts {
 			ids[i] = attempt.ID
 		}
-		err = api.bus.ClusteringBroadcast(eventbus.EventEventFanout, &eventbus.EventFanoutData{
+		err = api.services.EventBus.ClusteringBroadcast(r.Context(), eventbus.EventEventFanout, &eventbus.EventFanoutData{
 			EventId:    event.ID,
 			AttemptIds: ids,
 		})
@@ -92,7 +92,7 @@ func (api *API) RetryEvent(w http.ResponseWriter, r *http.Request) {
 	for i, attempt := range attempts {
 		ids[i] = attempt.ID
 	}
-	err = api.bus.ClusteringBroadcast(eventbus.EventEventFanout, &eventbus.EventFanoutData{
+	err = api.services.EventBus.ClusteringBroadcast(r.Context(), eventbus.EventEventFanout, &eventbus.EventFanoutData{
 		EventId:    event.ID,
 		AttemptIds: ids,
 	})

@@ -41,20 +41,20 @@ func Test(t *testing.T) {
 	t.Run("sanity", func(t *testing.T) {
 		deliverer := NewHTTPDeliverer(Options{RequestTimeout: time.Second * 10})
 
+		r, err := http.NewRequest("POST", server.URL, nil)
+		r.Header.Set("X-Key", "value")
+		assert.NoError(t, err)
+
 		req := &Request{
-			URL:     server.URL,
-			Method:  "POST",
-			Payload: []byte(`{"foo": "bar"}`),
-			Headers: map[string]string{
-				"X-Key": "value",
-			},
+			Request: r,
+			Body:    []byte(`{"foo": "bar"}`),
 		}
 
-		res := deliverer.Deliver(context.Background(), req)
+		res := deliverer.Send(context.Background(), req)
 		assert.NoError(t, res.Error)
 		assert.Equal(t, res.StatusCode, 200)
 		data := make(map[string]interface{})
-		err := json.Unmarshal(res.ResponseBody, &data)
+		err = json.Unmarshal(res.ResponseBody, &data)
 		assert.NoError(t, err)
 		assert.Equal(t, data["data"], `{"foo": "bar"}`)
 		headers := data["headers"].(map[string]interface{})
@@ -64,13 +64,16 @@ func Test(t *testing.T) {
 	t.Run("should fail with DeadlineExceeded error", func(t *testing.T) {
 		deliverer := NewHTTPDeliverer(Options{RequestTimeout: time.Millisecond * 10 * 1000})
 
+		r, err := http.NewRequest("GET", server.URL, nil)
+		r.Header.Set("X-Key", "value")
+		assert.NoError(t, err)
+
 		req := &Request{
-			URL:     server.URL,
-			Method:  "GET",
+			Request: r,
 			Timeout: time.Microsecond * 1,
 		}
 
-		res := deliverer.Deliver(context.Background(), req)
+		res := deliverer.Send(context.Background(), req)
 		assert.NotNil(t, res.Error)
 		assert.True(t, errors.Is(res.Error, context.DeadlineExceeded))
 	})

@@ -8,30 +8,26 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/eventbus"
-	"github.com/webhookx-io/webhookx/pkg/tracing"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type eventDao struct {
 	*DAO[entities.Event]
 }
 
-func NewEventDao(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) EventDAO {
+func NewEventDao(db *sqlx.DB, fns ...OptionFunc) EventDAO {
 	opts := Options{
 		Table:          "events",
 		EntityName:     "event",
-		Workspace:      workspace,
 		CachePropagate: false,
 		CacheName:      constants.EventCacheKey.Name,
 	}
 	return &eventDao{
-		DAO: NewDAO[entities.Event](db, bus, opts),
+		DAO: NewDAO[entities.Event](db, opts, fns...),
 	}
 }
 
 func (dao *eventDao) ListExistingUniqueIDs(ctx context.Context, uniques []string) (list []string, err error) {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.list_unique_ids", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.list_unique_ids", dao.opts.Table))
 	defer span.End()
 	statement, args := psql.Select("unique_id").
 		From(dao.opts.Table).
@@ -43,7 +39,7 @@ func (dao *eventDao) ListExistingUniqueIDs(ctx context.Context, uniques []string
 }
 
 func (dao *eventDao) BatchInsertIgnoreConflict(ctx context.Context, events []*entities.Event) (inserteds []string, err error) {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.batch_insert_ignore_conflict", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.batch_insert_ignore_conflict", dao.opts.Table))
 	defer span.End()
 
 	if len(events) == 0 {

@@ -12,6 +12,7 @@ import (
 // Loader is configuration loader
 type Loader struct {
 	cfg         *Config
+	env         map[string]string
 	envPrefix   string
 	filename    string
 	fileContent []byte
@@ -37,6 +38,11 @@ func (l *Loader) WithFileContent(content []byte) *Loader {
 	return l
 }
 
+func (l *Loader) WithEnv(env map[string]string) *Loader {
+	l.env = env
+	return l
+}
+
 func (l *Loader) load(module string, value any) (err error) {
 	err = providers.NewYAMLProvider(l.filename, l.fileContent).
 		WithKey(strings.ToLower(module)).
@@ -52,6 +58,7 @@ func (l *Loader) load(module string, value any) (err error) {
 			envPrefix = l.envPrefix + "_" + module
 		}
 		err = providers.NewEnvProvider(envPrefix).
+			WithEnv(l.env).
 			WithManager(l.manager).
 			Load(value)
 		if err != nil {

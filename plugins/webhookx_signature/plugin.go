@@ -1,7 +1,6 @@
 package webhookx_signature
 
 import (
-	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -53,13 +52,13 @@ func computeSignature(ts time.Time, payload []byte, secret string) []byte {
 	return mac.Sum(nil)
 }
 
-func (p *SignaturePlugin) ExecuteOutbound(ctx context.Context, outbound *plugin.Outbound) error {
+func (p *SignaturePlugin) ExecuteOutbound(c *plugin.Context) error {
 	ts := p.ts
 	if ts.IsZero() {
 		ts = time.Now()
 	}
-	signature := computeSignature(ts, []byte(outbound.Payload), p.Config.SigningSecret)
-	outbound.Headers["webhookx-signature"] = "v1=" + hex.EncodeToString(signature)
-	outbound.Headers["webhookx-timestamp"] = strconv.FormatInt(ts.Unix(), 10)
+	signature := computeSignature(ts, c.GetRequestBody(), p.Config.SigningSecret)
+	c.Request.Header.Set("webhookx-signature", "v1="+hex.EncodeToString(signature))
+	c.Request.Header.Set("webhookx-timestamp", strconv.FormatInt(ts.Unix(), 10))
 	return nil
 }

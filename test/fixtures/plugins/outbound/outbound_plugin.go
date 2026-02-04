@@ -1,8 +1,6 @@
 package outbound
 
 import (
-	"context"
-
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 )
@@ -26,6 +24,6 @@ func (p *OutboundPlugin) Priority() int {
 	return 0
 }
 
-func (p *OutboundPlugin) ExecuteOutbound(ctx context.Context, outbound *plugin.Outbound) error {
+func (p *OutboundPlugin) ExecuteOutbound(c *plugin.Context) error {
 	return nil
 }

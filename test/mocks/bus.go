@@ -1,18 +1,24 @@
 package mocks
 
-import "github.com/webhookx-io/webhookx/eventbus"
+import (
+	"context"
+
+	"github.com/webhookx-io/webhookx/services/eventbus"
+)
 
 type MockBus struct{}
 
-func (m MockBus) ClusteringBroadcast(event string, data interface{}) error {
+var _ eventbus.EventBus = &MockBus{}
+
+func (m MockBus) ClusteringBroadcast(ctx context.Context, channel string, value eventbus.Marshaler) error {
 	return nil
 }
 
-func (m MockBus) ClusteringSubscribe(channel string, fn func(data []byte)) {
+func (m MockBus) ClusteringSubscribe(channel string, handler eventbus.ClusteringHandler) {
 }
 
-func (m MockBus) Broadcast(channel string, data interface{}) {
+func (m MockBus) Broadcast(ctx context.Context, channel string, value interface{}) {
 }
 
-func (m MockBus) Subscribe(channel string, cb eventbus.Callback) {
+func (m MockBus) Subscribe(channel string, handler eventbus.Handler) {
 }

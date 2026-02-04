@@ -27,7 +27,7 @@ var _ = Describe("/events", Ordered, func() {
 
 	BeforeAll(func() {
 		db = helper.InitDB(true, nil)
-		app = utils.Must(helper.Start(map[string]string{}))
+		app = utils.Must(helper.Start(nil))
 		ws = utils.Must(db.Workspaces.GetDefault(context.TODO()))
 		adminClient = helper.AdminClient()
 	})

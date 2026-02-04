@@ -1,7 +1,6 @@
 package wasm
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -33,7 +32,8 @@ func (p *WasmPlugin) Priority() int {
 	return -90
 }
 
-func (p *WasmPlugin) ExecuteOutbound(ctx context.Context, outbound *plugin.Outbound) error {
+func (p *WasmPlugin) ExecuteOutbound(c *plugin.Context) error {
+	ctx := c.Context()
 	source, err := os.ReadFile(p.Config.File)
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func (p *WasmPlugin) ExecuteOutbound(ctx context.Context, outbound *plugin.Outbo
 		return fmt.Errorf("exported function 'transform' is not defined in module")
 	}
 
-	ctx = withContext(ctx, outbound)
+	ctx = withContext(ctx, c)
 	results, err := transform.Call(ctx)
 	if err != nil {
 		return err

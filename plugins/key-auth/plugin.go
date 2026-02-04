@@ -1,11 +1,8 @@
 package key_auth
 
 import (
-	"context"
-
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/pkg/http/response"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 )
 
@@ -31,12 +28,12 @@ func (p *KeyAuthPlugin) Priority() int {
 	return 108
 }
 
-func (p *KeyAuthPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbound) (result plugin.InboundResult, err error) {
+func (p *KeyAuthPlugin) ExecuteInbound(c *plugin.Context) error {
 	name := p.Config.ParamName
 	key := p.Config.Key
 
-	querys := inbound.Request.URL.Query()
-	headers := inbound.Request.Header
+	querys := c.Request.URL.Query()
+	headers := c.Request.Header
 
 	found := false
 	for _, source := range p.Config.ParamLocations {
@@ -54,10 +51,8 @@ func (p *KeyAuthPlugin) ExecuteInbound(ctx context.Context, inbound *plugin.Inbo
 	}
 
 	if !found {
-		response.JSON(inbound.Response, 401, `{"message":"Unauthorized"}`)
-		result.Terminated = true
+		c.JSON(401, `{"message":"Unauthorized"}`)
 	}
 
-	result.Payload = inbound.RawBody
-	return
+	return nil
 }

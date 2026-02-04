@@ -21,9 +21,11 @@ var _ = Describe("License", Ordered, func() {
 	Context("load", func() {
 		It("should succeed when using a valid license", func() {
 			licenseJSON, err := os.ReadFile(test.FilePath("fixtures/license.json"))
-			app, err := helper.Start(map[string]string{
+			cancel := helper.SetEnvs(map[string]string{
 				"WEBHOOKX_LICENSE": string(licenseJSON),
 			})
+			defer cancel()
+			app, err := helper.Start(nil)
 			assert.Nil(GinkgoT(), err)
 			assert.NotNil(GinkgoT(), app)
 			app.Stop()
@@ -31,16 +33,20 @@ var _ = Describe("License", Ordered, func() {
 
 		Context("errors", func() {
 			It("malformed license", func() {
-				_, err := helper.Start(map[string]string{
+				cancel := helper.SetEnvs(map[string]string{
 					"WEBHOOKX_LICENSE": "{⚠️}",
 				})
+				defer cancel()
+				_, err := helper.Start(nil)
 				assert.EqualError(GinkgoT(), err, "license is invalid: failed to parse license: invalid character 'â' looking for beginning of object key string")
 			})
 
 			It("invalid license", func() {
-				_, err := helper.Start(map[string]string{
+				cancel := helper.SetEnvs(map[string]string{
 					"WEBHOOKX_LICENSE": "{}",
 				})
+				defer cancel()
+				_, err := helper.Start(nil)
 				assert.EqualError(GinkgoT(), err, "license is invalid: signature is invalid")
 			})
 		})
@@ -50,7 +56,7 @@ var _ = Describe("License", Ordered, func() {
 		var app *app.Application
 
 		BeforeAll(func() {
-			app = utils.Must(helper.Start(map[string]string{}))
+			app = utils.Must(helper.Start(nil))
 		})
 
 		AfterAll(func() {

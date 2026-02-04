@@ -6,23 +6,21 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/eventbus"
 )
 
 type workspaceDAO struct {
 	*DAO[entities.Workspace]
 }
 
-func NewWorkspaceDAO(db *sqlx.DB, bus *eventbus.EventBus) WorkspaceDAO {
+func NewWorkspaceDAO(db *sqlx.DB, fns ...OptionFunc) WorkspaceDAO {
 	opts := Options{
 		Table:          "workspaces",
 		EntityName:     "workspace",
-		Workspace:      false,
 		CachePropagate: true,
 		CacheName:      constants.WorkspaceCacheKey.Name,
 	}
 	return &workspaceDAO{
-		DAO: NewDAO[entities.Workspace](db, bus, opts),
+		DAO: NewDAO[entities.Workspace](db, opts, fns...),
 	}
 }
 

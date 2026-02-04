@@ -31,9 +31,9 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/migrator"
-	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/pkg/log"
+	"github.com/webhookx-io/webhookx/services/eventbus"
 	"github.com/webhookx-io/webhookx/test"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -63,6 +63,8 @@ var (
 		"WEBHOOKX_ADMIN_LISTEN":              "127.0.0.1:9701",
 		"WEBHOOKX_STATUS_LISTEN":             "127.0.0.1:9702",
 		"WEBHOOKX_DATABASE_DATABASE":         "webhookx_test",
+		"WEBHOOKX_DATABASE_MAX_POOL_SIZE":    "20",
+		"WEBHOOKX_DATABASE_MAX_LIFETIME":     "60",
 		"WEBHOOKX_WORKER_POOL_SIZE":          "100",
 		"WEBHOOKX_WORKER_POOL_CONCURRENCY":   "10",
 	}
@@ -72,6 +74,7 @@ var (
 func NewTestEnv(sets map[string]string) map[string]string {
 	env := make(map[string]string)
 	maps.Copy(env, Environments)
+	maps.Copy(env, Env())
 	maps.Copy(env, sets)
 	return env
 }
@@ -88,14 +91,21 @@ func SetEnvs(sets map[string]string) func() {
 		} else {
 			originals[k] = nil
 		}
-		_ = os.Setenv(k, v)
+		if err := os.Setenv(k, v); err != nil {
+			panic(err)
+		}
 	}
+
 	return func() {
 		for k, old := range originals {
+			var err error
 			if old == nil {
-				_ = os.Unsetenv(k)
+				err = os.Unsetenv(k)
 			} else {
-				_ = os.Setenv(k, *old)
+				err = os.Setenv(k, *old)
+			}
+			if err != nil {
+				panic(err)
 			}
 		}
 	}
@@ -124,13 +134,6 @@ func MustStart(envs map[string]string, opts ...Option) *app.Application {
 // Start starts application with given environment variables
 func Start(envs map[string]string, opts ...Option) (application *app.Application, err error) {
 	envs = NewTestEnv(envs)
-	cancel := SetEnvs(envs)
-
-	defer func() {
-		if err != nil {
-			cancel()
-		}
-	}()
 
 	options := &Options{}
 	for _, opt := range opts {
@@ -148,7 +151,8 @@ func Start(envs map[string]string, opts ...Option) (application *app.Application
 	license.SetLicenser(options.Licenser)
 
 	cfg := config.New()
-	if err := config.Load("", cfg); err != nil {
+	loader := config.NewLoader(cfg).WithEnvPrefix("WEBHOOKX").WithEnv(envs)
+	if err := loader.Load(); err != nil {
 		return nil, errors.Wrap(err, "could not load configuration")
 	}
 
@@ -166,18 +170,13 @@ func Start(envs map[string]string, opts ...Option) (application *app.Application
 
 	application, err = app.New(cfg)
 	if err != nil {
-		return
+		return nil, err
 	}
 	if err := application.Start(); err != nil {
 		return nil, err
 	}
 
-	go func() {
-		application.Wait()
-		cancel()
-	}()
-
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond * 100)
 	return application, nil
 }
 
@@ -240,7 +239,7 @@ func NewDB(cfg *config.Config) *db.DB {
 	if err != nil {
 		return nil
 	}
-	eventbus := eventbus.NewEventBus(
+	eventbus := eventbus.NewPostgresEventBus(
 		uuid.NewV4().String(),
 		cfg.Database.GetDSN(),
 		logger, sqlDB)

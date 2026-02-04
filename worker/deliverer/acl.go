@@ -3,6 +3,8 @@ package deliverer
 import (
 	"net/netip"
 	"strings"
+
+	"github.com/webhookx-io/webhookx/utils"
 )
 
 var presets = map[string][]string{
@@ -45,22 +47,11 @@ type ACL struct {
 	Domain []Domain
 }
 
-func expandPreset(rules []string) []string {
-	var expanded []string
-	for _, r := range rules {
-		if set, ok := presets[r]; ok {
-			expanded = append(expanded, expandPreset(set)...)
-		} else {
-			expanded = append(expanded, r)
-		}
-	}
-	return expanded
-}
 
 func NewACL(opts AclOptions) *ACL {
 	acl := &ACL{}
 
-	rules := expandPreset(opts.Rules)
+	rules := utils.ResolveAlias(presets, opts.Rules)
 	for _, rule := range rules {
 		if addr, err := netip.ParseAddr(rule); err == nil {
 			acl.IP = append(acl.IP, addr)

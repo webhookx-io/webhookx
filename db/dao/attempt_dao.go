@@ -9,10 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/eventbus"
-	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type attemptDao struct {
@@ -20,6 +17,7 @@ type attemptDao struct {
 }
 
 type AttemptResult struct {
+	ID          string
 	Request     *entities.AttemptRequest
 	Response    *entities.AttemptResponse
 	AttemptedAt types.Time
@@ -28,21 +26,21 @@ type AttemptResult struct {
 	Exhausted   bool
 }
 
-func NewAttemptDao(db *sqlx.DB, bus *eventbus.EventBus, workspace bool) AttemptDAO {
+func NewAttemptDao(db *sqlx.DB, fns ...OptionFunc) AttemptDAO {
 	opts := Options{
 		Table:          "attempts",
 		EntityName:     "attempt",
-		Workspace:      workspace,
 		CachePropagate: false,
 		CacheName:      constants.AttemptCacheKey.Name,
 	}
-	return &attemptDao{
-		DAO: NewDAO[entities.Attempt](db, bus, opts),
-	}
+	return &attemptDao{DAO: NewDAO[entities.Attempt](db, opts, fns...)}
 }
 
-func (dao *attemptDao) UpdateDelivery(ctx context.Context, id string, result *AttemptResult) error {
-	_, err := dao.update(ctx, id, map[string]interface{}{
+func (dao *attemptDao) UpdateDelivery(ctx context.Context, result *AttemptResult) error {
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.update_result", dao.opts.Table))
+	defer span.End()
+
+	_, err := dao.update(ctx, result.ID, map[string]interface{}{
 		"request":      result.Request,
 		"response":     result.Response,
 		"attempted_at": result.AttemptedAt,
@@ -55,7 +53,10 @@ func (dao *attemptDao) UpdateDelivery(ctx context.Context, id string, result *At
 }
 
 func (dao *attemptDao) UpdateStatusToQueued(ctx context.Context, ids []string) error {
-	sql, args := psql.Update("attempts").
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.update_status", dao.opts.Table))
+	defer span.End()
+
+	sql, args := psql.Update(dao.opts.Table).
 		Set("status", entities.AttemptStatusQueued).
 		Set("updated_at", sq.Expr("NOW()")).
 		Where(sq.Eq{
@@ -68,7 +69,7 @@ func (dao *attemptDao) UpdateStatusToQueued(ctx context.Context, ids []string) e
 }
 
 func (dao *attemptDao) UpdateErrorCode(ctx context.Context, id string, status entities.AttemptStatus, code entities.AttemptErrorCode) error {
-	ctx, span := tracing.Start(ctx, fmt.Sprintf("dao.%s.update_error_code", dao.opts.Table), trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.update_error_code", dao.opts.Table))
 	defer span.End()
 
 	_, err := dao.update(ctx, id, map[string]interface{}{

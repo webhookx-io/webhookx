@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	uuid "github.com/satori/go.uuid"
 	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/admin"
@@ -20,7 +23,6 @@ import (
 	"github.com/webhookx-io/webhookx/db/migrator"
 	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
-	"github.com/webhookx-io/webhookx/eventbus"
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/accesslog"
 	"github.com/webhookx-io/webhookx/pkg/cache"
@@ -29,7 +31,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
 	"github.com/webhookx-io/webhookx/pkg/reports"
-	"github.com/webhookx-io/webhookx/pkg/schedule"
 	"github.com/webhookx-io/webhookx/pkg/secret"
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/store"
@@ -38,21 +39,18 @@ import (
 	"github.com/webhookx-io/webhookx/plugins"
 	"github.com/webhookx-io/webhookx/proxy"
 	"github.com/webhookx-io/webhookx/proxy/middlewares"
-	"github.com/webhookx-io/webhookx/service"
+	"github.com/webhookx-io/webhookx/services"
+	"github.com/webhookx-io/webhookx/services/eventbus"
+	"github.com/webhookx-io/webhookx/services/schedule"
+	"github.com/webhookx-io/webhookx/services/task"
+	tracingservice "github.com/webhookx-io/webhookx/services/tracing"
 	"github.com/webhookx-io/webhookx/status"
 	"github.com/webhookx-io/webhookx/status/health"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
-)
-
-var (
-	ErrApplicationStarted = errors.New("already started")
-	ErrApplicationStopped = errors.New("already stopped")
-	Indicators            []*health.Indicator
 )
 
 func init() {
@@ -61,35 +59,23 @@ func init() {
 }
 
 type Application struct {
-	nodeID string
-
+	id  string
 	cfg *config.Config
 
-	mux     sync.Mutex
-	started bool
+	mux sync.Mutex
 
-	stop chan struct{}
+	log *zap.SugaredLogger
+	db  *db.DB
+	sm  *secret.SecretManager
 
-	log     *zap.SugaredLogger
-	db      *db.DB
-	bus     *eventbus.EventBus
-	metrics *metrics.Metrics
-
-	status    *status.Status
-	admin     *admin.Admin
-	gateway   *proxy.Gateway
-	worker    *worker.Worker
-	tracer    *tracing.Tracer
-	srv       *service.Service
-	scheduler schedule.Scheduler
-	sm        *secret.SecretManager
+	services map[string]services.Service
 }
 
 func New(cfg *config.Config) (*Application, error) {
 	app := &Application{
-		nodeID: uuid.NewV4().String(),
-		cfg:    cfg,
-		stop:   make(chan struct{}),
+		id:       uuid.NewV4().String(),
+		cfg:      cfg,
+		services: make(map[string]services.Service),
 	}
 
 	err := app.initialize()
@@ -103,17 +89,122 @@ func New(cfg *config.Config) (*Application, error) {
 func (app *Application) initialize() error {
 	cfg := app.cfg
 
-	log, err := log.NewZapLogger(&cfg.Log)
-	if err != nil {
+	// logger
+	if err := app.initLogger(&cfg.Log); err != nil {
 		return err
 	}
-	zap.ReplaceGlobals(log.Desugar())
-	app.log = log
-
-	app.scheduler = schedule.NewScheduler()
 
 	// cache
 	client := cfg.Redis.GetClient()
+	if err := app.initCache(cfg, client); err != nil {
+		return err
+	}
+
+	// sql db
+	sqlDB, err := db.NewSqlDB(cfg.Database)
+	if err != nil {
+		return err
+	}
+
+	// event bus
+	eventBus := eventbus.NewPostgresEventBus(
+		app.id,
+		cfg.Database.GetDSN(),
+		app.log.Named("eventbus"),
+		sqlDB,
+	)
+	registerEventHandler(eventBus)
+	app.registerService(eventBus)
+
+	// scheduler
+	scheduler := schedule.NewSchedulerService()
+	app.registerScheduledTasks(scheduler)
+	app.registerService(scheduler)
+
+	// tracing
+	cfg.Tracing.InstanceID = app.id
+	if err := tracing.Init(&cfg.Tracing); err != nil {
+		return err
+	}
+	app.registerService(&tracingservice.TracingService{Tracer: tracing.GetTracer()})
+
+	// metrics TODO: refactor this module
+	metrics, err := metrics.New(cfg.Metrics, scheduler)
+	if err != nil {
+		return err
+	}
+	app.registerService(metrics)
+
+	// db
+	db, err := db.NewDB(sqlDB, app.log.Named("db"), eventBus)
+	if err != nil {
+		return err
+	}
+	app.db = db
+	stats.Register(db)
+
+	dispatcher := dispatcher.NewDispatcher(dispatcher.Options{
+		DB:       db,
+		Metrics:  metrics,
+		Registry: dispatcher.NewRegistry(db),
+		EventBus: eventBus,
+	})
+
+	// shared services
+	services := &services.Services{
+		Scheduler:   scheduler,
+		EventBus:    eventBus,
+		Metrics:     metrics,
+		RateLimiter: ratelimiter.NewRedisLimiter(client),
+	}
+
+	if cfg.Worker.Enabled || cfg.Proxy.IsEnabled() {
+		queue := taskqueue.NewRedisQueue(
+			taskqueue.RedisTaskQueueOptions{Client: client},
+			app.log,
+			metrics,
+		)
+		stats.Register(queue)
+		services.Task = task.NewTaskService(app.log, db, queue)
+	}
+
+	// worker
+	if err := app.initWorker(&cfg.Worker, services, client); err != nil {
+		return err
+	}
+
+	// admin
+	if err := app.initAdmin(&cfg.Admin, services, dispatcher); err != nil {
+		return err
+	}
+
+	// gateway
+	if err := app.initGateway(&cfg.Proxy, services, dispatcher, metrics); err != nil {
+		return err
+	}
+
+	// status
+	if err := app.initStatus(&cfg.Status, services, client); err != nil {
+		return err
+	}
+
+	if err := app.initSecretMananger(&cfg.Secret); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (app *Application) initLogger(cfg *modules.LogConfig) error {
+	logger, err := log.NewZapLogger(cfg)
+	if err != nil {
+		return err
+	}
+	app.log = logger
+	return nil
+}
+
+func (app *Application) initCache(cfg *config.Config, client *redis.Client) error {
 	var c cache.Cache
 	if cfg.Role != config.RoleCP {
 		c = cache.NewRedisCache(client)
@@ -123,168 +214,105 @@ func (app *Application) initialize() error {
 		L1TTL:  time.Second * 10,
 		L2:     c,
 	}))
+	return nil
+}
 
-	sqlDB, err := db.NewSqlDB(cfg.Database)
-	if err != nil {
-		return err
-	}
-
-	app.bus = eventbus.NewEventBus(
-		app.NodeID(),
-		cfg.Database.GetDSN(),
-		log, sqlDB)
-	registerEventHandler(app.bus)
-
-	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
-		app.log.Error(err)
-	}))
-
-	// tracing
-	tracer, err := tracing.New(&cfg.Tracing)
-	if err != nil {
-		return err
-	}
-
-	app.tracer = tracer
-
-	// db
-	db, err := db.NewDB(sqlDB, log, app.bus)
-	if err != nil {
-		return err
-	}
-	app.db = db
-	stats.Register(db)
-
-	app.metrics, err = metrics.New(cfg.Metrics, app.scheduler)
-	if err != nil {
-		return err
-	}
-
-	registry := dispatcher.NewRegistry(db)
-	app.bus.Subscribe("endpoint.crud", func(v interface{}) {
-		data := v.(*eventbus.CrudData)
-		registry.Unregister(data.WID)
-	})
-
-	dispatcher := dispatcher.NewDispatcher(dispatcher.Options{
-		DB:       db,
-		Metrics:  app.metrics,
-		Registry: registry,
-	})
-
-	if cfg.Worker.Enabled || cfg.Proxy.IsEnabled() {
-		// queue
-		queue := taskqueue.NewRedisQueue(taskqueue.RedisTaskQueueOptions{
-			Client: client,
-		}, log, app.metrics)
-		stats.Register(queue)
-		app.srv = service.NewService(service.Options{
-			DB:        db,
-			TaskQueue: queue,
-		})
-	}
-
-	// worker
-	if cfg.Worker.Enabled {
+func (app *Application) initWorker(cfg *modules.WorkerConfig, services *services.Services, client *redis.Client) error {
+	if cfg.Enabled {
 		delivererOptions := deliverer.Options{
-			Logger:         log.Named("deliverer"),
-			RequestTimeout: time.Duration(cfg.Worker.Deliverer.Timeout) * time.Millisecond,
+			Logger:         app.log.Named("deliverer"),
+			RequestTimeout: time.Duration(cfg.Deliverer.Timeout) * time.Millisecond,
 		}
-		if cfg.Worker.Deliverer.Proxy != "" {
+		if cfg.Deliverer.Proxy != "" {
 			delivererOptions.ProxyOptions = &deliverer.ProxyOptions{
-				URL:              cfg.Worker.Deliverer.Proxy,
-				TLSCert:          cfg.Worker.Deliverer.ProxyTLSCert,
-				TLSKey:           cfg.Worker.Deliverer.ProxyTLSKey,
-				TLSCaCertificate: cfg.Worker.Deliverer.ProxyTLSCaCert,
-				TLSVerify:        cfg.Worker.Deliverer.ProxyTLSVerify,
+				URL:              cfg.Deliverer.Proxy,
+				TLSCert:          cfg.Deliverer.ProxyTLSCert,
+				TLSKey:           cfg.Deliverer.ProxyTLSKey,
+				TLSCaCertificate: cfg.Deliverer.ProxyTLSCaCert,
+				TLSVerify:        cfg.Deliverer.ProxyTLSVerify,
 			}
 		}
-		if len(cfg.Worker.Deliverer.ACL.Deny) > 0 {
+		if len(cfg.Deliverer.ACL.Deny) > 0 {
 			delivererOptions.AclOptions = &deliverer.AclOptions{
-				Rules: cfg.Worker.Deliverer.ACL.Deny,
+				Rules: cfg.Deliverer.ACL.Deny,
 			}
 		}
 
-		app.worker = worker.NewWorker(worker.Options{
-			PoolSize:         int(cfg.Worker.Pool.Size),
-			PoolConcurrency:  int(cfg.Worker.Pool.Concurrency),
+		worker := worker.NewWorker(worker.Options{
+			PoolSize:         int(cfg.Pool.Size),
+			PoolConcurrency:  int(cfg.Pool.Concurrency),
 			DelivererOptions: delivererOptions,
-			DB:               db,
-			Srv:              app.srv,
-			Tracer:           tracer,
-			Metrics:          app.metrics,
-			EventBus:         app.bus,
+			DB:               app.db,
 			RedisClient:      client,
-			Scheduler:        app.scheduler,
-		})
+		}, services)
+		app.registerService(worker)
 	}
+	return nil
+}
 
-	// admin
-	if cfg.Admin.IsEnabled() {
+func (app *Application) initAdmin(cfg *modules.AdminConfig, services *services.Services, d *dispatcher.Dispatcher) error {
+	if cfg.IsEnabled() {
 		opts := api.Options{
-			Config:     cfg,
-			DB:         db,
-			Dispatcher: dispatcher,
-			EventBus:   app.bus,
+			Config:     app.cfg,
+			DB:         app.db,
+			Dispatcher: d,
 		}
-		if cfg.AccessLog.Enabled {
+		if app.cfg.AccessLog.Enabled {
 			accessLogger, err := accesslog.NewAccessLogger("admin", accesslog.Options{
-				File:    cfg.AccessLog.File,
-				Format:  string(cfg.AccessLog.Format),
-				Colored: cfg.AccessLog.Colored,
+				File:    app.cfg.AccessLog.File,
+				Format:  string(app.cfg.AccessLog.Format),
+				Colored: app.cfg.AccessLog.Colored,
 			})
 			if err != nil {
 				return err
 			}
 			opts.Middlewares = append(opts.Middlewares, accesslog.NewMiddleware(accessLogger))
 		}
-		if app.tracer != nil {
-			opts.Middlewares = append(opts.Middlewares, otelhttp.NewMiddleware("api.admin"))
-		}
-		api := api.NewAPI(opts)
-		app.admin = admin.NewAdmin(cfg.Admin, api.Handler())
+		admin := admin.NewAdmin(*cfg, api.NewAPI(opts, services).Handler())
+		app.registerService(admin)
 	}
+	return nil
+}
 
-	// gateway
-	if cfg.Proxy.IsEnabled() {
+func (app *Application) initGateway(cfg *modules.ProxyConfig, services *services.Services, d *dispatcher.Dispatcher, metrics *metrics.Metrics) error {
+	if cfg.IsEnabled() {
 		opts := proxy.Options{
-			Cfg:         &cfg.Proxy,
-			DB:          db,
-			Dispatcher:  dispatcher,
-			Metrics:     app.metrics,
-			Tracer:      tracer,
-			EventBus:    app.bus,
-			Srv:         app.srv,
-			RateLimiter: ratelimiter.NewRedisLimiter(client),
-			Scheduler:   app.scheduler,
+			Cfg:        cfg,
+			DB:         app.db,
+			Dispatcher: d,
 		}
-		if cfg.AccessLog.Enabled {
+		if tracing.Enabled("request") {
+			opts.Middlewares = append(opts.Middlewares, otelhttp.NewMiddleware("request"))
+		}
+		if app.cfg.AccessLog.Enabled {
 			accessLogger, err := accesslog.NewAccessLogger("proxy", accesslog.Options{
-				File:    cfg.AccessLog.File,
-				Format:  string(cfg.AccessLog.Format),
-				Colored: cfg.AccessLog.Colored,
+				File:    app.cfg.AccessLog.File,
+				Format:  string(app.cfg.AccessLog.Format),
+				Colored: app.cfg.AccessLog.Colored,
 			})
 			if err != nil {
 				return err
 			}
 			opts.Middlewares = append(opts.Middlewares, accesslog.NewMiddleware(accessLogger))
 		}
-		if app.tracer != nil {
-			opts.Middlewares = append(opts.Middlewares, otelhttp.NewMiddleware("api.proxy"))
+		if metrics.Enabled {
+			opts.Middlewares = append(opts.Middlewares, middlewares.NewMetricsMiddleware(metrics).Handle)
 		}
-		if app.metrics.Enabled {
-			opts.Middlewares = append(opts.Middlewares, middlewares.NewMetricsMiddleware(app.metrics).Handle)
-		}
-		app.gateway = proxy.NewGateway(opts)
+		gateway := proxy.NewGateway(opts, services)
+		app.registerService(gateway)
 	}
+	return nil
+}
 
-	if cfg.Status.IsEnabled() {
+func (app *Application) initStatus(cfg *modules.StatusConfig, s *services.Services, client *redis.Client) error {
+	if cfg.IsEnabled() {
 		var accessLogger accesslog.AccessLogger
-		if cfg.AccessLog.Enabled {
+		var err error
+		if app.cfg.AccessLog.Enabled {
 			accessLogger, err = accesslog.NewAccessLogger("status", accesslog.Options{
-				File:    cfg.AccessLog.File,
-				Format:  string(cfg.AccessLog.Format),
-				Colored: cfg.AccessLog.Colored,
+				File:    app.cfg.AccessLog.File,
+				Format:  string(app.cfg.AccessLog.Format),
+				Colored: app.cfg.AccessLog.Colored,
 			})
 			if err != nil {
 				return err
@@ -294,7 +322,7 @@ func (app *Application) initialize() error {
 		indicators = append(indicators, &health.Indicator{
 			Name: "db",
 			Check: func() error {
-				return db.Ping()
+				return app.db.Ping()
 			},
 		})
 		indicators = append(indicators, &health.Indicator{
@@ -310,27 +338,33 @@ func (app *Application) initialize() error {
 				return nil
 			},
 		})
-		indicators = append(indicators, Indicators...)
 		opts := status.Options{
 			AccessLog:  accessLogger,
-			Config:     cfg,
 			Indicators: indicators,
 		}
-		app.status = status.NewStatus(cfg.Status, app.tracer, opts)
+		app.registerService(status.NewStatus(*cfg, opts))
 	}
+	return nil
+}
 
-	app.registerScheduledTasks()
-
-	if license.GetLicenser().Allow("secret") && cfg.Secret.Enabled() {
-		manager, err := secret.NewManagerFromConfig(cfg.Secret)
+func (app *Application) initSecretMananger(cfg *modules.SecretConfig) error {
+	if license.GetLicenser().Allow("secret") && cfg.Enabled() {
+		manager, err := secret.NewManagerFromConfig(*cfg)
 		if err != nil {
 			return err
 		}
 		manager.WithLogger(app.log.Named("core"))
 		app.sm = manager
 	}
-
 	return nil
+}
+
+func (app *Application) registerService(service services.Service) {
+	app.services[service.Name()] = service
+}
+
+func (app *Application) getService(name string) services.Service {
+	return app.services[name]
 }
 
 func (app *Application) buildPluginIterator(version string) (*plugins.Iterator, error) {
@@ -347,12 +381,12 @@ func (app *Application) buildPluginIterator(version string) (*plugins.Iterator, 
 	return iterator, nil
 }
 
-func (app *Application) scheduleRebuildPluginIterator() {
-	app.bus.Subscribe("plugin.crud", func(_ interface{}) {
+func (app *Application) scheduleRebuildPluginIterator(bus eventbus.EventBus, scheduler schedule.Scheduler) {
+	bus.Subscribe("plugin.crud", func(_ interface{}) {
 		store.Set("plugin:version", utils.UUID())
 	})
 
-	app.scheduler.AddTask(&schedule.Task{
+	scheduler.AddTask(&schedule.Task{
 		Name:     "app.plugin_rebuild",
 		Interval: time.Second,
 		Do: func() {
@@ -372,14 +406,14 @@ func (app *Application) scheduleRebuildPluginIterator() {
 	})
 }
 
-func registerEventHandler(bus *eventbus.EventBus) {
+func registerEventHandler(bus eventbus.EventBus) {
 	bus.ClusteringSubscribe(eventbus.EventCRUD, func(data []byte) {
 		eventData := &eventbus.CrudData{}
 		if err := json.Unmarshal(data, eventData); err != nil {
 			zap.S().Errorf("failed to unmarshal event: %s", err)
 			return
 		}
-		bus.Broadcast(eventbus.EventCRUD, eventData)
+		bus.Broadcast(context.TODO(), eventbus.EventCRUD, eventData)
 	})
 	bus.Subscribe(eventbus.EventCRUD, func(d interface{}) {
 		data := d.(*eventbus.CrudData)
@@ -388,7 +422,7 @@ func registerEventHandler(bus *eventbus.EventBus) {
 		if err != nil {
 			zap.S().Errorf("failed to invalidate cache: key=%s %v", cacheKey.Build(data.ID), err)
 		}
-		bus.Broadcast(fmt.Sprintf("%s.crud", data.Entity), data)
+		bus.Broadcast(context.TODO(), fmt.Sprintf("%s.crud", data.Entity), data)
 	})
 }
 
@@ -396,25 +430,17 @@ func (app *Application) DB() *db.DB {
 	return app.db
 }
 
-func (app *Application) Worker() *worker.Worker {
-	return app.worker
-}
-
-func (app *Application) NodeID() string {
-	return app.nodeID
-}
-
 func (app *Application) Config() *config.Config {
 	return app.cfg
 }
 
 func (app *Application) Scheduler() schedule.Scheduler {
-	return app.scheduler
+	return app.getService("schedule").(schedule.Scheduler)
 }
 
-func (app *Application) registerScheduledTasks() {
+func (app *Application) registerScheduledTasks(scheduler schedule.Scheduler) {
 	if app.cfg.AnonymousReports {
-		app.scheduler.AddTask(&schedule.Task{
+		scheduler.AddTask(&schedule.Task{
 			Name:         "anonymous_reports",
 			InitialDelay: time.Hour,
 			Interval:     time.Hour * 24,
@@ -422,7 +448,7 @@ func (app *Application) registerScheduledTasks() {
 		})
 	}
 
-	app.scheduler.AddTask(&schedule.Task{
+	scheduler.AddTask(&schedule.Task{
 		Name:     "license.expiration",
 		Interval: time.Hour * 24,
 		Do: func() {
@@ -440,14 +466,27 @@ func (app *Application) registerScheduledTasks() {
 	})
 }
 
+// Run runs application
+func (app *Application) Run() error {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	if err := app.Start(); err != nil {
+		return err
+	}
+
+	<-ctx.Done()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	return app.stop(ctx)
+}
+
 // Start starts application
 func (app *Application) Start() error {
 	app.mux.Lock()
 	defer app.mux.Unlock()
-
-	if app.started {
-		return ErrApplicationStarted
-	}
 
 	if app.cfg.Log.Format == modules.LogFormatText && app.cfg.Log.File == "" {
 		colored := app.cfg.Log.Colored
@@ -460,10 +499,10 @@ func (app *Application) Start() error {
 		fmt.Println()
 	}
 
-	migrator := migrator.New(app.db.DB.DB, nil)
-	dbStatus, err := migrator.Status()
+	migrate := migrator.New(app.db.DB.DB, nil)
+	dbStatus, err := migrate.Status()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check db status: %w", err)
 	}
 	if dbStatus.Dirty {
 		return fmt.Errorf("database is in a dirty state at version %d", dbStatus.Version)
@@ -481,49 +520,32 @@ func (app *Application) Start() error {
 		}
 	}))
 
-	if app.worker != nil || app.gateway != nil {
+	if app.getService("worker") != nil || app.getService("proxy") != nil {
 		iterator, err := app.buildPluginIterator("init")
 		if err != nil {
 			return fmt.Errorf("failed to build plugin iterator: %s", err)
 		}
 		plugins.SetIterator(iterator)
-		app.scheduleRebuildPluginIterator()
-	}
-
-	if err := app.bus.Start(); err != nil {
-		return err
-	}
-	if app.metrics != nil {
-		_ = app.metrics.Start()
-	}
-	if app.admin != nil {
-		app.admin.Start()
-	}
-	if app.worker != nil {
-		if err := app.worker.Start(); err != nil {
-			return err
-		}
-	}
-	if app.gateway != nil {
-		app.gateway.Start()
-	}
-	if app.status != nil {
-		app.status.Start()
+		app.scheduleRebuildPluginIterator(
+			app.getService("eventbus").(eventbus.EventBus),
+			app.getService("schedule").(schedule.Scheduler),
+		)
 	}
 
 	if !app.cfg.AnonymousReports {
 		app.log.Info("anonymous reports is disabled")
 	}
 
-	app.scheduler.Start()
-
-	app.started = true
-
-	return nil
-}
-
-func (app *Application) Wait() {
-	<-app.stop
+	services := []services.Service{
+		app.getService("eventbus"),
+		app.getService("metrics"),
+		app.getService("admin"),
+		app.getService("worker"),
+		app.getService("proxy"),
+		app.getService("status"),
+		app.getService("schedule"),
+	}
+	return startServices(services...)
 }
 
 // Stop sotps application
@@ -531,42 +553,64 @@ func (app *Application) Stop() error {
 	app.mux.Lock()
 	defer app.mux.Unlock()
 
-	if !app.started {
-		return ErrApplicationStopped
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+	err := app.stop(ctx)
+	return err
+}
 
+func (app *Application) stop(ctx context.Context) error {
 	app.log.Info("exiting 👋")
 
-	defer func() {
-		app.log.Info("exit")
-		_ = app.log.Sync()
-	}()
+	defer func() { _ = app.log.Sync() }()
 
-	_ = app.bus.Stop()
-	if app.metrics != nil {
-		_ = app.metrics.Stop()
-	}
-	// TODO: timeout
-	if app.admin != nil {
-		_ = app.admin.Stop()
-	}
-	if app.worker != nil {
-		_ = app.worker.Stop()
-	}
-	if app.gateway != nil {
-		_ = app.gateway.Stop()
-	}
-	if app.status != nil {
-		_ = app.status.Stop()
-	}
-	if app.tracer != nil {
-		_ = app.tracer.Stop()
-	}
+	var errs []error
+	errs = append(errs, stopServices(ctx, time.Second*10, app.getService("proxy"), app.getService("admin"), app.getService("status")))
+	errs = append(errs, stopServices(ctx, 0, app.getService("eventbus")))
+	errs = append(errs, stopServices(ctx, 0, app.getService("worker")))
+	errs = append(errs, stopServices(ctx, time.Second*5, app.getService("metrics"), app.getService("tracing")))
+	errs = append(errs, stopServices(ctx, 0, app.getService("schedule")))
+	errs = append(errs, app.db.Close())
 
-	app.scheduler.Stop()
+	app.log.Info("exit")
 
-	app.started = false
-	app.stop <- struct{}{}
+	return errors.Join(errs...)
+}
 
+func startServices(services ...services.Service) error {
+	for _, s := range services {
+		if s != nil {
+			if err := s.Start(); err != nil {
+				return fmt.Errorf("failed to start service '%s': %w", s.Name(), err)
+			}
+		}
+	}
 	return nil
+}
+
+func stopServices(ctx context.Context, timeout time.Duration, services ...services.Service) error {
+	var mu sync.Mutex
+	var errs []error
+	var g sync.WaitGroup
+
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
+	for _, s := range services {
+		if s != nil {
+			g.Go(func() {
+				if err := s.Stop(ctx); err != nil {
+					mu.Lock()
+					errs = append(errs, fmt.Errorf("failed to stop service '%s': %w", s.Name(), err))
+					mu.Unlock()
+				}
+			})
+		}
+	}
+	g.Wait()
+
+	return errors.Join(errs...)
 }

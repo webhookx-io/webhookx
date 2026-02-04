@@ -1,13 +1,14 @@
 package accesslog
 
 import (
+	"context"
 	"errors"
 	"io"
 	"os"
 )
 
 type AccessLogger interface {
-	Log(entry *Entry)
+	Log(ctx context.Context, entry *Entry)
 }
 
 type Options struct {

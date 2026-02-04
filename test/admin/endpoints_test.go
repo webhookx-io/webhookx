@@ -27,7 +27,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 		db = helper.InitDB(true, nil)
 		var err error
 		adminClient = helper.AdminClient()
-		app, err = helper.Start(map[string]string{})
+		app, err = helper.Start(nil)
 		assert.Nil(GinkgoT(), err)
 		ws, err = db.Workspaces.GetDefault(context.TODO())
 		assert.Nil(GinkgoT(), err)

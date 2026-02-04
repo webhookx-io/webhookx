@@ -49,7 +49,7 @@ var _ = Describe("ordering", Ordered, func() {
 
 		BeforeAll(func() {
 			helper.InitDB(true, &entitiesConfig)
-			app = utils.Must(helper.Start(map[string]string{}))
+			app = utils.Must(helper.Start(nil))
 		})
 
 		AfterAll(func() {

@@ -1,11 +1,13 @@
 # WebhookX
 
-[![release](https://img.shields.io/github/v/release/webhookx-io/webhookx?color=green)](https://github.com/webhookx-io/webhookx/releases) [![test-workflow](https://github.com/webhookx-io/webhookx/actions/workflows/test.yml/badge.svg)](https://github.com/webhookx-io/webhookx/actions/workflows/test.yml) [![lint-workflow](https://github.com/webhookx-io/webhookx/actions/workflows/lint.yml/badge.svg)](https://github.com/webhookx-io/webhookx/actions/workflows/lint.yml) [![codecov](https://codecov.io/gh/webhookx-io/webhookx/graph/badge.svg?token=O4AQNRBJRF)](https://codecov.io/gh/webhookx-io/webhookx) [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go) 
+[![release](https://img.shields.io/github/v/release/webhookx-io/webhookx?color=green)](https://github.com/webhookx-io/webhookx/releases) [![test-workflow](https://github.com/webhookx-io/webhookx/actions/workflows/test.yml/badge.svg)](https://github.com/webhookx-io/webhookx/actions/workflows/test.yml) [![lint-workflow](https://github.com/webhookx-io/webhookx/actions/workflows/lint.yml/badge.svg)](https://github.com/webhookx-io/webhookx/actions/workflows/lint.yml) [![codecov](https://codecov.io/gh/webhookx-io/webhookx/graph/badge.svg?token=O4AQNRBJRF)](https://codecov.io/gh/webhookx-io/webhookx) [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)
 
 [![Join Slack](https://img.shields.io/badge/Join_WebhookX_👋-green?logo=slack&label=Slack)](https://join.slack.com/t/webhookx/shared_invite/zt-3ekjrpig4-1T~kOq8aUh7XXA5xiSGtXw) [![Twitter](https://img.shields.io/twitter/follow/WebhookX.svg?style=social)](https://twitter.com/intent/follow?screen_name=WebhookX)
 
+WebhookX is an open-source webhook gateway for receiving, validating, transforming, and delivering events at scale.
 
-WebhookX is an open-source webhooks gateway for message receiving, processing, and delivering.
+**Docs:** https://docs.webhookx.io  
+**OpenAPI:** https://openapi.webhookx.io
 
 
 ## Architecture
@@ -23,26 +25,28 @@ WebhookX is an open-source webhooks gateway for message receiving, processing, a
 
 ## Features
 
-- **Admin API:** Expose a RESTful API on port `:9601` for managing WebhookX entities.
-- **Retries:** Automatically retry unsuccessful deliveries with configurable delays.
-- **Fan out:** Route events to multiple endpoints based on the event type.
-- **Rate Limiting:** Protect the gateway ingestion and delivery endpoints from overload.
-- **Declarative configuration:** Manage WebhookX through declarative configuration files to achieve GitOps/DevOps workflows.
-- **Multi tenancy:**  Multiple workspaces. Each workspace provides the isolation of configuration entities.
-- **Plugins:** Extend functionality via inbound and outbound plugins.
-  - `webhookx-signature`: Sign outbound requests with HMAC(SHA-256) by adding `Webhookx-Signature` and `Webhookx-Timestamp` headers.
-  - `wasm`: Transform outbound requests using high-level languages such as AssemblyScript, Rust or TinyGo. See [plugin/wasm](plugins/wasm).
-  - `function`: Customize inbound behavior with JavaScript, e.g. signature verification or request body transformation.
-  - `event-validation`: Validate event's data against JSON Schema definition. 
-  - Security: Built-in authn plugins `hmac-auth`, `basic-auth`, `key-auth`, and `connect-auth`.  
-- **Observability:** OpenTelemetry metrics and tracing for monitoring and troubleshooting.
-- **Secret Management:** Define secrets in configuration and plugin's configuration, and reference them from external providers (e.g., AWS Secrets Manager, HashiCorp Vault).
+- **Admin API:** RESTful management API on port `:9601`.
+- **Reliable delivery:** Automatic retries with configurable delays.
+- **Fan out:** Route events to multiple endpoints based on event type.
+- **Rate limiting:** Protect ingestion and delivery from overload.
+- **Declarative configuration:** GitOps-friendly configuration files.
+- **Multi tenancy:** Workspace isolation for configuration entities.
+- **Plugins:** Extensible inbound and outbound processing.
+- **Observability:** OpenTelemetry metrics and tracing.
+- **Secret management:** Reference secrets from external providers.
+
+**Built-in plugins**
+- `webhookx-signature`: Sign outbound requests with HMAC (SHA-256)  by adding `Webhookx-Signature` and `Webhookx-Timestamp` headers.
+- `wasm`: Transform outbound requests using AssemblyScript, Rust, or TinyGo. See `plugins/wasm`.
+- `function`: Customize inbound behavior with JavaScript (signature verification or request body transformation).
+- `event-validation`: Validate event data against JSON Schema.
+- Security Plugins: `hmac-auth`, `basic-auth`, `key-auth`, `connect-auth`.
 
 
 
 ## Installation
 
-WebhookX binary provides you both Server and CLI command.
+The WebhookX binary includes both server and CLI command.
 
 ### macOS
 
@@ -57,7 +61,7 @@ Download the binary distribution on [releases](https://github.com/webhookx-io/we
 ## Get started
 
 > [!TIP]
-> This is only for evaluating features and is not suitable for production. For production deployment, please refer [documentation](https://docs.webhookx.io/docs/).
+> This quick start is for evaluation only. For production deployment, see the [documentation](https://docs.webhookx.io/docs/).
 
 ### 1. Start WebhookX using Docker Compose
 
@@ -67,7 +71,7 @@ The  [`docker-compose.yml`](https://github.com/webhookx-io/webhookx/blob/main/do
 curl -O https://raw.githubusercontent.com/webhookx-io/webhookx/main/docker-compose.yml && docker compose -f docker-compose.yml up
 ```
 
-Once it's running, you will see HTTP 200 response
+Once it's running, you will see an HTTP 200 response.
 
 ```
 curl http://localhost:9601
@@ -87,7 +91,7 @@ Server: WebhookX/0.9.0
 
 
 
-### 2. Setup entities configuration
+### 2. Configure entities
 
 Let's use a sample declarative configuration [webhookx.sample.yml](https://github.com/webhookx-io/webhookx/blob/main/webhookx.sample.yml) in this quick start.
 
@@ -97,13 +101,13 @@ Let's use a sample declarative configuration [webhookx.sample.yml](https://githu
 webhookx admin sync webhookx.sample.yml
 ```
 
-This command sends the configuration file to WebhookX via Admin API.
+This command sends the configuration file to WebhookX via the Admin API.
 
 Once it is set up, you're ready to send events to WebhookX.
 
 
 
-### 3. Send events to WebhookX
+### 3. Send events
 
 > The Ingestion is exposed on port  `:9600`
 
@@ -118,19 +122,19 @@ curl -X POST http://localhost:9600 \
 }'
 ```
 
-We sent a `charge.succeeded` event including `data` to WebhookX, and it will be routed and delivered to endpoints that are defined in the `webhookx.sample.yml`file.
+This sends a `charge.succeeded` event with `data`. WebhookX routes it to endpoints defined in `webhookx.sample.yml`.
 
 
 
-### 4. Inspect delivery result
+### 4. Inspect delivery results
 
 > [!TIP]
 >
-> Attempt object represents the delivery result of an event, and contains inspection information. 
+> Attempt objects represent delivery results and include inspection details.
 
 > The Admin is exposed on port  `:9601`
 
-Let's make a request to retrieve the attempt list
+Retrieve the attempt list:
 
 ```
 curl http://localhost:9601/workspaces/default/attempts
@@ -174,7 +178,7 @@ curl http://localhost:9601/workspaces/default/attempts
 ```
 </details>
 
-To inspect the data such as `request.headers`, `request.body`, `response.headers`, and  `response.body`, try
+To inspect `request.headers`, `request.body`, `response.headers`, and `response.body`, use:
 
 ```
 http://localhost:9601/workspaces/default/attempts/338lax8Xe774EhimzBukip37Zne
@@ -233,7 +237,7 @@ http://localhost:9601/workspaces/default/attempts/338lax8Xe774EhimzBukip37Zne
 
 
 
-To explore all the API, see [openapi.webhookx.io](https://openapi.webhookx.io).
+For the full API, see [openapi.webhookx.io](https://openapi.webhookx.io).
 
 
 
@@ -264,10 +268,10 @@ Use "webhookx [command] --help" for more information about a command.
 
 ## Runtime dependencies
 
-Requires the following runtime dependencies to work:
+Requires the following runtime dependencies:
 
-- PostgreSQL(>=13): Lower versions of PostgreSQL may work, but have not been fully tested.
-- Redis(>=6.2): Requires minimum version 6.2.
+- PostgreSQL (>=13): lower versions may work but are not fully tested.
+- Redis (>=6.2): minimum required version.
 
 
 
@@ -281,15 +285,15 @@ The public API will strictly follow semantic versioning after `v1.0.0`.
 
 ## Contributing
 
-We ❤️ pull requests, and we’re continually working hard to make it as easy as possible for developers to contribute.
+We welcome pull requests and aim to keep contribution flow smooth and well-documented.
 
-Thank you for your contribution to WebhookX!
+Thank you for contributing to WebhookX.
 
 
 
 ## Stay Ahead
 
-Star WebhookX on GitHub for instant updates on new releases.
+Star WebhookX on GitHub to get release updates.
 
 <img src="./docs/star.gif" alt="star" width="100%"/>
 

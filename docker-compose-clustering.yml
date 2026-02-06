@@ -16,7 +16,7 @@ services:
     command: "--appendonly yes --appendfsync everysec"
 
   webhookx-migration:
-    image: "webhookx/webhookx:1.0.0"
+    image: "webhookx/webhookx:1.0.1"
     container_name: webhookx-migration
     environment:
       WEBHOOKX_DATABASE_HOST: postgres
@@ -29,7 +29,7 @@ services:
         condition: service_healthy
 
   webhookx-cp:
-    image: "webhookx/webhookx:1.0.0"
+    image: "webhookx/webhookx:1.0.1"
     environment:
       WEBHOOKX_DATABASE_HOST: postgres
       WEBHOOKX_DATABASE_USERNAME: webhookx
@@ -46,7 +46,7 @@ services:
         condition: service_started
 
   webhookx-dp-gateway:
-    image: "webhookx/webhookx:1.0.0"
+    image: "webhookx/webhookx:1.0.1"
     environment:
       WEBHOOKX_DATABASE_HOST: postgres
       WEBHOOKX_DATABASE_USERNAME: webhookx
@@ -69,7 +69,7 @@ services:
         condition: service_started
 
   webhookx-dp-worker:
-    image: "webhookx/webhookx:1.0.0"
+    image: "webhookx/webhookx:1.0.1"
     environment:
       WEBHOOKX_DATABASE_HOST: postgres
       WEBHOOKX_DATABASE_USERNAME: webhookx

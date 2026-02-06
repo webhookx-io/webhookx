@@ -41,6 +41,41 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: Cache Docker images
+        uses: actions/cache@v4
+        id: docker-cache
+        with:
+          path: /tmp/.docker
+          key: ${{ runner.os }}-docker-images-${{ hashFiles('test/docker-compose.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-images-
+      - name: Load Docker images from cache
+        if: steps.docker-cache.outputs.cache-hit == 'true'
+        run: |
+          if [ -f /tmp/.docker/images.tar ]; then
+            docker load -i /tmp/.docker/images.tar
+          fi
+      - name: Pull Docker images
+        run: |
+          docker compose -f test/docker-compose.yml pull
+      - name: Save Docker images to cache
+        if: steps.docker-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /tmp/.docker
+          # Get all images from docker-compose.yml and save them
+          # Use a temporary file to store images list to avoid subshell issues
+          docker compose -f test/docker-compose.yml config --images > /tmp/.docker/images_list.txt 2>/dev/null || true
+          if [ -s /tmp/.docker/images_list.txt ]; then
+            while IFS= read -r img || [ -n "$img" ]; do
+              [ -z "$img" ] && continue
+              filename=$(echo "$img" | tr '/:' '_' | tr -d ' ')
+              docker save "$img" -o "/tmp/.docker/${filename}.tar" 2>/dev/null || true
+            done < /tmp/.docker/images_list.txt
+            # Combine all image tars into one compressed archive
+            if ls /tmp/.docker/*.tar 1> /dev/null 2>&1; then
+              cd /tmp/.docker && tar -czf images.tar.gz *.tar && rm -f *.tar images_list.txt && mv images.tar.gz images.tar
+            fi
+          fi
       - name: starts dependencies
         run: |
           mkdir -p test/output/otel
@@ -72,6 +107,41 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: Cache Docker images
+        uses: actions/cache@v4
+        id: docker-cache
+        with:
+          path: /tmp/.docker
+          key: ${{ runner.os }}-docker-images-${{ hashFiles('test/docker-compose.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-images-
+      - name: Load Docker images from cache
+        if: steps.docker-cache.outputs.cache-hit == 'true'
+        run: |
+          if [ -f /tmp/.docker/images.tar ]; then
+            docker load -i /tmp/.docker/images.tar
+          fi
+      - name: Pull Docker images
+        run: |
+          docker compose -f test/docker-compose.yml pull
+      - name: Save Docker images to cache
+        if: steps.docker-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /tmp/.docker
+          # Get all images from docker-compose.yml and save them
+          # Use a temporary file to store images list to avoid subshell issues
+          docker compose -f test/docker-compose.yml config --images > /tmp/.docker/images_list.txt 2>/dev/null || true
+          if [ -s /tmp/.docker/images_list.txt ]; then
+            while IFS= read -r img || [ -n "$img" ]; do
+              [ -z "$img" ] && continue
+              filename=$(echo "$img" | tr '/:' '_' | tr -d ' ')
+              docker save "$img" -o "/tmp/.docker/${filename}.tar" 2>/dev/null || true
+            done < /tmp/.docker/images_list.txt
+            # Combine all image tars into one compressed archive
+            if ls /tmp/.docker/*.tar 1> /dev/null 2>&1; then
+              cd /tmp/.docker && tar -czf images.tar.gz *.tar && rm -f *.tar images_list.txt && mv images.tar.gz images.tar
+            fi
+          fi
       - name: starts dependencies
         run: |
           mkdir -p test/output/otel

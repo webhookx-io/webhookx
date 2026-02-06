@@ -121,7 +121,7 @@ func decode(parts []interface{}) *TaskMessage {
 	task := &TaskMessage{}
 	task.ID = parts[0].(string)
 	task.ScheduledAt = time.UnixMilli(parts[1].(int64))
-	if len(parts) >= 3 {
+	if len(parts) >= 3 && parts[2] != nil {
 		task.data = []byte((parts[2].(string)))
 	}
 	return task
@@ -164,11 +164,7 @@ func (q *RedisTaskQueue) Delete(ctx context.Context, ids ...string) error {
 
 	pipeline := q.c.Pipeline()
 	pipeline.HDel(ctx, q.queueData, ids...)
-	members := make([]interface{}, len(ids))
-	for i, id := range ids {
-		members[i] = id
-	}
-	pipeline.ZRem(ctx, q.queue, members...)
+	pipeline.ZRem(ctx, q.queue, ids)
 	_, err := pipeline.Exec(ctx)
 	return err
 }

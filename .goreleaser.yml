@@ -15,8 +15,8 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -X github.com/webhookx-io/webhookx/config.COMMIT={{ .ShortCommit }}
-      - -X github.com/webhookx-io/webhookx/config.VERSION={{ .Tag }}
+      - -X github.com/webhookx-io/webhookx.COMMIT={{ .ShortCommit }}
+      - -X github.com/webhookx-io/webhookx.VERSION={{ .Tag }}
     main: ./cmd/main
 
 checksum:

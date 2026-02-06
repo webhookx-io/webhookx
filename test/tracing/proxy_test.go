@@ -126,7 +126,9 @@ var _ = Describe("tracing proxy", Ordered, func() {
 					traceId := trace.SpanContextFromContext(ctx).TraceID()
 					assertor := NewTraceAsserter(exportor.GetSpans().Snapshots())
 					s := assertor.FindSpan("queue.messages.process")
-					return len(s.Links()) > 0 && s.Links()[0].SpanContext.TraceID().String() == traceId.String()
+					return s != nil &&
+						len(s.Links()) > 0 &&
+						s.Links()[0].SpanContext.TraceID().String() == traceId.String()
 				}, time.Second*3, time.Second)
 			})
 		})

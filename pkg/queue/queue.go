@@ -16,7 +16,10 @@ type Message struct {
 }
 
 func (m *Message) GetTraceContext(ctx context.Context) context.Context {
-	return otel.GetTextMapPropagator().Extract(ctx, propagation.MapCarrier(m.TraceContext))
+	if m.TraceContext != nil {
+		return otel.GetTextMapPropagator().Extract(ctx, propagation.MapCarrier(m.TraceContext))
+	}
+	return ctx
 }
 
 type HandlerFunc func(ctx context.Context, messages []*Message) error

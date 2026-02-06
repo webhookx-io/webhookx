@@ -76,21 +76,21 @@ func toMessage(fields map[string]interface{}) *queue.Message {
 
 	if data, ok := fields["data"].(string); ok {
 		message.Value = []byte(data)
-		delete(fields, "data")
 	}
 
 	if timestr, ok := fields["time"].(string); ok {
 		t, _ := strconv.ParseInt(timestr, 10, 64)
 		message.Time = time.UnixMilli(t)
-		delete(fields, "time")
 	}
 
 	if wsid, ok := fields["ws_id"].(string); ok {
 		message.WorkspaceID = wsid
-		delete(fields, "ws_id")
 	}
 
-	if len(fields) > 0 {
+	if len(fields) > 3 {
+		delete(fields, "data")
+		delete(fields, "time")
+		delete(fields, "ws_id")
 		message.TraceContext = make(map[string]string)
 		for k, v := range fields {
 			message.TraceContext[k] = fmt.Sprintf("%v", v)

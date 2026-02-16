@@ -13,7 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.1
 	github.com/creasty/defaults v1.8.0
 	github.com/dop251/goja v0.0.0-20260106131823-651366fbe6e3
-	github.com/elazarl/goproxy v1.8.1
+	github.com/elazarl/goproxy v1.8.2
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/go-kit/kit v0.13.0
 	github.com/go-playground/validator/v10 v10.30.1

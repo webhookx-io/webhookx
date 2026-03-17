@@ -1,0 +1,36 @@
+name: Bot
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  bench:
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/bench')
+    permissions:
+      contents: read
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout head ref
+        uses: actions/checkout@v4
+
+      - name: Build docker images
+        run: |
+          docker build -t webhookx/webhookx:${{ github.event.issue.pull_request.head.sha }} .
+
+      - name: Run benchmark
+        uses: webhookx-io/webhookx-benchmark@main
+        with:
+          version: ${{ github.event.issue.pull_request.head.sha }}
+
+      - name: Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "benchmark done"
+            })

@@ -6,27 +6,57 @@ on:
 
 jobs:
   bench:
-    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/bench')
+    if: |
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/bench') &&
+      (
+        github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'OWNER'
+      )
     permissions:
       contents: read
       issues: write
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout head ref
-        uses: actions/checkout@v4
+      - name: Get PR refs
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            core.setOutput('base_sha', pr.data.base.sha);
+            core.setOutput('head_sha', pr.data.head.sha);
 
-      - name: Get SHA
-        id: vars
-        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+      - name: Checkout base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.base_sha }}
+          path: repo/base
+
+      - name: Checkout head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.head_sha }}
+          path: repo/head
 
       - name: Build docker images
         run: |
-          docker build -t webhookx/webhookx:${{ steps.vars.outputs.sha }} .
+          docker build -t webhookx/webhookx:${{ steps.pr.outputs.base_sha }} repo/base
+          docker build -t webhookx/webhookx:${{ steps.pr.outputs.head_sha }} repo/head
 
-      - name: Run benchmark
+      - name: Run base benchmark
         uses: webhookx-io/webhookx-benchmark@main
         with:
-          version: ${{ steps.vars.outputs.sha }}
+          version: ${{ steps.pr.outputs.base_sha }}
+
+      - name: Run head benchmark
+        uses: webhookx-io/webhookx-benchmark@main
+        with:
+          version: ${{ steps.pr.outputs.head_sha }}
 
       - name: Comment
         uses: actions/github-script@v7

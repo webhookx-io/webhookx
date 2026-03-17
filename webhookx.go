@@ -14,3 +14,4 @@ var OpenAPI []byte
 
 //go:embed logo.txt
 var Logo string
+

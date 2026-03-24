@@ -36,10 +36,9 @@ sources:
     plugins:
       - name: "event-validation"
         config:
-          draft: "6"
+          version: "draft-06"
           schemas:
-            charge.succeeded:
-              schema: |
+            charge.succeeded: |
                 {
                   "type": "object",
                   "properties": {

@@ -543,7 +543,7 @@ func VaultClient() *vault.Client {
 
 func SecretManangerClient() *secretsmanager.Client {
 	cfg, err := awsconfig.LoadDefaultConfig(context.TODO(),
-		awsconfig.WithBaseEndpoint("http://127.0.0.1:4566"),
+		awsconfig.WithBaseEndpoint("http://localhost:4566"),
 		awsconfig.WithRegion("us-east-1"),
 		awsconfig.WithCredentialsProvider(aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(
 			"test",

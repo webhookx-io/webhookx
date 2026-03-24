@@ -46,7 +46,7 @@ services:
 
   localstack:
     container_name: "localstack"
-    image: localstack/localstack
+    image: localstack/localstack:4
     ports:
       - "4566:4566"
     environment:

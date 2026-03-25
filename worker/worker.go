@@ -17,7 +17,6 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/batchqueue"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
@@ -188,10 +187,10 @@ func (w *Worker) registerEventHandler(bus eventbus.EventBus) {
 		}
 		defer func() { _, _ = mux.Unlock() }()
 
-		q := query.AttemptQuery{}
+		q := dao.AttemptQuery{}
 		q.IDs = fanoutData.AttemptIds
 		q.Status = utils.Pointer(entities.AttemptStatusInit)
-		attempts, err := w.db.Attempts.List(ctx, &q)
+		attempts, err := w.db.Attempts.List(ctx, q.ToQuery())
 		if err != nil {
 			w.log.Errorf("failed to list attempts: id=%s err=%s", fanoutData.EventId, err)
 			return

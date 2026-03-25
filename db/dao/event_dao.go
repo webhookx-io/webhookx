@@ -65,3 +65,8 @@ func (dao *eventDao) BatchInsertIgnoreConflict(ctx context.Context, events []*en
 	}
 	return inserteds, rows.Err()
 }
+
+
+type EventQuery struct {
+	Query
+}

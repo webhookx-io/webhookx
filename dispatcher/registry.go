@@ -6,8 +6,8 @@ import (
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/utils"
 	"golang.org/x/sync/singleflight"
 )
@@ -26,7 +26,7 @@ func NewRegistry(db *db.DB) *Registry {
 }
 
 func (r *Registry) Warmup() error {
-	workspaces, err := r.db.Workspaces.List(context.TODO(), &query.WorkspaceQuery{})
+	workspaces, err := r.db.Workspaces.List(context.TODO(), &dao.Query{})
 	if err != nil {
 		return err
 	}
@@ -43,10 +43,10 @@ func (r *Registry) Warmup() error {
 }
 
 func (r *Registry) load(ctx context.Context, wid string) (*Registration, error) {
-	var q query.EndpointQuery
+	var q dao.EndpointQuery
 	q.WorkspaceId = &wid
 	q.Enabled = utils.Pointer(true)
-	endpoints, err := r.db.Endpoints.List(ctx, &q)
+	endpoints, err := r.db.Endpoints.List(ctx, q.ToQuery())
 	if err != nil {
 		return nil, err
 	}

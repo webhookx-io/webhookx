@@ -10,8 +10,8 @@ import (
 	"github.com/webhookx-io/webhookx/admin/api"
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
@@ -185,11 +185,11 @@ var _ = Describe("/events", Ordered, func() {
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 200, resp.StatusCode())
 
-				q := query.AttemptQuery{
+				q := dao.AttemptQuery{
 					EventId:    &eventId,
 					EndpointId: &endpointId,
 				}
-				attempts, err := db.Attempts.List(context.TODO(), &q)
+				attempts, err := db.Attempts.List(context.TODO(), q.ToQuery())
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 1, len(attempts))
 				assert.Equal(GinkgoT(), entities.AttemptTriggerModeManual, attempts[0].TriggerMode)

@@ -21,3 +21,17 @@ func NewSourceDAO(db *sqlx.DB, fns ...OptionFunc) SourceDAO {
 		DAO: NewDAO[entities.Source](db, opts, fns...),
 	}
 }
+
+type SourceQuery struct {
+	Query
+
+	WorkspaceId *string
+}
+
+func (q *SourceQuery) ToQuery() *Query {
+	query := q.clone()
+	if q.WorkspaceId != nil {
+		query.Where("ws_id", Equal, *q.WorkspaceId)
+	}
+	return &query
+}

@@ -11,7 +11,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/db/errs"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/db/transaction"
 	"github.com/webhookx-io/webhookx/pkg/contextx"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
@@ -134,10 +133,7 @@ func (dao *DAO[T]) Get(ctx context.Context, id string) (entity *T, err error) {
 
 func (dao *DAO[T]) Select(ctx context.Context, field string, value string) (entity *T, err error) {
 	builder := psql.Select("*").From(dao.opts.Table).Where(sq.Eq{field: value})
-	if dao.workspace {
-		wid := contextx.GetWorkspaceID(ctx)
-		builder = builder.Where(sq.Eq{"ws_id": wid})
-	}
+	builder = dao.workspaceFilter(ctx, builder)
 	statement, args := builder.MustSql()
 	dao.debugSQL(statement, args)
 	entity = new(T)
@@ -150,10 +146,7 @@ func (dao *DAO[T]) Select(ctx context.Context, field string, value string) (enti
 
 func (dao *DAO[T]) selectByField(ctx context.Context, field string, value string) (entity *T, err error) {
 	builder := psql.Select("*").From(dao.opts.Table).Where(sq.Eq{field: value})
-	if dao.workspace {
-		wid := contextx.GetWorkspaceID(ctx)
-		builder = builder.Where(sq.Eq{"ws_id": wid})
-	}
+	builder = dao.workspaceFilter(ctx, builder)
 	statement, args := builder.MustSql()
 	dao.debugSQL(statement, args)
 	entity = new(T)
@@ -189,60 +182,139 @@ func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
 	return true, nil
 }
 
-func (dao *DAO[T]) Page(ctx context.Context, q query.Queryer) (list []*T, total int64, err error) {
-	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.page", dao.opts.Table))
-	defer span.End()
-
-	total, err = dao.Count(ctx, q.WhereMap())
-	if err != nil {
-		return
+func appendWhere(builder sq.SelectBuilder, conditions []Condition) sq.SelectBuilder {
+	for _, where := range conditions {
+		switch where.Op {
+		case Equal:
+			builder = builder.Where(sq.Eq{where.Column: where.Value})
+		case JsonContain:
+			builder = builder.Where(where.Column+" @> ?", where.Value) // FIXME: sql injection
+		case GreaterThan:
+			builder = builder.Where(sq.Gt{where.Column: where.Value})
+		case GreaterThanOrEqual:
+			builder = builder.Where(sq.GtOrEq{where.Column: where.Value})
+		case LesserThan:
+			builder = builder.Where(sq.Lt{where.Column: where.Value})
+		case LesserThanOrEqual:
+			builder = builder.Where(sq.LtOrEq{where.Column: where.Value})
+		}
 	}
-	list, err = dao.List(ctx, q)
-	return
+	return builder
 }
 
-func (dao *DAO[T]) Count(ctx context.Context, where map[string]interface{}) (total int64, err error) {
+func appendOrder(builder sq.SelectBuilder, orders []Order) sq.SelectBuilder {
+	for _, order := range orders {
+		builder = builder.OrderBy(order.SQL())
+	}
+	return builder
+}
+
+func (dao *DAO[T]) workspaceFilter(ctx context.Context, builder sq.SelectBuilder) sq.SelectBuilder {
+	if dao.workspace {
+		wid := contextx.GetWorkspaceID(ctx)
+		builder = builder.Where("ws_id = ?", wid)
+	}
+	return builder
+}
+
+func (dao *DAO[T]) Count(ctx context.Context, query *Query) (total int64, err error) {
+	if query == nil {
+		panic("query is nil")
+	}
+
 	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.count", dao.opts.Table))
 	defer span.End()
 
 	builder := psql.Select("COUNT(*)").From(dao.opts.Table)
-	if len(where) > 0 {
-		builder = builder.Where(where)
-	}
-	if dao.workspace {
-		wid := contextx.GetWorkspaceID(ctx)
-		builder = builder.Where(sq.Eq{"ws_id": wid})
-	}
+	builder = appendWhere(builder, query.wheres)
+	builder = dao.workspaceFilter(ctx, builder)
 	statement, args := builder.MustSql()
 	dao.debugSQL(statement, args)
 	err = dao.DB(ctx).GetContext(ctx, &total, statement, args...)
 	return
 }
 
-func (dao *DAO[T]) List(ctx context.Context, q query.Queryer) (list []*T, err error) {
+func (dao *DAO[T]) List(ctx context.Context, query *Query) (list []*T, err error) {
+	if query == nil {
+		panic("query is nil")
+	}
+
 	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.list", dao.opts.Table))
 	defer span.End()
 
 	builder := psql.Select("*").From(dao.opts.Table)
-	where := q.WhereMap()
-	if len(where) > 0 {
-		builder = builder.Where(where)
+	builder = appendWhere(builder, query.wheres)
+	builder = dao.workspaceFilter(ctx, builder)
+	builder = appendOrder(builder, query.orders)
+
+	if query.limit != 0 {
+		builder = builder.Limit(uint64(query.limit))
 	}
-	if dao.workspace {
-		wid := contextx.GetWorkspaceID(ctx)
-		builder = builder.Where(sq.Eq{"ws_id": wid})
+	if query.offset != 0 {
+		builder = builder.Offset(uint64(query.offset))
 	}
-	if q.Limit() != 0 {
-		builder = builder.Offset(uint64(q.Offset()))
-		builder = builder.Limit(uint64(q.Limit()))
-	}
-	for _, order := range q.Orders() {
-		builder = builder.OrderBy(order.Column + " " + order.Sort)
-	}
+
 	statement, args := builder.MustSql()
 	dao.debugSQL(statement, args)
 	list = make([]*T, 0)
 	err = dao.UnsafeDB(ctx).SelectContext(ctx, &list, statement, args...)
+	return
+}
+
+func (dao *DAO[T]) Cursor(ctx context.Context, query *Query) (res CursorResult[*T], err error) {
+	if query == nil {
+		panic("query is nil")
+	}
+	if query.limit <= 0 {
+		panic("query.limit must be positive")
+	}
+
+	var spanName string
+	if query.CursorModel {
+		spanName = fmt.Sprintf("dao.%s.cursor", dao.opts.Table)
+	} else {
+		spanName = fmt.Sprintf("dao.%s.page", dao.opts.Table)
+	}
+	ctx, span := dao.trace(ctx, spanName)
+	defer span.End()
+
+	builder := psql.Select("*").From(dao.opts.Table)
+	builder = appendWhere(builder, query.wheres)
+	builder = dao.workspaceFilter(ctx, builder)
+	builder = appendOrder(builder, query.orders)
+	builder = builder.Limit(uint64(query.limit + 1))
+	if query.offset > 0 {
+		builder = builder.Offset(uint64(query.offset))
+	}
+
+	statement, args := builder.MustSql()
+	dao.debugSQL(statement, args)
+
+	res.Data = make([]*T, 0)
+	err = dao.UnsafeDB(ctx).SelectContext(ctx, &res.Data, statement, args...)
+	if err != nil {
+		return
+	}
+
+	if len(res.Data) > query.limit {
+		res.HasMore = true
+		res.Data = res.Data[:query.limit]
+		last := res.Data[len(res.Data)-1]
+		id := reflect.ValueOf(*last).FieldByName("ID")
+		if id.IsValid() {
+			var s = id.String()
+			res.Cursor = &s
+		}
+	}
+
+	if !query.CursorModel {
+		totoal, err := dao.Count(ctx, query)
+		if err != nil {
+			return res, err
+		}
+		res.Total = totoal
+	}
+
 	return
 }
 

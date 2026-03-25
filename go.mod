@@ -16,6 +16,7 @@ require (
 	github.com/elazarl/goproxy v1.8.1
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/go-kit/kit v0.13.0
+	github.com/go-playground/form v3.1.4+incompatible
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/go-redis/redis_rate/v10 v10.0.1
 	github.com/go-redsync/redsync/v4 v4.15.0
@@ -154,4 +155,5 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
+	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 )

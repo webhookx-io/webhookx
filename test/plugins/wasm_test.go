@@ -14,7 +14,6 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -63,7 +62,7 @@ var _ = Describe("wasm", Ordered, func() {
 
 			var attempt *entities.Attempt
 			assert.Eventually(GinkgoT(), func() bool {
-				list, err := db.Attempts.List(context.TODO(), &query.AttemptQuery{})
+				list, err := db.Attempts.List(context.TODO(), nil)
 				if err != nil || len(list) == 0 {
 					return false
 				}

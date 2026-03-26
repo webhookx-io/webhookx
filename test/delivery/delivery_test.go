@@ -388,7 +388,7 @@ var _ = Describe("delivery", Ordered, func() {
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 200, resp.StatusCode())
 			}
-			n, err := db.Events.Count(context.TODO(), nil)
+			n, err := db.Events.Count(context.TODO(), &dao.Query{})
 			assert.NoError(GinkgoT(), err)
 			assert.EqualValues(GinkgoT(), 1, n)
 		})

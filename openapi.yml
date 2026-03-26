@@ -38,7 +38,7 @@ paths:
 
   /license:
     get:
-      summary: doge
+      summary: Get current license information
       responses:
         "200":
           description: OK

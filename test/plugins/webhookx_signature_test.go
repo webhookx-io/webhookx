@@ -82,7 +82,7 @@ var _ = Describe("webhookx-signature", Ordered, func() {
 
 			var attempt *entities.Attempt
 			assert.Eventually(GinkgoT(), func() bool {
-				list, err := db.Attempts.List(context.TODO(), nil)
+				list, err := db.Attempts.List(context.TODO(), &dao.Query{})
 				if err != nil || len(list) == 0 {
 					return false
 				}

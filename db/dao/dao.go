@@ -193,9 +193,9 @@ func appendWhere(builder sq.SelectBuilder, conditions []Condition) sq.SelectBuil
 			builder = builder.Where(sq.Gt{where.Column: where.Value})
 		case GreaterThanOrEqual:
 			builder = builder.Where(sq.GtOrEq{where.Column: where.Value})
-		case LesserThan:
+		case LessThan:
 			builder = builder.Where(sq.Lt{where.Column: where.Value})
-		case LesserThanOrEqual:
+		case LessThanOrEqual:
 			builder = builder.Where(sq.LtOrEq{where.Column: where.Value})
 		}
 	}

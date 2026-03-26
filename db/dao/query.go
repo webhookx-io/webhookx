@@ -10,10 +10,10 @@ const (
 	GreaterThan
 	// GreaterThanOrEqual >=
 	GreaterThanOrEqual
-	// LesserThan <
-	LesserThan
-	// LesserThanOrEqual <=
-	LesserThanOrEqual
+	// LessThan <
+	LessThan
+	// LessThanOrEqual <=
+	LessThanOrEqual
 	// JsonContain @>
 	JsonContain
 )

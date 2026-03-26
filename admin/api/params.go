@@ -54,13 +54,13 @@ func (p *ListParams) Query() *dao.Query {
 		case "asc":
 			query.Where("id", dao.GreaterThan, *p.After)
 		case "desc":
-			query.Where("id", dao.LesserThan, *p.After)
+			query.Where("id", dao.LessThan, *p.After)
 		}
 	}
 	if p.Before != nil {
 		switch order {
 		case "asc":
-			query.Where("id", dao.LesserThan, *p.Before)
+			query.Where("id", dao.LessThan, *p.Before)
 		case "desc":
 			query.Where("id", dao.GreaterThan, *p.Before)
 		}
@@ -103,10 +103,10 @@ func (p *EndpointListParams) Query() *dao.Query {
 		query.Where("created_at", dao.GreaterThanOrEqual, time.UnixMilli(*p.CreatedAtGTE))
 	}
 	if p.CreatedAtLT != nil {
-		query.Where("created_at", dao.LesserThan, time.UnixMilli(*p.CreatedAtLT))
+		query.Where("created_at", dao.LessThan, time.UnixMilli(*p.CreatedAtLT))
 	}
 	if p.CreatedAtLTE != nil {
-		query.Where("created_at", dao.LesserThanOrEqual, time.UnixMilli(*p.CreatedAtLTE))
+		query.Where("created_at", dao.LessThanOrEqual, time.UnixMilli(*p.CreatedAtLTE))
 	}
 	if len(p.Metadata) > 0 {
 		b, _ := json.Marshal(p.Metadata)
@@ -147,10 +147,10 @@ func (p *SourceListParams) Query() *dao.Query {
 		query.Where("created_at", dao.GreaterThanOrEqual, time.UnixMilli(*p.CreatedAtGTE))
 	}
 	if p.CreatedAtLT != nil {
-		query.Where("created_at", dao.LesserThan, time.UnixMilli(*p.CreatedAtLT))
+		query.Where("created_at", dao.LessThan, time.UnixMilli(*p.CreatedAtLT))
 	}
 	if p.CreatedAtLTE != nil {
-		query.Where("created_at", dao.LesserThanOrEqual, time.UnixMilli(*p.CreatedAtLTE))
+		query.Where("created_at", dao.LessThanOrEqual, time.UnixMilli(*p.CreatedAtLTE))
 	}
 	if len(p.Metadata) > 0 {
 		b, _ := json.Marshal(p.Metadata)
@@ -193,10 +193,10 @@ func (p *PluginListParams) Query() *dao.Query {
 		query.Where("created_at", dao.GreaterThanOrEqual, time.UnixMilli(*p.CreatedAtGTE))
 	}
 	if p.CreatedAtLT != nil {
-		query.Where("created_at", dao.LesserThan, time.UnixMilli(*p.CreatedAtLT))
+		query.Where("created_at", dao.LessThan, time.UnixMilli(*p.CreatedAtLT))
 	}
 	if p.CreatedAtLTE != nil {
-		query.Where("created_at", dao.LesserThanOrEqual, time.UnixMilli(*p.CreatedAtLTE))
+		query.Where("created_at", dao.LessThanOrEqual, time.UnixMilli(*p.CreatedAtLTE))
 	}
 	if len(p.Metadata) > 0 {
 		b, _ := json.Marshal(p.Metadata)
@@ -242,10 +242,10 @@ func (p *AttemptListParams) Query() *dao.Query {
 		query.Where("created_at", dao.GreaterThanOrEqual, time.UnixMilli(*p.CreatedAtGTE))
 	}
 	if p.CreatedAtLT != nil {
-		query.Where("created_at", dao.LesserThan, time.UnixMilli(*p.CreatedAtLT))
+		query.Where("created_at", dao.LessThan, time.UnixMilli(*p.CreatedAtLT))
 	}
 	if p.CreatedAtLTE != nil {
-		query.Where("created_at", dao.LesserThanOrEqual, time.UnixMilli(*p.CreatedAtLTE))
+		query.Where("created_at", dao.LessThanOrEqual, time.UnixMilli(*p.CreatedAtLTE))
 	}
 	if p.EventId != nil {
 		query.Where("event_id", dao.Equal, *p.EventId)
@@ -266,10 +266,10 @@ func (p *AttemptListParams) Query() *dao.Query {
 		query.Where("attempted_at", dao.GreaterThanOrEqual, time.UnixMilli(*p.AttemptedAtGTE))
 	}
 	if p.AttemptedAtLT != nil {
-		query.Where("attempted_at", dao.LesserThan, time.UnixMilli(*p.AttemptedAtLT))
+		query.Where("attempted_at", dao.LessThan, time.UnixMilli(*p.AttemptedAtLT))
 	}
 	if p.AttemptedAtLTE != nil {
-		query.Where("attempted_at", dao.LesserThanOrEqual, time.UnixMilli(*p.AttemptedAtLTE))
+		query.Where("attempted_at", dao.LessThanOrEqual, time.UnixMilli(*p.AttemptedAtLTE))
 	}
 	return query
 }
@@ -302,10 +302,10 @@ func (p *WorkspaceListParams) Query() *dao.Query {
 		query.Where("created_at", dao.GreaterThanOrEqual, time.UnixMilli(*p.CreatedAtGTE))
 	}
 	if p.CreatedAtLT != nil {
-		query.Where("created_at", dao.LesserThan, time.UnixMilli(*p.CreatedAtLT))
+		query.Where("created_at", dao.LessThan, time.UnixMilli(*p.CreatedAtLT))
 	}
 	if p.CreatedAtLTE != nil {
-		query.Where("created_at", dao.LesserThanOrEqual, time.UnixMilli(*p.CreatedAtLTE))
+		query.Where("created_at", dao.LessThanOrEqual, time.UnixMilli(*p.CreatedAtLTE))
 	}
 	if len(p.Metadata) > 0 {
 		b, _ := json.Marshal(p.Metadata)
@@ -344,10 +344,10 @@ func (p *EventListParams) Query() *dao.Query {
 		query.Where("created_at", dao.GreaterThanOrEqual, time.UnixMilli(*p.CreatedAtGTE))
 	}
 	if p.CreatedAtLT != nil {
-		query.Where("created_at", dao.LesserThan, time.UnixMilli(*p.CreatedAtLT))
+		query.Where("created_at", dao.LessThan, time.UnixMilli(*p.CreatedAtLT))
 	}
 	if p.CreatedAtLTE != nil {
-		query.Where("created_at", dao.LesserThanOrEqual, time.UnixMilli(*p.CreatedAtLTE))
+		query.Where("created_at", dao.LessThanOrEqual, time.UnixMilli(*p.CreatedAtLTE))
 	}
 	if p.EventType != nil {
 		query.Where("event_type", dao.Equal, *p.EventType)
@@ -365,10 +365,10 @@ func (p *EventListParams) Query() *dao.Query {
 		query.Where("ingested_at", dao.GreaterThanOrEqual, time.UnixMilli(*p.IngestedAtGTE))
 	}
 	if p.IngestedAtLT != nil {
-		query.Where("ingested_at", dao.LesserThan, time.UnixMilli(*p.IngestedAtLT))
+		query.Where("ingested_at", dao.LessThan, time.UnixMilli(*p.IngestedAtLT))
 	}
 	if p.IngestedAtLTE != nil {
-		query.Where("ingested_at", dao.LesserThanOrEqual, time.UnixMilli(*p.IngestedAtLTE))
+		query.Where("ingested_at", dao.LessThanOrEqual, time.UnixMilli(*p.IngestedAtLTE))
 	}
 	return query
 }

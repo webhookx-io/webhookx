@@ -28,7 +28,6 @@ func (api *API) PageEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := params.Query()
-	query.Order("id", dao.DESC)
 	page, err := api.db.EventsWS.Cursor(r.Context(), query)
 	api.assert(err)
 

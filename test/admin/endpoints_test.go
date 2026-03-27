@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -217,23 +218,29 @@ var _ = Describe("/endpoints", Ordered, func() {
 	})
 
 	Context("GET", func() {
-		Context("with data", func() {
-			BeforeAll(func() {
-				assert.Nil(GinkgoT(), db.Truncate("endpoints"))
-				for i := 1; i <= 21; i++ {
-					entity := entities.Endpoint{
-						ID:      utils.KSUID(),
-						Enabled: true,
-						Request: entities.RequestConfig{
-							URL:    "https://example.com",
-							Method: "POST",
-						},
-					}
-					entity.WorkspaceId = ws.ID
-					assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), &entity))
+		BeforeAll(func() {
+			assert.Nil(GinkgoT(), db.Truncate("endpoints"))
+			for i := 1; i <= 21; i++ {
+				entity := entities.Endpoint{
+					ID:      fmt.Sprintf("ep_%03d", i),
+					Name:    utils.Pointer(fmt.Sprintf("endpoint_%03d", i)),
+					Enabled: i%2 == 0,
+					Request: entities.RequestConfig{
+						URL:    "https://example.com",
+						Method: "POST",
+					},
+					Metadata: map[string]string{
+						"foo":   "bar",
+						"value": strconv.Itoa(i),
+					},
 				}
-			})
-			It("retrieves first page", func() {
+				entity.WorkspaceId = ws.ID
+				assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), &entity))
+			}
+		})
+
+		Context("offset pagination", func() {
+			It("default", func() {
 				resp, err := adminClient.R().
 					SetResult(api.Pagination[*entities.Endpoint]{}).
 					Get("/workspaces/default/endpoints")
@@ -242,25 +249,189 @@ var _ = Describe("/endpoints", Ordered, func() {
 				assert.EqualValues(GinkgoT(), 21, result.Total)
 				assert.EqualValues(GinkgoT(), 20, len(result.Data))
 			})
-			It("retrieves second page", func() {
+
+			It("page_no", func() {
 				resp, err := adminClient.R().
 					SetResult(api.Pagination[*entities.Endpoint]{}).
-					Get("/workspaces/default/endpoints?page_no=2")
+					SetQueryParam("page_no", "2").
+					Get("/workspaces/default/endpoints")
 				assert.Nil(GinkgoT(), err)
 				result := resp.Result().(*api.Pagination[*entities.Endpoint])
 				assert.EqualValues(GinkgoT(), 21, result.Total)
 				assert.EqualValues(GinkgoT(), 1, len(result.Data))
 			})
+
+			It("page_size", func() {
+				resp, err := adminClient.R().
+					SetResult(api.Pagination[*entities.Endpoint]{}).
+					SetQueryParam("page_size", "21").
+					Get("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				result := resp.Result().(*api.Pagination[*entities.Endpoint])
+				assert.EqualValues(GinkgoT(), 21, result.Total)
+				assert.EqualValues(GinkgoT(), 21, len(result.Data))
+			})
 		})
 
-		Context("with no data", func() {
-			BeforeAll(func() {
-				assert.Nil(GinkgoT(), db.Truncate("endpoints"))
-			})
-			It("retrieves first page", func() {
-				resp, err := adminClient.R().Get("/workspaces/default/endpoints")
+		Context("cursor pagination", func() {
+			It("limit", func() {
+				resp, err := adminClient.R().
+					SetQueryParam("limit", "5").
+					SetResult(api.PaginationCursor[*entities.Endpoint]{}).
+					Get("/workspaces/default/endpoints")
 				assert.Nil(GinkgoT(), err)
-				assert.Equal(GinkgoT(), `{"total":0,"data":[]}`, string(resp.Body()))
+				result := resp.Result().(*api.PaginationCursor[*entities.Endpoint])
+				assert.Equal(GinkgoT(), 5, len(result.Data))
+				assert.NotNil(GinkgoT(), result.Next)
+
+				resp, err = adminClient.R().
+					SetQueryParam("limit", "100").
+					SetResult(api.PaginationCursor[*entities.Endpoint]{}).
+					Get("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				result = resp.Result().(*api.PaginationCursor[*entities.Endpoint])
+				assert.Equal(GinkgoT(), 21, len(result.Data))
+				assert.Nil(GinkgoT(), result.Next)
+			})
+
+			It("after", func() {
+				// Get first 2
+				resp, err := adminClient.R().
+					SetQueryParam("limit", "2").
+					SetQueryParam("sort", "id.asc").
+					SetResult(api.PaginationCursor[*entities.Endpoint]{}).
+					Get("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				result := resp.Result().(*api.PaginationCursor[*entities.Endpoint])
+				assert.Equal(GinkgoT(), 2, len(result.Data))
+				firstId := result.Data[0].ID
+				secondId := result.Data[1].ID
+
+				// Get after first
+				resp, err = adminClient.R().
+					SetQueryParam("limit", "1").
+					SetQueryParam("sort", "id.asc").
+					SetQueryParam("after", firstId).
+					SetResult(api.PaginationCursor[*entities.Endpoint]{}).
+					Get("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				result = resp.Result().(*api.PaginationCursor[*entities.Endpoint])
+				assert.Equal(GinkgoT(), 1, len(result.Data))
+				assert.Equal(GinkgoT(), secondId, result.Data[0].ID)
+			})
+
+			It("before", func() {
+				// Get first 2
+				resp, err := adminClient.R().
+					SetQueryParam("limit", "2").
+					SetQueryParam("sort", "id.asc").
+					SetResult(api.PaginationCursor[*entities.Endpoint]{}).
+					Get("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				result := resp.Result().(*api.PaginationCursor[*entities.Endpoint])
+				firstId := result.Data[0].ID
+				secondId := result.Data[1].ID
+
+				// Get before second
+				resp, err = adminClient.R().
+					SetQueryParam("limit", "1").
+					SetQueryParam("sort", "id.asc").
+					SetQueryParam("before", secondId).
+					SetResult(api.PaginationCursor[*entities.Endpoint]{}).
+					Get("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				result = resp.Result().(*api.PaginationCursor[*entities.Endpoint])
+				assert.Equal(GinkgoT(), 1, len(result.Data))
+				assert.Equal(GinkgoT(), firstId, result.Data[0].ID)
+			})
+
+			Context("errors", func() {
+				It("limit must be integer", func() {
+					resp, err := adminClient.R().
+						SetQueryParam("limit", "test").
+						Get("/workspaces/default/endpoints")
+					assert.Nil(GinkgoT(), err)
+					assert.Equal(GinkgoT(),
+						`{"message":"Request Validation","error":{"message":"request validation","fields":{"@params":["limit: value test: an invalid integer: invalid syntax"]}}}`,
+						string(resp.Body()))
+
+				})
+				It("limit must in range [1, 1000]", func() {
+					resp, err := adminClient.R().
+						SetQueryParam("limit", "0").
+						Get("/workspaces/default/endpoints")
+					assert.Nil(GinkgoT(), err)
+					assert.Equal(GinkgoT(),
+						`{"message":"Request Validation","error":{"message":"request validation","fields":{"@params":["limit: number must be at least 1"]}}}`,
+						string(resp.Body()))
+
+					resp, err = adminClient.R().
+						SetQueryParam("limit", "1001").
+						Get("/workspaces/default/endpoints")
+					assert.Nil(GinkgoT(), err)
+					assert.Equal(GinkgoT(),
+						`{"message":"Request Validation","error":{"message":"request validation","fields":{"@params":["limit: number must be at most 1000"]}}}`,
+						string(resp.Body()))
+				})
+			})
+		})
+
+		Context("query parameters", func() {
+			It("name", func() {
+				resp, err := adminClient.R().
+					SetQueryParam("name", "endpoint_005").
+					SetResult(api.Pagination[*entities.Endpoint]{}).
+					Get("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				result := resp.Result().(*api.Pagination[*entities.Endpoint])
+				assert.Equal(GinkgoT(), 1, len(result.Data))
+				assert.Equal(GinkgoT(), "endpoint_005", *result.Data[0].Name)
+			})
+
+			It("enabled", func() {
+				resp, err := adminClient.R().
+					SetQueryParam("enabled", "true").
+					SetResult(api.Pagination[*entities.Endpoint]{}).
+					Get("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				result := resp.Result().(*api.Pagination[*entities.Endpoint])
+				assert.True(GinkgoT(), len(result.Data) > 0)
+				for _, ep := range result.Data {
+					assert.True(GinkgoT(), ep.Enabled)
+				}
+			})
+
+			It("created_at", func() {
+				resp, err := adminClient.R().
+					SetQueryParam("name", "endpoint_005").
+					SetResult(api.Pagination[*entities.Endpoint]{}).
+					Get("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				ep5 := resp.Result().(*api.Pagination[*entities.Endpoint]).Data[0]
+
+				resp, err = adminClient.R().
+					SetQueryParam("created_at[lt]", fmt.Sprintf("%d", ep5.CreatedAt.UnixMilli()+1)).
+					SetResult(api.Pagination[*entities.Endpoint]{}).
+					Get("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				result := resp.Result().(*api.Pagination[*entities.Endpoint])
+				assert.True(GinkgoT(), len(result.Data) >= 1)
+			})
+
+			It("metadata", func() {
+				resp, err := adminClient.R().
+					SetQueryParam("metadata[value]", "5").
+					SetResult(api.Pagination[*entities.Endpoint]{}).
+					Get("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				result := resp.Result().(*api.Pagination[*entities.Endpoint])
+				assert.Equal(GinkgoT(), 1, len(result.Data))
+				assert.Equal(GinkgoT(), "endpoint_005", *result.Data[0].Name)
+				assert.EqualValues(GinkgoT(), entities.Metadata{
+					"foo": "bar",
+					"value": "5",
+				}, result.Data[0].Metadata)
+
 			})
 		})
 	})

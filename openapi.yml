@@ -38,7 +38,7 @@ paths:
 
   /license:
     get:
-      summary: doge
+      summary: Get current license information
       responses:
         "200":
           description: OK
@@ -77,6 +77,13 @@ paths:
       parameters:
         - $ref: "#/components/parameters/page_no"
         - $ref: "#/components/parameters/page_size"
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/sort"
+        - $ref: "#/components/parameters/after"
+        - $ref: "#/components/parameters/before"
+        - $ref: "#/components/parameters/name"
+        - $ref: "#/components/parameters/created_at"
+        - $ref: "#/components/parameters/metadata"
       summary: Page workspaces
       tags:
         - Workspace
@@ -173,6 +180,14 @@ paths:
       parameters:
         - $ref: "#/components/parameters/page_no"
         - $ref: "#/components/parameters/page_size"
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/sort"
+        - $ref: "#/components/parameters/after"
+        - $ref: "#/components/parameters/before"
+        - $ref: "#/components/parameters/name"
+        - $ref: "#/components/parameters/enabled"
+        - $ref: "#/components/parameters/created_at"
+        - $ref: "#/components/parameters/metadata"
       summary: Page endpoints
       tags:
         - Endpoint
@@ -273,15 +288,49 @@ paths:
       parameters:
         - $ref: "#/components/parameters/page_no"
         - $ref: "#/components/parameters/page_size"
-        - in: query
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/sort"
+        - $ref: "#/components/parameters/after"
+        - $ref: "#/components/parameters/before"
+        - $ref: "#/components/parameters/created_at"
+        - description: "event_id filter"
+          in: query
           name: event_id
           schema:
             type: string
-        - in: query
+        - description: "endpoint_id filter"
+          in: query
           name: endpoint_id
           schema:
             type: string
-
+        - description: "status filter"
+          in: query
+          name: status
+          schema:
+            type: string
+        - description: "attempted_at filter (unix time in milliseconds)."
+          in: query
+          name: attempted_at
+          explode: true
+          style: deepObject
+          schema:
+            anyOf:
+              - type: object
+                properties:
+                  gt:
+                    type: integer
+                    format: int64
+                  gte:
+                    type: integer
+                    format: int64
+                  lt:
+                    type: integer
+                    format: int64
+                  lte:
+                    type: integer
+                    format: int64
+              - type: integer
+                format: int64
       summary: Page webhook attempts
       tags:
         - Attempt
@@ -330,6 +379,44 @@ paths:
       parameters:
         - $ref: "#/components/parameters/page_no"
         - $ref: "#/components/parameters/page_size"
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/sort"
+        - $ref: "#/components/parameters/after"
+        - $ref: "#/components/parameters/before"
+        - $ref: "#/components/parameters/created_at"
+        - description: "event_type filter"
+          in: query
+          name: event_type
+          schema:
+            type: string
+        - description: "unique_id filter"
+          in: query
+          name: unique_id
+          schema:
+            type: string
+        - description: "ingested_at filter (unix time in milliseconds)."
+          in: query
+          name: ingested_at
+          explode: true
+          style: deepObject
+          schema:
+            anyOf:
+              - type: object
+                properties:
+                  gt:
+                    type: integer
+                    format: int64
+                  gte:
+                    type: integer
+                    format: int64
+                  lt:
+                    type: integer
+                    format: int64
+                  lte:
+                    type: integer
+                    format: int64
+              - type: integer
+                format: int64
       summary: Page events
       tags:
         - Event
@@ -419,6 +506,14 @@ paths:
       parameters:
         - $ref: "#/components/parameters/page_no"
         - $ref: "#/components/parameters/page_size"
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/sort"
+        - $ref: "#/components/parameters/after"
+        - $ref: "#/components/parameters/before"
+        - $ref: "#/components/parameters/name"
+        - $ref: "#/components/parameters/enabled"
+        - $ref: "#/components/parameters/created_at"
+        - $ref: "#/components/parameters/metadata"
       summary: Page sources
       tags:
         - Source
@@ -518,6 +613,24 @@ paths:
       parameters:
         - $ref: "#/components/parameters/page_no"
         - $ref: "#/components/parameters/page_size"
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/sort"
+        - $ref: "#/components/parameters/after"
+        - $ref: "#/components/parameters/before"
+        - $ref: "#/components/parameters/name"
+        - $ref: "#/components/parameters/enabled"
+        - $ref: "#/components/parameters/created_at"
+        - $ref: "#/components/parameters/metadata"
+        - description: "endpoint_id filter"
+          in: query
+          name: endpoint_id
+          schema:
+            type: string
+        - description: "source_id filter"
+          in: query
+          name: source_id
+          schema:
+            type: string
       summary: Page plugins
       tags:
         - Plugin
@@ -683,17 +796,99 @@ components:
         example: "default"
       description: The workspace id
     page_no:
+      deprecated: true
       in: query
       name: page_no
       schema:
         type: integer
         default: 1
+        minimum: 1
     page_size:
+      deprecated: true
       in: query
       name: page_size
       schema:
         type: integer
         default: 20
+        maximum: 1000
+        minimum: 1
+    limit:
+      description: "A limit on the number of objects to be returned. Limit can range between 1 and 1000, and the default is 20."
+      in: query
+      name: limit
+      schema:
+        type: integer
+        default: 20
+        maximum: 1000
+        minimum: 1
+    sort:
+      description: ""
+      in: query
+      name: sort
+      schema:
+        type: string
+        enum: [ "id.desc", "id.asc" ]
+        default: "id.desc"
+    after:
+      description: "A cursor for use in pagination."
+      in: query
+      name: after
+      schema:
+        type: string
+    before:
+      description: "A cursor for use in pagination."
+      in: query
+      name: before
+      schema:
+        type: string
+    metadata:
+      description: ""
+      in: query
+      name: metadata
+      explode: true
+      style: deepObject
+      schema:
+        type: object
+        additionalProperties:
+          type: string
+      example:
+        key: value
+    name:
+      description: "name filter"
+      in: query
+      name: name
+      schema:
+        type: string
+    enabled:
+      description: "enabled filter"
+      in: query
+      name: enabled
+      schema:
+        type: boolean
+    created_at:
+      description: "created_at filter (unix time in milliseconds)."
+      in: query
+      name: created_at
+      explode: true
+      style: deepObject
+      schema:
+        anyOf:
+          - type: object
+            properties:
+              gt:
+                type: integer
+                format: int64
+              gte:
+                type: integer
+                format: int64
+              lt:
+                type: integer
+                format: int64
+              lte:
+                type: integer
+                format: int64
+          - type: integer
+            format: int64
   responses:
     NotFound:
       description: The resource was not found
@@ -707,6 +902,10 @@ components:
         total:
           type: integer
           example: 1
+        next:
+          description: ""
+          type: string
+          nullable: true
 
     Metadata:
       type: object

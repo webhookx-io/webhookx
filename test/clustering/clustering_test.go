@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
@@ -92,11 +92,11 @@ var _ = Describe("clustering", Ordered, func() {
 			}
 
 			assert.Eventually(GinkgoT(), func() bool {
-				q := query.AttemptQuery{
+				q := dao.AttemptQuery{
 					Status: utils.Pointer(entities.AttemptStatusSuccess),
 				}
 
-				n, err := db.Attempts.Count(context.TODO(), q.WhereMap())
+				n, err := db.Attempts.Count(context.TODO(), q.ToQuery())
 				assert.NoError(GinkgoT(), err)
 				return n == 100
 			}, time.Second*3, time.Second)
@@ -114,7 +114,7 @@ var _ = Describe("clustering", Ordered, func() {
 
 			var attempt *entities.Attempt
 			assert.Eventually(GinkgoT(), func() bool {
-				list, err := db.Attempts.List(context.TODO(), &query.AttemptQuery{})
+				list, err := db.Attempts.List(context.TODO(), &dao.Query{})
 				if err != nil || len(list) == 0 {
 					return false
 				}

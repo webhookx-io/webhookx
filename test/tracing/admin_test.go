@@ -80,7 +80,6 @@ var _ = Describe("tracing admin", Ordered, func() {
 					"admin.endpoints.page": {},
 					"dao.endpoints.page":   {},
 					"dao.endpoints.count":  {},
-					"dao.endpoints.list":   {},
 				})
 				assert.NoError(GinkgoT(), err)
 

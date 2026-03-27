@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/webhookx-io/webhookx/db"
-	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/plugins/function/sdk"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 
@@ -81,7 +81,7 @@ var _ = Describe("function", Ordered, func() {
 			// payload should be changed
 			var event *entities.Event
 			assert.Eventually(GinkgoT(), func() bool {
-				list, err := db.Events.List(context.TODO(), &query.EventQuery{})
+				list, err := db.Events.List(context.TODO(), &dao.Query{})
 				if err != nil || len(list) != 1 {
 					return false
 				}

@@ -3,26 +3,28 @@ package api
 import (
 	"net/http"
 
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/types"
-
-	"github.com/webhookx-io/webhookx/db/query"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 func (api *API) PageAttempt(w http.ResponseWriter, r *http.Request) {
-	var q query.AttemptQuery
-	q.Order("id", query.DESC)
-	api.bindQuery(r, &q.Query)
-	if r.URL.Query().Get("event_id") != "" {
-		q.EventId = utils.Pointer(r.URL.Query().Get("event_id"))
+	parameters := api.lookupOperation("/workspaces/{ws_id}/attempts", http.MethodGet).Parameters
+	if err := openapi.ValidateParameters(r, parameters); err != nil {
+		api.error(400, w, err)
+		return
 	}
-	if r.URL.Query().Get("endpoint_id") != "" {
-		q.EndpointId = utils.Pointer(r.URL.Query().Get("endpoint_id"))
+
+	var params AttemptListParams
+	if err := api.bindQuery(r, &params); err != nil {
+		api.error(400, w, err)
+		return
 	}
-	list, total, err := api.db.AttemptsWS.Page(r.Context(), &q)
+
+	query := params.Query()
+	page, err := api.db.AttemptsWS.Cursor(r.Context(), query)
 	api.assert(err)
 
-	api.json(200, w, NewPagination(total, list))
+	api.json(200, w, NewPagination(query, page))
 }
 
 func (api *API) GetAttempt(w http.ResponseWriter, r *http.Request) {

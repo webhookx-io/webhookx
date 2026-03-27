@@ -19,7 +19,7 @@ var _ = Describe("schemas", Ordered, func() {
 	Context("Endpoint", func() {
 		var schema *openapi3.Schema
 		BeforeAll(func() {
-			entities.LoadOpenAPI(webhookx.OpenAPI)
+			openapi.LoadOpenAPI(webhookx.OpenAPI)
 			schema = entities.LookupSchema("Endpoint")
 		})
 
@@ -103,7 +103,7 @@ var _ = Describe("schemas", Ordered, func() {
 	Context("Source", func() {
 		var schema *openapi3.Schema
 		BeforeAll(func() {
-			entities.LoadOpenAPI(webhookx.OpenAPI)
+			openapi.LoadOpenAPI(webhookx.OpenAPI)
 			schema = entities.LookupSchema("Source")
 		})
 
@@ -174,7 +174,7 @@ var _ = Describe("schemas", Ordered, func() {
 	Context("Configuration", func() {
 		var schema *openapi3.Schema
 		BeforeAll(func() {
-			entities.LoadOpenAPI(webhookx.OpenAPI)
+			openapi.LoadOpenAPI(webhookx.OpenAPI)
 			schema = entities.LookupSchema("Configuration")
 		})
 

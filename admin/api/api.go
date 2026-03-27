@@ -2,16 +2,17 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/pprof"
-	"strconv"
 
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/go-playground/form"
 	"github.com/gorilla/mux"
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	dberrs "github.com/webhookx-io/webhookx/db/errs"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/pkg/declarative"
 	"github.com/webhookx-io/webhookx/pkg/errs"
@@ -58,27 +59,26 @@ func (api *API) param(r *http.Request, variable string) string {
 	return mux.Vars(r)[variable]
 }
 
-// query returns the url query value if it exists.
-func (api *API) query(r *http.Request, name string) string {
-	return r.URL.Query().Get(name)
-}
-
 func (api *API) json(code int, w http.ResponseWriter, data interface{}) {
 	response.JSON(w, code, data)
 }
 
-func (api *API) bindQuery(r *http.Request, q *query.Query) {
-	page, _ := strconv.Atoi(r.URL.Query().Get("page_no"))
-	if page <= 0 {
-		page = 1
-	}
 
-	pagesize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	if pagesize <= 0 {
-		pagesize = 20
+func (api *API) lookupOperation(path string, method string) *openapi3.Operation {
+	operation := openapi.Spec.Paths.Find(path).GetOperation(method)
+	if operation == nil {
+		panic(fmt.Errorf("operation %s.%s not found", path, method))
 	}
+	return operation
+}
 
-	q.Page(uint64(page), uint64(pagesize))
+func (api *API) bindQuery(r *http.Request, value interface{}) error {
+	decoder := form.NewDecoder()
+	err := decoder.Decode(value, r.URL.Query())
+	if err != nil {
+		return errs.NewValidateError(err)
+	}
+	return nil
 }
 
 func (api *API) error(code int, w http.ResponseWriter, err error) {

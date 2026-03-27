@@ -226,7 +226,7 @@ func (dao *DAO[T]) Count(ctx context.Context, query *Query) (total int64, err er
 	defer span.End()
 
 	builder := psql.Select("COUNT(*)").From(dao.opts.Table)
-	builder = appendWhere(builder, query.wheres)
+	builder = appendWhere(builder, query.Wheres)
 	builder = dao.workspaceFilter(ctx, builder)
 	statement, args := builder.MustSql()
 	dao.debugSQL(statement, args)
@@ -243,15 +243,15 @@ func (dao *DAO[T]) List(ctx context.Context, query *Query) (list []*T, err error
 	defer span.End()
 
 	builder := psql.Select("*").From(dao.opts.Table)
-	builder = appendWhere(builder, query.wheres)
+	builder = appendWhere(builder, query.Wheres)
 	builder = dao.workspaceFilter(ctx, builder)
-	builder = appendOrder(builder, query.orders)
+	builder = appendOrder(builder, query.Orders)
 
-	if query.limit != 0 {
-		builder = builder.Limit(uint64(query.limit))
+	if query.Limit != 0 {
+		builder = builder.Limit(uint64(query.Limit))
 	}
-	if query.offset != 0 {
-		builder = builder.Offset(uint64(query.offset))
+	if query.Offset != 0 {
+		builder = builder.Offset(uint64(query.Offset))
 	}
 
 	statement, args := builder.MustSql()
@@ -265,7 +265,7 @@ func (dao *DAO[T]) Cursor(ctx context.Context, query *Query) (res CursorResult[*
 	if query == nil {
 		panic("query is nil")
 	}
-	if query.limit <= 0 {
+	if query.Limit <= 0 {
 		panic("query.limit must be positive")
 	}
 
@@ -279,12 +279,12 @@ func (dao *DAO[T]) Cursor(ctx context.Context, query *Query) (res CursorResult[*
 	defer span.End()
 
 	builder := psql.Select("*").From(dao.opts.Table)
-	builder = appendWhere(builder, query.wheres)
+	builder = appendWhere(builder, query.Wheres)
 	builder = dao.workspaceFilter(ctx, builder)
-	builder = appendOrder(builder, query.orders)
-	builder = builder.Limit(uint64(query.limit + 1))
-	if query.offset > 0 {
-		builder = builder.Offset(uint64(query.offset))
+	builder = appendOrder(builder, query.Orders)
+	builder = builder.Limit(uint64(query.Limit + 1))
+	if query.Offset > 0 {
+		builder = builder.Offset(uint64(query.Offset))
 	}
 
 	statement, args := builder.MustSql()
@@ -296,9 +296,9 @@ func (dao *DAO[T]) Cursor(ctx context.Context, query *Query) (res CursorResult[*
 		return
 	}
 
-	if len(res.Data) > query.limit {
+	if len(res.Data) > query.Limit {
 		res.HasMore = true
-		res.Data = res.Data[:query.limit]
+		res.Data = res.Data[:query.Limit]
 		last := res.Data[len(res.Data)-1]
 		id := reflect.ValueOf(*last).FieldByName("ID")
 		if id.IsValid() {

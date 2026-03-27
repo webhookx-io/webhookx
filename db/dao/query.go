@@ -36,29 +36,25 @@ type Order struct {
 	Sort   Sort
 }
 
-func (o Order) String() string {
-	return o.SQL()
-}
-
 func (o Order) SQL() string {
 	return o.Column + " " + o.Sort
 }
 
 type Query struct {
-	offset      int
-	limit       int
-	wheres      []Condition
-	orders      []Order
+	Offset      int
+	Limit       int
+	Wheres      []Condition
+	Orders      []Order
 	CursorModel bool
 }
 
 func (q *Query) Where(column string, op Operator, value any) *Query {
-	q.wheres = append(q.wheres, Condition{column, op, value})
+	q.Wheres = append(q.Wheres, Condition{column, op, value})
 	return q
 }
 
 func (q *Query) Order(column string, sort Sort) *Query {
-	q.orders = append(q.orders, Order{column, sort})
+	q.Orders = append(q.Orders, Order{column, sort})
 	return q
 }
 
@@ -66,17 +62,17 @@ func (q *Query) Page(pageNo, pageSize int) {
 	if pageNo < 1 {
 		pageNo = 1
 	}
-	q.offset = (pageNo - 1) * pageSize
-	q.limit = pageSize
+	q.Offset = (pageNo - 1) * pageSize
+	q.Limit = pageSize
 }
 
 func (q Query) clone() Query {
 	cloned := q
-	if len(q.wheres) > 0 {
-		cloned.wheres = append([]Condition(nil), q.wheres...)
+	if len(q.Wheres) > 0 {
+		cloned.Wheres = append([]Condition(nil), q.Wheres...)
 	}
-	if len(q.orders) > 0 {
-		cloned.orders = append([]Order(nil), q.orders...)
+	if len(q.Orders) > 0 {
+		cloned.Orders = append([]Order(nil), q.Orders...)
 	}
 	return cloned
 }

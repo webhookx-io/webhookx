@@ -416,6 +416,15 @@ var _ = Describe("/endpoints", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				result := resp.Result().(*api.Pagination[*entities.Endpoint])
 				assert.True(GinkgoT(), len(result.Data) >= 1)
+
+				resp, err = adminClient.R().
+					SetQueryParam("created_at[gte]", fmt.Sprintf("%d", ep5.CreatedAt.UnixMilli())).
+					SetQueryParam("created_at[lte]", fmt.Sprintf("%d", ep5.CreatedAt.UnixMilli())).
+					SetResult(api.Pagination[*entities.Endpoint]{}).
+					Get("/workspaces/default/endpoints")
+				assert.Nil(GinkgoT(), err)
+				result = resp.Result().(*api.Pagination[*entities.Endpoint])
+				assert.True(GinkgoT(), len(result.Data) >= 1)
 			})
 
 			It("metadata", func() {

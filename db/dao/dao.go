@@ -36,9 +36,10 @@ type DAO[T any] struct {
 	log *zap.SugaredLogger
 	db  *sqlx.DB
 
-	workspace bool
-	opts      Options
-	columns   []string
+	workspace        bool
+	opts             Options
+	columns          []string
+	conditionColumns map[string]bool
 }
 
 type Options struct {
@@ -77,16 +78,17 @@ func NewDAO[T any](db *sqlx.DB, opts Options, funcs ...OptionFunc) *DAO[T] {
 	}
 
 	dao := DAO[T]{
-		log:       zap.S().Named("dao"),
-		db:        db,
-		workspace: opts.Workspace,
-		opts:      opts,
+		log:              zap.S().Named("dao"),
+		db:               db,
+		workspace:        opts.Workspace,
+		opts:             opts,
+		conditionColumns: make(map[string]bool),
 	}
 	EachField(new(T), func(f reflect.StructField, _ reflect.Value, column string) {
-		if column == "created_at" || column == "updated_at" {
-			return
+		dao.conditionColumns[column] = true
+		if !(column == "created_at" || column == "updated_at") {
+			dao.columns = append(dao.columns, column)
 		}
-		dao.columns = append(dao.columns, column)
 	})
 	return &dao
 }
@@ -182,21 +184,23 @@ func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
 	return true, nil
 }
 
-func appendWhere(builder sq.SelectBuilder, conditions []Condition) sq.SelectBuilder {
-	for _, where := range conditions {
-		switch where.Op {
-		case Equal:
-			builder = builder.Where(sq.Eq{where.Column: where.Value})
-		case JsonContain:
-			builder = builder.Where(where.Column+" @> ?", where.Value) // FIXME: sql injection
-		case GreaterThan:
-			builder = builder.Where(sq.Gt{where.Column: where.Value})
-		case GreaterThanOrEqual:
-			builder = builder.Where(sq.GtOrEq{where.Column: where.Value})
-		case LessThan:
-			builder = builder.Where(sq.Lt{where.Column: where.Value})
-		case LessThanOrEqual:
-			builder = builder.Where(sq.LtOrEq{where.Column: where.Value})
+func appendWhere(allowedColumns map[string]bool, builder sq.SelectBuilder, conditions []Condition) sq.SelectBuilder {
+	for _, condition := range conditions {
+		if allowedColumns[condition.Column] {
+			switch condition.Op {
+			case Equal:
+				builder = builder.Where(sq.Eq{condition.Column: condition.Value})
+			case JsonContain:
+				builder = builder.Where(condition.Column+" @> ?", condition.Value)
+			case GreaterThan:
+				builder = builder.Where(sq.Gt{condition.Column: condition.Value})
+			case GreaterThanOrEqual:
+				builder = builder.Where(sq.GtOrEq{condition.Column: condition.Value})
+			case LessThan:
+				builder = builder.Where(sq.Lt{condition.Column: condition.Value})
+			case LessThanOrEqual:
+				builder = builder.Where(sq.LtOrEq{condition.Column: condition.Value})
+			}
 		}
 	}
 	return builder
@@ -226,7 +230,7 @@ func (dao *DAO[T]) Count(ctx context.Context, query *Query) (total int64, err er
 	defer span.End()
 
 	builder := psql.Select("COUNT(*)").From(dao.opts.Table)
-	builder = appendWhere(builder, query.Wheres)
+	builder = appendWhere(dao.conditionColumns, builder, query.Wheres)
 	builder = dao.workspaceFilter(ctx, builder)
 	statement, args := builder.MustSql()
 	dao.debugSQL(statement, args)
@@ -243,7 +247,7 @@ func (dao *DAO[T]) List(ctx context.Context, query *Query) (list []*T, err error
 	defer span.End()
 
 	builder := psql.Select("*").From(dao.opts.Table)
-	builder = appendWhere(builder, query.Wheres)
+	builder = appendWhere(dao.conditionColumns, builder, query.Wheres)
 	builder = dao.workspaceFilter(ctx, builder)
 	builder = appendOrder(builder, query.Orders)
 
@@ -279,7 +283,7 @@ func (dao *DAO[T]) Cursor(ctx context.Context, query *Query) (res CursorResult[*
 	defer span.End()
 
 	builder := psql.Select("*").From(dao.opts.Table)
-	builder = appendWhere(builder, query.Wheres)
+	builder = appendWhere(dao.conditionColumns, builder, query.Wheres)
 	builder = dao.workspaceFilter(ctx, builder)
 	builder = appendOrder(builder, query.Orders)
 	builder = builder.Limit(uint64(query.Limit + 1))

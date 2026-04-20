@@ -35,7 +35,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/services/eventbus"
 	"github.com/webhookx-io/webhookx/test"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 var (

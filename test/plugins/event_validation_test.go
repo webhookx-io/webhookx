@@ -66,7 +66,7 @@ var _ = Describe("event-validation", Ordered, func() {
 						VerboseResponse: true,
 						Version:         version,
 						Schemas: map[string]*string{
-							"charge.succeeded": utils.Pointer(jsonString),
+							"charge.succeeded": new(jsonString),
 						},
 					}),
 				),
@@ -76,7 +76,7 @@ var _ = Describe("event-validation", Ordered, func() {
 					factory.WithPluginConfig(event_validation.Config{
 						VerboseResponse: true,
 						Version:         "unknown",
-						DefaultSchema: utils.Pointer(jsonString),
+						DefaultSchema: new(jsonString),
 					}),
 				),
 			}
@@ -85,7 +85,7 @@ var _ = Describe("event-validation", Ordered, func() {
 					factory.WithPluginConfig(event_validation.Config{
 						VerboseResponse: true,
 						Version:         "openapi-3.0",
-						DefaultSchema: utils.Pointer("{test}"),
+						DefaultSchema: new("{test}"),
 					}),
 				),
 			}
@@ -248,7 +248,7 @@ var _ = Describe("event-validation", Ordered, func() {
 								VerboseResponse: false,
 								Version:         "draft-04",
 								Schemas: map[string]*string{
-									"charge.succeeded": utils.Pointer(jsonString),
+									"charge.succeeded": new(jsonString),
 								},
 							})),
 					}

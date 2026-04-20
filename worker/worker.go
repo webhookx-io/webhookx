@@ -190,7 +190,7 @@ func (w *Worker) registerEventHandler(bus eventbus.EventBus) {
 
 		q := query.AttemptQuery{}
 		q.IDs = fanoutData.AttemptIds
-		q.Status = utils.Pointer(entities.AttemptStatusInit)
+		q.Status = new(entities.AttemptStatusInit)
 		attempts, err := w.db.Attempts.List(ctx, &q)
 		if err != nil {
 			w.log.Errorf("failed to list attempts: id=%s err=%s", fanoutData.EventId, err)
@@ -545,11 +545,11 @@ func buildAttemptResult(request *deliverer.Request, response *deliverer.Response
 
 	if response.Error != nil {
 		if errors.Is(response.Error, context.DeadlineExceeded) {
-			result.ErrorCode = utils.Pointer(entities.AttemptErrorCodeTimeout)
+			result.ErrorCode = new(entities.AttemptErrorCodeTimeout)
 		} else if response.ACL.Denied {
-			result.ErrorCode = utils.Pointer(entities.AttemptErrorCodeDenied)
+			result.ErrorCode = new(entities.AttemptErrorCodeDenied)
 		} else {
-			result.ErrorCode = utils.Pointer(entities.AttemptErrorCodeUnknown)
+			result.ErrorCode = new(entities.AttemptErrorCodeUnknown)
 		}
 	}
 
@@ -572,12 +572,12 @@ func newAttemptDetail(id string, wid string, response *deliverer.Response) *enti
 	ad.ID = id
 	ad.WorkspaceId = wid
 	ad.RequestHeaders = utils.HeaderMap(response.Request.Request.Header)
-	ad.RequestBody = utils.Pointer(string(response.Request.Body))
+	ad.RequestBody = new(string(response.Request.Body))
 	if len(response.Header) > 0 {
-		ad.ResponseHeaders = utils.Pointer(entities.Headers(utils.HeaderMap(response.Header)))
+		ad.ResponseHeaders = new(entities.Headers(utils.HeaderMap(response.Header)))
 	}
 	if response.ResponseBody != nil {
-		ad.ResponseBody = utils.Pointer(string(response.ResponseBody))
+		ad.ResponseBody = new(string(response.ResponseBody))
 	}
 	return ad
 }

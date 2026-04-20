@@ -208,11 +208,11 @@ var _ = Describe("/attempts", Ordered, func() {
 					RequestHeaders: map[string]string{
 						"Content-Type": "application/json",
 					},
-					RequestBody: utils.Pointer(`{"key": "value"}`),
+					RequestBody: new(`{"key": "value"}`),
 					ResponseHeaders: &entities.Headers{
 						"Content-Type": "application/json",
 					},
-					ResponseBody: utils.Pointer("the response body"),
+					ResponseBody: new("the response body"),
 				}
 				entitiesConfig.AttemptDetails = []*entities.AttemptDetail{detail}
 

@@ -35,7 +35,7 @@ var _ = Describe("delivery", Ordered, func() {
 		}
 		entitiesConfig.Plugins = []*entities.Plugin{{
 			ID:         utils.KSUID(),
-			EndpointId: utils.Pointer(entitiesConfig.Endpoints[0].ID),
+			EndpointId: new(entitiesConfig.Endpoints[0].ID),
 			Name:       "webhookx-signature",
 			Enabled:    true,
 			Config:     map[string]interface{}{"key": "abcdefg"},
@@ -348,7 +348,7 @@ var _ = Describe("delivery", Ordered, func() {
 
 			q := query.AttemptQuery{}
 			q.EndpointId = &entitiesConfig.Endpoints[0].ID
-			q.Status = utils.Pointer(entities.AttemptStatusSuccess)
+			q.Status = new(entities.AttemptStatusSuccess)
 			count, err := db.Attempts.Count(context.TODO(), q.WhereMap())
 			assert.NoError(GinkgoT(), err)
 			assert.EqualValues(GinkgoT(), 4, count)

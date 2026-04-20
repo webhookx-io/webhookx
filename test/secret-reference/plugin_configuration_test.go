@@ -40,7 +40,7 @@ var _ = Describe("Plugin Configuration", Ordered, func() {
 					},
 					"body": "hello world",
 				}
-				o.SourceId = utils.Pointer(entitiesConfig.Sources[0].ID)
+				o.SourceId = new(entitiesConfig.Sources[0].ID)
 			}),
 		}
 

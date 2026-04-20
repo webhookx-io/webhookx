@@ -5,7 +5,6 @@ import (
 
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/query"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 type Declarative struct {
@@ -37,7 +36,7 @@ func (m *Declarative) Sync(wid string, cfg *Configuration) error {
 			// Plugins
 			for _, model := range endpoint.Plugins {
 				model.WorkspaceId = wid
-				model.EndpointId = utils.Pointer(endpoint.ID)
+				model.EndpointId = new(endpoint.ID)
 				err = m.db.Plugins.Upsert(ctx, []string{"endpoint_id", "name"}, model)
 				if err != nil {
 					return err
@@ -57,7 +56,7 @@ func (m *Declarative) Sync(wid string, cfg *Configuration) error {
 			// Plugins
 			for _, model := range source.Plugins {
 				model.WorkspaceId = wid
-				model.SourceId = utils.Pointer(source.ID)
+				model.SourceId = new(source.ID)
 				err = m.db.Plugins.Upsert(ctx, []string{"source_id", "name"}, model)
 				if err != nil {
 					return err

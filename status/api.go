@@ -14,7 +14,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/stats"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/status/health"
-	"github.com/webhookx-io/webhookx/utils"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
@@ -83,7 +82,7 @@ func (api *API) Health(w http.ResponseWriter, r *http.Request) {
 			resp.Status = health.StatusDown
 
 			res.Status = health.StatusDown
-			res.Error = utils.Pointer(err.Error())
+			res.Error = new(err.Error())
 		}
 		resp.Components[check.Name] = res
 	}

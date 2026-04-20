@@ -6,7 +6,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/types"
 
 	"github.com/webhookx-io/webhookx/db/query"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 func (api *API) PageAttempt(w http.ResponseWriter, r *http.Request) {
@@ -14,10 +13,10 @@ func (api *API) PageAttempt(w http.ResponseWriter, r *http.Request) {
 	q.Order("id", query.DESC)
 	api.bindQuery(r, &q.Query)
 	if r.URL.Query().Get("event_id") != "" {
-		q.EventId = utils.Pointer(r.URL.Query().Get("event_id"))
+		q.EventId = new(r.URL.Query().Get("event_id"))
 	}
 	if r.URL.Query().Get("endpoint_id") != "" {
-		q.EndpointId = utils.Pointer(r.URL.Query().Get("endpoint_id"))
+		q.EndpointId = new(r.URL.Query().Get("endpoint_id"))
 	}
 	list, total, err := api.db.AttemptsWS.Page(r.Context(), &q)
 	api.assert(err)

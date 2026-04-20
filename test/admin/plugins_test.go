@@ -59,7 +59,7 @@ var _ = Describe("/plugins", Ordered, func() {
 					assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 					plugin := entities.Plugin{
 						ID:         utils.KSUID(),
-						EndpointId: utils.Pointer(endpoint.ID),
+						EndpointId: new(endpoint.ID),
 						Name:       "webhookx-signature",
 						Enabled:    true,
 					}
@@ -554,7 +554,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				}
 				entity = &entities.Plugin{
 					ID:         utils.KSUID(),
-					EndpointId: utils.Pointer(entitiesConfig.Endpoints[0].ID),
+					EndpointId: new(entitiesConfig.Endpoints[0].ID),
 					Name:       "webhookx-signature",
 					Enabled:    true,
 					Config:     map[string]interface{}{"signing_secret": "abcde"},
@@ -608,7 +608,7 @@ var _ = Describe("/plugins", Ordered, func() {
 					ID:         utils.KSUID(),
 					Name:       "webhookx-signature",
 					Enabled:    true,
-					EndpointId: utils.Pointer(endpoint.ID),
+					EndpointId: new(endpoint.ID),
 				}
 				plugin.WorkspaceId = ws.ID
 				assert.Nil(GinkgoT(), db.Plugins.Insert(context.TODO(), plugin))
@@ -691,7 +691,7 @@ var _ = Describe("/plugins", Ordered, func() {
 					ID:         utils.KSUID(),
 					Name:       "webhookx-signature",
 					Enabled:    true,
-					EndpointId: utils.Pointer(endpoint.ID),
+					EndpointId: new(endpoint.ID),
 				}
 				entity.WorkspaceId = ws.ID
 				assert.Nil(GinkgoT(), db.Plugins.Insert(context.TODO(), entity))

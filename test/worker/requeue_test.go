@@ -95,13 +95,13 @@ var _ = Describe("processRequeue", Ordered, func() {
 	It("all attempts should become QUEUED", func() {
 		time.Sleep(time.Second * 1) // wait for timer to be executed
 		var q query.AttemptQuery
-		q.EndpointId = utils.Pointer(endpoint.ID)
-		q.Status = utils.Pointer(entities.AttemptStatusInit)
+		q.EndpointId = new(endpoint.ID)
+		q.Status = new(entities.AttemptStatusInit)
 		count, err := db.Attempts.Count(context.TODO(), q.WhereMap())
 		assert.NoError(GinkgoT(), err)
 		assert.EqualValues(GinkgoT(), 0, count)
 
-		q.Status = utils.Pointer(entities.AttemptStatusQueued)
+		q.Status = new(entities.AttemptStatusQueued)
 		count, err = db.Attempts.Count(context.TODO(), q.WhereMap())
 		assert.NoError(GinkgoT(), err)
 		assert.EqualValues(GinkgoT(), 10, count)

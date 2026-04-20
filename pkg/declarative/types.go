@@ -25,7 +25,7 @@ func (cfg *Configuration) Init() {
 			if p.ID == "" {
 				p.ID = utils.KSUID()
 			}
-			p.SourceId = utils.Pointer(m.ID)
+			p.SourceId = new(m.ID)
 		}
 	}
 	for _, m := range cfg.Endpoints {
@@ -36,7 +36,7 @@ func (cfg *Configuration) Init() {
 			if p.ID == "" {
 				p.ID = utils.KSUID()
 			}
-			p.EndpointId = utils.Pointer(m.ID)
+			p.EndpointId = new(m.ID)
 		}
 	}
 }

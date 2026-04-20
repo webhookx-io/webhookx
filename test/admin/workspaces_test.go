@@ -121,7 +121,7 @@ var _ = Describe("/workspaces", Ordered, func() {
 			BeforeAll(func() {
 				entity = &entities.Workspace{
 					ID:   utils.KSUID(),
-					Name: utils.Pointer("test-update-workspace"),
+					Name: new("test-update-workspace"),
 				}
 				assert.Nil(GinkgoT(), db.Workspaces.Insert(context.TODO(), entity))
 			})
@@ -129,7 +129,7 @@ var _ = Describe("/workspaces", Ordered, func() {
 			It("updates by id", func() {
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
-						"description": utils.Pointer("test"),
+						"description": new("test"),
 					}).
 					SetResult(entities.Workspace{}).
 					Put("/workspaces/" + entity.ID)
@@ -146,7 +146,7 @@ var _ = Describe("/workspaces", Ordered, func() {
 			It("cannot rename default workspace", func() {
 				resp, err := adminClient.R().
 					SetBody(map[string]interface{}{
-						"name": utils.Pointer("other"),
+						"name": new("other"),
 					}).
 					SetResult(entities.Workspace{}).
 					Put("/workspaces/" + ws.ID)

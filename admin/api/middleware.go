@@ -9,7 +9,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/contextx"
 	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/pkg/types"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 func (api *API) contextMiddleware(next http.Handler) http.Handler {
@@ -36,7 +35,7 @@ func (api *API) contextMiddleware(next http.Handler) http.Handler {
 
 		ctx := contextx.WithContext(r.Context(), &contextx.Context{
 			WorkspaceID:   workspace.ID,
-			WorkspaceName: utils.PointerValue(workspace.Name),
+			WorkspaceName: *workspace.Name,
 		})
 		r = r.WithContext(ctx)
 

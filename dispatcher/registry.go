@@ -8,7 +8,6 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/db/query"
-	"github.com/webhookx-io/webhookx/utils"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -45,7 +44,7 @@ func (r *Registry) Warmup() error {
 func (r *Registry) load(ctx context.Context, wid string) (*Registration, error) {
 	var q query.EndpointQuery
 	q.WorkspaceId = &wid
-	q.Enabled = utils.Pointer(true)
+	q.Enabled = new(true)
 	endpoints, err := r.db.Endpoints.List(ctx, &q)
 	if err != nil {
 		return nil, err

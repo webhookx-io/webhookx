@@ -35,7 +35,6 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/services/eventbus"
 	"github.com/webhookx-io/webhookx/test"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 var (
@@ -320,7 +319,7 @@ func InitDB(truncated bool, entities *TestEntities) *db.DB {
 			panic(err)
 		}
 		for _, p := range e.Plugins {
-			p.EndpointId = utils.Pointer(e.ID)
+			p.EndpointId = new(e.ID)
 			p.WorkspaceId = ws.ID
 			err = db.Plugins.Insert(context.TODO(), p)
 			if err != nil {
@@ -336,7 +335,7 @@ func InitDB(truncated bool, entities *TestEntities) *db.DB {
 			panic(err)
 		}
 		for _, p := range s.Plugins {
-			p.SourceId = utils.Pointer(s.ID)
+			p.SourceId = new(s.ID)
 			p.WorkspaceId = ws.ID
 			err = db.Plugins.Insert(context.TODO(), p)
 			if err != nil {

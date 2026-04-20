@@ -97,7 +97,7 @@ var _ = Describe("admin", Ordered, func() {
 
 				q := query.PluginQuery{}
 				q.EndpointId = &endpoint.ID
-				q.Enabled = utils.Pointer(true)
+				q.Enabled = new(true)
 				plugins, err := db.Plugins.List(context.TODO(), &q)
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 1, len(plugins))
@@ -107,7 +107,7 @@ var _ = Describe("admin", Ordered, func() {
 
 				q = query.PluginQuery{}
 				q.SourceId = &source.ID
-				q.Enabled = utils.Pointer(true)
+				q.Enabled = new(true)
 				plugins, err = db.Plugins.List(context.TODO(), &q)
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 2, len(plugins))
@@ -259,7 +259,7 @@ var _ = Describe("admin", Ordered, func() {
 
 				plugin := factory.PluginWS("webhookx-signature", ws.ID, func(o *entities.Plugin) {
 					o.ID = "2q6ItZRVNB0EyVr6j8Pxa7VTohU"
-					o.EndpointId = utils.Pointer(endpoint.ID)
+					o.EndpointId = new(endpoint.ID)
 					o.Metadata = map[string]string{"k": "v"}
 					o.Config = map[string]interface{}{"signing_secret": "test"}
 				})

@@ -93,7 +93,7 @@ var _ = Describe("clustering", Ordered, func() {
 
 			assert.Eventually(GinkgoT(), func() bool {
 				q := query.AttemptQuery{
-					Status: utils.Pointer(entities.AttemptStatusSuccess),
+					Status: new(entities.AttemptStatusSuccess),
 				}
 
 				n, err := db.Attempts.Count(context.TODO(), q.WhereMap())

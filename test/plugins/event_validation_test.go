@@ -16,7 +16,6 @@ import (
 	"github.com/webhookx-io/webhookx/plugins/event-validation"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 var jsonString = `{

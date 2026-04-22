@@ -46,6 +46,7 @@ type Query struct {
 	Wheres      []Condition
 	Orders      []Order
 	CursorModel bool
+	Reverse     bool
 }
 
 func (q *Query) Where(column string, op Operator, value any) *Query {
@@ -77,14 +78,13 @@ func (q Query) clone() Query {
 	return cloned
 }
 
-type Cursor struct {
+type Cursor[T any] struct {
+	Cursor   bool
+	Reversed bool
+	Data     []T
+	// Deprecated
+	Total   int64
 	HasMore bool
 	FirstId *string
 	LastId  *string
-}
-
-type CursorResult[T any] struct {
-	Data   []T
-	Total  int64
-	Cursor Cursor
 }

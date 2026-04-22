@@ -16,7 +16,7 @@ type BaseDAO[T any] interface {
 	Delete(ctx context.Context, id string) (bool, error)
 	Count(ctx context.Context, query *Query) (int64, error)
 	List(ctx context.Context, query *Query) ([]*T, error)
-	Cursor(ctx context.Context, query *Query) (CursorResult[*T], error)
+	Cursor(ctx context.Context, query *Query) (Cursor[*T], error)
 	BatchInsert(ctx context.Context, entities []*T) error
 }
 

@@ -17,25 +17,44 @@ type CursorPagination[T any] struct {
 	Prev *string `json:"prev"`
 }
 
-func BuildPaginationResponse[T any](cursor bool, result dao.CursorResult[T], url *url.URL) interface{} {
-	if !cursor {
+func BuildPaginationResponse[T any](cursor dao.Cursor[T], url *url.URL) interface{} {
+	if !cursor.Cursor {
 		return Pagination[T]{
-			Total: result.Total,
-			Data:  result.Data,
+			Total: cursor.Total,
+			Data:  cursor.Data,
 		}
 
 	}
 
-	var next *string
+	var hasNext, hasPrev bool
+	var next, prev *string
 
-	if result.Cursor.HasMore {
+
+	if cursor.Reversed {
+		hasPrev = cursor.HasMore
+		hasNext = url.Query().Get("before") != ""
+	} else {
+		hasNext = cursor.HasMore
+		hasPrev = url.Query().Get("after") != ""
+	}
+
+	if hasNext && cursor.LastId != nil {
 		values := url.Query()
-		values.Set("after", *result.Cursor.LastId)
+		values.Del("before")
+		values.Set("after", *cursor.LastId)
 		next = new(url.Path + "?" + values.Encode())
 	}
 
+	if hasPrev && cursor.FirstId != nil {
+		values := url.Query()
+		values.Del("after")
+		values.Set("before", *cursor.FirstId)
+		prev = new(url.Path + "?" + values.Encode())
+	}
+
 	return CursorPagination[T]{
-		Data: result.Data,
+		Data: cursor.Data,
 		Next: next,
+		Prev: prev,
 	}
 }

@@ -50,17 +50,15 @@ func (p *ListParams) Query() *dao.Query {
 		pageSize = DefaultPageSize
 	}
 	query.Page(pageNo, pageSize)
+	if p.Limit != nil {
+		query.Page(1, *p.Limit)
+	}
 
 	sort := p.Sort
 	if sort == "" {
 		sort = "id.desc"
 	}
 	field, order, _ := strings.Cut(sort, ".")
-	query.Order(field, order)
-
-	if p.Limit != nil {
-		query.Page(1, *p.Limit)
-	}
 	if p.After != nil {
 		switch order {
 		case "asc":
@@ -77,6 +75,17 @@ func (p *ListParams) Query() *dao.Query {
 			query.Where("id", dao.GreaterThan, *p.Before)
 		}
 	}
+
+	if p.Before != nil { // reverse order
+		if order == "asc" {
+			order = "desc"
+		} else if order == "desc" {
+			order = "asc"
+		}
+		query.Reverse = true
+	}
+	query.Order(field, order)
+
 	if p.Limit != nil || p.After != nil || p.Before != nil {
 		query.CursorModel = true
 	}

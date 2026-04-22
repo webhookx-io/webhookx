@@ -27,7 +27,7 @@ func (api *API) PageEndpoint(w http.ResponseWriter, r *http.Request) {
 	page, err := api.db.EndpointsWS.Cursor(r.Context(), query)
 	api.assert(err)
 
-	api.json(200, w, BuildPaginationResponse(query.CursorModel, page, r.URL))
+	api.json(200, w, BuildPaginationResponse(page, r.URL))
 }
 
 func (api *API) GetEndpoint(w http.ResponseWriter, r *http.Request) {

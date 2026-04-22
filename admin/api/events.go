@@ -30,7 +30,7 @@ func (api *API) PageEvent(w http.ResponseWriter, r *http.Request) {
 	page, err := api.db.EventsWS.Cursor(r.Context(), query)
 	api.assert(err)
 
-	api.json(200, w, BuildPaginationResponse(query.CursorModel, page, r.URL))
+	api.json(200, w, BuildPaginationResponse(page, r.URL))
 }
 
 func (api *API) GetEvent(w http.ResponseWriter, r *http.Request) {

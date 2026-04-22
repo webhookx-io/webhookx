@@ -907,6 +907,10 @@ components:
           description: URI to the next page. (only returned for cursor-based pagination)
           type: string
           nullable: true
+        prev:
+          description: URI to the previous page. (only returned for cursor-based pagination)
+          type: string
+          nullable: true
         data:
           description: List of resources
           type: array

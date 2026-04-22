@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
@@ -231,14 +232,13 @@ func (dao *DAO[T]) List(ctx context.Context, query *Query) (list []*T, err error
 	return
 }
 
-func (dao *DAO[T]) Cursor(ctx context.Context, query *Query) (res CursorResult[*T], err error) {
+func (dao *DAO[T]) Cursor(ctx context.Context, query *Query) (cursor Cursor[*T], err error) {
 	if query == nil {
 		panic("query is nil")
 	}
 	if query.Limit <= 0 {
 		panic("query.limit must be positive")
 	}
-
 	var spanName string
 	if query.CursorModel {
 		spanName = fmt.Sprintf("dao.%s.cursor", dao.opts.Table)
@@ -260,38 +260,44 @@ func (dao *DAO[T]) Cursor(ctx context.Context, query *Query) (res CursorResult[*
 	statement, args := builder.MustSql()
 	dao.debugSQL(statement, args)
 
-	res.Data = make([]*T, 0)
-	err = dao.UnsafeDB(ctx).SelectContext(ctx, &res.Data, statement, args...)
+	cursor.Data = make([]*T, 0)
+	err = dao.UnsafeDB(ctx).SelectContext(ctx, &cursor.Data, statement, args...)
 	if err != nil {
 		return
 	}
 
-	if len(res.Data) > query.Limit {
-		res.Cursor.HasMore = true
-		res.Data = res.Data[:query.Limit]
+	if len(cursor.Data) > query.Limit {
+		cursor.HasMore = true
+		cursor.Data = cursor.Data[:query.Limit]
 	}
 
-	if len(res.Data) > 0 {
-		first := res.Data[0]
+	if query.Reverse {
+		slices.Reverse(cursor.Data)
+		cursor.Reversed = true
+	}
+
+	if len(cursor.Data) > 0 {
+		first := cursor.Data[0]
 		firstId := reflect.ValueOf(*first).FieldByName("ID")
 		if firstId.IsValid() {
-			res.Cursor.FirstId = new(firstId.String())
+			cursor.FirstId = new(firstId.String())
 		}
 
-		last := res.Data[len(res.Data)-1]
+		last := cursor.Data[len(cursor.Data)-1]
 		lastId := reflect.ValueOf(*last).FieldByName("ID")
 		if lastId.IsValid() {
-			res.Cursor.LastId = new(lastId.String())
+			cursor.LastId = new(lastId.String())
 		}
 	}
 
 	if !query.CursorModel {
 		totoal, err := dao.Count(ctx, query)
 		if err != nil {
-			return res, err
+			return cursor, err
 		}
-		res.Total = totoal
+		cursor.Total = totoal
 	}
+	cursor.Cursor = query.CursorModel
 
 	return
 }

@@ -27,7 +27,7 @@ func (api *API) PageSource(w http.ResponseWriter, r *http.Request) {
 	page, err := api.db.SourcesWS.Cursor(r.Context(), query)
 	api.assert(err)
 
-	api.json(200, w, BuildPaginationResponse(query.CursorModel, page, r.URL))
+	api.json(200, w, BuildPaginationResponse(page, r.URL))
 }
 
 func (api *API) GetSource(w http.ResponseWriter, r *http.Request) {

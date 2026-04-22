@@ -20,7 +20,6 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/pkg/contextx"
 	"github.com/webhookx-io/webhookx/pkg/http/middlewares"
@@ -163,7 +162,7 @@ func (g *Gateway) buildRouter(version string) {
 
 	g.log.Debugw("building router", "version", version)
 
-	sources, err := g.db.Sources.List(ctx, &query.SourceQuery{})
+	sources, err := g.db.Sources.List(ctx, &dao.Query{})
 	if err != nil {
 		g.log.Warnf("failed to build router: %v", err)
 		return

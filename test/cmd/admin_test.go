@@ -14,8 +14,8 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/cmd"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
@@ -95,20 +95,20 @@ var _ = Describe("admin", Ordered, func() {
 				assert.Equal(GinkgoT(), "application/json", source.Config.HTTP.Response.ContentType)
 				assert.Equal(GinkgoT(), `{"message": "OK"}`, source.Config.HTTP.Response.Body)
 
-				q := query.PluginQuery{}
+				q := dao.PluginQuery{}
 				q.EndpointId = &endpoint.ID
 				q.Enabled = new(true)
-				plugins, err := db.Plugins.List(context.TODO(), &q)
+				plugins, err := db.Plugins.List(context.TODO(), q.ToQuery())
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 1, len(plugins))
 				assert.Equal(GinkgoT(), "webhookx-signature", plugins[0].Name)
 				assert.Equal(GinkgoT(), true, plugins[0].Enabled)
 				assert.EqualValues(GinkgoT(), map[string]interface{}{"signing_secret": "foo"}, plugins[0].Config)
 
-				q = query.PluginQuery{}
+				q = dao.PluginQuery{}
 				q.SourceId = &source.ID
 				q.Enabled = new(true)
-				plugins, err = db.Plugins.List(context.TODO(), &q)
+				plugins, err = db.Plugins.List(context.TODO(), q.ToQuery())
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 2, len(plugins))
 				names := make(map[string]*entities.Plugin)

@@ -85,3 +85,29 @@ func (dao *attemptDao) ListUnqueuedForUpdate(ctx context.Context, maxScheduledAt
 	err = dao.UnsafeDB(ctx).SelectContext(ctx, &list, sql, maxScheduledAt, limit)
 	return
 }
+
+type AttemptQuery struct {
+	Query
+
+	IDs        []string
+	EventId    *string
+	EndpointId *string
+	Status     *string
+}
+
+func (q *AttemptQuery) ToQuery() *Query {
+	query := q.clone()
+	if q.IDs != nil {
+		query.Where("id", Equal, q.IDs)
+	}
+	if q.EventId != nil {
+		query.Where("event_id", Equal, *q.EventId)
+	}
+	if q.EndpointId != nil {
+		query.Where("endpoint_id", Equal, *q.EndpointId)
+	}
+	if q.Status != nil {
+		query.Where("status", Equal, *q.Status)
+	}
+	return &query
+}

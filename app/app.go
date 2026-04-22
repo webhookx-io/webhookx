@@ -19,9 +19,8 @@ import (
 	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
-	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/migrator"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/dispatcher"
 	"github.com/webhookx-io/webhookx/mcache"
 	"github.com/webhookx-io/webhookx/pkg/accesslog"
@@ -29,6 +28,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/license"
 	"github.com/webhookx-io/webhookx/pkg/log"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
 	"github.com/webhookx-io/webhookx/pkg/reports"
 	"github.com/webhookx-io/webhookx/pkg/secret"
@@ -55,7 +55,7 @@ import (
 
 func init() {
 	plugins.LoadPlugins()
-	entities.LoadOpenAPI(webhookx.OpenAPI)
+	openapi.LoadOpenAPI(webhookx.OpenAPI)
 }
 
 type Application struct {
@@ -369,7 +369,7 @@ func (app *Application) getService(name string) services.Service {
 
 func (app *Application) buildPluginIterator(version string) (*plugins.Iterator, error) {
 	app.log.Debugw("building plugin iterator", "version", version)
-	list, err := app.db.Plugins.List(context.TODO(), &query.PluginQuery{})
+	list, err := app.db.Plugins.List(context.TODO(), &dao.Query{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to query plugins from database: %v", err)
 	}

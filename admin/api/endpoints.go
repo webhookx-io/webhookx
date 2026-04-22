@@ -4,20 +4,30 @@ import (
 	"net/http"
 
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/contextx"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
 func (api *API) PageEndpoint(w http.ResponseWriter, r *http.Request) {
-	var q query.EndpointQuery
-	q.Order("id", query.DESC)
-	api.bindQuery(r, &q.Query)
-	list, total, err := api.db.EndpointsWS.Page(r.Context(), &q)
+	parameters := api.lookupOperation("/workspaces/{ws_id}/endpoints", http.MethodGet).Parameters
+	if err := openapi.ValidateParameters(r, parameters); err != nil {
+		api.error(400, w, err)
+		return
+	}
+
+	var params EndpointListParams
+	if err := api.bindQuery(r, &params); err != nil {
+		api.error(400, w, err)
+		return
+	}
+
+	query := params.Query()
+	page, err := api.db.EndpointsWS.Cursor(r.Context(), query)
 	api.assert(err)
 
-	api.json(200, w, NewPagination(total, list))
+	api.json(200, w, BuildPaginationResponse(query.CursorModel, page, r.URL))
 }
 
 func (api *API) GetEndpoint(w http.ResponseWriter, r *http.Request) {

@@ -12,8 +12,8 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
@@ -48,9 +48,12 @@ var _ = Describe("ingest", Ordered, func() {
 			db = helper.InitDB(true, &entitiesConfig)
 			proxyClient = helper.ProxyClient()
 
-			app = utils.Must(helper.Start(map[string]string{
+			app = helper.MustStart(map[string]string{
 				"WEBHOOKX_WORKER_ENABLED": "false",
-			}))
+			})
+
+			err := helper.WaitForServer(helper.ProxyHttpURL, time.Second)
+			assert.NoError(GinkgoT(), err)
 		})
 
 		AfterAll(func() {
@@ -59,29 +62,27 @@ var _ = Describe("ingest", Ordered, func() {
 
 		It("sanity", func() {
 			resp, err := proxyClient.R().
-				SetBody(`{
-					    "event_type": "foo.bar",
-					    "data": {
-							"key": "value"
-						}
-					}`).
+				SetBody(`{"event_type": "foo.bar","data": {"key": "value"}}`).
 				Post("/")
 			assert.NoError(GinkgoT(), err)
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
 			assert.NotEmpty(GinkgoT(), resp.Header().Get(constants.HeaderEventId))
 			eventId := resp.Header().Get(constants.HeaderEventId)
 
-			var attempt *entities.Attempt
+			// assert event is already in db
 			assert.Eventually(GinkgoT(), func() bool {
-				q := query.AttemptQuery{}
-				q.EventId = &eventId
-				list, err := db.Attempts.List(context.TODO(), &q)
-				if err != nil || len(list) == 0 {
-					return false
-				}
-				attempt = list[0]
-				return attempt.Status == entities.AttemptStatusQueued
-			}, time.Second*15, time.Second)
+				model, err := db.Events.Get(context.TODO(), eventId)
+				assert.NoError(GinkgoT(), err)
+				return model != nil
+			}, time.Second*5, time.Second)
+
+			// assert attempts is queued status
+			q := dao.AttemptQuery{}
+			q.EventId = &eventId
+			list, err := db.Attempts.List(context.TODO(), q.ToQuery())
+			assert.NoError(GinkgoT(), err)
+			assert.Len(GinkgoT(), list, 1)
+			assert.Equal(GinkgoT(), entities.AttemptStatusQueued, list[0].Status)
 		})
 
 		It("custom response", func() {

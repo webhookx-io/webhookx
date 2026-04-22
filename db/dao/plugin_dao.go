@@ -21,3 +21,29 @@ func NewPluginDAO(db *sqlx.DB, fns ...OptionFunc) PluginDAO {
 		DAO: NewDAO[entities.Plugin](db, opts, fns...),
 	}
 }
+
+type PluginQuery struct {
+	Query
+
+	WorkspaceId *string
+	EndpointId  *string
+	SourceId    *string
+	Enabled     *bool
+}
+
+func (q *PluginQuery) ToQuery() *Query {
+	query := q.clone()
+	if q.WorkspaceId != nil {
+		query.Where("ws_id", Equal, *q.WorkspaceId)
+	}
+	if q.EndpointId != nil {
+		query.Where("endpoint_id", Equal, *q.EndpointId)
+	}
+	if q.SourceId != nil {
+		query.Where("source_id", Equal, *q.SourceId)
+	}
+	if q.Enabled != nil {
+		query.Where("enabled", Equal, *q.Enabled)
+	}
+	return &query
+}

@@ -10,8 +10,8 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/test/fixtures/plugins/outbound"
@@ -74,9 +74,9 @@ var _ = Describe("tracing worker", Ordered, func() {
 				eventId := resp.Header().Get(constants.HeaderEventId)
 
 				assert.Eventually(GinkgoT(), func() bool {
-					q := query.AttemptQuery{}
+					q := dao.AttemptQuery{}
 					q.EventId = &eventId
-					list, err := db.Attempts.List(context.TODO(), &q)
+					list, err := db.Attempts.List(context.TODO(), q.ToQuery())
 					if err != nil || len(list) == 0 {
 						return false
 					}

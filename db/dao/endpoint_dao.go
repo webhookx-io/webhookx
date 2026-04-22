@@ -21,3 +21,20 @@ func NewEndpointDAO(db *sqlx.DB, fns ...OptionFunc) EndpointDAO {
 		DAO: NewDAO[entities.Endpoint](db, opts, fns...),
 	}
 }
+
+type EndpointQuery struct {
+	Query
+	Enabled     *bool
+	WorkspaceId *string
+}
+
+func (q *EndpointQuery) ToQuery() *Query {
+	query := q.clone()
+	if q.Enabled != nil {
+		query.Where("enabled", Equal, *q.Enabled)
+	}
+	if q.WorkspaceId != nil {
+		query.Where("ws_id", Equal, *q.WorkspaceId)
+	}
+	return &query
+}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/webhookx-io/webhookx"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/plugins/webhookx_signature"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -71,7 +71,7 @@ var _ = Describe("webhookx-signature", Ordered, func() {
 
 			var event *entities.Event
 			assert.Eventually(GinkgoT(), func() bool {
-				list, err := db.Events.List(context.TODO(), &query.EventQuery{})
+				list, err := db.Events.List(context.TODO(), &dao.Query{})
 				if err != nil || len(list) != 1 {
 					return false
 				}
@@ -82,7 +82,7 @@ var _ = Describe("webhookx-signature", Ordered, func() {
 
 			var attempt *entities.Attempt
 			assert.Eventually(GinkgoT(), func() bool {
-				list, err := db.Attempts.List(context.TODO(), &query.AttemptQuery{})
+				list, err := db.Attempts.List(context.TODO(), &dao.Query{})
 				if err != nil || len(list) == 0 {
 					return false
 				}

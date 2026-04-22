@@ -151,7 +151,7 @@ func (q *RedisQueue) StartListen(ctx context.Context, handler queue.HandlerFunc)
 
 func (q *RedisQueue) listen(ctx context.Context, handler queue.HandlerFunc) {
 	consume := func() {
-		ctx, span := tracing.Start(context.Background(), "queue.consume",
+		ctx, span := tracing.Start(ctx, "queue.consume",
 			trace.WithSpanKind(trace.SpanKindConsumer))
 		defer span.End()
 
@@ -258,4 +258,8 @@ func (q *RedisQueue) process(ctx context.Context) {
 			}
 		}
 	}
+}
+
+func (q *RedisQueue) Close() error {
+	return q.c.Close()
 }

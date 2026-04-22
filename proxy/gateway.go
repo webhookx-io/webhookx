@@ -420,6 +420,12 @@ func (g *Gateway) Stop(ctx context.Context) error {
 		return err
 	}
 
+	if g.queue != nil {
+		if err := g.queue.Close(); err != nil {
+			return err
+		}
+	}
+
 	g.log.Info("exit")
 	return nil
 }

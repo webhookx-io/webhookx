@@ -17,8 +17,11 @@ func NewSourceDAO(db *sqlx.DB, fns ...OptionFunc) SourceDAO {
 		CachePropagate: true,
 		CacheName:      constants.SourceCacheKey.Name,
 	}
+	for _, fn := range fns {
+		fn(&opts)
+	}
 	return &sourceDAO{
-		DAO: NewDAO[entities.Source](db, opts, fns...),
+		DAO: NewDAO[entities.Source](db, opts),
 	}
 }
 

@@ -14,6 +14,7 @@ type Pagination[T any] struct {
 type CursorPagination[T any] struct {
 	Data []T     `json:"data"`
 	Next *string `json:"next"`
+	Prev *string `json:"prev"`
 }
 
 func BuildPaginationResponse[T any](cursor bool, result dao.CursorResult[T], url *url.URL) interface{} {

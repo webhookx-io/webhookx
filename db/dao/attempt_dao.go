@@ -33,7 +33,10 @@ func NewAttemptDao(db *sqlx.DB, fns ...OptionFunc) AttemptDAO {
 		CachePropagate: false,
 		CacheName:      constants.AttemptCacheKey.Name,
 	}
-	return &attemptDao{DAO: NewDAO[entities.Attempt](db, opts, fns...)}
+	for _, fn := range fns {
+		fn(&opts)
+	}
+	return &attemptDao{DAO: NewDAO[entities.Attempt](db, opts)}
 }
 
 func (dao *attemptDao) UpdateDelivery(ctx context.Context, result *AttemptResult) error {

@@ -17,8 +17,11 @@ func NewEndpointDAO(db *sqlx.DB, fns ...OptionFunc) EndpointDAO {
 		CachePropagate: true,
 		CacheName:      constants.EndpointCacheKey.Name,
 	}
+	for _, fn := range fns {
+		fn(&opts)
+	}
 	return &endpointDAO{
-		DAO: NewDAO[entities.Endpoint](db, opts, fns...),
+		DAO: NewDAO[entities.Endpoint](db, opts),
 	}
 }
 

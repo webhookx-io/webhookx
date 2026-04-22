@@ -36,58 +36,24 @@ type DAO[T any] struct {
 	log *zap.SugaredLogger
 	db  *sqlx.DB
 
-	workspace        bool
 	opts             Options
-	columns          []string
-	conditionColumns map[string]bool
+	workspace        bool
+	insertionColumns []string
+	columns          map[string]bool
 }
 
-type Options struct {
-	Table            string
-	EntityName       string
-	Workspace        bool
-	CachePropagate   bool
-	CacheName        string
-	PropagateHandler func(ctx context.Context, opts *Options, id string, entity interface{})
-	Instrumented     bool
-}
-
-type OptionFunc func(*Options)
-
-func WithInstrumented() OptionFunc {
-	return func(o *Options) {
-		o.Instrumented = true
-	}
-}
-
-func WithWorkspace(workspace bool) OptionFunc {
-	return func(o *Options) {
-		o.Workspace = workspace
-	}
-}
-
-func WithPropagateHandler(fn func(ctx context.Context, opts *Options, id string, entity interface{})) OptionFunc {
-	return func(o *Options) {
-		o.PropagateHandler = fn
-	}
-}
-
-func NewDAO[T any](db *sqlx.DB, opts Options, funcs ...OptionFunc) *DAO[T] {
-	for _, fn := range funcs {
-		fn(&opts)
-	}
-
+func NewDAO[T any](db *sqlx.DB, opts Options) *DAO[T] {
 	dao := DAO[T]{
-		log:              zap.S().Named("dao"),
-		db:               db,
-		workspace:        opts.Workspace,
-		opts:             opts,
-		conditionColumns: make(map[string]bool),
+		log:       zap.S().Named("dao"),
+		db:        db,
+		opts:      opts,
+		workspace: opts.Workspace,
+		columns:   make(map[string]bool),
 	}
 	EachField(new(T), func(f reflect.StructField, _ reflect.Value, column string) {
-		dao.conditionColumns[column] = true
+		dao.columns[column] = true
 		if column != "created_at" && column != "updated_at" {
-			dao.columns = append(dao.columns, column)
+			dao.insertionColumns = append(dao.insertionColumns, column)
 		}
 	})
 	return &dao
@@ -230,7 +196,7 @@ func (dao *DAO[T]) Count(ctx context.Context, query *Query) (total int64, err er
 	defer span.End()
 
 	builder := psql.Select("COUNT(*)").From(dao.opts.Table)
-	builder = appendWhere(dao.conditionColumns, builder, query.Wheres)
+	builder = appendWhere(dao.columns, builder, query.Wheres)
 	builder = dao.workspaceFilter(ctx, builder)
 	statement, args := builder.MustSql()
 	dao.debugSQL(statement, args)
@@ -247,7 +213,7 @@ func (dao *DAO[T]) List(ctx context.Context, query *Query) (list []*T, err error
 	defer span.End()
 
 	builder := psql.Select("*").From(dao.opts.Table)
-	builder = appendWhere(dao.conditionColumns, builder, query.Wheres)
+	builder = appendWhere(dao.columns, builder, query.Wheres)
 	builder = dao.workspaceFilter(ctx, builder)
 	builder = appendOrder(builder, query.Orders)
 
@@ -283,7 +249,7 @@ func (dao *DAO[T]) Cursor(ctx context.Context, query *Query) (res CursorResult[*
 	defer span.End()
 
 	builder := psql.Select("*").From(dao.opts.Table)
-	builder = appendWhere(dao.conditionColumns, builder, query.Wheres)
+	builder = appendWhere(dao.columns, builder, query.Wheres)
 	builder = dao.workspaceFilter(ctx, builder)
 	builder = appendOrder(builder, query.Orders)
 	builder = builder.Limit(uint64(query.Limit + 1))
@@ -345,7 +311,7 @@ func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 		}
 		values = append(values, value)
 	})
-	statement, args := psql.Insert(dao.opts.Table).Columns(dao.columns...).Values(values...).
+	statement, args := psql.Insert(dao.opts.Table).Columns(dao.insertionColumns...).Values(values...).
 		Suffix("RETURNING *").
 		MustSql()
 	dao.debugSQL(statement, args)
@@ -367,7 +333,7 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 		return nil
 	}
 
-	builder := psql.Insert(dao.opts.Table).Columns(dao.columns...)
+	builder := psql.Insert(dao.opts.Table).Columns(dao.insertionColumns...)
 
 	for _, entity := range entities {
 		values := make([]interface{}, 0)

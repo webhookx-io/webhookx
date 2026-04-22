@@ -21,8 +21,11 @@ func NewEventDao(db *sqlx.DB, fns ...OptionFunc) EventDAO {
 		CachePropagate: false,
 		CacheName:      constants.EventCacheKey.Name,
 	}
+	for _, fn := range fns {
+		fn(&opts)
+	}
 	return &eventDao{
-		DAO: NewDAO[entities.Event](db, opts, fns...),
+		DAO: NewDAO[entities.Event](db, opts),
 	}
 }
 

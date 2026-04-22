@@ -19,8 +19,11 @@ func NewWorkspaceDAO(db *sqlx.DB, fns ...OptionFunc) WorkspaceDAO {
 		CachePropagate: true,
 		CacheName:      constants.WorkspaceCacheKey.Name,
 	}
+	for _, fn := range fns {
+		fn(&opts)
+	}
 	return &workspaceDAO{
-		DAO: NewDAO[entities.Workspace](db, opts, fns...),
+		DAO: NewDAO[entities.Workspace](db, opts),
 	}
 }
 

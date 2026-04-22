@@ -17,8 +17,11 @@ func NewPluginDAO(db *sqlx.DB, fns ...OptionFunc) PluginDAO {
 		CachePropagate: true,
 		CacheName:      constants.PluginCacheKey.Name,
 	}
+	for _, fn := range fns {
+		fn(&opts)
+	}
 	return &pluginDAO{
-		DAO: NewDAO[entities.Plugin](db, opts, fns...),
+		DAO: NewDAO[entities.Plugin](db, opts),
 	}
 }
 

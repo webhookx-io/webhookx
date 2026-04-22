@@ -28,6 +28,7 @@ type Queue interface {
 	Producer
 	Consumer
 	Stats() map[string]interface{}
+	Close() error
 }
 
 type Producer interface {

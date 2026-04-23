@@ -459,6 +459,16 @@ var _ = Describe("/endpoints", Ordered, func() {
 						`{"message":"Request Validation","error":{"message":"request validation","fields":{"@params":["limit: number must be at most 1000"]}}}`,
 						string(resp.Body()))
 				})
+				It("before and after params are mutex", func() {
+					resp, err := adminClient.R().
+						SetQueryParam("after", "v").
+						SetQueryParam("before", "v").
+						Get("/workspaces/default/endpoints")
+					assert.Nil(GinkgoT(), err)
+					assert.Equal(GinkgoT(),
+						`{"message":"Request Validation","error":{"message":"cannot pass both 'after' and 'before' params at the same time","fields":{}}}`,
+						string(resp.Body()))
+				})
 			})
 		})
 

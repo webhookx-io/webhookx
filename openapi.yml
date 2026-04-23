@@ -34,7 +34,7 @@ paths:
               example:
                 version: 1.0.0
                 message: "Welcome to WebhookX"
-                configuration: {}
+                configuration: { }
 
   /license:
     get:
@@ -84,7 +84,7 @@ paths:
         - $ref: "#/components/parameters/name"
         - $ref: "#/components/parameters/created_at"
         - $ref: "#/components/parameters/metadata"
-      summary: Page workspaces
+      summary: List workspaces
       tags:
         - Workspace
       responses:
@@ -93,14 +93,23 @@ paths:
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/Pagination"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Workspace"
+                oneOf:
+                  - allOf:
+                      - $ref: "#/components/schemas/OffsetPagination"
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Workspace"
+                  - allOf:
+                      - $ref: "#/components/schemas/CursorPagination"
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Workspace"
     post:
       summary: Create a workspace
       tags:
@@ -188,7 +197,7 @@ paths:
         - $ref: "#/components/parameters/enabled"
         - $ref: "#/components/parameters/created_at"
         - $ref: "#/components/parameters/metadata"
-      summary: Page endpoints
+      summary: List endpoints
       tags:
         - Endpoint
       responses:
@@ -197,14 +206,23 @@ paths:
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/Pagination"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Endpoint"
+                oneOf:
+                  - allOf:
+                      - $ref: "#/components/schemas/OffsetPagination"
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Endpoint"
+                  - allOf:
+                      - $ref: "#/components/schemas/CursorPagination"
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Endpoint"
     post:
       tags:
         - Endpoint
@@ -331,7 +349,7 @@ paths:
                     format: int64
               - type: integer
                 format: int64
-      summary: Page webhook attempts
+      summary: List webhook attempts
       tags:
         - Attempt
       responses:
@@ -340,14 +358,23 @@ paths:
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/Pagination"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Attempt"
+                oneOf:
+                  - allOf:
+                      - $ref: "#/components/schemas/OffsetPagination"
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Attempt"
+                  - allOf:
+                      - $ref: "#/components/schemas/CursorPagination"
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Attempt"
 
   /workspaces/{ws_id}/attempts/{id}:
     parameters:
@@ -417,7 +444,7 @@ paths:
                     format: int64
               - type: integer
                 format: int64
-      summary: Page events
+      summary: List events
       tags:
         - Event
       responses:
@@ -426,14 +453,23 @@ paths:
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/Pagination"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Event"
+                oneOf:
+                  - allOf:
+                      - $ref: "#/components/schemas/OffsetPagination"
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Event"
+                  - allOf:
+                      - $ref: "#/components/schemas/CursorPagination"
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Event"
 
     post:
       summary: Create an event
@@ -514,7 +550,7 @@ paths:
         - $ref: "#/components/parameters/enabled"
         - $ref: "#/components/parameters/created_at"
         - $ref: "#/components/parameters/metadata"
-      summary: Page sources
+      summary: List sources
       tags:
         - Source
       responses:
@@ -523,14 +559,23 @@ paths:
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/Pagination"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Source"
+                oneOf:
+                  - allOf:
+                      - $ref: "#/components/schemas/OffsetPagination"
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Source"
+                  - allOf:
+                      - $ref: "#/components/schemas/CursorPagination"
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Source"
     post:
       summary: Create a source
       tags:
@@ -631,7 +676,7 @@ paths:
           name: source_id
           schema:
             type: string
-      summary: Page plugins
+      summary: List plugins
       tags:
         - Plugin
       responses:
@@ -640,14 +685,23 @@ paths:
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: "#/components/schemas/Pagination"
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: "#/components/schemas/Plugin"
+                oneOf:
+                  - allOf:
+                      - $ref: "#/components/schemas/OffsetPagination"
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Plugin"
+                  - allOf:
+                      - $ref: "#/components/schemas/CursorPagination"
+                      - type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/Plugin"
     post:
       summary: Create a plugin
       tags:
@@ -822,7 +876,7 @@ components:
         maximum: 1000
         minimum: 1
     sort:
-      description: ""
+      description: "Only id.asc and id.desc are supported."
       in: query
       name: sort
       schema:
@@ -897,18 +951,28 @@ components:
       description: The resource has been successfully deleted or the resource didn't exist
 
   schemas:
-    Pagination:
+    OffsetPagination:
+      type: object
       properties:
         total:
-          description: Total number of resources. (only returned for offset-based pagination)
+          description: Total number of resources.
           type: integer
           example: 1
+        data:
+          description: List of resources
+          type: array
+          items:
+            type: object
+
+    CursorPagination:
+      type: object
+      properties:
         next:
-          description: URI to the next page. (only returned for cursor-based pagination)
+          description: URI to next page when available.
           type: string
           nullable: true
         prev:
-          description: URI to the previous page. (only returned for cursor-based pagination)
+          description: URI to previous page when available.
           type: string
           nullable: true
         data:
@@ -921,7 +985,7 @@ components:
       type: object
       additionalProperties:
         type: string
-      default: {}
+      default: { }
 
     Workspace:
       type: object
@@ -1014,7 +1078,7 @@ components:
           items:
             type: string
             example: foo.bar
-          default: []
+          default: [ ]
         metadata:
           $ref: "#/components/schemas/Metadata"
         rate_limit:

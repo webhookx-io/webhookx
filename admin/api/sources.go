@@ -24,10 +24,10 @@ func (api *API) PageSource(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := params.Query()
-	page, err := api.db.SourcesWS.Cursor(r.Context(), query)
+	cursor, err := api.db.SourcesWS.Cursor(r.Context(), query)
 	api.assert(err)
 
-	api.json(200, w, BuildPaginationResponse(page, r.URL))
+	api.json(200, w, BuildPaginationResponse(cursor, r.URL))
 }
 
 func (api *API) GetSource(w http.ResponseWriter, r *http.Request) {

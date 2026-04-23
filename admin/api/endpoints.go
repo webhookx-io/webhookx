@@ -24,10 +24,10 @@ func (api *API) PageEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := params.Query()
-	page, err := api.db.EndpointsWS.Cursor(r.Context(), query)
+	cursor, err := api.db.EndpointsWS.Cursor(r.Context(), query)
 	api.assert(err)
 
-	api.json(200, w, BuildPaginationResponse(page, r.URL))
+	api.json(200, w, BuildPaginationResponse(cursor, r.URL))
 }
 
 func (api *API) GetEndpoint(w http.ResponseWriter, r *http.Request) {

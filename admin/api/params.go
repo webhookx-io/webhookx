@@ -18,20 +18,22 @@ type Params interface {
 }
 
 type ListParams struct {
+	// sort param
+	Sort string `form:"sort"`
+
 	// Deprecated
+	// page_no param (offset-based)
 	PageNo int `form:"page_no"`
 	// Deprecated
+	// page_size param (offset-based)
 	PageSize int `form:"page_size"`
 
-	// limit parameter
+	// cursor limit param
 	Limit *int `form:"limit"`
-	// after parameter
+	// cursor after param
 	After *string `form:"after"`
-	// before parameter
+	// cursor before param
 	Before *string `form:"before"`
-
-	// sort parameter
-	Sort string `form:"sort"`
 }
 
 func (p *ListParams) Validate() error {
@@ -79,7 +81,7 @@ func (p *ListParams) Query() *dao.Query {
 	if p.Before != nil { // reverse order
 		if order == "asc" {
 			order = "desc"
-		} else if order == "desc" {
+		} else {
 			order = "asc"
 		}
 		query.Reverse = true

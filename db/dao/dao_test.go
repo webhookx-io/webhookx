@@ -71,3 +71,19 @@ func TestCursor(t *testing.T) {
 		dao.Cursor(context.TODO(), &query)
 	})
 }
+
+func TestCount(t *testing.T) {
+	dao := NewDAO[TestEntity](nil, Options{
+		Table: "test_table",
+	})
+
+	t.Run("should panic when query is nil", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r != "query is nil" {
+				t.Errorf("unexpected panic: %v", r)
+			}
+		}()
+		dao.Count(context.TODO(), nil)
+	})
+
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -222,7 +223,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 			assert.Nil(GinkgoT(), db.Truncate("endpoints"))
 			for i := 1; i <= 21; i++ {
 				entity := entities.Endpoint{
-					ID:      fmt.Sprintf("ep_%03d", i),
+					ID:      strings.Repeat("_", 24) + fmt.Sprintf("%03d", i),
 					Name:    new(fmt.Sprintf("endpoint_%03d", i)),
 					Enabled: i%2 == 0,
 					Request: entities.RequestConfig{
@@ -283,6 +284,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 				result := resp.Result().(*api.CursorPagination[*entities.Endpoint])
 				assert.Equal(GinkgoT(), 5, len(result.Data))
 				assert.NotNil(GinkgoT(), result.Next)
+				assert.Nil(GinkgoT(), result.Prev)
 
 				resp, err = adminClient.R().
 					SetQueryParam("limit", "100").
@@ -292,6 +294,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 				result = resp.Result().(*api.CursorPagination[*entities.Endpoint])
 				assert.Equal(GinkgoT(), 21, len(result.Data))
 				assert.Nil(GinkgoT(), result.Next)
+				assert.Nil(GinkgoT(), result.Prev)
 			})
 
 			It("after", func() {
@@ -318,6 +321,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 				result = resp.Result().(*api.CursorPagination[*entities.Endpoint])
 				assert.Equal(GinkgoT(), 1, len(result.Data))
 				assert.Equal(GinkgoT(), secondId, result.Data[0].ID)
+				assert.NotNil(GinkgoT(), result.Prev)
 			})
 
 			It("before", func() {
@@ -343,6 +347,88 @@ var _ = Describe("/endpoints", Ordered, func() {
 				result = resp.Result().(*api.CursorPagination[*entities.Endpoint])
 				assert.Equal(GinkgoT(), 1, len(result.Data))
 				assert.Equal(GinkgoT(), firstId, result.Data[0].ID)
+				assert.Nil(GinkgoT(), result.Prev)
+				assert.NotNil(GinkgoT(), result.Next)
+			})
+
+			Context("navigator", func() {
+				It("should return next and null prev for first page", func() {
+					resp, err := adminClient.R().
+						SetQueryParam("limit", "2").
+						SetQueryParam("foo", "bar").
+						SetResult(api.CursorPagination[*entities.Endpoint]{}).
+						Get("/workspaces/default/endpoints")
+					assert.Nil(GinkgoT(), err)
+					result := resp.Result().(*api.CursorPagination[*entities.Endpoint])
+					assert.Equal(GinkgoT(), 2, len(result.Data))
+					assert.Equal(GinkgoT(), "endpoint_021", *result.Data[0].Name)
+					assert.Equal(GinkgoT(), "endpoint_020", *result.Data[1].Name)
+					assert.Equal(GinkgoT(), "/workspaces/default/endpoints?after=________________________020&foo=bar&limit=2", *result.Next)
+					assert.Nil(GinkgoT(), result.Prev)
+				})
+
+				It("should return next and prev for second page", func() {
+					resp, err := adminClient.R().
+						SetQueryParam("limit", "2").
+						SetQueryParam("foo", "bar").
+						SetQueryParam("after", "________________________020").
+						SetResult(api.CursorPagination[*entities.Endpoint]{}).
+						Get("/workspaces/default/endpoints")
+					assert.Nil(GinkgoT(), err)
+					result := resp.Result().(*api.CursorPagination[*entities.Endpoint])
+					assert.Equal(GinkgoT(), 2, len(result.Data))
+					assert.Equal(GinkgoT(), "endpoint_019", *result.Data[0].Name)
+					assert.Equal(GinkgoT(), "endpoint_018", *result.Data[1].Name)
+					assert.Equal(GinkgoT(), "/workspaces/default/endpoints?after=________________________018&foo=bar&limit=2", *result.Next)
+					assert.Equal(GinkgoT(), "/workspaces/default/endpoints?before=________________________019&foo=bar&limit=2", *result.Prev)
+				})
+
+				It("should return null next and prev for last page", func() {
+					resp, err := adminClient.R().
+						SetQueryParam("limit", "2").
+						SetQueryParam("foo", "bar").
+						SetQueryParam("after", "________________________002").
+						SetResult(api.CursorPagination[*entities.Endpoint]{}).
+						Get("/workspaces/default/endpoints")
+					assert.Nil(GinkgoT(), err)
+					result := resp.Result().(*api.CursorPagination[*entities.Endpoint])
+					assert.Equal(GinkgoT(), 1, len(result.Data))
+					assert.Equal(GinkgoT(), "endpoint_001", *result.Data[0].Name)
+					assert.Nil(GinkgoT(), result.Next)
+					assert.Equal(GinkgoT(), "/workspaces/default/endpoints?before=________________________001&foo=bar&limit=2", *result.Prev)
+				})
+
+				It("should return next and prev for the last page via before", func() {
+					resp, err := adminClient.R().
+						SetQueryParam("limit", "2").
+						SetQueryParam("foo", "bar").
+						SetQueryParam("before", "________________________001").
+						SetResult(api.CursorPagination[*entities.Endpoint]{}).
+						Get("/workspaces/default/endpoints")
+					assert.Nil(GinkgoT(), err)
+					result := resp.Result().(*api.CursorPagination[*entities.Endpoint])
+					assert.Equal(GinkgoT(), 2, len(result.Data))
+					assert.Equal(GinkgoT(), "endpoint_003", *result.Data[0].Name)
+					assert.Equal(GinkgoT(), "endpoint_002", *result.Data[1].Name)
+					assert.Equal(GinkgoT(), "/workspaces/default/endpoints?after=________________________002&foo=bar&limit=2", *result.Next)
+					assert.Equal(GinkgoT(), "/workspaces/default/endpoints?before=________________________003&foo=bar&limit=2", *result.Prev)
+				})
+
+				It("should return next and null prev for first page via before", func() {
+					resp, err := adminClient.R().
+						SetQueryParam("limit", "2").
+						SetQueryParam("foo", "bar").
+						SetQueryParam("before", "________________________020").
+						SetResult(api.CursorPagination[*entities.Endpoint]{}).
+						Get("/workspaces/default/endpoints")
+					assert.Nil(GinkgoT(), err)
+					result := resp.Result().(*api.CursorPagination[*entities.Endpoint])
+					assert.Equal(GinkgoT(), 1, len(result.Data))
+					assert.Equal(GinkgoT(), "endpoint_021", *result.Data[0].Name)
+					assert.Equal(GinkgoT(), "/workspaces/default/endpoints?after=________________________021&foo=bar&limit=2", *result.Next)
+					assert.Nil(GinkgoT(), result.Prev)
+				})
+
 			})
 
 			Context("errors", func() {
@@ -437,7 +523,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 				assert.Equal(GinkgoT(), 1, len(result.Data))
 				assert.Equal(GinkgoT(), "endpoint_005", *result.Data[0].Name)
 				assert.EqualValues(GinkgoT(), entities.Metadata{
-					"foo": "bar",
+					"foo":   "bar",
 					"value": "5",
 				}, result.Data[0].Metadata)
 

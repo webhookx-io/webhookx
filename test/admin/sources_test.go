@@ -138,6 +138,7 @@ var _ = Describe("/sources", Ordered, func() {
 				result := resp.Result().(*api.CursorPagination[*entities.Source])
 				assert.Equal(GinkgoT(), 5, len(result.Data))
 				assert.NotNil(GinkgoT(), result.Next)
+				assert.Nil(GinkgoT(), result.Prev)
 
 				resp, err = adminClient.R().
 					SetQueryParam("limit", "100").
@@ -147,6 +148,7 @@ var _ = Describe("/sources", Ordered, func() {
 				result = resp.Result().(*api.CursorPagination[*entities.Source])
 				assert.Equal(GinkgoT(), 21, len(result.Data))
 				assert.Nil(GinkgoT(), result.Next)
+				assert.Nil(GinkgoT(), result.Prev)
 			})
 
 			It("after", func() {
@@ -173,6 +175,7 @@ var _ = Describe("/sources", Ordered, func() {
 				result = resp.Result().(*api.CursorPagination[*entities.Source])
 				assert.Equal(GinkgoT(), 1, len(result.Data))
 				assert.Equal(GinkgoT(), secondId, result.Data[0].ID)
+				assert.NotNil(GinkgoT(), result.Prev)
 			})
 
 			It("before", func() {
@@ -198,6 +201,8 @@ var _ = Describe("/sources", Ordered, func() {
 				result = resp.Result().(*api.CursorPagination[*entities.Source])
 				assert.Equal(GinkgoT(), 1, len(result.Data))
 				assert.Equal(GinkgoT(), firstId, result.Data[0].ID)
+				assert.Nil(GinkgoT(), result.Prev)
+				assert.NotNil(GinkgoT(), result.Next)
 			})
 
 			Context("errors", func() {
@@ -283,7 +288,7 @@ var _ = Describe("/sources", Ordered, func() {
 				assert.Equal(GinkgoT(), 1, len(result.Data))
 				assert.Equal(GinkgoT(), "005", *result.Data[0].Name)
 				assert.EqualValues(GinkgoT(), entities.Metadata{
-					"foo": "bar",
+					"foo":   "bar",
 					"value": "5",
 				}, result.Data[0].Metadata)
 

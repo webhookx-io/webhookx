@@ -17,7 +17,24 @@ func NewSourceDAO(db *sqlx.DB, fns ...OptionFunc) SourceDAO {
 		CachePropagate: true,
 		CacheName:      constants.SourceCacheKey.Name,
 	}
-	return &sourceDAO{
-		DAO: NewDAO[entities.Source](db, opts, fns...),
+	for _, fn := range fns {
+		fn(&opts)
 	}
+	return &sourceDAO{
+		DAO: NewDAO[entities.Source](db, opts),
+	}
+}
+
+type SourceQuery struct {
+	Query
+
+	WorkspaceId *string
+}
+
+func (q *SourceQuery) ToQuery() *Query {
+	query := q.clone()
+	if q.WorkspaceId != nil {
+		query.Where("ws_id", Equal, *q.WorkspaceId)
+	}
+	return &query
 }

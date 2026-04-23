@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
 	"github.com/webhookx-io/webhookx/services"
@@ -94,15 +94,15 @@ var _ = Describe("processRequeue", Ordered, func() {
 
 	It("all attempts should become QUEUED", func() {
 		time.Sleep(time.Second * 1) // wait for timer to be executed
-		var q query.AttemptQuery
+		var q dao.AttemptQuery
 		q.EndpointId = new(endpoint.ID)
 		q.Status = new(entities.AttemptStatusInit)
-		count, err := db.Attempts.Count(context.TODO(), q.WhereMap())
+		count, err := db.Attempts.Count(context.TODO(), q.ToQuery())
 		assert.NoError(GinkgoT(), err)
 		assert.EqualValues(GinkgoT(), 0, count)
 
 		q.Status = new(entities.AttemptStatusQueued)
-		count, err = db.Attempts.Count(context.TODO(), q.WhereMap())
+		count, err = db.Attempts.Count(context.TODO(), q.ToQuery())
 		assert.NoError(GinkgoT(), err)
 		assert.EqualValues(GinkgoT(), 10, count)
 	})

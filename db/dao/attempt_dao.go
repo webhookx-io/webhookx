@@ -33,7 +33,10 @@ func NewAttemptDao(db *sqlx.DB, fns ...OptionFunc) AttemptDAO {
 		CachePropagate: false,
 		CacheName:      constants.AttemptCacheKey.Name,
 	}
-	return &attemptDao{DAO: NewDAO[entities.Attempt](db, opts, fns...)}
+	for _, fn := range fns {
+		fn(&opts)
+	}
+	return &attemptDao{DAO: NewDAO[entities.Attempt](db, opts)}
 }
 
 func (dao *attemptDao) UpdateDelivery(ctx context.Context, result *AttemptResult) error {
@@ -84,4 +87,30 @@ func (dao *attemptDao) ListUnqueuedForUpdate(ctx context.Context, maxScheduledAt
 	sql := "SELECT * FROM attempts WHERE status = 'INIT' AND created_at <= now() - INTERVAL '30 SECOND' AND scheduled_at < $1 limit $2 FOR UPDATE SKIP LOCKED"
 	err = dao.UnsafeDB(ctx).SelectContext(ctx, &list, sql, maxScheduledAt, limit)
 	return
+}
+
+type AttemptQuery struct {
+	Query
+
+	IDs        []string
+	EventId    *string
+	EndpointId *string
+	Status     *string
+}
+
+func (q *AttemptQuery) ToQuery() *Query {
+	query := q.clone()
+	if q.IDs != nil {
+		query.Where("id", Equal, q.IDs)
+	}
+	if q.EventId != nil {
+		query.Where("event_id", Equal, *q.EventId)
+	}
+	if q.EndpointId != nil {
+		query.Where("endpoint_id", Equal, *q.EndpointId)
+	}
+	if q.Status != nil {
+		query.Where("status", Equal, *q.Status)
+	}
+	return &query
 }

@@ -19,8 +19,11 @@ func NewWorkspaceDAO(db *sqlx.DB, fns ...OptionFunc) WorkspaceDAO {
 		CachePropagate: true,
 		CacheName:      constants.WorkspaceCacheKey.Name,
 	}
+	for _, fn := range fns {
+		fn(&opts)
+	}
 	return &workspaceDAO{
-		DAO: NewDAO[entities.Workspace](db, opts, fns...),
+		DAO: NewDAO[entities.Workspace](db, opts),
 	}
 }
 
@@ -30,4 +33,8 @@ func (dao *workspaceDAO) GetDefault(ctx context.Context) (*entities.Workspace, e
 
 func (dao *workspaceDAO) GetWorkspace(ctx context.Context, name string) (*entities.Workspace, error) {
 	return dao.selectByField(ctx, "name", name)
+}
+
+type WorkspaceQuery struct {
+	Query
 }

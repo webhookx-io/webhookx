@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/webhookx-io/webhookx/db"
-	"github.com/webhookx-io/webhookx/db/query"
+	"github.com/webhookx-io/webhookx/db/dao"
 )
 
 type Declarative struct {
@@ -71,9 +71,9 @@ func (m *Declarative) Sync(wid string, cfg *Configuration) error {
 	}
 
 	// cleanup existing endpoint
-	var endpointQ query.EndpointQuery
+	var endpointQ dao.EndpointQuery
 	endpointQ.WorkspaceId = &wid
-	endpoints, err := m.db.Endpoints.List(ctx, &endpointQ)
+	endpoints, err := m.db.Endpoints.List(ctx, endpointQ.ToQuery())
 	if err != nil {
 		return err
 	}
@@ -87,9 +87,9 @@ func (m *Declarative) Sync(wid string, cfg *Configuration) error {
 	}
 
 	// cleanup existing source
-	var sourceQ query.SourceQuery
+	var sourceQ dao.SourceQuery
 	sourceQ.WorkspaceId = &wid
-	sources, err := m.db.Sources.List(ctx, &sourceQ)
+	sources, err := m.db.Sources.List(ctx, sourceQ.ToQuery())
 	if err != nil {
 		return err
 	}
@@ -109,19 +109,19 @@ func (m *Declarative) Dump(ctx context.Context, wid string) (*Configuration, err
 	var cfg Configuration
 
 	err := m.db.TX(ctx, func(ctx context.Context) error {
-		var endpointQ query.EndpointQuery
+		var endpointQ dao.EndpointQuery
 		endpointQ.WorkspaceId = &wid
-		endpoints, err := m.db.Endpoints.List(ctx, &endpointQ)
+		endpoints, err := m.db.Endpoints.List(ctx, endpointQ.ToQuery())
 		if err != nil {
 			return err
 		}
 		for _, endpoint := range endpoints {
 			var e Endpoint
 			e.Endpoint = *endpoint
-			var q query.PluginQuery
+			var q dao.PluginQuery
 			q.EndpointId = &endpoint.ID
 			q.WorkspaceId = &endpoint.WorkspaceId
-			plugins, err := m.db.Plugins.List(ctx, &q)
+			plugins, err := m.db.Plugins.List(ctx, q.ToQuery())
 			if err != nil {
 				return err
 			}
@@ -129,19 +129,19 @@ func (m *Declarative) Dump(ctx context.Context, wid string) (*Configuration, err
 			cfg.Endpoints = append(cfg.Endpoints, &e)
 		}
 
-		var sourceQ query.SourceQuery
+		var sourceQ dao.SourceQuery
 		sourceQ.WorkspaceId = &wid
-		sources, err := m.db.Sources.List(ctx, &sourceQ)
+		sources, err := m.db.Sources.List(ctx, sourceQ.ToQuery())
 		if err != nil {
 			return err
 		}
 		for _, source := range sources {
 			var e Source
 			e.Source = *source
-			var q query.PluginQuery
+			var q dao.PluginQuery
 			q.SourceId = &source.ID
 			q.WorkspaceId = &source.WorkspaceId
-			plugins, err := m.db.Plugins.List(ctx, &q)
+			plugins, err := m.db.Plugins.List(ctx, q.ToQuery())
 			if err != nil {
 				return err
 			}

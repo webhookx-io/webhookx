@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 )
 
 type BaseDAO[T any] interface {
@@ -15,9 +14,9 @@ type BaseDAO[T any] interface {
 	Update(ctx context.Context, entity *T) error
 	Upsert(ctx context.Context, fields []string, entity *T) error
 	Delete(ctx context.Context, id string) (bool, error)
-	Page(ctx context.Context, q query.Queryer) ([]*T, int64, error)
-	List(ctx context.Context, q query.Queryer) ([]*T, error)
-	Count(ctx context.Context, conditions map[string]interface{}) (int64, error)
+	Count(ctx context.Context, query *Query) (int64, error)
+	List(ctx context.Context, query *Query) ([]*T, error)
+	Cursor(ctx context.Context, query *Query) (Cursor[*T], error)
 	BatchInsert(ctx context.Context, entities []*T) error
 }
 

@@ -11,8 +11,8 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
@@ -88,9 +88,9 @@ var _ = Describe("network acl", Ordered, func() {
 
 			var attempt *entities.Attempt
 			assert.Eventually(GinkgoT(), func() bool {
-				q := query.AttemptQuery{}
+				q := dao.AttemptQuery{}
 				q.EventId = &eventId
-				list, err := db.Attempts.List(context.TODO(), &q)
+				list, err := db.Attempts.List(context.TODO(), q.ToQuery())
 				if err != nil || len(list) == 0 {
 					return false
 				}
@@ -122,9 +122,9 @@ var _ = Describe("network acl", Ordered, func() {
 
 			var attempt *entities.Attempt
 			assert.Eventually(GinkgoT(), func() bool {
-				q := query.AttemptQuery{}
+				q := dao.AttemptQuery{}
 				q.EventId = &eventId
-				list, err := db.Attempts.List(context.TODO(), &q)
+				list, err := db.Attempts.List(context.TODO(), q.ToQuery())
 				if err != nil || len(list) == 0 {
 					return false
 				}
@@ -148,9 +148,9 @@ var _ = Describe("network acl", Ordered, func() {
 
 			var attempt *entities.Attempt
 			assert.Eventually(GinkgoT(), func() bool {
-				q := query.AttemptQuery{}
+				q := dao.AttemptQuery{}
 				q.EventId = &eventId
-				list, err := db.Attempts.List(context.TODO(), &q)
+				list, err := db.Attempts.List(context.TODO(), q.ToQuery())
 				if err != nil || len(list) == 0 {
 					return false
 				}
@@ -174,9 +174,9 @@ var _ = Describe("network acl", Ordered, func() {
 
 			var attempt *entities.Attempt
 			assert.Eventually(GinkgoT(), func() bool {
-				q := query.AttemptQuery{}
+				q := dao.AttemptQuery{}
 				q.EventId = &eventId
-				list, err := db.Attempts.List(context.TODO(), &q)
+				list, err := db.Attempts.List(context.TODO(), q.ToQuery())
 				if err != nil || len(list) == 0 {
 					return false
 				}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/constants"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 
 	"github.com/go-resty/resty/v2"
@@ -17,7 +18,6 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -70,9 +70,9 @@ var _ = Describe("delivery", Ordered, func() {
 
 			var attempt *entities.Attempt
 			assert.Eventually(GinkgoT(), func() bool {
-				q := query.AttemptQuery{}
+				q := dao.AttemptQuery{}
 				q.EventId = &eventId
-				list, err := db.Attempts.List(context.TODO(), &q)
+				list, err := db.Attempts.List(context.TODO(), q.ToQuery())
 				if err != nil || len(list) == 0 {
 					return false
 				}
@@ -149,9 +149,9 @@ var _ = Describe("delivery", Ordered, func() {
 
 			time.Sleep(time.Second * 4)
 
-			q := query.AttemptQuery{}
+			q := dao.AttemptQuery{}
 			q.EventId = &eventId
-			attempts, err := db.Attempts.List(context.TODO(), &q)
+			attempts, err := db.Attempts.List(context.TODO(), q.ToQuery())
 			assert.NoError(GinkgoT(), err)
 			assert.EqualValues(GinkgoT(), 3, len(attempts))
 			for i, e := range attempts {
@@ -220,7 +220,7 @@ var _ = Describe("delivery", Ordered, func() {
 
 			time.Sleep(time.Second * 10)
 
-			attempts, err := db.Attempts.List(context.TODO(), &query.AttemptQuery{})
+			attempts, err := db.Attempts.List(context.TODO(), &dao.Query{})
 			assert.NoError(GinkgoT(), err)
 			assert.EqualValues(GinkgoT(), 1, len(attempts))
 			attempt := attempts[0]
@@ -272,9 +272,9 @@ var _ = Describe("delivery", Ordered, func() {
 			assert.Equal(GinkgoT(), 200, resp.StatusCode())
 			eventId := resp.Header().Get(constants.HeaderEventId)
 
-			query := query.AttemptQuery{}
+			query := dao.AttemptQuery{}
 			query.EventId = &eventId
-			list, err := db.Attempts.List(context.TODO(), &query)
+			list, err := db.Attempts.List(context.TODO(), query.ToQuery())
 			assert.NoError(GinkgoT(), err)
 			assert.EqualValues(GinkgoT(), 1, len(list))
 			assert.Equal(GinkgoT(), entities.AttemptStatusInit, list[0].Status) // should not be enqueued
@@ -346,10 +346,10 @@ var _ = Describe("delivery", Ordered, func() {
 			// wait for attempt to be retried after rate limiting is reset
 			time.Sleep(time.Second * time.Duration(period) * 2)
 
-			q := query.AttemptQuery{}
+			q := dao.AttemptQuery{}
 			q.EndpointId = &entitiesConfig.Endpoints[0].ID
 			q.Status = new(entities.AttemptStatusSuccess)
-			count, err := db.Attempts.Count(context.TODO(), q.WhereMap())
+			count, err := db.Attempts.Count(context.TODO(), q.ToQuery())
 			assert.NoError(GinkgoT(), err)
 			assert.EqualValues(GinkgoT(), 4, count)
 
@@ -388,7 +388,7 @@ var _ = Describe("delivery", Ordered, func() {
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 200, resp.StatusCode())
 			}
-			n, err := db.Events.Count(context.TODO(), nil)
+			n, err := db.Events.Count(context.TODO(), &dao.Query{})
 			assert.NoError(GinkgoT(), err)
 			assert.EqualValues(GinkgoT(), 1, n)
 		})

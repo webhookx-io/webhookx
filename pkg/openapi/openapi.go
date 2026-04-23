@@ -1,17 +1,24 @@
 package openapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
+	"net/http"
 	"regexp"
 	"slices"
 	"strconv"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/tidwall/gjson"
 	"github.com/webhookx-io/webhookx/pkg/errs"
+)
+
+var (
+	Spec *openapi3.T
 )
 
 type FormatValidatorFunc[T any] func(T) error
@@ -25,6 +32,32 @@ func init() {
 		}
 		return nil
 	}))
+}
+
+func ParseSpec(data []byte) (*openapi3.T, error) {
+	loader := openapi3.NewLoader()
+	doc, err := loader.LoadFromData(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load OpenAPI document: %w", err)
+	}
+
+	err = doc.Validate(
+		loader.Context,
+		openapi3.EnableSchemaFormatValidation(),
+		openapi3.DisableSchemaDefaultsValidation(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("OpenAPI document validation failed: %w", err)
+	}
+	return doc, nil
+}
+
+func LoadOpenAPI(data []byte) {
+	doc, err := ParseSpec(data)
+	if err != nil {
+		panic(err)
+	}
+	Spec = doc
 }
 
 func SetDefaults(schema *openapi3.Schema, defaults map[string]interface{}) error {
@@ -69,6 +102,32 @@ func Validate(schema *openapi3.Schema, value map[string]interface{}) error {
 	return nil
 }
 
+func ValidateParameters(r *http.Request, parameters openapi3.Parameters) error {
+	options := openapi3filter.Options{
+		MultiError:          true,
+		SkipSettingDefaults: true,
+	}
+	options.WithCustomSchemaErrorFunc(formatError)
+	input := &openapi3filter.RequestValidationInput{
+		Request: r,
+		Options: &options,
+	}
+
+	var me openapi3.MultiError
+	for _, param := range parameters {
+		if err := openapi3filter.ValidateParameter(context.TODO(), input, param.Value); err != nil {
+			me = append(me, err)
+		}
+	}
+
+	if len(me) > 0 {
+		validateErr := errs.NewValidateError(errs.ErrRequestValidation)
+		handleMultiError(me, nil, validateErr.Fields)
+		return validateErr
+	}
+	return nil
+}
+
 func decodeMultiError(err error) openapi3.MultiError {
 	if unwrapped := errors.Unwrap(err); unwrapped != nil {
 		if me, ok := unwrapped.(openapi3.MultiError); ok {
@@ -103,6 +162,26 @@ func handleMultiError(me openapi3.MultiError, paths []string, fields map[string]
 			if decoded := decodeMultiError(e); decoded != nil {
 				handleMultiError(decoded, e.JSONPointer(), fields)
 			}
+		case *openapi3filter.RequestError:
+
+			const params = "@params"
+			var unknowns []string
+			if v, ok := fields[params]; !ok {
+				unknowns = make([]string, 0)
+			} else {
+				unknowns = v.([]string)
+			}
+			var msg string
+
+			switch e.Err {
+			case openapi3filter.ErrInvalidRequired:
+				msg = fmt.Sprintf("%s: %s", e.Parameter.Name, "is required")
+			case openapi3filter.ErrInvalidEmptyValue:
+				msg = fmt.Sprintf("%s: %s", e.Parameter.Name, "is empty")
+			default:
+				msg = fmt.Sprintf("%s: %s", e.Parameter.Name, e.Err.Error())
+			}
+			fields[params] = append(unknowns, msg)
 		default:
 			const unknown = "@unknown"
 			var unknowns []string

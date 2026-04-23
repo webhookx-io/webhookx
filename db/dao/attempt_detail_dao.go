@@ -21,8 +21,11 @@ func NewAttemptDetailDao(db *sqlx.DB, fns ...OptionFunc) AttemptDetailDAO {
 		CachePropagate: false,
 		CacheName:      constants.AttemptDetailCacheKey.Name,
 	}
+	for _, fn := range fns {
+		fn(&opts)
+	}
 	return &attemptDetailDao{
-		DAO: NewDAO[entities.AttemptDetail](db, opts, fns...),
+		DAO: NewDAO[entities.AttemptDetail](db, opts),
 	}
 }
 

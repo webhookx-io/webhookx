@@ -4,20 +4,30 @@ import (
 	"net/http"
 
 	"github.com/webhookx-io/webhookx/db/entities"
-	"github.com/webhookx-io/webhookx/db/query"
 	"github.com/webhookx-io/webhookx/pkg/contextx"
+	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
 func (api *API) PageSource(w http.ResponseWriter, r *http.Request) {
-	var q query.SourceQuery
-	q.Order("id", query.DESC)
-	api.bindQuery(r, &q.Query)
-	list, total, err := api.db.SourcesWS.Page(r.Context(), &q)
+	parameters := api.lookupOperation("/workspaces/{ws_id}/sources", http.MethodGet).Parameters
+	if err := openapi.ValidateParameters(r, parameters); err != nil {
+		api.error(400, w, err)
+		return
+	}
+
+	var params SourceListParams
+	if err := api.bindQuery(r, &params); err != nil {
+		api.error(400, w, err)
+		return
+	}
+
+	query := params.Query()
+	cursor, err := api.db.SourcesWS.Cursor(r.Context(), query)
 	api.assert(err)
 
-	api.json(200, w, NewPagination(total, list))
+	api.json(200, w, BuildPaginationResponse(cursor, r.URL))
 }
 
 func (api *API) GetSource(w http.ResponseWriter, r *http.Request) {

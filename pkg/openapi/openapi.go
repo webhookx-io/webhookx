@@ -104,7 +104,7 @@ func Validate(schema *openapi3.Schema, value map[string]interface{}) error {
 
 func ValidateParameters(r *http.Request, parameters openapi3.Parameters) error {
 	options := openapi3filter.Options{
-		MultiError:          true, // ?
+		MultiError:          true,
 		SkipSettingDefaults: true,
 	}
 	options.WithCustomSchemaErrorFunc(formatError)

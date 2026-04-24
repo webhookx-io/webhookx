@@ -48,6 +48,7 @@ import (
 	"github.com/webhookx-io/webhookx/status/health"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker"
+	"github.com/webhookx-io/webhookx/worker/circuitbreaker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
@@ -244,6 +245,12 @@ func (app *Application) initWorker(cfg *modules.WorkerConfig, services *services
 			DelivererOptions: delivererOptions,
 			DB:               app.db,
 			RedisClient:      client,
+			CircuitBreakerManager: circuitbreaker.NewManager(
+				circuitbreaker.WithTimeWindowSize(cfg.CircuitBreaker.WindowSize),
+				circuitbreaker.WithFailureRateThreshold(cfg.CircuitBreaker.FailureRateThreshold),
+				circuitbreaker.WithMinimumRequestThreshold(cfg.CircuitBreaker.MinimumRequestThreshold),
+				circuitbreaker.WithRedisClient(client)),
+			EnabledDetection: cfg.CircuitBreaker.Enabled,
 		}, services)
 		app.registerService(worker)
 	}

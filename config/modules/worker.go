@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"errors"
 	"fmt"
 	"net/netip"
 	"net/url"
@@ -48,9 +49,10 @@ type Pool struct {
 
 type WorkerConfig struct {
 	BaseConfig
-	Enabled   bool            `yaml:"enabled" json:"enabled" default:"true"`
-	Deliverer WorkerDeliverer `yaml:"deliverer" json:"deliverer"`
-	Pool      Pool            `yaml:"pool" json:"pool"`
+	Enabled        bool                 `yaml:"enabled" json:"enabled" default:"true"`
+	Deliverer      WorkerDeliverer      `yaml:"deliverer" json:"deliverer"`
+	Pool           Pool                 `yaml:"pool" json:"pool"`
+	CircuitBreaker CircuitBreakerConfig `yaml:"circuitbreaker" json:"circuitbreaker"`
 }
 
 func (cfg *WorkerConfig) Status() string {
@@ -94,6 +96,30 @@ func validateRule(rule string) error {
 func (cfg *WorkerConfig) Validate() error {
 	if err := cfg.Deliverer.Validate(); err != nil {
 		return err
+	}
+	if err := cfg.CircuitBreaker.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+type CircuitBreakerConfig struct {
+	BaseConfig
+	Enabled                 bool `yaml:"enabled" json:"enabled" default:"false"`
+	WindowSize              int  `yaml:"window_size" json:"window_size" default:"3600" envconfig:"WINDOW_SIZE"`
+	FailureRateThreshold    int  `yaml:"failure_rate_threshold" json:"failure_rate_threshold" default:"80" envconfig:"FAILURE_RATE_THRESHOLD"`
+	MinimumRequestThreshold int  `yaml:"minimum_request_threshold" json:"minimum_request_threshold" default:"100" envconfig:"MINIMUM_REQUEST_THRESHOLD"`
+}
+
+func (cfg CircuitBreakerConfig) Validate() error {
+	if cfg.WindowSize < 60 || cfg.WindowSize > 86400 {
+		return errors.New("window_size must be in the range [60, 86400]")
+	}
+	if cfg.FailureRateThreshold < 1 || cfg.FailureRateThreshold > 100 {
+		return errors.New("failure_rate_threshold must be in the range [1, 100]")
+	}
+	if cfg.MinimumRequestThreshold < 1 {
+		return errors.New("minimum_request_threshold must be greater than 1")
 	}
 	return nil
 }

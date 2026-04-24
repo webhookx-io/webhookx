@@ -30,10 +30,15 @@ import (
 	"github.com/webhookx-io/webhookx/services/eventbus"
 	"github.com/webhookx-io/webhookx/services/schedule"
 	"github.com/webhookx-io/webhookx/utils"
+	"github.com/webhookx-io/webhookx/worker/circuitbreaker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+)
+
+const (
+	DefaultDetectInterval = time.Second * 10
 )
 
 var (
@@ -61,6 +66,7 @@ type Worker struct {
 	db              *db.DB
 	pool            *pool.Pool[*taskqueue.TaskMessage]
 	queueRequestLog *batchqueue.BatchQueue[*entities.AttemptDetail]
+	cbManager       *circuitbreaker.Manager
 }
 
 type Options struct {
@@ -68,9 +74,11 @@ type Options struct {
 	PoolSize        int
 	PoolConcurrency int
 
-	DB               *db.DB
-	DelivererOptions deliverer.Options
-	RedisClient      *redis.Client
+	DB                    *db.DB
+	DelivererOptions      deliverer.Options
+	RedisClient           *redis.Client
+	CircuitBreakerManager *circuitbreaker.Manager
+	EnabledDetection      bool
 }
 
 func init() {
@@ -97,6 +105,7 @@ func NewWorker(opts Options, services *services.Services) *Worker {
 		db:              opts.DB,
 		services:        services,
 		queueRequestLog: batchqueue.New[*entities.AttemptDetail]("request_log", 1000, 50, time.Millisecond*500),
+		cbManager:       opts.CircuitBreakerManager,
 	}
 
 	worker.pool = pool.New[*taskqueue.TaskMessage](
@@ -284,12 +293,23 @@ func (w *Worker) Start() error {
 	}
 
 	go w.run()
+	go w.cbManager.Start()
 
 	w.services.Scheduler.AddTask(&schedule.Task{
 		Name:     "worker.requeue",
 		Interval: time.Minute,
 		Do:       w.loadPending,
 	})
+
+	if w.opts.EnabledDetection {
+		w.services.Scheduler.AddTask(&schedule.Task{
+			Name:         "worker.detectEndpointHealthy",
+			InitialDelay: DefaultDetectInterval,
+			Interval:     DefaultDetectInterval,
+			Do:           w.detectEnabledEndpoints,
+		})
+	}
+
 	return nil
 }
 
@@ -301,6 +321,7 @@ func (w *Worker) Stop(ctx context.Context) error {
 	w.pool.Shutdown()
 	w.log.Named("pool").Info("closed pool")
 	w.queueRequestLog.Close()
+	w.cbManager.Stop()
 	w.log.Info("exit")
 
 	return nil
@@ -426,10 +447,13 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		result.Exhausted = true
 	}
 
+	outcome := circuitbreaker.Success
 	counter.Add(1)
 	if result.Status == entities.AttemptStatusFailure {
 		failures.Add(1)
+		outcome = circuitbreaker.Error
 	}
+	w.cbManager.Record(endpoint.ID, outcome)
 
 	if w.services.Metrics.Enabled {
 		w.services.Metrics.AttemptTotalCounter.Add(1)
@@ -579,4 +603,43 @@ func newAttemptDetail(id string, wid string, response *deliverer.Response) *enti
 		ad.ResponseBody = new(string(response.ResponseBody))
 	}
 	return ad
+}
+
+func (w *Worker) detectEnabledEndpoints() {
+	ctx := context.Background()
+
+	ttl := DefaultDetectInterval - time.Second // jitter tolerance
+	key := "schedule_mutex:detect_enabled_endpoints"
+	acquired, err := w.opts.RedisClient.SetNX(ctx, key, true, ttl).Result()
+	if err != nil {
+		w.log.Errorf("failed to acquire mutex lock from redis: %v", err)
+		return
+	}
+	if !acquired {
+		return // give up
+	}
+
+	var q dao.EndpointQuery
+	q.Enabled = new(true)
+	endpoints, err := w.db.Endpoints.List(ctx, q.ToQuery())
+	if err != nil {
+		w.log.Errorf("failed to list endpoints: %v", err)
+		return
+	}
+
+	for _, endpoint := range endpoints {
+		cb, err := w.cbManager.Get(ctx, endpoint.ID)
+		if err != nil {
+			w.log.Errorf("failed to query endpoint's circuit breaker %s: %v", endpoint.ID, err)
+			continue
+		}
+		if cb.State() == circuitbreaker.StateOpen {
+			err := w.db.Endpoints.Disable(ctx, endpoint.ID)
+			if err != nil {
+				w.log.Errorf("failed to disable endpoint: %v", err)
+				continue
+			}
+			w.log.Infof("endpoint %s has been successfully disabled", endpoint.ID)
+		}
+	}
 }

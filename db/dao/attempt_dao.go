@@ -43,7 +43,7 @@ func (dao *attemptDao) UpdateDelivery(ctx context.Context, result *AttemptResult
 	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.update_result", dao.opts.Table))
 	defer span.End()
 
-	_, err := dao.update(ctx, result.ID, map[string]interface{}{
+	_, err := dao.updateRaw(ctx, result.ID, map[string]interface{}{
 		"request":      result.Request,
 		"response":     result.Response,
 		"attempted_at": result.AttemptedAt,
@@ -75,7 +75,7 @@ func (dao *attemptDao) UpdateErrorCode(ctx context.Context, id string, status en
 	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.update_error_code", dao.opts.Table))
 	defer span.End()
 
-	_, err := dao.update(ctx, id, map[string]interface{}{
+	_, err := dao.updateRaw(ctx, id, map[string]interface{}{
 		"status":     status,
 		"error_code": code,
 		"updated_at": sq.Expr("NOW()"),

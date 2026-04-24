@@ -28,6 +28,7 @@ type WorkspaceDAO interface {
 
 type EndpointDAO interface {
 	BaseDAO[entities.Endpoint]
+	Disable(ctx context.Context, id string) error
 }
 
 type EventDAO interface {

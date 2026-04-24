@@ -22,6 +22,7 @@ import (
 	"github.com/webhookx-io/webhookx/test/mocks"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker"
+	"github.com/webhookx-io/webhookx/worker/circuitbreaker"
 	"go.uber.org/mock/gomock"
 	"go.uber.org/zap"
 )
@@ -60,6 +61,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 		}
 		w = worker.NewWorker(worker.Options{
 			DB: db,
+			CircuitBreakerManager: circuitbreaker.NewManager(),
 		}, services)
 
 		// data

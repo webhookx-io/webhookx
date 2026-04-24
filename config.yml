@@ -125,6 +125,23 @@ worker:
     concurrency: 0                  # Specifies the maximum number of concurrent deliveries.
                                     # Default value is 100 per every available CPU.
 
+  circuitbreaker:                   # CircuitBreaker defines rules to automatically disable endpoints based on delivery results.
+                                    # It runs a cluster-wide background job every 10s to detect and disable failing endpoints.
+
+    enabled: false                  # Whether to enable the circuit breaker.
+
+    window_size: 3600               # Time window size (in seconds) for evaluation.
+                                    # A shorter window size provides faster detection but may be more sensitive to transient spikes.
+                                    # A longer window size offers more stable detection by averaging results over time.
+                                    # Defaults to 3600 (1 hour).
+
+    failure_rate_threshold: 80      # The failure rate threshold in percentage.
+                                    # Defaults to 80 (80%).
+
+    minimum_request_threshold: 100  # The minimum number of requests required within a time window before CircuitBreaker can trigger.
+                                    # Defaults to 100.
+
+
 #------------------------------------------------------------------------------
 # Cluster
 #------------------------------------------------------------------------------

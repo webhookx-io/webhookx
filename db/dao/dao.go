@@ -372,7 +372,7 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 	return rows.Err()
 }
 
-func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interface{}) (int64, error) {
+func (dao *DAO[T]) updateRaw(ctx context.Context, id string, maps map[string]interface{}) (int64, error) {
 	builder := psql.Update(dao.opts.Table).SetMap(maps).Where(sq.Eq{"id": id})
 	if dao.workspace {
 		wid := contextx.GetWorkspaceID(ctx)
@@ -386,6 +386,22 @@ func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interf
 	}
 	rows, err := result.RowsAffected()
 	return rows, err
+}
+
+func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interface{}) (entity *T, err error) {
+	builder := psql.Update(dao.opts.Table).SetMap(maps).Where(sq.Eq{"id": id})
+	if dao.workspace {
+		wid := contextx.GetWorkspaceID(ctx)
+		builder = builder.Where(sq.Eq{"ws_id": wid})
+	}
+	statement, args := builder.Suffix("RETURNING *").MustSql()
+	dao.debugSQL(statement, args)
+	entity = new(T)
+	err = dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
+	if dao.opts.CachePropagate && err == nil {
+		go dao.propagateEvent(ctx, id, entity)
+	}
+	return entity, errs.ConvertError(err)
 }
 
 func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {

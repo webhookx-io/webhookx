@@ -17,6 +17,10 @@ type Event struct {
 	BaseModel
 }
 
+func (m Event) PrimaryKey() string {
+	return m.ID
+}
+
 func (m *Event) SchemaName() string {
 	return "Event"
 }

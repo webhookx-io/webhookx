@@ -85,7 +85,7 @@ func (dao *attemptDao) UpdateErrorCode(ctx context.Context, id string, status en
 
 func (dao *attemptDao) ListUnqueuedForUpdate(ctx context.Context, maxScheduledAt time.Time, limit int) (list []*entities.Attempt, err error) {
 	sql := "SELECT * FROM attempts WHERE status = 'INIT' AND created_at <= now() - INTERVAL '30 SECOND' AND scheduled_at < $1 limit $2 FOR UPDATE SKIP LOCKED"
-	err = dao.UnsafeDB(ctx).SelectContext(ctx, &list, sql, maxScheduledAt, limit)
+	err = dao.DB(ctx).SelectContext(ctx, &list, sql, maxScheduledAt, limit)
 	return
 }
 

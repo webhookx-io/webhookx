@@ -51,7 +51,7 @@ func NewSqlDB(cfg modules.DatabaseConfig) (*sql.DB, error) {
 }
 
 func NewDB(sqlDB *sql.DB, log *zap.SugaredLogger, bus eventbus.EventBus) (*DB, error) {
-	sqlxDB := sqlx.NewDb(sqlDB, "pgx")
+	sqlxDB := sqlx.NewDb(sqlDB, "pgx").Unsafe()
 
 	opts := make([]dao.OptionFunc, 0)
 	opts = append(opts, dao.WithPropagateHandler(func(ctx context.Context, opts *dao.Options, id string, entity interface{}) {

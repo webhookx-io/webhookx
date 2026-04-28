@@ -21,6 +21,10 @@ type Endpoint struct {
 	BaseModel
 }
 
+func (m Endpoint) PrimaryKey() string {
+	return m.ID
+}
+
 func (m *Endpoint) SchemaName() string {
 	return "Endpoint"
 }

@@ -14,6 +14,10 @@ type Workspace struct {
 	UpdatedAt types.Time `db:"updated_at" json:"updated_at"`
 }
 
+func (m Workspace) PrimaryKey() string {
+	return m.ID
+}
+
 func (m *Workspace) SchemaName() string {
 	return "Workspace"
 }

@@ -52,6 +52,10 @@ type Source struct {
 	BaseModel
 }
 
+func (m Source) PrimaryKey() string {
+	return m.ID
+}
+
 func (m *Source) SchemaName() string {
 	return "Source"
 }

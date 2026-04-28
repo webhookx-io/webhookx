@@ -27,6 +27,10 @@ type Attempt struct {
 	BaseModel
 }
 
+func (m Attempt) PrimaryKey() string {
+	return m.ID
+}
+
 type AttemptStatus = string
 
 const (

@@ -9,3 +9,8 @@ type AttemptDetail struct {
 
 	BaseModel
 }
+
+func (m AttemptDetail) PrimaryKey() string {
+	return m.ID
+}
+

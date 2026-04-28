@@ -37,7 +37,7 @@ func (dao *eventDao) ListExistingUniqueIDs(ctx context.Context, uniques []string
 		Where(sq.Eq{"unique_id": uniques}).
 		MustSql()
 	dao.debugSQL(statement, args)
-	err = dao.UnsafeDB(ctx).SelectContext(ctx, &list, statement, args...)
+	err = dao.DB(ctx).SelectContext(ctx, &list, statement, args...)
 	return
 }
 

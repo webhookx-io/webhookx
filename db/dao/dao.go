@@ -33,30 +33,27 @@ type Queryable interface {
 	SelectContext(context.Context, interface{}, string, ...interface{}) error
 }
 
-type DAO[T any] struct {
-	log *zap.SugaredLogger
-	db  *sqlx.DB
-
-	opts             Options
-	workspace        bool
-	insertionColumns []string
-	columns          map[string]bool
+type Schema interface {
+	PrimaryKey() string
 }
 
-func NewDAO[T any](db *sqlx.DB, opts Options) *DAO[T] {
+type DAO[T Schema] struct {
+	log    *zap.SugaredLogger
+	db     *sqlx.DB
+	schema *SchemaMeta
+
+	opts      Options
+	workspace bool
+}
+
+func NewDAO[T Schema](db *sqlx.DB, opts Options) *DAO[T] {
 	dao := DAO[T]{
 		log:       zap.S().Named("dao"),
 		db:        db,
 		opts:      opts,
 		workspace: opts.Workspace,
-		columns:   make(map[string]bool),
+		schema:    NewSchema[T](opts.EntityName),
 	}
-	EachField(new(T), func(f reflect.StructField, _ reflect.Value, column string) {
-		dao.columns[column] = true
-		if column != "created_at" && column != "updated_at" {
-			dao.insertionColumns = append(dao.insertionColumns, column)
-		}
-	})
 	return &dao
 }
 
@@ -83,16 +80,6 @@ func (dao *DAO[T]) DB(ctx context.Context) Queryable {
 	return dao.db
 }
 
-func (dao *DAO[T]) UnsafeDB(ctx context.Context) Queryable {
-	db := dao.DB(ctx)
-
-	if tx, ok := db.(*sqlx.Tx); ok {
-		return tx.Unsafe()
-	}
-
-	return db.(*sqlx.DB).Unsafe()
-}
-
 func (dao *DAO[T]) Get(ctx context.Context, id string) (entity *T, err error) {
 	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.get", dao.opts.Table))
 	defer span.End()
@@ -106,20 +93,7 @@ func (dao *DAO[T]) Select(ctx context.Context, field string, value string) (enti
 	statement, args := builder.MustSql()
 	dao.debugSQL(statement, args)
 	entity = new(T)
-	err = dao.UnsafeDB(ctx).GetContext(ctx, entity, statement, args...)
-	if errors.Is(err, ErrNoRows) {
-		return nil, nil
-	}
-	return
-}
-
-func (dao *DAO[T]) selectByField(ctx context.Context, field string, value string) (entity *T, err error) {
-	builder := psql.Select("*").From(dao.opts.Table).Where(sq.Eq{field: value})
-	builder = dao.workspaceFilter(ctx, builder)
-	statement, args := builder.MustSql()
-	dao.debugSQL(statement, args)
-	entity = new(T)
-	err = dao.UnsafeDB(ctx).GetContext(ctx, entity, statement, args...)
+	err = dao.DB(ctx).GetContext(ctx, entity, statement, args...)
 	if errors.Is(err, ErrNoRows) {
 		return nil, nil
 	}
@@ -135,25 +109,19 @@ func (dao *DAO[T]) Delete(ctx context.Context, id string) (bool, error) {
 		wid := contextx.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
 	}
-	statement, args := builder.Suffix("RETURNING *").MustSql()
-	dao.debugSQL(statement, args)
-	entity := new(T)
-	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
+	err := dao.executePropagate(ctx, builder, new(T))
 	if err != nil {
 		if errors.Is(err, ErrNoRows) {
 			return false, nil
 		}
 		return false, err
 	}
-	if dao.opts.CachePropagate {
-		go dao.propagateEvent(ctx, id, entity)
-	}
 	return true, nil
 }
 
-func appendWhere(allowedColumns map[string]bool, builder sq.SelectBuilder, conditions []Condition) sq.SelectBuilder {
+func appendWhere(schema *SchemaMeta, builder sq.SelectBuilder, conditions []Condition) sq.SelectBuilder {
 	for _, condition := range conditions {
-		if allowedColumns[condition.Column] {
+		if schema.HasColumn(condition.Column) {
 			switch condition.Op {
 			case Equal:
 				builder = builder.Where(sq.Eq{condition.Column: condition.Value})
@@ -197,7 +165,7 @@ func (dao *DAO[T]) Count(ctx context.Context, query *Query) (total int64, err er
 	defer span.End()
 
 	builder := psql.Select("COUNT(*)").From(dao.opts.Table)
-	builder = appendWhere(dao.columns, builder, query.Wheres)
+	builder = appendWhere(dao.schema, builder, query.Wheres)
 	builder = dao.workspaceFilter(ctx, builder)
 	statement, args := builder.MustSql()
 	dao.debugSQL(statement, args)
@@ -214,7 +182,7 @@ func (dao *DAO[T]) List(ctx context.Context, query *Query) (list []*T, err error
 	defer span.End()
 
 	builder := psql.Select("*").From(dao.opts.Table)
-	builder = appendWhere(dao.columns, builder, query.Wheres)
+	builder = appendWhere(dao.schema, builder, query.Wheres)
 	builder = dao.workspaceFilter(ctx, builder)
 	builder = appendOrder(builder, query.Orders)
 
@@ -228,7 +196,7 @@ func (dao *DAO[T]) List(ctx context.Context, query *Query) (list []*T, err error
 	statement, args := builder.MustSql()
 	dao.debugSQL(statement, args)
 	list = make([]*T, 0)
-	err = dao.UnsafeDB(ctx).SelectContext(ctx, &list, statement, args...)
+	err = dao.DB(ctx).SelectContext(ctx, &list, statement, args...)
 	return
 }
 
@@ -249,7 +217,7 @@ func (dao *DAO[T]) Cursor(ctx context.Context, query *Query) (cursor Cursor[*T],
 	defer span.End()
 
 	builder := psql.Select("*").From(dao.opts.Table)
-	builder = appendWhere(dao.columns, builder, query.Wheres)
+	builder = appendWhere(dao.schema, builder, query.Wheres)
 	builder = dao.workspaceFilter(ctx, builder)
 	builder = appendOrder(builder, query.Orders)
 	builder = builder.Limit(uint64(query.Limit + 1))
@@ -261,7 +229,7 @@ func (dao *DAO[T]) Cursor(ctx context.Context, query *Query) (cursor Cursor[*T],
 	dao.debugSQL(statement, args)
 
 	cursor.Data = make([]*T, 0)
-	err = dao.UnsafeDB(ctx).SelectContext(ctx, &cursor.Data, statement, args...)
+	err = dao.DB(ctx).SelectContext(ctx, &cursor.Data, statement, args...)
 	if err != nil {
 		return
 	}
@@ -317,18 +285,10 @@ func (dao *DAO[T]) Insert(ctx context.Context, entity *T) error {
 		}
 		values = append(values, value)
 	})
-	statement, args := psql.Insert(dao.opts.Table).Columns(dao.insertionColumns...).Values(values...).
-		Suffix("RETURNING *").
-		MustSql()
-	dao.debugSQL(statement, args)
-	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
-	if dao.opts.CachePropagate && err == nil {
-		id := reflect.ValueOf(*entity).FieldByName("ID")
-		if id.IsValid() {
-			go dao.propagateEvent(ctx, id.String(), entity)
-		}
-	}
-	return errs.ConvertError(err)
+	builder := psql.Insert(dao.opts.Table).
+		Columns(dao.schema.InsertColumns()...).
+		Values(values...)
+	return dao.executePropagate(ctx, builder, entity)
 }
 
 func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
@@ -339,7 +299,7 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 		return nil
 	}
 
-	builder := psql.Insert(dao.opts.Table).Columns(dao.insertionColumns...)
+	builder := psql.Insert(dao.opts.Table).Columns(dao.schema.InsertColumns()...)
 
 	for _, entity := range entities {
 		values := make([]interface{}, 0)
@@ -357,7 +317,7 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 	}
 
 	statement, args := builder.Suffix("RETURNING *").MustSql()
-	rows, err := dao.UnsafeDB(ctx).QueryxContext(ctx, statement, args...)
+	rows, err := dao.DB(ctx).QueryxContext(ctx, statement, args...)
 	if err != nil {
 		return err
 	}
@@ -372,32 +332,58 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 	return rows.Err()
 }
 
-func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interface{}) (int64, error) {
+func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interface{}) (entity *T, err error) {
 	builder := psql.Update(dao.opts.Table).SetMap(maps).Where(sq.Eq{"id": id})
 	if dao.workspace {
 		wid := contextx.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
 	}
-	statement, args := builder.MustSql()
-	dao.debugSQL(statement, args)
-	result, err := dao.DB(ctx).ExecContext(ctx, statement, args...)
-	if err != nil {
-		return 0, err
+
+	entity = new(T)
+	err = dao.executePropagate(ctx, builder, entity)
+	return entity, err
+}
+
+func (dao *DAO[T]) executeReturning(ctx context.Context, builder interface{}, obj *T) error {
+	var statement string
+	var args []interface{}
+
+	switch t := builder.(type) {
+	case sq.UpdateBuilder:
+		statement, args = t.Suffix("RETURNING *").MustSql()
+	case sq.InsertBuilder:
+		statement, args = t.Suffix("RETURNING *").MustSql()
+	case sq.DeleteBuilder:
+		statement, args = t.Suffix("RETURNING *").MustSql()
+	default:
+		panic("invalid builder: " + reflect.TypeOf(t).String())
 	}
-	rows, err := result.RowsAffected()
-	return rows, err
+
+	dao.debugSQL(statement, args)
+
+	err := dao.DB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(obj)
+	return errs.ConvertError(err)
+}
+
+func (dao *DAO[T]) executePropagate(ctx context.Context, builder interface{}, entity *T) error {
+	err := dao.executeReturning(ctx, builder, entity)
+	if err != nil {
+		return err
+	}
+
+	if dao.opts.CachePropagate {
+		go dao.propagateEvent(ctx, entity)
+	}
+	return nil
 }
 
 func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.update", dao.opts.Table))
 	defer span.End()
 
-	var id string
 	builder := psql.Update(dao.opts.Table)
 	EachField(entity, func(f reflect.StructField, v reflect.Value, column string) {
 		switch column {
-		case "id":
-			id = v.Interface().(string)
 		case "created_at": // ignore
 		case "updated_at":
 			builder = builder.Set(column, sq.Expr("NOW()"))
@@ -409,13 +395,9 @@ func (dao *DAO[T]) Update(ctx context.Context, entity *T) error {
 		wid := contextx.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
 	}
-	statement, args := builder.Where(sq.Eq{"id": id}).Suffix("RETURNING *").MustSql()
-	dao.debugSQL(statement, args)
-	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
-	if dao.opts.CachePropagate && err == nil {
-		go dao.propagateEvent(ctx, id, entity)
-	}
-	return errs.ConvertError(err)
+
+	builder = builder.Where(sq.Eq{"id": (*entity).PrimaryKey()})
+	return dao.executePropagate(ctx, builder, entity)
 }
 
 func (dao *DAO[T]) Upsert(ctx context.Context, fields []string, entity *T) error {
@@ -448,23 +430,17 @@ func (dao *DAO[T]) Upsert(ctx context.Context, fields []string, entity *T) error
 			clause.WriteString(", ")
 		}
 	}
-	statement, args := psql.Insert(dao.opts.Table).Columns(columns...).Values(values...).
-		Suffix("ON CONFLICT (" + strings.Join(fields, ",") + ") DO UPDATE SET " + clause.String()).
-		Suffix("RETURNING *").
-		MustSql()
-	dao.debugSQL(statement, args)
-	err := dao.UnsafeDB(ctx).QueryRowxContext(ctx, statement, args...).StructScan(entity)
-	if dao.opts.CachePropagate && err == nil {
-		id := reflect.ValueOf(*entity).FieldByName("ID")
-		if id.IsValid() {
-			go dao.propagateEvent(ctx, id.String(), entity)
-		}
-	}
-	return errs.ConvertError(err)
+
+	bulder := psql.Insert(dao.opts.Table).
+		Columns(columns...).
+		Values(values...).
+		Suffix("ON CONFLICT (" + strings.Join(fields, ",") + ") DO UPDATE SET " + clause.String())
+
+	return dao.executePropagate(ctx, bulder, entity)
 }
 
-func (dao *DAO[T]) propagateEvent(ctx context.Context, id string, entity *T) {
+func (dao *DAO[T]) propagateEvent(ctx context.Context, entity *T) {
 	ctx, span := dao.trace(ctx, fmt.Sprintf("%s.crud.broadcast", dao.opts.Table))
 	defer span.End()
-	dao.opts.PropagateHandler(ctx, &dao.opts, id, entity)
+	dao.opts.PropagateHandler(ctx, &dao.opts, (*entity).PrimaryKey(), entity)
 }

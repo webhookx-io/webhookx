@@ -23,6 +23,10 @@ type Plugin struct {
 	BaseModel
 }
 
+func (m Plugin) PrimaryKey() string {
+	return m.ID
+}
+
 func (m *Plugin) SchemaName() string {
 	return "Plugin"
 }

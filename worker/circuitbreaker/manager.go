@@ -48,6 +48,10 @@ func WithFlushInterval(flushInterval time.Duration) Option {
 	return func(m *Manager) { m.flushInterval = flushInterval }
 }
 
+func WithNowFunc(now func() time.Time) Option {
+	return func(m *Manager) { m.now = now }
+}
+
 func WithEnabled(enabled bool) Option {
 	return func(m *Manager) { m.enabled = enabled }
 }
@@ -64,6 +68,7 @@ type Manager struct {
 	failureRateThreshold    int
 	minimumRequestThreshold int
 	flushInterval           time.Duration
+	now                     func() time.Time
 
 	flushMux sync.Mutex
 
@@ -85,6 +90,7 @@ func NewManager(opts ...Option) *Manager {
 		failureRateThreshold:    80,
 		minimumRequestThreshold: 100,
 		enabled:                 true,
+		now:                     time.Now,
 	}
 
 	for _, opt := range opts {
@@ -160,7 +166,7 @@ func (m *Manager) Flush(ctx context.Context) error {
 
 	m.mux.RLock()
 
-	flushTimeEnd := time.Now().Unix() - 1
+	flushTimeEnd := m.now().Unix() - 1
 	data := make(map[string]TimeBucketMetric)
 	recorders := make([]*Recorder, 0, len(m.cache))
 
@@ -195,9 +201,9 @@ func (m *Manager) Flush(ctx context.Context) error {
 			if s.Error > 0 {
 				pipeline.HIncrBy(ctx, key, "failure", s.Error)
 			}
-			ttl := time.Minute*61
+			ttl := time.Minute * 61
 			if s.Until-s.Start >= 3600 {
-				ttl = time.Hour*25
+				ttl = time.Hour * 25
 			}
 			pipeline.Expire(ctx, key, ttl)
 		}
@@ -220,7 +226,7 @@ func (m *Manager) GetCircuitBreaker(ctx context.Context, id string) (CircuitBrea
 		state: StateClosed,
 	}
 
-	now := time.Now()
+	now := m.now()
 
 	pipeline := m.client.Pipeline()
 	cmds := make([]*redis.MapStringStringCmd, 0)

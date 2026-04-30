@@ -32,7 +32,6 @@ var _ = Describe("CircuitBreaker Manager", Ordered, func() {
 			circuitbreaker.WithTimeWindowSize(60),
 			circuitbreaker.WithFailureRateThreshold(80),
 			circuitbreaker.WithMinimumRequestThreshold(5),
-			circuitbreaker.WithFlushInterval(time.Second),
 		)
 
 		It("sanity", func() {
@@ -59,46 +58,43 @@ var _ = Describe("CircuitBreaker Manager", Ordered, func() {
 	})
 
 	Context("windowsize >= 3600", func() {
-		manager := circuitbreaker.NewManager(
-			circuitbreaker.WithRedisClient(redisClient()),
-			circuitbreaker.WithTimeWindowSize(3600),
-			circuitbreaker.WithFailureRateThreshold(80),
-			circuitbreaker.WithMinimumRequestThreshold(5),
-			circuitbreaker.WithFlushInterval(time.Second),
-		)
-
+		t := time.Now()
 		BeforeAll(func() {
 			redisClient().FlushDB(context.TODO())
-			m := circuitbreaker.NewManager(
-				circuitbreaker.WithRedisClient(redisClient()),
-				circuitbreaker.WithTimeWindowSize(3600),
-				circuitbreaker.WithFailureRateThreshold(80),
-				circuitbreaker.WithMinimumRequestThreshold(5),
-				circuitbreaker.WithFlushInterval(time.Second),
-			)
-			prevHour := time.Now().Add(-time.Hour)
+
+			m := circuitbreaker.NewManager(circuitbreaker.WithRedisClient(redisClient()))
 			for i := 0; i < 100; i++ {
-				m.Record(prevHour, "test", metrics.Success)
+				m.Record(t.Add(-time.Hour), "test", metrics.Success)
 			}
 			err := m.Flush(context.TODO())
+			assert.NoError(GinkgoT(), err)
+
+			m = circuitbreaker.NewManager(circuitbreaker.WithRedisClient(redisClient()))
+			m.Record(time.Now().Add(-time.Second), "test", metrics.Success)
+			m.Record(time.Now().Add(-time.Second), "test", metrics.Error)
+			m.Record(time.Now().Add(-time.Second), "test", metrics.Error)
+			m.Record(time.Now().Add(-time.Second), "test", metrics.Error)
+			m.Record(time.Now().Add(-time.Second), "test", metrics.Error)
+			err = m.Flush(context.TODO())
 			assert.NoError(GinkgoT(), err)
 		})
 
 		It("sanity", func() {
-			manager.Record(time.Now().Add(-time.Second), "test", metrics.Success)
-			manager.Record(time.Now().Add(-time.Second), "test", metrics.Error)
-			manager.Record(time.Now().Add(-time.Second), "test", metrics.Error)
-			manager.Record(time.Now().Add(-time.Second), "test", metrics.Error)
-			manager.Record(time.Now().Add(-time.Second), "test", metrics.Error)
-			err := manager.Flush(context.TODO())
-			assert.NoError(GinkgoT(), err)
+			manager := circuitbreaker.NewManager(
+				circuitbreaker.WithRedisClient(redisClient()),
+				circuitbreaker.WithTimeWindowSize(3600),
+				circuitbreaker.WithFailureRateThreshold(80),
+				circuitbreaker.WithMinimumRequestThreshold(5),
+				circuitbreaker.WithNowFunc(func() time.Time { return t.Truncate(time.Hour).Add(time.Minute * 30) }),
+			)
 
 			cb, err := manager.GetCircuitBreaker(context.TODO(), "test")
 			assert.NoError(GinkgoT(), err)
-			assert.True(GinkgoT(), cb.Metric().Success > 1)
+			assert.Equal(GinkgoT(), "test", cb.Name())
+			assert.EqualValues(GinkgoT(), 51, cb.Metric().Success)
 			assert.EqualValues(GinkgoT(), 4, cb.Metric().Error)
-			assert.True(GinkgoT(), cb.Metric().TotalRequest() > 5)
-			assert.True(GinkgoT(), cb.Metric().FailureRate() < 0.8)
+			assert.EqualValues(GinkgoT(), 55, cb.Metric().TotalRequest())
+			assert.Equal(GinkgoT(), 0.07272727272727272, cb.Metric().FailureRate())
 			assert.Equal(GinkgoT(), circuitbreaker.StateClosed, cb.State())
 
 		})

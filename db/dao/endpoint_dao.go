@@ -1,6 +1,10 @@
 package dao
 
 import (
+	"context"
+	"fmt"
+
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/entities"
@@ -25,6 +29,22 @@ func NewEndpointDAO(db *sqlx.DB, fns ...OptionFunc) EndpointDAO {
 	}
 }
 
+func (dao *endpointDAO) Disable(ctx context.Context, id string) (bool, error) {
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.disable", dao.opts.Table))
+	defer span.End()
+
+	v, err := dao.updateOne(ctx, id, map[string]interface{}{
+		"enabled":    false,
+		"updated_at": sq.Expr("NOW()"),
+	}, map[string]interface{}{
+		"enabled": true,
+	})
+	if err != nil {
+		return false, err
+	}
+	return v != nil, nil
+}
+
 type EndpointQuery struct {
 	Query
 	Enabled     *bool
@@ -39,5 +59,5 @@ func (q *EndpointQuery) ToQuery() *Query {
 	if q.WorkspaceId != nil {
 		query.Where("ws_id", Equal, *q.WorkspaceId)
 	}
-	return &query
+	return query
 }

@@ -65,7 +65,7 @@ var _ = Describe("License", Ordered, func() {
 
 		It("should log when license expired", func() {
 			license.GetLicenser().License().ExpiredAt = time.Time{}
-			app.Scheduler().GetTask("license.expiration").Do()
+			app.Scheduler().RunNow("license.expiration")
 			matched, err := helper.FileHasLine(helper.LogFile, "^.*license expired$")
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), true, matched)
@@ -73,7 +73,7 @@ var _ = Describe("License", Ordered, func() {
 
 		It("should log when license expiration less than 30 days", func() {
 			license.GetLicenser().License().ExpiredAt = time.Now().AddDate(0, 0, 1)
-			app.Scheduler().GetTask("license.expiration").Do()
+			app.Scheduler().RunNow("license.expiration")
 			matched, err := helper.FileHasLine(helper.LogFile, fmt.Sprintf("^.*license will expire at.*$"))
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), true, matched)
@@ -81,7 +81,7 @@ var _ = Describe("License", Ordered, func() {
 
 		It("should log when license expiration less than 90 days", func() {
 			license.GetLicenser().License().ExpiredAt = time.Now().UTC().AddDate(0, 0, 31)
-			app.Scheduler().GetTask("license.expiration").Do()
+			app.Scheduler().RunNow("license.expiration")
 			matched, err := helper.FileHasLine(helper.LogFile, fmt.Sprintf("^.*license will expire on \\d{4}-\\d{2}-\\d{2}$"))
 			assert.Nil(GinkgoT(), err)
 			assert.Equal(GinkgoT(), true, matched)

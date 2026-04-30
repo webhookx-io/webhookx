@@ -52,8 +52,7 @@ var _ = Describe("anonymous reports", Ordered, func() {
 					g.Done()
 				}, ":8888")
 
-				task := app.Scheduler().GetTask("anonymous_reports")
-				task.Do()
+				app.Scheduler().RunNow("anonymous_reports")
 
 				g.Wait()
 				assert.Equal(GinkgoT(), "free", data["license_plan"])

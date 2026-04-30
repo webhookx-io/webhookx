@@ -2,6 +2,7 @@ package reports
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -64,9 +65,10 @@ func send(url string) error {
 	return nil
 }
 
-func Report() {
+func Report(ctx context.Context) error {
 	err := send(URL)
 	if err != nil {
 		zap.S().Debugf("failed to report anonymous data: %v", err)
 	}
+	return nil
 }

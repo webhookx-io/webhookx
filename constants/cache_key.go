@@ -3,13 +3,13 @@ package constants
 import "strings"
 
 // CacheKey cache key definition.
-// format "webhookx:<name>:<version>:<id>"
+// format "webhookx:<name>:<version>:<id>[suffixes]"
 type CacheKey struct {
 	Name    string
 	Version string
 }
 
-func (c CacheKey) Build(id string) string {
+func (c CacheKey) Build(id string, suffixes ...string) string {
 	var sb strings.Builder
 	sb.WriteString("webhookx:")
 	sb.WriteString(c.Name)
@@ -17,6 +17,9 @@ func (c CacheKey) Build(id string) string {
 	sb.WriteString(c.Version)
 	sb.WriteString(":")
 	sb.WriteString(id)
+	for _, suffix := range suffixes {
+		sb.WriteString(suffix)
+	}
 	return sb.String()
 }
 

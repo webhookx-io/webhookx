@@ -36,5 +36,5 @@ func (q *SourceQuery) ToQuery() *Query {
 	if q.WorkspaceId != nil {
 		query.Where("ws_id", Equal, *q.WorkspaceId)
 	}
-	return &query
+	return query
 }

@@ -285,9 +285,8 @@ var _ = Describe("delivery", Ordered, func() {
 			assert.NoError(GinkgoT(), err)
 			assert.Equal(GinkgoT(), int64(1), row)
 
-			task := app.Scheduler().GetTask("worker.requeue")
-			assert.NotNil(GinkgoT(), task)
-			task.Do() // load db data that meets the conditions into task queue
+			// load db data that meets the conditions into task queue
+			app.Scheduler().RunNow("worker.requeue")
 
 			assert.Eventually(GinkgoT(), func() bool {
 				model, err := db.Attempts.Get(context.TODO(), list[0].ID)

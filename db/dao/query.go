@@ -67,15 +67,15 @@ func (q *Query) Page(pageNo, pageSize int) {
 	q.Limit = pageSize
 }
 
-func (q Query) clone() Query {
-	cloned := q
+func (q *Query) clone() *Query {
+	cloned := *q
 	if len(q.Wheres) > 0 {
 		cloned.Wheres = append([]Condition(nil), q.Wheres...)
 	}
 	if len(q.Orders) > 0 {
 		cloned.Orders = append([]Order(nil), q.Orders...)
 	}
-	return cloned
+	return &cloned
 }
 
 type Cursor[T any] struct {

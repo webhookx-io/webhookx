@@ -360,26 +360,28 @@ func (g *Gateway) Start() error {
 		g.queue.StartListen(g.ctx, g.HandleMessages)
 	}
 
-	g.services.Scheduler.AddTask(&schedule.Task{
-		Name:     "gateway.router_rebuild",
-		Interval: time.Second,
-		Do: func() {
+	g.services.Scheduler.Schedule(schedule.Task{
+		Name:      "gateway.router_rebuild",
+		Scheduled: schedule.NewIntervalSchedule(0, time.Second),
+		Run: func(ctx context.Context) error {
 			version := store.GetDefault("router:version", "init").(string)
 			if g.routerVersion == version {
-				return
+				return nil
 			}
 			g.buildRouter(version)
+			return nil
 		},
 	})
 
 	if g.services.Metrics.Enabled && g.queue != nil {
-		g.services.Scheduler.AddTask(&schedule.Task{
-			Name:     "gateway.report_metrics",
-			Interval: g.services.Metrics.Interval,
-			Do: func() {
+		g.services.Scheduler.Schedule(schedule.Task{
+			Name:      "gateway.report_metrics",
+			Scheduled: schedule.NewIntervalSchedule(0, g.services.Metrics.Interval),
+			Run: func(ctx context.Context) error {
 				stats := stats.Stats(g.queue.Stats())
 				size := stats.Int64("eventqueue.size")
 				g.services.Metrics.EventPendingGauge.Set(float64(size))
+				return nil
 			},
 		})
 	}

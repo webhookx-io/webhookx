@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db"
+	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
@@ -41,7 +42,7 @@ var _ = Describe("CircuitBreaker", Ordered, func() {
 
 			app = helper.MustStart(map[string]string{
 				"WEBHOOKX_WORKER_CIRCUITBREAKER_ENABLED":                   "true",
-				"WEBHOOKX_WORKER_CIRCUITBREAKER_WINDOW_SIZE":               "60",
+				"WEBHOOKX_WORKER_CIRCUITBREAKER_WINDOW_SIZE":               "3600",
 				"WEBHOOKX_WORKER_CIRCUITBREAKER_FAILURE_RATE_THRESHOLD":    "90",
 				"WEBHOOKX_WORKER_CIRCUITBREAKER_MINIMUM_REQUEST_THRESHOLD": "10",
 			})
@@ -56,13 +57,21 @@ var _ = Describe("CircuitBreaker", Ordered, func() {
 		})
 
 		It("endpoint should be disabled", func() {
-			for i := 0; i < 20; i++ {
+			for i := 0; i < 10; i++ {
 				resp, err := proxyClient.R().
 					SetBody(`{"event_type": "foo.bar","data": {"key": "value"}}`).
 					Post("/")
 				assert.NoError(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 200, resp.StatusCode())
 			}
+			assert.Eventually(GinkgoT(), func() bool {
+				q := dao.AttemptQuery{
+					Status: new(entities.AttemptStatusFailure),
+				}
+				n, err := db.Attempts.Count(context.TODO(), q.ToQuery())
+				assert.NoError(GinkgoT(), err)
+				return n == 10
+			}, time.Second*3, time.Millisecond*100)
 
 			time.Sleep(time.Second * 1)
 			app.Scheduler().RunNow("worker.detectEndpointHealthy")

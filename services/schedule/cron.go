@@ -7,83 +7,90 @@ import (
 	"time"
 
 	"github.com/robfig/cron/v3"
+	"go.uber.org/zap"
 )
 
 var (
-	ErrTaskAdded = errors.New("task already added")
+	ErrTaskAdded    = errors.New("task already added")
+	ErrTaskNotFound = errors.New("task not found")
 )
 
-type intervalSchedule struct {
-	once         sync.Once
-	InitialDelay time.Duration
-	Interval     time.Duration
+// CronScheduler is a scheduler implemented by robfig/cron
+type CronScheduler struct {
+	log     *zap.SugaredLogger
+	cron    *cron.Cron
+	entries map[string]cron.EntryID
+	mux     sync.RWMutex
 }
 
-func (s *intervalSchedule) Next(t time.Time) time.Time {
-	interval := s.Interval
-	s.once.Do(func() { interval = s.InitialDelay })
-	return t.Add(interval)
-}
-
-type cronTask struct {
-	id cron.EntryID
-	*Task
-}
-
-type ScheduleService struct {
-	cron  *cron.Cron
-	tasks map[string]*cronTask
-	mux   sync.RWMutex
-}
-
-func NewSchedulerService() *ScheduleService {
-	return &ScheduleService{
-		cron:  cron.New(cron.WithChain(cron.Recover(cron.DefaultLogger))),
-		tasks: make(map[string]*cronTask),
+func NewCronScheduler() *CronScheduler {
+	return &CronScheduler{
+		log: zap.S().Named("cron"),
+		cron: cron.New(
+			cron.WithChain(
+				cron.Recover(cron.DefaultLogger),
+			),
+		),
+		entries: make(map[string]cron.EntryID),
 	}
 }
 
-func (s *ScheduleService) Name() string {
+func (s *CronScheduler) Name() string {
 	return "schedule"
 }
 
-func (s *ScheduleService) AddTask(task *Task) {
+func (s *CronScheduler) Schedule(task Task) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
-	if _, exists := s.tasks[task.Name]; exists {
+	if _, exists := s.entries[task.Name]; exists {
 		panic(ErrTaskAdded)
 	}
 
-	schedule := &intervalSchedule{
-		InitialDelay: task.InitialDelay,
-		Interval:     task.Interval,
+	wrappedFunc := func() {
+		start := time.Now()
+		err := task.Run(context.TODO())
+		elapsed := time.Since(start)
+		if err != nil {
+			s.log.Errorw("task failed",
+				"task", task.Name,
+				"elapsed_ms", elapsed.Milliseconds(),
+				zap.Error(err),
+			)
+			return
+		}
+		// verbose
+		// s.log.Debugw(fmt.Sprintf("task '%s' completed", task.Name), "elapsed_ms", elapsed.Milliseconds())
 	}
-	id := s.cron.Schedule(schedule, cron.FuncJob(task.Do))
 
-	s.tasks[task.Name] = &cronTask{
-		id:   id,
-		Task: task,
-	}
+	id := s.cron.Schedule(task.Scheduled, cron.FuncJob(wrappedFunc))
+	s.entries[task.Name] = id
 }
 
-func (s *ScheduleService) GetTask(id string) *Task {
+func (s *CronScheduler) RunNow(name string) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
-	if task, exists := s.tasks[id]; exists {
-		return task.Task
+	id, exists := s.entries[name]
+	if !exists {
+		panic(ErrTaskNotFound)
 	}
-	return nil
+
+	s.cron.Entry(id).WrappedJob.Run()
 }
 
-func (s *ScheduleService) Start() error {
+// Start starts the cron scheduler.
+func (s *CronScheduler) Start() error {
 	s.cron.Start()
 	return nil
 }
 
-func (s *ScheduleService) Stop(_ context.Context) error {
-	ctx := s.cron.Stop()
-	<-ctx.Done()
-	return nil
+// Stop stops the cron scheduler and waits for running tasks to complete.
+func (s *CronScheduler) Stop(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-s.cron.Stop().Done():
+		return nil
+	}
 }

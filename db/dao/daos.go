@@ -18,6 +18,7 @@ type BaseDAO[T any] interface {
 	List(ctx context.Context, query *Query) ([]*T, error)
 	Cursor(ctx context.Context, query *Query) (Cursor[*T], error)
 	BatchInsert(ctx context.Context, entities []*T) error
+	Iterate(ctx context.Context, query *Query) *Iterator[T]
 }
 
 type WorkspaceDAO interface {
@@ -28,6 +29,7 @@ type WorkspaceDAO interface {
 
 type EndpointDAO interface {
 	BaseDAO[entities.Endpoint]
+	Disable(ctx context.Context, id string) (bool, error)
 }
 
 type EventDAO interface {

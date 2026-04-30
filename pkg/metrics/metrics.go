@@ -78,16 +78,16 @@ func New(cfg modules.MetricsConfig, scheduler schedule.Scheduler) (*Metrics, err
 
 func (m *Metrics) Start() error {
 	if m.Enabled {
-		m.scheduler.AddTask(&schedule.Task{
-			Name:     "metrics.collectRuntimeStats",
-			Interval: m.Interval,
-			Do:       m.collectRuntimeStats,
+		m.scheduler.Schedule(schedule.Task{
+			Name:      "metrics.collectRuntimeStats",
+			Scheduled: schedule.NewIntervalSchedule(0, m.Interval),
+			Run:       m.collectRuntimeStats,
 		})
 	}
 	return nil
 }
 
-func (m *Metrics) collectRuntimeStats() {
+func (m *Metrics) collectRuntimeStats(ctx context.Context) error {
 	m.RuntimeGoroutine.Set(float64(runtime.NumGoroutine()))
 
 	var stats runtime.MemStats
@@ -99,4 +99,6 @@ func (m *Metrics) collectRuntimeStats() {
 	m.RuntimeHeapObjects.Set(float64(stats.HeapObjects))
 	m.RuntimePauseTotalNs.Set(float64(stats.PauseTotalNs))
 	m.RuntimeGC.Set(float64(stats.NumGC))
+
+	return nil
 }

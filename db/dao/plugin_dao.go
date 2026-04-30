@@ -48,5 +48,5 @@ func (q *PluginQuery) ToQuery() *Query {
 	if q.Enabled != nil {
 		query.Where("enabled", Equal, *q.Enabled)
 	}
-	return &query
+	return query
 }

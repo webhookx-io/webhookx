@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func newSqliteDB() *sqlx.DB {
+func newDB() *sqlx.DB {
 	db := sqlx.MustOpen("sqlite3", ":memory:")
 	schema := `
     CREATE TABLE test (
@@ -21,20 +21,43 @@ func newSqliteDB() *sqlx.DB {
         ws_id varchar(27)
     );`
 	db.MustExec(schema)
-	db.MustExec(
-		"INSERT INTO test (id, name, ws_id) VALUES (?, ?, ?)",
-		"00000000-0000-0000-0000-000000000000",
-		"test",
-		"")
 	return db.Unsafe()
 }
 
-var _ = Describe("dao", Ordered, func() {
+func initDB(db *sqlx.DB, entities []*TestEntity) {
+	db.MustExec("DELETE FROM test")
+	for _, entity := range entities {
+		db.MustExec("INSERT INTO test (id, name, ws_id) VALUES (?, ?, ?)",
+			entity.ID,
+			entity.Name,
+			entity.WorkspaceId)
+	}
+}
 
-	var dao *DAO[TestEntity]
-	BeforeAll(func() {
-		db := newSqliteDB()
-		dao = NewDAO[TestEntity](db, Options{Table: "test"})
+var _ = Describe("dao", Ordered, func() {
+	db := newDB()
+	dao := NewDAO[TestEntity](db, Options{Table: "test"})
+
+	Context("Get", func() {
+		BeforeAll(func() {
+			initDB(db, []*TestEntity{
+				{
+					ID:   "00000000-0000-0000-0000-000000000000",
+					Name: new("test"),
+				},
+			})
+		})
+
+		Context("errors", func() {
+			It("returns no err when table has unknown columns", func() {
+				entity, err := dao.Get(context.TODO(), "00000000-0000-0000-0000-000000000000")
+				assert.NoError(GinkgoT(), err)
+				assert.Nil(GinkgoT(), err)
+				assert.NotNil(GinkgoT(), entity)
+				assert.Equal(GinkgoT(), "test", *entity.Name)
+				assert.Equal(GinkgoT(), "00000000-0000-0000-0000-000000000000", entity.ID)
+			})
+		})
 	})
 
 	Context("Delete", func() {
@@ -56,14 +79,33 @@ var _ = Describe("dao", Ordered, func() {
 		})
 	})
 
-	Context("errors", func() {
-		It("returns no err when table has unknown columns", func() {
-			entity, err := dao.Get(context.TODO(), "00000000-0000-0000-0000-000000000000")
-			assert.NoError(GinkgoT(), err)
-			assert.Nil(GinkgoT(), err)
-			assert.NotNil(GinkgoT(), entity)
-			assert.Equal(GinkgoT(), "test", *entity.Name)
-			assert.Equal(GinkgoT(), "00000000-0000-0000-0000-000000000000", entity.ID)
+	Context("Iterator", func() {
+		BeforeAll(func() {
+			entities := []*TestEntity{
+				{ID: "1", Name: nil},
+				{ID: "2", Name: nil},
+				{ID: "3", Name: nil},
+				{ID: "4", Name: nil},
+				{ID: "5", Name: nil},
+			}
+			initDB(db, entities)
+		})
+
+		It("iterate all entities", func() {
+			var list []*TestEntity
+			var q Query
+			q.Limit = 2
+			it := dao.Iterate(context.TODO(), &q)
+			for it.Next() {
+				v := it.Current()
+				list = append(list, v)
+			}
+			assert.Equal(GinkgoT(), 5, len(list))
+			assert.Equal(GinkgoT(), "5", list[0].ID)
+			assert.Equal(GinkgoT(), "4", list[1].ID)
+			assert.Equal(GinkgoT(), "3", list[2].ID)
+			assert.Equal(GinkgoT(), "2", list[3].ID)
+			assert.Equal(GinkgoT(), "1", list[4].ID)
 		})
 	})
 

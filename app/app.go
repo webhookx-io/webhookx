@@ -40,6 +40,7 @@ import (
 	"github.com/webhookx-io/webhookx/proxy"
 	"github.com/webhookx-io/webhookx/proxy/middlewares"
 	"github.com/webhookx-io/webhookx/services"
+	"github.com/webhookx-io/webhookx/services/distributed"
 	"github.com/webhookx-io/webhookx/services/eventbus"
 	"github.com/webhookx-io/webhookx/services/schedule"
 	"github.com/webhookx-io/webhookx/services/task"
@@ -48,6 +49,7 @@ import (
 	"github.com/webhookx-io/webhookx/status/health"
 	"github.com/webhookx-io/webhookx/utils"
 	"github.com/webhookx-io/webhookx/worker"
+	"github.com/webhookx-io/webhookx/worker/circuitbreaker"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
@@ -117,7 +119,7 @@ func (app *Application) initialize() error {
 	app.registerService(eventBus)
 
 	// scheduler
-	scheduler := schedule.NewSchedulerService()
+	scheduler := schedule.NewCronScheduler()
 	app.registerScheduledTasks(scheduler)
 	app.registerService(scheduler)
 
@@ -156,6 +158,10 @@ func (app *Application) initialize() error {
 		EventBus:    eventBus,
 		Metrics:     metrics,
 		RateLimiter: ratelimiter.NewRedisLimiter(client),
+		Distributed: distributed.NewDistributed(
+			distributed.WithLogger(app.log.Named("distributed")),
+			distributed.WithLocker(distributed.NewRedisLocker(client)),
+		),
 	}
 
 	if cfg.Worker.Enabled || cfg.Proxy.IsEnabled() {
@@ -244,6 +250,13 @@ func (app *Application) initWorker(cfg *modules.WorkerConfig, services *services
 			DelivererOptions: delivererOptions,
 			DB:               app.db,
 			RedisClient:      client,
+			CircuitBreakerManager: circuitbreaker.NewManager(
+				circuitbreaker.WithTimeWindowSize(cfg.CircuitBreaker.WindowSize),
+				circuitbreaker.WithFailureRateThreshold(cfg.CircuitBreaker.FailureRateThreshold),
+				circuitbreaker.WithMinimumRequestThreshold(cfg.CircuitBreaker.MinimumRequestThreshold),
+				circuitbreaker.WithRedisClient(client),
+				circuitbreaker.WithEnabled(cfg.CircuitBreaker.Enabled)),
+			EnabledDetection: cfg.CircuitBreaker.Enabled,
 		}, services)
 		app.registerService(worker)
 	}
@@ -386,22 +399,22 @@ func (app *Application) scheduleRebuildPluginIterator(bus eventbus.EventBus, sch
 		store.Set("plugin:version", utils.UUID())
 	})
 
-	scheduler.AddTask(&schedule.Task{
-		Name:     "app.plugin_rebuild",
-		Interval: time.Second,
-		Do: func() {
+	scheduler.Schedule(schedule.Task{
+		Name:      "app.plugin_rebuild",
+		Scheduled: schedule.NewIntervalSchedule(0, time.Second),
+		Run: func(ctx context.Context) error {
 			version := store.GetDefault("plugin:version", "init").(string)
 			iterator := plugins.LoadIterator()
 			if iterator.Version == version && time.Since(iterator.Created) < time.Minute {
-				return
+				return nil
 			}
 
 			iterator, err := app.buildPluginIterator(version)
 			if err != nil {
-				app.log.Error(err)
-				return
+				return err
 			}
 			plugins.SetIterator(iterator)
+			return nil
 		},
 	})
 }
@@ -440,18 +453,17 @@ func (app *Application) Scheduler() schedule.Scheduler {
 
 func (app *Application) registerScheduledTasks(scheduler schedule.Scheduler) {
 	if app.cfg.AnonymousReports {
-		scheduler.AddTask(&schedule.Task{
-			Name:         "anonymous_reports",
-			InitialDelay: time.Hour,
-			Interval:     time.Hour * 24,
-			Do:           reports.Report,
+		scheduler.Schedule(schedule.Task{
+			Name:      "anonymous_reports",
+			Scheduled: schedule.NewIntervalSchedule(time.Hour, time.Hour*24),
+			Run:       reports.Report,
 		})
 	}
 
-	scheduler.AddTask(&schedule.Task{
-		Name:     "license.expiration",
-		Interval: time.Hour * 24,
-		Do: func() {
+	scheduler.Schedule(schedule.Task{
+		Name:      "license.expiration",
+		Scheduled: schedule.NewIntervalSchedule(0, time.Hour*24),
+		Run: func(ctx context.Context) error {
 			licenser := license.GetLicenser()
 			delta := time.Until(licenser.License().ExpiredAt)
 			log := app.log.Named("license")
@@ -462,6 +474,7 @@ func (app *Application) registerScheduledTasks(scheduler schedule.Scheduler) {
 			} else if delta < time.Hour*24*90 { // 90 days
 				log.Warnf("license will expire on %s", licenser.License().ExpiredAt.Format(time.DateOnly))
 			}
+			return nil
 		},
 	})
 }

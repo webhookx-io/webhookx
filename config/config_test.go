@@ -385,6 +385,11 @@ func TestWorkerConfig(t *testing.T) {
 					},
 				},
 				Pool: modules.Pool{},
+				CircuitBreaker: modules.CircuitBreaker{
+					WindowSize:              3600,
+					FailureRateThreshold:    80,
+					MinimumRequestThreshold: 100,
+				},
 			},
 			validateErr: nil,
 		},
@@ -486,6 +491,73 @@ func TestWorkerProxyConfig(t *testing.T) {
 	for _, test := range tests {
 		actual := test.cfg.Validate()
 		assert.Equal(t, test.validateErr, actual, "expected %v got %v", test.validateErr, actual)
+	}
+}
+
+func TestCircuitBreaker(t *testing.T) {
+	tests := []struct {
+		desc                string
+		cfg                 modules.CircuitBreaker
+		expectedValidateErr error
+	}{
+		{
+			desc: "sanity",
+			cfg: modules.CircuitBreaker{
+				WindowSize:              3600,
+				FailureRateThreshold:    80,
+				MinimumRequestThreshold: 100,
+			},
+			expectedValidateErr: nil,
+		},
+		{
+			desc: "invalid sliding_window: 0",
+			cfg: modules.CircuitBreaker{
+				WindowSize:              0,
+				FailureRateThreshold:    80,
+				MinimumRequestThreshold: 100,
+			},
+			expectedValidateErr: errors.New("window_size must be in the range [60, 86400]"),
+		},
+		{
+			desc: "invalid sliding_window: 86401",
+			cfg: modules.CircuitBreaker{
+				WindowSize:              86401,
+				FailureRateThreshold:    80,
+				MinimumRequestThreshold: 100,
+			},
+			expectedValidateErr: errors.New("window_size must be in the range [60, 86400]"),
+		},
+		{
+			desc: "invalid failure_rate_threshold: 0",
+			cfg: modules.CircuitBreaker{
+				WindowSize:              3600,
+				FailureRateThreshold:    0,
+				MinimumRequestThreshold: 100,
+			},
+			expectedValidateErr: errors.New("failure_rate_threshold must be in the range [1, 100]"),
+		},
+		{
+			desc: "invalid failure_rate_threshold: 101",
+			cfg: modules.CircuitBreaker{
+				WindowSize:              3600,
+				FailureRateThreshold:    101,
+				MinimumRequestThreshold: 100,
+			},
+			expectedValidateErr: errors.New("failure_rate_threshold must be in the range [1, 100]"),
+		},
+		{
+			desc: "invalid minimum_request_threshold: 0",
+			cfg: modules.CircuitBreaker{
+				WindowSize:              3600,
+				FailureRateThreshold:    80,
+				MinimumRequestThreshold: 0,
+			},
+			expectedValidateErr: errors.New("minimum_request_threshold must be greater than 1"),
+		},
+	}
+	for _, test := range tests {
+		actualValidateErr := test.cfg.Validate()
+		assert.Equal(t, test.expectedValidateErr, actualValidateErr, "expected %v got %v", test.expectedValidateErr, actualValidateErr)
 	}
 }
 

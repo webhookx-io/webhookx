@@ -43,7 +43,7 @@ func (dao *attemptDao) UpdateDelivery(ctx context.Context, result *AttemptResult
 	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.update_result", dao.opts.Table))
 	defer span.End()
 
-	_, err := dao.update(ctx, result.ID, map[string]interface{}{
+	_, err := dao.executeUpdate(ctx, map[string]interface{}{
 		"request":      result.Request,
 		"response":     result.Response,
 		"attempted_at": result.AttemptedAt,
@@ -51,6 +51,8 @@ func (dao *attemptDao) UpdateDelivery(ctx context.Context, result *AttemptResult
 		"error_code":   result.ErrorCode,
 		"exhausted":    result.Exhausted,
 		"updated_at":   sq.Expr("NOW()"),
+	}, map[string]interface{}{
+		"id": result.ID,
 	})
 	return err
 }
@@ -75,10 +77,12 @@ func (dao *attemptDao) UpdateErrorCode(ctx context.Context, id string, status en
 	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.update_error_code", dao.opts.Table))
 	defer span.End()
 
-	_, err := dao.update(ctx, id, map[string]interface{}{
+	_, err := dao.executeUpdate(ctx, map[string]interface{}{
 		"status":     status,
 		"error_code": code,
 		"updated_at": sq.Expr("NOW()"),
+	}, map[string]interface{}{
+		"id": id,
 	})
 	return err
 }
@@ -112,5 +116,5 @@ func (q *AttemptQuery) ToQuery() *Query {
 	if q.Status != nil {
 		query.Where("status", Equal, *q.Status)
 	}
-	return &query
+	return query
 }

@@ -246,16 +246,10 @@ func (dao *DAO[T]) Cursor(ctx context.Context, query *Query) (cursor Cursor[*T],
 
 	if len(cursor.Data) > 0 {
 		first := cursor.Data[0]
-		firstId := reflect.ValueOf(*first).FieldByName("ID")
-		if firstId.IsValid() {
-			cursor.FirstId = new(firstId.String())
-		}
+		cursor.FirstId = new((*first).PrimaryKey())
 
 		last := cursor.Data[len(cursor.Data)-1]
-		lastId := reflect.ValueOf(*last).FieldByName("ID")
-		if lastId.IsValid() {
-			cursor.LastId = new(lastId.String())
-		}
+		cursor.LastId = new((*last).PrimaryKey())
 	}
 
 	if !query.CursorModel {
@@ -332,15 +326,27 @@ func (dao *DAO[T]) BatchInsert(ctx context.Context, entities []*T) error {
 	return rows.Err()
 }
 
-func (dao *DAO[T]) update(ctx context.Context, id string, maps map[string]interface{}) (entity *T, err error) {
-	builder := psql.Update(dao.opts.Table).SetMap(maps).Where(sq.Eq{"id": id})
+func (dao *DAO[T]) updateOne(
+	ctx context.Context,
+	id string,
+	updates map[string]interface{},
+	filters map[string]interface{}) (entity *T, err error) {
+	builder := psql.Update(dao.opts.Table).
+		SetMap(updates).
+		Where(filters).
+		Where("id = ?", id)
 	if dao.workspace {
 		wid := contextx.GetWorkspaceID(ctx)
 		builder = builder.Where(sq.Eq{"ws_id": wid})
 	}
-
 	entity = new(T)
 	err = dao.executePropagate(ctx, builder, entity)
+	if err != nil {
+		if errors.Is(err, ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
 	return entity, err
 }
 
@@ -439,8 +445,45 @@ func (dao *DAO[T]) Upsert(ctx context.Context, fields []string, entity *T) error
 	return dao.executePropagate(ctx, bulder, entity)
 }
 
+func (dao *DAO[T]) Iterate(ctx context.Context, query *Query) *Iterator[T] {
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.iterate", dao.opts.Table))
+	defer span.End()
+
+	query = query.clone()
+	query.Offset = 0
+	query.Reverse = false
+	query.Orders = []Order{{"id", DESC}}
+	query.CursorModel = true
+
+	it := &Iterator[T]{
+		query: query,
+		fetch: func(query *Query) ([]*T, bool, error) {
+			cursor, err := dao.Cursor(ctx, query)
+			return cursor.Data, cursor.HasMore, err
+		},
+	}
+	it.fetchData(query)
+
+	return it
+}
+
 func (dao *DAO[T]) propagateEvent(ctx context.Context, entity *T) {
 	ctx, span := dao.trace(ctx, fmt.Sprintf("%s.crud.broadcast", dao.opts.Table))
 	defer span.End()
 	dao.opts.PropagateHandler(ctx, &dao.opts, (*entity).PrimaryKey(), entity)
+}
+
+func (dao *DAO[T]) executeUpdate(ctx context.Context, set map[string]interface{}, where map[string]interface{}) (int64, error) {
+	builder := psql.Update(dao.opts.Table).SetMap(set).Where(where)
+	if dao.workspace {
+		wid := contextx.GetWorkspaceID(ctx)
+		builder = builder.Where("ws_id = ?", wid)
+	}
+	statement, args := builder.MustSql()
+	dao.debugSQL(statement, args)
+	result, err := dao.DB(ctx).ExecContext(ctx, statement, args...)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }

@@ -27,13 +27,20 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/types"
 	"github.com/webhookx-io/webhookx/plugins"
 	"github.com/webhookx-io/webhookx/services"
+	"github.com/webhookx-io/webhookx/services/distributed"
 	"github.com/webhookx-io/webhookx/services/eventbus"
 	"github.com/webhookx-io/webhookx/services/schedule"
 	"github.com/webhookx-io/webhookx/utils"
+	"github.com/webhookx-io/webhookx/worker/circuitbreaker"
+	"github.com/webhookx-io/webhookx/worker/circuitbreaker/metrics"
 	"github.com/webhookx-io/webhookx/worker/deliverer"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+)
+
+const (
+	DefaultDetectInterval = time.Second * 10
 )
 
 var (
@@ -61,6 +68,7 @@ type Worker struct {
 	db              *db.DB
 	pool            *pool.Pool[*taskqueue.TaskMessage]
 	queueRequestLog *batchqueue.BatchQueue[*entities.AttemptDetail]
+	cbm             *circuitbreaker.Manager
 }
 
 type Options struct {
@@ -68,9 +76,11 @@ type Options struct {
 	PoolSize        int
 	PoolConcurrency int
 
-	DB               *db.DB
-	DelivererOptions deliverer.Options
-	RedisClient      *redis.Client
+	DB                    *db.DB
+	DelivererOptions      deliverer.Options
+	RedisClient           *redis.Client
+	CircuitBreakerManager *circuitbreaker.Manager
+	EnabledDetection      bool
 }
 
 func init() {
@@ -97,6 +107,7 @@ func NewWorker(opts Options, services *services.Services) *Worker {
 		db:              opts.DB,
 		services:        services,
 		queueRequestLog: batchqueue.New[*entities.AttemptDetail]("request_log", 1000, 50, time.Millisecond*500),
+		cbm:             opts.CircuitBreakerManager,
 	}
 
 	worker.pool = pool.New[*taskqueue.TaskMessage](
@@ -284,12 +295,28 @@ func (w *Worker) Start() error {
 	}
 
 	go w.run()
+	go w.cbm.Start()
 
-	w.services.Scheduler.AddTask(&schedule.Task{
-		Name:     "worker.requeue",
-		Interval: time.Minute,
-		Do:       w.loadPending,
+	w.services.Scheduler.Schedule(schedule.Task{
+		Name:      "worker.requeue",
+		Scheduled: schedule.NewIntervalSchedule(0, time.Minute),
+		Run:       w.loadPending,
 	})
+
+	if w.opts.EnabledDetection {
+		w.services.Scheduler.Schedule(schedule.Task{
+			Name:      "worker.detectEndpointHealthy",
+			Scheduled: schedule.NewIntervalSchedule(DefaultDetectInterval, DefaultDetectInterval),
+			Run: func(ctx context.Context) error {
+				err := w.services.Distributed.Mutex(ctx, distributed.LockOption{
+					Name: "detectEndpointHealthy",
+					TTL:  DefaultDetectInterval - time.Second,
+				}, w.detectEnabledEndpoints)
+				return err
+			},
+		})
+	}
+
 	return nil
 }
 
@@ -301,6 +328,9 @@ func (w *Worker) Stop(ctx context.Context) error {
 	w.pool.Shutdown()
 	w.log.Named("pool").Info("closed pool")
 	w.queueRequestLog.Close()
+	if err := w.cbm.Stop(ctx); err != nil {
+		return fmt.Errorf("failed to stop circuitbreaker manager: %w", err)
+	}
 	w.log.Info("exit")
 
 	return nil
@@ -313,14 +343,14 @@ func (w *Worker) consumeQueue(ctx context.Context, list []*entities.AttemptDetai
 	}
 }
 
-func (w *Worker) loadPending() {
+func (w *Worker) loadPending(ctx context.Context) error {
 	batchSize := w.opts.RequeueJobBatch
 
 	var done bool
 	for {
 		select {
 		case <-w.ctx.Done():
-			return
+			return nil
 		default:
 			err := w.db.TX(context.TODO(), func(ctx context.Context) error {
 				maxScheduledAt := time.Now().Add(constants.TaskQueuePreScheduleTimeWindow)
@@ -348,8 +378,7 @@ func (w *Worker) loadPending() {
 			})
 
 			if err != nil {
-				w.log.Error(err)
-				return
+				return err
 			}
 		}
 
@@ -357,6 +386,7 @@ func (w *Worker) loadPending() {
 			break
 		}
 	}
+	return nil
 }
 
 func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) error {
@@ -426,10 +456,13 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 		result.Exhausted = true
 	}
 
+	outcome := metrics.Success
 	counter.Add(1)
 	if result.Status == entities.AttemptStatusFailure {
 		failures.Add(1)
+		outcome = metrics.Error
 	}
+	w.cbm.Record(time.Now(), endpoint.ID, outcome)
 
 	if w.services.Metrics.Enabled {
 		w.services.Metrics.AttemptTotalCounter.Add(1)
@@ -579,4 +612,40 @@ func newAttemptDetail(id string, wid string, response *deliverer.Response) *enti
 		ad.ResponseBody = new(string(response.ResponseBody))
 	}
 	return ad
+}
+
+func (w *Worker) detectEnabledEndpoints(ctx context.Context) error {
+	var q dao.EndpointQuery
+	q.Enabled = new(true)
+	q.Limit = 100
+	it := w.db.Endpoints.Iterate(ctx, q.ToQuery())
+	for it.Next() {
+		endpoint := it.Current()
+		cb, err := w.cbm.GetCircuitBreaker(ctx, endpoint.ID)
+		if err != nil {
+			return fmt.Errorf("failed to query endpoint's circuit breaker %s: %v", endpoint.ID, err)
+		}
+		// verbose
+		// w.log.Debugw("circuit breaker",
+		//	"id", endpoint.ID,
+		//	"metrics", cb.Metric(),
+		//	"failure_rate", fmt.Sprintf("%.2f%%", cb.Metric().FailureRate()*100))
+		if cb.State() == circuitbreaker.StateOpen {
+			changed, err := w.db.Endpoints.Disable(ctx, endpoint.ID)
+			if err != nil {
+				return fmt.Errorf("failed to disable endpoint %s: %v", endpoint.ID, err)
+			}
+			if changed {
+				w.log.Warnw("endpoint has been disabled",
+					"id", endpoint.ID,
+					"metrics", cb.Metric(),
+					"failure_rate", fmt.Sprintf("%.2f%%", cb.Metric().FailureRate()*100))
+			}
+		}
+	}
+	if err := it.Err(); err != nil {
+		return err
+	}
+
+	return nil
 }

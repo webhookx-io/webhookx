@@ -145,7 +145,7 @@ func handleMultiError(me openapi3.MultiError, paths []string, fields map[string]
 			handleMultiError(e, paths, fields)
 		case *openapi3.SchemaError:
 			if e.SchemaField != "allOf" && e.SchemaField != "anyOf" && e.SchemaField != "oneOf" {
-				p := append(paths, e.JSONPointer()...)
+				p := e.JSONPointer()
 				switch e.SchemaField {
 				case "discriminator":
 					insertError(fields, 0, append(p, e.Schema.Discriminator.PropertyName), e)

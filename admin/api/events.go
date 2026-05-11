@@ -9,8 +9,8 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/contextx"
 	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/services/eventbus"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 func (api *API) PageEvent(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +48,7 @@ func (api *API) GetEvent(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	var event entities.Event
-	defaults := map[string]interface{}{"id": utils.KSUID()}
+	defaults := map[string]interface{}{"id": uid.Generate(uid.EventPrefix)}
 	if err := ValidateRequest(r, defaults, &event); err != nil {
 		api.error(400, w, err)
 		return

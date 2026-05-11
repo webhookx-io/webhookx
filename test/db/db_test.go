@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 var _ = Describe("DB", Ordered, func() {
@@ -22,9 +22,9 @@ var _ = Describe("DB", Ordered, func() {
 				db = helper.InitDB(true, nil)
 			})
 			It("BatchInsertIgnoreConflict", func() {
-				id1 := utils.KSUID()
-				id2 := utils.KSUID()
-				id3 := utils.KSUID()
+				id1 := uid.Generate(uid.EventPrefix)
+				id2 := uid.Generate(uid.EventPrefix)
+				id3 := uid.Generate(uid.EventPrefix)
 				err := db.Events.Insert(context.TODO(), factory.Event(func(o *entities.Event) { o.ID = id1 }))
 				assert.Nil(GinkgoT(), err)
 				ids, err := db.Events.BatchInsertIgnoreConflict(context.TODO(), []*entities.Event{
@@ -36,6 +36,7 @@ var _ = Describe("DB", Ordered, func() {
 				assert.Equal(GinkgoT(), id2, ids[0])
 				assert.Equal(GinkgoT(), id3, ids[1])
 			})
+
 		})
 	})
 })

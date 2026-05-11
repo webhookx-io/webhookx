@@ -8,6 +8,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/errs"
 	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -46,7 +47,7 @@ func (api *API) GetPlugin(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreatePlugin(w http.ResponseWriter, r *http.Request) {
 	var model entities.Plugin
-	defaults := map[string]interface{}{"id": utils.KSUID()}
+	defaults := map[string]interface{}{"id": uid.Generate(uid.PluginPrefix)}
 	if err := ValidateRequest(r, defaults, &model); err != nil {
 		api.error(400, w, err)
 		return

@@ -10,8 +10,8 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/services/eventbus"
-	"github.com/webhookx-io/webhookx/utils"
 	"go.uber.org/zap"
 )
 
@@ -122,7 +122,7 @@ func fanout(event *entities.Event, endpoints []*entities.Endpoint, mode entities
 	for _, endpoint := range endpoints {
 		delay := endpoint.Retry.Config.Attempts[0]
 		attempt := &entities.Attempt{
-			ID:            utils.KSUID(),
+			ID:            uid.Generate(uid.AttemptPrefix),
 			EventId:       event.ID,
 			EndpointId:    endpoint.ID,
 			Status:        entities.AttemptStatusInit,

@@ -14,8 +14,8 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/test/helper"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 var _ = Describe("/endpoints", Ordered, func() {
@@ -546,7 +546,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 			var entity *entities.Endpoint
 			BeforeAll(func() {
 				entity = &entities.Endpoint{
-					ID:      utils.KSUID(),
+					ID:      uid.Generate(uid.EndpointPrefix),
 					Enabled: true,
 					Request: entities.RequestConfig{
 						URL:    "https://example.com",
@@ -584,7 +584,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 			var entity *entities.Endpoint
 			BeforeAll(func() {
 				entity = &entities.Endpoint{
-					ID:      utils.KSUID(),
+					ID:      uid.Generate(uid.EndpointPrefix),
 					Enabled: true,
 					Request: entities.RequestConfig{
 						URL:    "https://example.com",
@@ -627,7 +627,7 @@ var _ = Describe("/endpoints", Ordered, func() {
 			var entity *entities.Endpoint
 			BeforeAll(func() {
 				entity = &entities.Endpoint{
-					ID:      utils.KSUID(),
+					ID:      uid.Generate(uid.EndpointPrefix),
 					Enabled: true,
 					Request: entities.RequestConfig{
 						URL:    "https://example.com",

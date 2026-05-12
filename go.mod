@@ -46,7 +46,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/stripe/stripe-go/v84 v84.4.1
 	github.com/tetratelabs/wazero v1.11.0
-	github.com/tidwall/gjson v1.18.0
+	github.com/tidwall/gjson v1.19.0
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/webhookx-io/webhookx/api/license v0.1.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.68.0

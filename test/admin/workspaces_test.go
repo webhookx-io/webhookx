@@ -10,8 +10,8 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/test/helper"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 var _ = Describe("/workspaces", Ordered, func() {
@@ -120,7 +120,7 @@ var _ = Describe("/workspaces", Ordered, func() {
 			var entity *entities.Workspace
 			BeforeAll(func() {
 				entity = &entities.Workspace{
-					ID:   utils.KSUID(),
+					ID:   uid.Generate(uid.WorkspacePrefix),
 					Name: new("test-update-workspace"),
 				}
 				assert.Nil(GinkgoT(), db.Workspaces.Insert(context.TODO(), entity))
@@ -160,7 +160,7 @@ var _ = Describe("/workspaces", Ordered, func() {
 			var entity *entities.Workspace
 			BeforeAll(func() {
 				entity = &entities.Workspace{
-					ID: utils.KSUID(),
+					ID: uid.Generate(uid.WorkspacePrefix),
 				}
 				assert.Nil(GinkgoT(), db.Workspaces.Insert(context.TODO(), entity))
 			})

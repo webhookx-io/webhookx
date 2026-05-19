@@ -2,6 +2,7 @@ package declarative
 
 import (
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -19,22 +20,22 @@ func (cfg *Configuration) SchemaName() string {
 func (cfg *Configuration) Init() {
 	for _, m := range cfg.Sources {
 		if m.ID == "" {
-			m.ID = utils.KSUID()
+			m.ID = uid.Generate(uid.SourcePrefix)
 		}
 		for _, p := range m.Plugins {
 			if p.ID == "" {
-				p.ID = utils.KSUID()
+				p.ID = uid.Generate(uid.PluginPrefix)
 			}
 			p.SourceId = new(m.ID)
 		}
 	}
 	for _, m := range cfg.Endpoints {
 		if m.ID == "" {
-			m.ID = utils.KSUID()
+			m.ID = uid.Generate(uid.EndpointPrefix)
 		}
 		for _, p := range m.Plugins {
 			if p.ID == "" {
-				p.ID = utils.KSUID()
+				p.ID = uid.Generate(uid.PluginPrefix)
 			}
 			p.EndpointId = new(m.ID)
 		}

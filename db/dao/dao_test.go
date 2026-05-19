@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"github.com/jmoiron/sqlx"
@@ -109,6 +110,45 @@ var _ = Describe("dao", Ordered, func() {
 		})
 	})
 
+	Context("PropagateEvent", func() {
+		It("call PropagateHandler after write operation", func() {
+			type Args struct {
+				ctx     context.Context
+				options *Options
+				id      string
+				entity  *TestEntity
+			}
+			wg := sync.WaitGroup{}
+			wg.Add(1)
+			ch := make(chan Args)
+			dao := NewDAO[TestEntity](db, Options{
+				Table:          "test",
+				CachePropagate: true,
+				PropagateHandler: func(ctx context.Context, opts *Options, id string, entity interface{}) {
+					wg.Wait()
+					var args Args
+					args.ctx = ctx
+					args.options = opts
+					args.id = id
+					args.entity = entity.(*TestEntity)
+					ch <- args
+				},
+			})
+
+			ctx, cancel := context.WithCancel(context.Background())
+			err := dao.Insert(ctx, &TestEntity{
+				Name: new("test-propagate-event"),
+			})
+			assert.NoError(GinkgoT(), err)
+			cancel()
+			wg.Done()
+
+			args := <-ch
+			assert.Equal(GinkgoT(), "", args.id)
+			assert.Nil(GinkgoT(), args.ctx.Err())
+			assert.Equal(GinkgoT(), "test-propagate-event", *args.entity.Name)
+		})
+	})
 })
 
 func TestDAO(t *testing.T) {

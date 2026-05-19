@@ -378,7 +378,7 @@ func (dao *DAO[T]) executePropagate(ctx context.Context, builder interface{}, en
 	}
 
 	if dao.opts.CachePropagate {
-		go dao.propagateEvent(ctx, entity)
+		go dao.propagateEvent(context.WithoutCancel(ctx), entity)
 	}
 	return nil
 }

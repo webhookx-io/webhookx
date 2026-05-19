@@ -39,3 +39,6 @@ goreleaser:
 
 migrate-create:
 	migrate create -ext sql -dir db/migrations -seq -digits 1 $(message)
+
+pprof:
+	go tool pprof -http=:9610 http://localhost:9602/debug/pprof/profile?seconds=30

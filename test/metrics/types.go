@@ -1,9 +1,6 @@
 package metrics
 
-import (
-	"go.opentelemetry.io/otel/sdk/instrumentation"
-	"go.opentelemetry.io/otel/sdk/metric/metricdata"
-)
+import "go.opentelemetry.io/otel/sdk/instrumentation"
 
 type ResourceMetrics struct {
 	Resource     Resource       `json:"resource,omitempty"`
@@ -25,10 +22,18 @@ type ScopeMetrics struct {
 }
 
 type Metrics struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Unit        string                 `json:"unit"`
-	Data        metricdata.Aggregation `json:"data"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Unit        string `json:"unit"`
+	Sum         *Sum   `json:"sum"`
+}
+
+type Sum struct {
+	DataPoints []NumberDataPoint `json:"dataPoints"`
+}
+
+type NumberDataPoint struct {
+	AsDouble float64 `json:"asDouble"`
 }
 
 type ExportRequest struct {

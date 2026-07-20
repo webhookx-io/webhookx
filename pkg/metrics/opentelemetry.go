@@ -102,9 +102,20 @@ func SetupOpentelemetry(attributes map[string]string, cfg modules.OpentelemetryM
 	metrics.EventPersistCounter = NewCounter(meter, prefix+"event.persisted", "")
 	metrics.EventPendingGauge = NewGauge(meter, prefix+"event.pending", "")
 
+	initialize(metrics)
+
 	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) { zap.S().Error(err) }))
 
 	return nil
+}
+
+func initialize(metrics *Metrics) {
+	// pre-initialize known counters to 0
+	metrics.ProxyRequestCounter.Add(0)
+	metrics.AttemptTotalCounter.Add(0)
+	metrics.AttemptFailedCounter.Add(0)
+	metrics.EventTotalCounter.Add(0)
+	metrics.EventPersistCounter.Add(0)
 }
 
 func StopOpentelemetry(ctx context.Context) error {

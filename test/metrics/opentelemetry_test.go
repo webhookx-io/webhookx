@@ -56,6 +56,53 @@ var _ = Describe("opentelemetry", Ordered, func() {
 				app.Stop()
 			})
 
+			It("known counters should be initialized to zero before the first delivery", func() {
+				n, err := helper.FileCountLine(helper.OtelCollectorMetricsFile)
+				assert.NoError(GinkgoT(), err)
+				n++
+
+				expected := []string{
+					"webhookx.request.total",
+					"webhookx.attempt.total",
+					"webhookx.attempt.failed",
+					"webhookx.event.total",
+					"webhookx.event.persisted",
+				}
+
+				assert.Eventually(GinkgoT(), func() bool {
+					line, err := helper.FileLine(helper.OtelCollectorMetricsFile, n)
+					if err != nil || line == "" {
+						return false
+					}
+					n++
+
+					var req ExportRequest
+					if err := json.Unmarshal([]byte(line), &req); err != nil {
+						return false
+					}
+
+					values := make(map[string]float64)
+					for _, resourceMetrics := range req.ResourceMetrics {
+						for _, scopeMetrics := range resourceMetrics.ScopeMetrics {
+							for _, metric := range scopeMetrics.Metrics {
+								if metric.Sum == nil || len(metric.Sum.DataPoints) != 1 {
+									continue
+								}
+								values[metric.Name] = metric.Sum.DataPoints[0].AsDouble
+							}
+						}
+					}
+
+					for _, name := range expected {
+						value, ok := values[name]
+						if !ok || value != 0 {
+							return false
+						}
+					}
+					return true
+				}, time.Second*40, time.Second)
+			})
+
 			It("sanity", func() {
 				n, err := helper.FileCountLine(helper.OtelCollectorMetricsFile)
 				assert.Nil(GinkgoT(), err)

@@ -10,6 +10,16 @@ WebhookX is an open-source webhook gateway for receiving, validating, transformi
 **OpenAPI:** https://openapi.webhookx.io
 
 
+
+> [!NOTE] 
+>
+> #### **WebhookX License Program**
+>
+> WebhookX offers free production licenses for eligible non-commercial use.
+>
+> To request a license, please fill out the [License Request Form](https://form.jotform.com/webhookx/request-a-license).
+
+
 ## Architecture
 
 <p align="center">
@@ -29,18 +39,18 @@ WebhookX is an open-source webhook gateway for receiving, validating, transformi
 - **Reliable delivery:** Automatic retries with configurable delays.
 - **Fan out:** Route events to multiple endpoints based on event type.
 - **Rate limiting:** Protect ingestion and delivery from overload.
-- **Declarative configuration:** GitOps-friendly configuration files.
-- **Multi tenancy:** Workspace isolation for configuration entities.
+- **Declarative configuration:** GitOps-oriented configuration files.
+- **Multi tenancy (License required):** Workspace isolation for configuration entities.
 - **Plugins:** Extensible inbound and outbound processing.
 - **Observability:** OpenTelemetry metrics and tracing.
-- **Secret management:** Reference secrets from external providers.
+- **Secret management (License required):** Reference secrets from external providers.
 
 **Built-in plugins**
 - `webhookx-signature`: Sign outbound requests with HMAC (SHA-256)  by adding `Webhookx-Signature` and `Webhookx-Timestamp` headers.
 - `wasm`: Transform outbound requests using AssemblyScript, Rust, or TinyGo. See `plugins/wasm`.
 - `function`: Customize inbound behavior with JavaScript (signature verification or request body transformation).
 - `event-validation`: Validate event data against JSON Schema.
-- Security Plugins: `hmac-auth`, `basic-auth`, `key-auth`, `connect-auth`.
+- Security Plugins: `hmac-auth`, `basic-auth`, `key-auth`, `connect-auth (License required)`.
 
 
 

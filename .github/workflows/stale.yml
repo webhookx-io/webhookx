@@ -1,0 +1,19 @@
+name: Close stale issues
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  close-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/stale@v10
+        with:
+          days-before-issue-stale: 14
+          days-before-issue-close: 7
+          exempt-issue-labels: "security,feature-request"
+          stale-issue-message: "This issue is marked as stale."

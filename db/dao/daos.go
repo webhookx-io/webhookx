@@ -36,6 +36,7 @@ type EventDAO interface {
 	BaseDAO[entities.Event]
 	BatchInsertIgnoreConflict(ctx context.Context, events []*entities.Event) ([]string, error)
 	ListExistingUniqueIDs(ctx context.Context, uniques []string) ([]string, error)
+	DeleteTTL(ctx context.Context, ttl time.Duration, limit int) (int64, error)
 }
 
 type AttemptDAO interface {
@@ -44,6 +45,7 @@ type AttemptDAO interface {
 	UpdateErrorCode(ctx context.Context, id string, status entities.AttemptStatus, code entities.AttemptErrorCode) error
 	UpdateDelivery(ctx context.Context, result *AttemptResult) error
 	ListUnqueuedForUpdate(ctx context.Context, maxScheduledAt time.Time, limit int) (list []*entities.Attempt, err error)
+	DeleteTTL(ctx context.Context, ttl time.Duration, limit int) (int64, error)
 }
 
 type SourceDAO interface {

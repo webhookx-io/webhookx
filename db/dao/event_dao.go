@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
@@ -69,6 +70,24 @@ func (dao *eventDao) BatchInsertIgnoreConflict(ctx context.Context, events []*en
 	return inserteds, rows.Err()
 }
 
+func (dao *eventDao) DeleteTTL(ctx context.Context, ttl time.Duration, limit int) (int64, error) {
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.delete_ttl", dao.opts.Table))
+	defer span.End()
+
+	sql := fmt.Sprintf(
+		`DELETE FROM events WHERE id IN (
+			SELECT id FROM events WHERE created_at < now() - INTERVAL '%s' ORDER BY created_at ASC LIMIT $1
+		)`,
+		fmt.Sprintf("%d hours", int(ttl.Hours())),
+	)
+
+	dao.debugSQL(sql, []interface{}{limit})
+	res, err := dao.DB(ctx).ExecContext(ctx, sql, limit)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
 
 type EventQuery struct {
 	Query

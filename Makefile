@@ -38,4 +38,4 @@ goreleaser:
 	goreleaser release --snapshot --clean
 
 migrate-create:
-	migrate create -ext sql -dir db/migrations -seq -digits 1 $(message)
+	migrate create -ext sql -dir db/migrations -format unix $(message)

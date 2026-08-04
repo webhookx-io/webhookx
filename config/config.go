@@ -19,6 +19,10 @@ const (
 	RoleDPProxy    Role = "dp_proxy"
 )
 
+func (r Role) IsDataPlane() bool {
+	return r == RoleDPWorker || r == RoleDPProxy
+}
+
 var _ types.Config = &Config{}
 
 // Config Configuration
@@ -37,6 +41,7 @@ type Config struct {
 	Role             Role                    `yaml:"role" json:"role" envconfig:"ROLE" default:"standalone"`
 	AnonymousReports bool                    `yaml:"anonymous_reports" json:"anonymous_reports" envconfig:"ANONYMOUS_REPORTS" default:"true"`
 	Secret           modules.SecretConfig    `yaml:"secret" json:"secret" envconfig:"SECRET"`
+	Retention        modules.RetentionConfig `yaml:"retention" json:"retention" envconfig:"RETENTION"`
 }
 
 func (cfg *Config) PostProcess() error {
@@ -104,6 +109,9 @@ func (cfg Config) Validate() error {
 		return fmt.Errorf("invalid role: '%s'", cfg.Role)
 	}
 	if err := cfg.Secret.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.Retention.Validate(); err != nil {
 		return err
 	}
 

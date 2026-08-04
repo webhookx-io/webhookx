@@ -35,6 +35,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 	var queue *mocks.MockTaskQueue
 	var scheduler = schedule.NewCronScheduler()
 	endpoint := factory.Endpoint()
+	var canceledAttemptID string
 
 	BeforeAll(func() {
 		cfg, err := helper.LoadConfig(helper.LoadConfigOptions{
@@ -60,7 +61,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 			RateLimiter: ratelimiter.NewRedisLimiter(cfg.Redis.GetClient()),
 		}
 		w = worker.NewWorker(worker.Options{
-			DB: db,
+			DB:                    db,
 			CircuitBreakerManager: circuitbreaker.NewManager(),
 		}, services)
 
@@ -83,6 +84,18 @@ var _ = Describe("processRequeue", Ordered, func() {
 			attempt.WorkspaceId = ws.ID
 			assert.NoError(GinkgoT(), db.Attempts.Insert(context.TODO(), &attempt))
 		}
+
+		canceledAttempt := entities.Attempt{
+			ID:            utils.KSUID(),
+			EventId:       utils.KSUID(),
+			EndpointId:    endpoint.ID,
+			Status:        entities.AttemptStatusInit,
+			AttemptNumber: 1,
+		}
+		canceledAttempt.WorkspaceId = ws.ID
+		assert.NoError(GinkgoT(), db.Attempts.Insert(context.TODO(), &canceledAttempt))
+		canceledAttemptID = canceledAttempt.ID
+
 		db.DB.MustExec("update attempts set created_at = created_at - INTERVAL '60 SECOND'")
 
 		w.Start()
@@ -94,7 +107,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 		ctrl.Finish()
 	})
 
-	It("all attempts should become QUEUED", func() {
+	It("all valid attempts should become QUEUED", func() {
 		time.Sleep(time.Second * 1) // wait for timer to be executed
 		var q dao.AttemptQuery
 		q.EndpointId = new(endpoint.ID)
@@ -107,6 +120,15 @@ var _ = Describe("processRequeue", Ordered, func() {
 		count, err = db.Attempts.Count(context.TODO(), q.ToQuery())
 		assert.NoError(GinkgoT(), err)
 		assert.EqualValues(GinkgoT(), 10, count)
+	})
+
+	It("attempt with missing event should become CANCELED with EVENT_NOT_FOUND error code", func() {
+		att, err := db.Attempts.Get(context.TODO(), canceledAttemptID)
+		assert.NoError(GinkgoT(), err)
+		assert.NotNil(GinkgoT(), att)
+		assert.Equal(GinkgoT(), entities.AttemptStatusCanceled, att.Status)
+		assert.NotNil(GinkgoT(), att.ErrorCode)
+		assert.Equal(GinkgoT(), entities.AttemptErrorCodeEventNotFound, *att.ErrorCode)
 	})
 })
 

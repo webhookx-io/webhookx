@@ -49,6 +49,7 @@ const (
 	AttemptErrorCodeEndpointDisabled AttemptErrorCode = "ENDPOINT_DISABLED"
 	AttemptErrorCodeDenied           AttemptErrorCode = "DENIED"
 	AttemptErrorCodeEndpointNotFound AttemptErrorCode = "ENDPOINT_NOT_FOUND"
+	AttemptErrorCodeEventNotFound    AttemptErrorCode = "EVENT_NOT_FOUND"
 )
 
 type AttemptTriggerMode = string

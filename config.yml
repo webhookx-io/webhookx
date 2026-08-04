@@ -263,3 +263,18 @@ tracing:
 #      kubernetes:
 #        role:                                   # Vault role bound to the Kubernetes service account.
 #        token_path:                             # Path to JWT token file.
+
+
+#------------------------------------------------------------------------------
+# Data Retention
+#
+# Data Retention automatically removes stale objects (events and attempts) from the database
+# periodically (runs daily) to reduce storage usage and improve query performance.
+#
+# This service only runs on control-plane or standalone nodes.
+# Data-plane nodes ignore this configuration.
+#------------------------------------------------------------------------------
+#retention:
+#  enabled: true                               # Whether to enable data retention. Defaults to false.
+#  events: 0                                   # Defines retention period in days for events. Set to 0 to disable event cleanup. Defaults to 0.
+#  attempts: 0                                 # Defines retention period in days for attempts. Set to 0 to disable attempt cleanup. Defaults to 0.

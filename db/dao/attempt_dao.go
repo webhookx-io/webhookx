@@ -93,6 +93,25 @@ func (dao *attemptDao) ListUnqueuedForUpdate(ctx context.Context, maxScheduledAt
 	return
 }
 
+func (dao *attemptDao) DeleteTTL(ctx context.Context, ttl time.Duration, limit int) (int64, error) {
+	ctx, span := dao.trace(ctx, fmt.Sprintf("dao.%s.delete_ttl", dao.opts.Table))
+	defer span.End()
+
+	sql := fmt.Sprintf(
+		`DELETE FROM attempts WHERE id IN (
+			SELECT id FROM attempts WHERE created_at < now() - INTERVAL '%s' ORDER BY created_at ASC LIMIT $1
+		)`,
+		fmt.Sprintf("%d hours", int(ttl.Hours())),
+	)
+
+	dao.debugSQL(sql, []interface{}{limit})
+	res, err := dao.DB(ctx).ExecContext(ctx, sql, limit)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
 type AttemptQuery struct {
 	Query
 

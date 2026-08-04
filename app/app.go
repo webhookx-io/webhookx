@@ -43,6 +43,7 @@ import (
 	"github.com/webhookx-io/webhookx/services"
 	"github.com/webhookx-io/webhookx/services/distributed"
 	"github.com/webhookx-io/webhookx/services/eventbus"
+	"github.com/webhookx-io/webhookx/services/retention"
 	"github.com/webhookx-io/webhookx/services/schedule"
 	"github.com/webhookx-io/webhookx/services/task"
 	tracingservice "github.com/webhookx-io/webhookx/services/tracing"
@@ -199,6 +200,16 @@ func (app *Application) initialize() error {
 		return err
 	}
 
+	if err := app.initRetention(&cfg.Retention, services); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (app *Application) initRetention(cfg *modules.RetentionConfig, services *services.Services) error {
+	retentionService := retention.NewRetentionService(*cfg, app.db, app.log, services.Scheduler)
+	app.registerService(retentionService)
 	return nil
 }
 
@@ -554,6 +565,10 @@ func (app *Application) Start() error {
 		app.log.Info("anonymous reports is disabled")
 	}
 
+	if app.cfg.Retention.Enabled && app.cfg.Role.IsDataPlane() {
+		app.log.Warnf("retention configuration is ignored on data-plane nodes")
+	}
+
 	services := []services.Service{
 		app.getService("eventbus"),
 		app.getService("metrics"),
@@ -563,6 +578,11 @@ func (app *Application) Start() error {
 		app.getService("status"),
 		app.getService("schedule"),
 	}
+
+	if !app.cfg.Role.IsDataPlane() {
+		services = append(services, app.getService("retention"))
+	}
+
 	return startServices(services...)
 }
 
@@ -587,7 +607,7 @@ func (app *Application) stop(ctx context.Context) error {
 	errs = append(errs, stopServices(ctx, 0, app.getService("eventbus")))
 	errs = append(errs, stopServices(ctx, 0, app.getService("worker")))
 	errs = append(errs, stopServices(ctx, time.Second*5, app.getService("metrics"), app.getService("tracing")))
-	errs = append(errs, stopServices(ctx, 0, app.getService("schedule")))
+	errs = append(errs, stopServices(ctx, 0, app.getService("schedule"), app.getService("retention")))
 	errs = append(errs, app.db.Close())
 
 	app.log.Info("exit")

@@ -63,7 +63,6 @@ func (api *API) json(code int, w http.ResponseWriter, data interface{}) {
 	response.JSON(w, code, data)
 }
 
-
 func (api *API) lookupOperation(path string, method string) *openapi3.Operation {
 	operation := openapi.Spec.Paths.Find(path).GetOperation(method)
 	if operation == nil {
@@ -206,7 +205,10 @@ func (api *API) Handler() http.Handler {
 	}
 
 	if tracing.Enabled("request") {
-		return otelhttp.NewHandler(r, "admin.request")
+		return otelhttp.NewHandler(r,
+			"admin.request",
+			otelhttp.WithSpanNameFormatter(func(operation string, _ *http.Request) string { return operation }),
+		)
 	}
 	return r
 }

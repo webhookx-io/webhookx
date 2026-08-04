@@ -73,7 +73,7 @@ var _ = Describe("CircuitBreaker", Ordered, func() {
 				return n == 10
 			}, time.Second*3, time.Millisecond*100)
 
-			time.Sleep(time.Second * 1)
+			time.Sleep(time.Second * 2)
 			app.Scheduler().RunNow("worker.detectEndpointHealthy")
 
 			endpoint, err := db.Endpoints.Get(context.TODO(), endpoint.ID)

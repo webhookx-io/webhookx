@@ -7,6 +7,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -45,13 +46,13 @@ func (api *API) GetWorkspace(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateWorkspace(w http.ResponseWriter, r *http.Request) {
 	var workspace entities.Workspace
-	defaults := map[string]interface{}{"id": utils.KSUID()}
+	defaults := map[string]interface{}{"id": uid.Generate(uid.WorkspacePrefix)}
 	if err := ValidateRequest(r, defaults, &workspace); err != nil {
 		api.error(400, w, err)
 		return
 	}
 
-	workspace.ID = utils.KSUID()
+	workspace.ID = uid.Generate(uid.WorkspacePrefix)
 	err := api.db.Workspaces.Insert(r.Context(), &workspace)
 	api.assert(err)
 

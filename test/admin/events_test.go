@@ -13,6 +13,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 	"github.com/webhookx-io/webhookx/utils"
@@ -45,7 +46,7 @@ var _ = Describe("/events", Ordered, func() {
 				assert.NoError(GinkgoT(), db.Truncate("events"))
 				for i := 1; i <= 21; i++ {
 					event := &entities.Event{
-						ID:         utils.KSUID(),
+						ID:         uid.Generate(uid.EventPrefix),
 						EventType:  "foo.bar",
 						Data:       []byte("{}"),
 						IngestedAt: types.Time{Time: time.Now()},
@@ -130,7 +131,7 @@ var _ = Describe("/events", Ordered, func() {
 				entitiesConfig := helper.TestEntities{
 					Events: []*entities.Event{
 						{
-							ID:         utils.KSUID(),
+							ID:         uid.Generate(uid.EventPrefix),
 							EventType:  "foo.bar",
 							Data:       []byte("{}"),
 							IngestedAt: types.Time{Time: time.Now()},

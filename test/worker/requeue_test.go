@@ -14,6 +14,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/metrics"
 	"github.com/webhookx-io/webhookx/pkg/ratelimiter"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/services"
 	"github.com/webhookx-io/webhookx/services/schedule"
 	"github.com/webhookx-io/webhookx/services/task"
@@ -74,7 +75,7 @@ var _ = Describe("processRequeue", Ordered, func() {
 			assert.NoError(GinkgoT(), db.Events.Insert(context.TODO(), event))
 
 			attempt := entities.Attempt{
-				ID:            utils.KSUID(),
+				ID:            uid.Generate(uid.AttemptPrefix),
 				EventId:       event.ID,
 				EndpointId:    endpoint.ID,
 				Status:        entities.AttemptStatusInit,

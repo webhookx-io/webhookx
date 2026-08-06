@@ -25,6 +25,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/taskqueue"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/plugins"
 	"github.com/webhookx-io/webhookx/services"
 	"github.com/webhookx-io/webhookx/services/distributed"
@@ -491,7 +492,7 @@ func (w *Worker) handleTask(ctx context.Context, task *taskqueue.TaskMessage) er
 
 	delay := endpoint.Retry.Config.Attempts[data.Attempt]
 	nextAttempt := &entities.Attempt{
-		ID:            utils.KSUID(),
+		ID:            uid.Generate(uid.AttemptPrefix),
 		EventId:       data.EventID,
 		EndpointId:    endpoint.ID,
 		Status:        entities.AttemptStatusInit,

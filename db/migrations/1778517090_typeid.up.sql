@@ -1,0 +1,29 @@
+ALTER TABLE "attempt_details"
+    ALTER COLUMN "id" TYPE TEXT,
+    ALTER COLUMN "ws_id" TYPE TEXT;
+
+ALTER TABLE "attempts"
+    ALTER COLUMN "id" TYPE TEXT,
+    ALTER COLUMN "event_id" TYPE TEXT,
+    ALTER COLUMN "endpoint_id" TYPE TEXT,
+    ALTER COLUMN "ws_id" TYPE TEXT;
+
+ALTER TABLE "endpoints"
+    ALTER COLUMN "id" TYPE TEXT,
+    ALTER COLUMN "ws_id" TYPE TEXT;
+
+ALTER TABLE "events"
+    ALTER COLUMN "id" TYPE TEXT,
+    ALTER COLUMN "ws_id" TYPE TEXT;
+
+ALTER TABLE "plugins"
+    ALTER COLUMN "id" TYPE TEXT,
+    ALTER COLUMN "source_id" TYPE TEXT,
+    ALTER COLUMN "endpoint_id" TYPE TEXT,
+    ALTER COLUMN "ws_id" TYPE TEXT;
+
+ALTER TABLE "sources"
+    ALTER COLUMN "id" TYPE TEXT,
+    ALTER COLUMN "ws_id" TYPE TEXT;
+
+ALTER TABLE "workspaces" ALTER COLUMN "id" TYPE TEXT;

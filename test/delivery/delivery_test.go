@@ -9,6 +9,7 @@ import (
 	"github.com/webhookx-io/webhookx"
 	"github.com/webhookx-io/webhookx/constants"
 	"github.com/webhookx-io/webhookx/db/dao"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
 
 	"github.com/go-resty/resty/v2"
@@ -34,7 +35,7 @@ var _ = Describe("delivery", Ordered, func() {
 			Sources:   []*entities.Source{factory.Source()},
 		}
 		entitiesConfig.Plugins = []*entities.Plugin{{
-			ID:         utils.KSUID(),
+			ID:         uid.Generate(uid.PluginPrefix),
 			EndpointId: new(entitiesConfig.Endpoints[0].ID),
 			Name:       "webhookx-signature",
 			Enabled:    true,

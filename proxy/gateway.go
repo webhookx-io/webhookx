@@ -33,6 +33,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/store"
 	"github.com/webhookx-io/webhookx/pkg/tracing"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/plugins"
 	"github.com/webhookx-io/webhookx/proxy/router"
 	"github.com/webhookx-io/webhookx/services"
@@ -279,7 +280,7 @@ func (g *Gateway) handleRequest(w http.ResponseWriter, r *http.Request) (*Respon
 		}
 	}
 
-	event.ID = utils.KSUID()
+	event.ID = uid.Generate(uid.EventPrefix)
 	event.IngestedAt = types.Time{Time: time.Now()}
 	event.WorkspaceId = source.WorkspaceId
 	if err := event.Validate(); err != nil {

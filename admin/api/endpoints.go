@@ -7,6 +7,7 @@ import (
 	"github.com/webhookx-io/webhookx/pkg/contextx"
 	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -45,7 +46,7 @@ func (api *API) GetEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) CreateEndpoint(w http.ResponseWriter, r *http.Request) {
 	var endpoint entities.Endpoint
-	defaults := map[string]interface{}{"id": utils.KSUID()}
+	defaults := map[string]interface{}{"id": uid.Generate(uid.EndpointPrefix)}
 	if err := ValidateRequest(r, defaults, &endpoint); err != nil {
 		api.error(400, w, err)
 		return

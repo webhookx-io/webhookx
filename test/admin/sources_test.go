@@ -12,9 +12,9 @@ import (
 	"github.com/webhookx-io/webhookx/app"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/test/helper/factory"
-	"github.com/webhookx-io/webhookx/utils"
 )
 
 var _ = Describe("/sources", Ordered, func() {
@@ -301,7 +301,7 @@ var _ = Describe("/sources", Ordered, func() {
 			var entity *entities.Source
 			BeforeAll(func() {
 				entity = &entities.Source{
-					ID:      utils.KSUID(),
+					ID:      uid.Generate(uid.SourcePrefix),
 					Enabled: true,
 				}
 				entity.WorkspaceId = ws.ID

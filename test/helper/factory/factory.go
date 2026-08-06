@@ -8,6 +8,7 @@ import (
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/openapi"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/utils"
 )
 
@@ -31,7 +32,7 @@ func defaultEndpoint() entities.Endpoint {
 	var entity entities.Endpoint
 	SetDefault(entities.LookupSchema("Endpoint"), &entity)
 
-	entity.ID = utils.KSUID()
+	entity.ID = uid.Generate(uid.EndpointPrefix)
 	entity.Request = entities.RequestConfig{
 		URL:    "http://localhost:9999/anything",
 		Method: "POST",
@@ -70,7 +71,7 @@ func defaultSource() entities.Source {
 	var entity entities.Source
 	SetDefault(entities.LookupSchema("Source"), &entity)
 
-	entity.ID = utils.KSUID()
+	entity.ID = uid.Generate(uid.SourcePrefix)
 	entity.Type = "http"
 	entity.Config.HTTP.Path = "/"
 	entity.Config.HTTP.Methods = []string{"POST"}
@@ -106,7 +107,7 @@ func defaultPlugin() entities.Plugin {
 	var entity entities.Plugin
 	SetDefault(entities.LookupSchema("Plugin"), &entity)
 
-	entity.ID = utils.KSUID()
+	entity.ID = uid.Generate(uid.PluginPrefix)
 	entity.Config = make(map[string]interface{})
 
 	return entity
@@ -145,7 +146,7 @@ func defaultEvent() entities.Event {
 	var entity entities.Event
 	defaults.Set(&entity)
 
-	entity.ID = utils.KSUID()
+	entity.ID = uid.Generate(uid.EventPrefix)
 	entity.EventType = "foo.bar"
 	entity.Data = []byte("{}")
 
@@ -174,7 +175,7 @@ func defaultWorkspace() entities.Workspace {
 	var entity entities.Workspace
 	SetDefault(entities.LookupSchema("Workspace"), &entity)
 
-	entity.ID = utils.KSUID()
+	entity.ID = uid.Generate(uid.WorkspacePrefix)
 
 	return entity
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/types"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	"github.com/webhookx-io/webhookx/test/helper"
 	"github.com/webhookx-io/webhookx/utils"
 )
@@ -44,7 +45,7 @@ var _ = Describe("/attempts", Ordered, func() {
 			BeforeAll(func() {
 				assert.NoError(GinkgoT(), db.Truncate("attempts"))
 				endpoint1 := entities.Endpoint{
-					ID:      utils.KSUID(),
+					ID:      uid.Generate(uid.EndpointPrefix),
 					Enabled: true,
 					Request: entities.RequestConfig{
 						URL:    "https://example.com",
@@ -56,7 +57,7 @@ var _ = Describe("/attempts", Ordered, func() {
 				endpoints = append(endpoints, &endpoint1)
 
 				endpoint2 := entities.Endpoint{
-					ID:      utils.KSUID(),
+					ID:      uid.Generate(uid.EndpointPrefix),
 					Enabled: true,
 					Request: entities.RequestConfig{
 						URL:    "https://example.com",
@@ -69,7 +70,7 @@ var _ = Describe("/attempts", Ordered, func() {
 
 				for i := 1; i <= 21; i++ {
 					event := &entities.Event{
-						ID:        utils.KSUID(),
+						ID:        uid.Generate(uid.EventPrefix),
 						EventType: "foo.bar",
 						Data:      []byte("{}"),
 					}
@@ -77,7 +78,7 @@ var _ = Describe("/attempts", Ordered, func() {
 					assert.NoError(GinkgoT(), db.Events.Insert(context.TODO(), event))
 					events = append(events, event)
 					attempt := entities.Attempt{
-						ID:            utils.KSUID(),
+						ID:            uid.Generate(uid.AttemptPrefix),
 						EventId:       event.ID,
 						EndpointId:    endpoints[i%2].ID,
 						Status:        entities.AttemptStatusSuccess,
@@ -153,7 +154,7 @@ var _ = Describe("/attempts", Ordered, func() {
 				entitiesConfig := helper.TestEntities{
 					Endpoints: []*entities.Endpoint{
 						{
-							ID:      utils.KSUID(),
+							ID:      uid.Generate(uid.EndpointPrefix),
 							Enabled: true,
 							Request: entities.RequestConfig{
 								URL:    "https://example.com",
@@ -163,14 +164,14 @@ var _ = Describe("/attempts", Ordered, func() {
 					},
 					Events: []*entities.Event{
 						{
-							ID:        utils.KSUID(),
+							ID:        uid.Generate(uid.EventPrefix),
 							EventType: "foo.bar",
 							Data:      []byte("{}"),
 						},
 					},
 				}
 				entity = &entities.Attempt{
-					ID:            utils.KSUID(),
+					ID:            uid.Generate(uid.AttemptPrefix),
 					EventId:       entitiesConfig.Events[0].ID,
 					EndpointId:    entitiesConfig.Endpoints[0].ID,
 					Status:        entities.AttemptStatusSuccess,
@@ -188,7 +189,7 @@ var _ = Describe("/attempts", Ordered, func() {
 					Exhausted:   false,
 				}
 				undeliveredAttempt = &entities.Attempt{
-					ID:            utils.KSUID(),
+					ID:            uid.Generate(uid.AttemptPrefix),
 					EventId:       entitiesConfig.Events[0].ID,
 					EndpointId:    entitiesConfig.Endpoints[0].ID,
 					Status:        entities.AttemptStatusQueued,

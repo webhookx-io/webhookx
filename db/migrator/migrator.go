@@ -13,7 +13,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/webhookx-io/webhookx/db/migrations"
-	"github.com/webhookx-io/webhookx/utils"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 )
 
 type Log struct{}
@@ -185,6 +185,6 @@ func (m *Migrator) Status() (status Status, err error) {
 
 func (m *Migrator) initDefaultWorkspace() error {
 	sql := `INSERT INTO workspaces(id, name) VALUES($1, 'default') ON CONFLICT(name) DO NOTHING;`
-	_, err := m.db.Exec(sql, utils.KSUID())
+	_, err := m.db.Exec(sql, uid.Generate(uid.WorkspacePrefix))
 	return err
 }

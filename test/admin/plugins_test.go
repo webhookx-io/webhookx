@@ -12,6 +12,7 @@ import (
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/entities"
 	"github.com/webhookx-io/webhookx/pkg/plugin"
+	"github.com/webhookx-io/webhookx/pkg/uid"
 	key_auth "github.com/webhookx-io/webhookx/plugins/key-auth"
 	"github.com/webhookx-io/webhookx/test/fixtures/plugins/hello"
 	"github.com/webhookx-io/webhookx/test/fixtures/plugins/inbound"
@@ -58,7 +59,7 @@ var _ = Describe("/plugins", Ordered, func() {
 					endpoint := factory.EndpointWS(ws.ID)
 					assert.NoError(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 					plugin := entities.Plugin{
-						ID:         utils.KSUID(),
+						ID:         uid.Generate(uid.PluginPrefix),
 						EndpointId: new(endpoint.ID),
 						Name:       "webhookx-signature",
 						Enabled:    true,
@@ -521,7 +522,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"foreign key violation: {source_id='foo                        '} does not reference an existing record in 'sources'"}`,
+					`{"message":"foreign key violation: {source_id='foo'} does not reference an existing record in 'sources'"}`,
 					string(resp.Body()))
 			})
 
@@ -538,7 +539,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Nil(GinkgoT(), err)
 				assert.Equal(GinkgoT(), 400, resp.StatusCode())
 				assert.Equal(GinkgoT(),
-					`{"message":"foreign key violation: {endpoint_id='foo                        '} does not reference an existing record in 'endpoints'"}`,
+					`{"message":"foreign key violation: {endpoint_id='foo'} does not reference an existing record in 'endpoints'"}`,
 					string(resp.Body()))
 			})
 
@@ -553,7 +554,7 @@ var _ = Describe("/plugins", Ordered, func() {
 					Endpoints: []*entities.Endpoint{factory.Endpoint()},
 				}
 				entity = &entities.Plugin{
-					ID:         utils.KSUID(),
+					ID:         uid.Generate(uid.PluginPrefix),
 					EndpointId: new(entitiesConfig.Endpoints[0].ID),
 					Name:       "webhookx-signature",
 					Enabled:    true,
@@ -594,7 +595,7 @@ var _ = Describe("/plugins", Ordered, func() {
 
 			BeforeAll(func() {
 				endpoint = &entities.Endpoint{
-					ID:      utils.KSUID(),
+					ID:      uid.Generate(uid.EndpointPrefix),
 					Enabled: true,
 					Request: entities.RequestConfig{
 						URL:    "https://example.com",
@@ -605,7 +606,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 
 				plugin = &entities.Plugin{
-					ID:         utils.KSUID(),
+					ID:         uid.Generate(uid.PluginPrefix),
 					Name:       "webhookx-signature",
 					Enabled:    true,
 					EndpointId: new(endpoint.ID),
@@ -677,7 +678,7 @@ var _ = Describe("/plugins", Ordered, func() {
 			var entity *entities.Plugin
 			BeforeAll(func() {
 				endpoint := &entities.Endpoint{
-					ID:      utils.KSUID(),
+					ID:      uid.Generate(uid.EndpointPrefix),
 					Enabled: true,
 					Request: entities.RequestConfig{
 						URL:    "https://example.com",
@@ -688,7 +689,7 @@ var _ = Describe("/plugins", Ordered, func() {
 				assert.Nil(GinkgoT(), db.Endpoints.Insert(context.TODO(), endpoint))
 
 				entity = &entities.Plugin{
-					ID:         utils.KSUID(),
+					ID:         uid.Generate(uid.PluginPrefix),
 					Name:       "webhookx-signature",
 					Enabled:    true,
 					EndpointId: new(endpoint.ID),

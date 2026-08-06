@@ -593,7 +593,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Source"
 
-  /workspaces/{ws_id}/source/{id}:
+  /workspaces/{ws_id}/sources/{id}:
     parameters:
       - $ref: "#/components/parameters/workspace_id"
 

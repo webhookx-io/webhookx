@@ -10,6 +10,9 @@ on:
     paths-ignore:
       - '**/*.md'
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -25,3 +28,22 @@ jobs:
         with:
           version: v2.11
           only-new-issues: true
+
+  ui-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: install dependencies
+        working-directory: ui
+        run: npm ci
+
+      - name: eslint
+        working-directory: ui
+        run: npm run lint

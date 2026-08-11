@@ -29,6 +29,7 @@ type Config struct {
 	Database         modules.DatabaseConfig  `yaml:"database" json:"database" envconfig:"DATABASE"`
 	Redis            modules.RedisConfig     `yaml:"redis" json:"redis" envconfig:"REDIS"`
 	Admin            modules.AdminConfig     `yaml:"admin" json:"admin" envconfig:"ADMIN"`
+	Dashboard        modules.DashboardConfig `yaml:"dashboard" json:"dashboard" envconfig:"DASHBOARD"`
 	Status           modules.StatusConfig    `yaml:"status" json:"status" envconfig:"STATUS"`
 	Proxy            modules.ProxyConfig     `yaml:"proxy" json:"proxy" envconfig:"PROXY"`
 	Worker           modules.WorkerConfig    `yaml:"worker" json:"worker" envconfig:"WORKER"`
@@ -52,9 +53,11 @@ func (cfg *Config) PostProcess() error {
 			cfg.Proxy.Listen = "0.0.0.0:9600"
 		}
 		cfg.Admin.Listen = ""
+		cfg.Dashboard.Listen = ""
 		cfg.Worker.Enabled = false
 	case RoleDPWorker:
 		cfg.Admin.Listen = ""
+		cfg.Dashboard.Listen = ""
 		cfg.Proxy.Listen = ""
 		cfg.Worker.Enabled = true
 	}
@@ -83,6 +86,9 @@ func (cfg Config) Validate() error {
 		return err
 	}
 	if err := cfg.Admin.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.Dashboard.Validate(); err != nil {
 		return err
 	}
 	if err := cfg.Status.Validate(); err != nil {

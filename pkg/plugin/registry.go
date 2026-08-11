@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 )
 
@@ -13,6 +14,7 @@ const (
 )
 
 type Registration struct {
+	Name    string
 	Type    Type
 	Factory func() Plugin
 }
@@ -28,6 +30,7 @@ func RegisterPlugin(typ Type, name string, fn func() Plugin) {
 	}
 
 	registry[name] = &Registration{
+		Name:    name,
 		Type:    typ,
 		Factory: fn,
 	}
@@ -37,4 +40,18 @@ func GetRegistration(name string) *Registration {
 	mux.RLock()
 	defer mux.RUnlock()
 	return registry[name]
+}
+
+func ListRegistration() []Registration {
+	mux.RLock()
+	registrations := make([]Registration, 0, len(registry))
+	for _, registration := range registry {
+		registrations = append(registrations, *registration)
+	}
+	mux.RUnlock()
+
+	sort.Slice(registrations, func(i, j int) bool {
+		return registrations[i].Name < registrations[j].Name
+	})
+	return registrations
 }

@@ -4,12 +4,16 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/webhookx-io/webhookx/pkg/http/response"
 )
 
 type Plugin interface {
 	// Name returns plugin's name
 	Name() string
+
+	// Description returns plugin's description
+	Description() string
 
 	// Priority returns plugin's priority
 	Priority() int
@@ -19,6 +23,9 @@ type Plugin interface {
 
 	// GetConfig returns plugin's configuration
 	GetConfig() map[string]interface{}
+
+	// ConfigSchema returns plugin's configuration schema
+	ConfigSchema() *openapi3.Schema
 
 	// ValidateConfig validates plugin's configuration
 	ValidateConfig(config map[string]interface{}) error

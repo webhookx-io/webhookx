@@ -28,10 +28,12 @@ services:
       WEBHOOKX_PROXY_QUEUE_REDIS_HOST: redis
       WEBHOOKX_PROXY_QUEUE_REDIS_PORT: 6379
       WEBHOOKX_STATUS_LISTEN: 0.0.0.0:9602
+      WEBHOOKX_DASHBOARD_LISTEN: 0.0.0.0:9605
     ports:
       - "9601:9601"
       - "9600:9600"
       - "9602:9602"
+      - "9605:9605"
     depends_on:
       webhookx-database:
         condition: service_healthy

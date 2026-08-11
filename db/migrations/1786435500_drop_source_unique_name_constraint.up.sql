@@ -1,0 +1,1 @@
+ALTER TABLE IF EXISTS ONLY "sources" DROP CONSTRAINT IF EXISTS "sources_name_key";

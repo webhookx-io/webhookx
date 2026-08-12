@@ -35,77 +35,91 @@ func TestDomainMatch(t *testing.T) {
 
 func TestAllow(t *testing.T) {
 	tests := []struct {
-		scenario string
-		rules    []string
-		hostname string
-		ip       string
-		allow    bool
+		scenario  string
+		rules     []string
+		hostname  string
+		ip        string
+		allowIP   bool
+		allowHost bool
 	}{
 		{
-			scenario: "deny 127.0.0.1",
-			rules:    []string{"@default"},
-			ip:       "127.0.0.1",
-			allow:    false,
+			scenario:  "deny 127.0.0.1",
+			rules:     []string{"@default"},
+			ip:        "127.0.0.1",
+			allowIP:   false,
+			allowHost: true,
 		},
 		{
-			scenario: "deny ::1",
-			rules:    []string{"@default"},
-			ip:       "::1",
-			allow:    false,
+			scenario:  "deny ::1",
+			rules:     []string{"@default"},
+			ip:        "::1",
+			allowIP:   false,
+			allowHost: true,
 		},
 		{
-			scenario: "deny ip4",
-			rules:    []string{"8.8.8.8"},
-			ip:       "8.8.8.8",
-			allow:    false,
+			scenario:  "deny ip4",
+			rules:     []string{"8.8.8.8"},
+			ip:        "8.8.8.8",
+			allowIP:   false,
+			allowHost: true,
 		},
 		{
-			scenario: "deny ip6",
-			rules:    []string{"2606:2800:220:1:248:1893:25c8:1946"},
-			ip:       "2606:2800:220:1:248:1893:25c8:1946",
-			allow:    false,
+			scenario:  "deny ip6",
+			rules:     []string{"2606:2800:220:1:248:1893:25c8:1946"},
+			ip:        "2606:2800:220:1:248:1893:25c8:1946",
+			allowIP:   false,
+			allowHost: true,
 		},
 		{
-			scenario: "deny IPv4-mapped IPv6 address",
-			rules:    []string{"@default"},
-			ip:       "::ffff:127.0.0.1",
-			allow:    false,
+			scenario:  "deny IPv4-mapped IPv6 address",
+			rules:     []string{"@default"},
+			ip:        "::ffff:127.0.0.1",
+			allowIP:   false,
+			allowHost: true,
 		},
 		{
-			scenario: "allow example.com",
-			rules:    []string{"@default"},
-			hostname: "example.com",
-			ip:       "1.1.1.1",
-			allow:    true,
+			scenario:  "allow example.com",
+			rules:     []string{"@default"},
+			hostname:  "example.com",
+			ip:        "1.1.1.1",
+			allowIP:   true,
+			allowHost: true,
 		},
 		{
-			scenario: "deny subdomain",
-			rules:    []string{"@default", "*.example.com"},
-			hostname: "foo.example.com",
-			ip:       "1.1.1.1",
-			allow:    false,
+			scenario:  "deny subdomain",
+			rules:     []string{"@default", "*.example.com"},
+			hostname:  "foo.example.com",
+			ip:        "1.1.1.1",
+			allowIP:   true,
+			allowHost: false,
 		},
 		{
-			scenario: "allow root domain",
-			rules:    []string{"@default", "*.example.com"},
-			hostname: "example.com",
-			ip:       "1.1.1.1",
-			allow:    true,
+			scenario:  "allow root domain",
+			rules:     []string{"@default", "*.example.com"},
+			hostname:  "example.com",
+			ip:        "1.1.1.1",
+			allowIP:   true,
+			allowHost: true,
 		},
 		{
-			scenario: "deny punycode domian",
-			rules:    []string{"@default", "xn--6qq79v.com"},
-			hostname: "xn--6qq79v.com",
-			ip:       "1.1.1.1",
-			allow:    false,
+			scenario:  "deny punycode domian",
+			rules:     []string{"@default", "xn--6qq79v.com"},
+			hostname:  "xn--6qq79v.com",
+			ip:        "1.1.1.1",
+			allowIP:   true,
+			allowHost: false,
 		},
 	}
 
 	for _, test := range tests {
 		acl := NewACL(AclOptions{Rules: test.rules})
-		actual := acl.Allow(test.hostname, netip.MustParseAddr(test.ip))
-		if actual != test.allow {
-			t.Errorf("Allow(%v, %v) expected %v, got %v", test.hostname, test.ip, test.allow, actual)
+		actual1 := acl.AllowIP(netip.MustParseAddr(test.ip))
+		if actual1 != test.allowIP {
+			t.Errorf("allowIP(%s) got %v, want %v", test.ip, actual1, test.allowIP)
+		}
+		actual2 := acl.AllowHost(test.hostname)
+		if actual2 != test.allowHost {
+			t.Errorf("allowHost(%s) got %v, want %v", test.hostname, actual2, test.allowHost)
 		}
 	}
 }

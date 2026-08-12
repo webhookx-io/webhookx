@@ -44,13 +44,20 @@ func restrictedDialFunc(acl *ACL) func(context.Context, string, string) (net.Con
 			return nil, err
 		}
 
+		if !acl.AllowHost(host) {
+			if res, ok := ctx.Value(contextKey{}).(*Response); ok {
+				res.ACL.Denied = true
+			}
+			return nil, fmt.Errorf("request to %s is denied", addr)
+		}
+
 		ips, err := DefaultResolver.LookupNetIP(ctx, "ip", host)
 		if err != nil {
 			return nil, err
 		}
 
 		for _, ip := range ips {
-			if acl.Allow(host, ip) {
+			if acl.AllowIP(ip) {
 				return dialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
 			}
 		}

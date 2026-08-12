@@ -47,7 +47,6 @@ type ACL struct {
 	Domain []Domain
 }
 
-
 func NewACL(opts AclOptions) *ACL {
 	acl := &ACL{}
 
@@ -66,7 +65,16 @@ func NewACL(opts AclOptions) *ACL {
 	return acl
 }
 
-func (acl *ACL) Allow(host string, addr netip.Addr) bool {
+func (acl *ACL) AllowHost(host string) bool {
+	for _, domain := range acl.Domain {
+		if domain.Match(host) {
+			return false
+		}
+	}
+	return true
+}
+
+func (acl *ACL) AllowIP(addr netip.Addr) bool {
 	if addr.Is4In6() {
 		addr = addr.Unmap()
 	}
@@ -84,14 +92,6 @@ func (acl *ACL) Allow(host string, addr netip.Addr) bool {
 			}
 		}
 	}
-	if len(acl.Domain) > 0 {
-		for _, domain := range acl.Domain {
-			if domain.Match(host) {
-				return false
-			}
-		}
-	}
-
 	return true
 }
 

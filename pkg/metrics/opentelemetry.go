@@ -49,7 +49,7 @@ func SetupOpentelemetry(attributes map[string]string, cfg modules.OpentelemetryM
 	}
 
 	// custom attributes
-	attrs := make([]attribute.KeyValue, len(attributes))
+	attrs := make([]attribute.KeyValue, 0, len(attributes))
 	for name, value := range attributes {
 		attrs = append(attrs, attribute.String(name, value))
 	}

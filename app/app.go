@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"os/signal"
 	"sync"
 	"syscall"
@@ -295,7 +296,11 @@ func (app *Application) initGateway(cfg *modules.ProxyConfig, services *services
 			Dispatcher: d,
 		}
 		if tracing.Enabled("request") {
-			opts.Middlewares = append(opts.Middlewares, otelhttp.NewMiddleware("request"))
+			middleware := otelhttp.NewMiddleware(
+				"request",
+				otelhttp.WithSpanNameFormatter(func(operation string, _ *http.Request) string { return operation }),
+			)
+			opts.Middlewares = append(opts.Middlewares, middleware)
 		}
 		if app.cfg.AccessLog.Enabled {
 			accessLogger, err := accesslog.NewAccessLogger("proxy", accesslog.Options{

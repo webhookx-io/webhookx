@@ -20,6 +20,9 @@ type RetentionTTLConfig struct {
 }
 
 func (cfg RetentionConfig) Validate() error {
+	if cfg.Interval.Duration() < time.Hour {
+		return fmt.Errorf("minimum interval is 1h")
+	}
 	if cfg.TTL.Events < 0 {
 		return fmt.Errorf("ttl.events cannot be negative")
 	}

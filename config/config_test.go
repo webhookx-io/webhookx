@@ -685,12 +685,36 @@ retention:
 
 func TestRetentionConfigRejectsNegativeTTL(t *testing.T) {
 	cfg := modules.RetentionConfig{
+		Interval: configtypes.Duration(time.Hour),
 		TTL: modules.RetentionTTLConfig{
 			Events: configtypes.Duration(-time.Second),
 		},
 	}
 
 	assert.EqualError(t, cfg.Validate(), "ttl.events cannot be negative")
+}
+
+func TestRetentionConfigInterval(t *testing.T) {
+	for _, interval := range []time.Duration{
+		-time.Second,
+		0,
+		time.Hour - time.Nanosecond,
+	} {
+		t.Run(interval.String(), func(t *testing.T) {
+			cfg := modules.RetentionConfig{
+				Enabled:  true,
+				Interval: configtypes.Duration(interval),
+			}
+
+			assert.EqualError(t, cfg.Validate(), "minimum interval is 1h")
+		})
+	}
+
+	cfg := modules.RetentionConfig{
+		Enabled:  true,
+		Interval: configtypes.Duration(time.Hour),
+	}
+	assert.NoError(t, cfg.Validate())
 }
 
 func TestDurationJSONRoundTrip(t *testing.T) {

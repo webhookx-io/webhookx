@@ -38,8 +38,8 @@ func NewStatus(cfg modules.StatusConfig, opts Options) *Status {
 	s := &http.Server{
 		Handler:      api.Handler(),
 		Addr:         cfg.Listen,
-		WriteTimeout: 10 * time.Second,
-		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		ReadTimeout:  60 * time.Second,
 	}
 
 	status := &Status{

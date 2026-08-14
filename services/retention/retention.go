@@ -13,11 +13,7 @@ import (
 )
 
 const (
-	Interval  = time.Hour * 24
 	BatchSize = 1000
-
-	EventsKey   = "events"
-	AttemptsKey = "attempts"
 )
 
 type RetentionService struct {
@@ -25,7 +21,6 @@ type RetentionService struct {
 	db        *db.DB
 	log       *zap.SugaredLogger
 	scheduler schedule.Scheduler
-	ttls      map[string]time.Duration
 }
 
 func NewRetentionService(
@@ -34,17 +29,11 @@ func NewRetentionService(
 	log *zap.SugaredLogger,
 	scheduler schedule.Scheduler,
 ) *RetentionService {
-
-	ttls := make(map[string]time.Duration)
-	ttls[EventsKey] = time.Hour * 24 * time.Duration(cfg.Events)
-	ttls[AttemptsKey] = time.Hour * 24 * time.Duration(cfg.Attempts)
-
 	return &RetentionService{
 		cfg:       cfg,
 		db:        db,
 		log:       log.Named("retention"),
 		scheduler: scheduler,
-		ttls:      ttls,
 	}
 }
 
@@ -58,16 +47,16 @@ func (s *RetentionService) Start() error {
 	}
 
 	s.log.Infow("service started",
-		"purge_interval", utils.FormatDuration(Interval),
+		"interval", utils.FormatDuration(time.Duration(s.cfg.Interval)),
 		"batch_size", BatchSize,
 		zap.Any("ttl", map[string]string{
-			"events":   fmt.Sprintf("%dd", s.cfg.Events),
-			"attempts": fmt.Sprintf("%dd", s.cfg.Attempts),
+			"events":   s.cfg.TTL.Events.String(),
+			"attempts": s.cfg.TTL.Attempts.String(),
 		}))
 
 	s.scheduler.Schedule(schedule.Task{
 		Name:      "retention",
-		Scheduled: schedule.NewIntervalSchedule(0, Interval),
+		Scheduled: schedule.NewIntervalSchedule(0, time.Duration(s.cfg.Interval)),
 		Run: func(ctx context.Context) error {
 			return s.run(ctx)
 		},
@@ -81,8 +70,7 @@ func (s *RetentionService) Stop(ctx context.Context) error {
 }
 
 func (s *RetentionService) run(ctx context.Context) error {
-	if s.ttls[EventsKey] > 0 {
-		ttl := s.ttls[EventsKey]
+	if ttl := time.Duration(s.cfg.TTL.Events); ttl > 0 {
 		count, err := s.purgeEvents(ctx, ttl)
 		if err != nil {
 			return err
@@ -92,8 +80,7 @@ func (s *RetentionService) run(ctx context.Context) error {
 		}
 	}
 
-	if s.ttls[AttemptsKey] > 0 {
-		ttl := s.ttls[AttemptsKey]
+	if ttl := time.Duration(s.cfg.TTL.Attempts); ttl > 0 {
 		count, err := s.purgeAttempts(ctx, ttl)
 		if err != nil {
 			return err

@@ -101,7 +101,7 @@ func (dao *attemptDao) DeleteTTL(ctx context.Context, ttl time.Duration, limit i
 		`DELETE FROM attempts WHERE id IN (
 			SELECT id FROM attempts WHERE created_at < now() - INTERVAL '%s' ORDER BY created_at ASC LIMIT $1
 		)`,
-		fmt.Sprintf("%d hours", int(ttl.Hours())),
+		fmt.Sprintf("%d seconds", int(ttl.Seconds())),
 	)
 
 	dao.debugSQL(sql, []interface{}{limit})

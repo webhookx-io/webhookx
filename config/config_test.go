@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/webhookx-io/webhookx/config/modules"
+	configtypes "github.com/webhookx-io/webhookx/config/types"
 )
 
 func TestRedisConfig(t *testing.T) {
@@ -621,4 +623,92 @@ func TestInitWithFile(t *testing.T) {
 	err := Load("./testdata/config-empty.yml", cfg)
 	assert.Nil(t, err)
 	assert.Nil(t, cfg.Validate())
+}
+
+func TestLoadRetentionConfig(t *testing.T) {
+	cfg := New()
+	err := NewLoader(cfg).
+		WithEnvPrefix("WEBHOOKX").
+		WithEnv(map[string]string{}).
+		WithFileContent([]byte(`
+retention:
+  enabled: true
+  ttl:
+    events: 30d
+    attempts: 60d
+`)).
+		Load()
+
+	assert.NoError(t, err)
+	assert.True(t, cfg.Retention.Enabled)
+	assert.Equal(t, configtypes.Duration(30*24*time.Hour), cfg.Retention.TTL.Events)
+	assert.Equal(t, configtypes.Duration(60*24*time.Hour), cfg.Retention.TTL.Attempts)
+	assert.NoError(t, cfg.Validate())
+
+	data, err := json.Marshal(cfg.Retention)
+	assert.NoError(t, err)
+	var decoded modules.RetentionConfig
+	assert.NoError(t, json.Unmarshal(data, &decoded))
+	assert.Equal(t, cfg.Retention, decoded)
+}
+
+func TestLoadRetentionConfigFromEnvironment(t *testing.T) {
+	cfg := New()
+	err := NewLoader(cfg).
+		WithEnvPrefix("WEBHOOKX").
+		WithEnv(map[string]string{
+			"WEBHOOKX_RETENTION_ENABLED":      "true",
+			"WEBHOOKX_RETENTION_TTL_EVENTS":   "30d",
+			"WEBHOOKX_RETENTION_TTL_ATTEMPTS": "60d",
+		}).
+		Load()
+
+	assert.NoError(t, err)
+	assert.True(t, cfg.Retention.Enabled)
+	assert.Equal(t, configtypes.Duration(30*24*time.Hour), cfg.Retention.TTL.Events)
+	assert.Equal(t, configtypes.Duration(60*24*time.Hour), cfg.Retention.TTL.Attempts)
+}
+
+func TestLoadRetentionConfigRejectsInvalidTTL(t *testing.T) {
+	cfg := New()
+	err := NewLoader(cfg).
+		WithEnv(map[string]string{}).
+		WithFileContent([]byte(`
+retention:
+  ttl:
+    events: 30days
+`)).
+		Load()
+
+	assert.Error(t, err)
+}
+
+func TestRetentionConfigRejectsNegativeTTL(t *testing.T) {
+	cfg := modules.RetentionConfig{
+		TTL: modules.RetentionTTLConfig{
+			Events: configtypes.Duration(-time.Second),
+		},
+	}
+
+	assert.EqualError(t, cfg.Validate(), "ttl.events cannot be negative")
+}
+
+func TestDurationJSONRoundTrip(t *testing.T) {
+	values := []configtypes.Duration{
+		configtypes.Duration(30 * 24 * time.Hour),
+		configtypes.Duration(-30 * 24 * time.Hour),
+		configtypes.Duration(-1 << 63),
+		configtypes.Duration(1<<63 - 1),
+	}
+
+	for _, expected := range values {
+		t.Run(expected.String(), func(t *testing.T) {
+			data, err := json.Marshal(expected)
+			assert.NoError(t, err)
+
+			var actual configtypes.Duration
+			assert.NoError(t, json.Unmarshal(data, &actual))
+			assert.Equal(t, expected, actual)
+		})
+	}
 }

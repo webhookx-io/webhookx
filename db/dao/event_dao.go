@@ -78,7 +78,7 @@ func (dao *eventDao) DeleteTTL(ctx context.Context, ttl time.Duration, limit int
 		`DELETE FROM events WHERE id IN (
 			SELECT id FROM events WHERE created_at < now() - INTERVAL '%s' ORDER BY created_at ASC LIMIT $1
 		)`,
-		fmt.Sprintf("%d hours", int(ttl.Hours())),
+		fmt.Sprintf("%d seconds", int(ttl.Seconds())),
 	)
 
 	dao.debugSQL(sql, []interface{}{limit})

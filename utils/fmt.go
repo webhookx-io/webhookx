@@ -1,14 +1,36 @@
 package utils
 
 import (
+	"math/big"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
+var dayDurationPattern = regexp.MustCompile(`(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)d`)
+
+// ParseDuration parses a duration using Go's duration syntax with the addition
+// of "d" as a 24-hour day unit.
+func ParseDuration(value string) (time.Duration, error) {
+	value = dayDurationPattern.ReplaceAllStringFunc(value, func(dayValue string) string {
+		number := strings.TrimSuffix(dayValue, "d")
+		days, _ := new(big.Rat).SetString(number)
+		hours := days.Mul(days, big.NewRat(24, 1))
+
+		precision := 0
+		if dot := strings.IndexByte(number, '.'); dot >= 0 {
+			precision = len(number) - dot - 1
+		}
+		return hours.FloatString(precision) + "h"
+	})
+
+	return time.ParseDuration(value)
+}
+
 func FormatDuration(d time.Duration) string {
 	if d == 0 {
-		return "0s"
+		return "0"
 	}
 
 	d = d.Abs()

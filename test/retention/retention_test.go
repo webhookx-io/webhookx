@@ -26,18 +26,23 @@ var _ = Describe("retention", Ordered, func() {
 			db := helper.InitDB(true, nil)
 			ws, err := helper.GetDeafultWorkspace()
 			assert.NoError(GinkgoT(), err)
+			eventTTL := 30*24*time.Hour + 30*time.Minute
+			attemptTTL := 60*24*time.Hour + 30*time.Minute
+			boundaryMargin := 5 * time.Minute
 
 			// add 1001 expired events
 			for i := 0; i < retention.BatchSize+1; i++ {
 				expiredEvent := factory.EventWS(ws.ID)
 				assert.NoError(GinkgoT(), db.Events.Insert(context.TODO(), expiredEvent))
-				_, err = db.SqlDB().Exec("UPDATE events SET created_at = $1 WHERE id = $2", time.Now().Add(-24*time.Hour), expiredEvent.ID)
+				_, err = db.SqlDB().Exec("UPDATE events SET created_at = $1 WHERE id = $2", time.Now().Add(-eventTTL-boundaryMargin), expiredEvent.ID)
 				assert.NoError(GinkgoT(), err)
 			}
 
 			// Active event
 			activeEvent := factory.EventWS(ws.ID)
 			assert.NoError(GinkgoT(), db.Events.Insert(context.TODO(), activeEvent))
+			_, err = db.SqlDB().Exec("UPDATE events SET created_at = $1 WHERE id = $2", time.Now().Add(-eventTTL+boundaryMargin), activeEvent.ID)
+			assert.NoError(GinkgoT(), err)
 
 			// add 1001 expired attempts
 			for i := 0; i < retention.BatchSize+1; i++ {
@@ -51,7 +56,7 @@ var _ = Describe("retention", Ordered, func() {
 					},
 				}
 				assert.NoError(GinkgoT(), db.Attempts.Insert(context.TODO(), expiredAttempt))
-				_, err = db.SqlDB().Exec("UPDATE attempts SET created_at = $1 WHERE id = $2", time.Now().Add(-24*time.Hour), expiredAttempt.ID)
+				_, err = db.SqlDB().Exec("UPDATE attempts SET created_at = $1 WHERE id = $2", time.Now().Add(-attemptTTL-boundaryMargin), expiredAttempt.ID)
 				assert.NoError(GinkgoT(), err)
 			}
 
@@ -66,11 +71,13 @@ var _ = Describe("retention", Ordered, func() {
 				},
 			}
 			assert.NoError(GinkgoT(), db.Attempts.Insert(context.TODO(), activeAttempt))
+			_, err = db.SqlDB().Exec("UPDATE attempts SET created_at = $1 WHERE id = $2", time.Now().Add(-attemptTTL+boundaryMargin), activeAttempt.ID)
+			assert.NoError(GinkgoT(), err)
 
 			app = utils.Must(helper.Start(map[string]string{
-				"WEBHOOKX_RETENTION_ENABLED":  "true",
-				"WEBHOOKX_RETENTION_EVENTS":   "1",
-				"WEBHOOKX_RETENTION_ATTEMPTS": "1",
+				"WEBHOOKX_RETENTION_ENABLED":      "true",
+				"WEBHOOKX_RETENTION_TTL_EVENTS":   "30d30m",
+				"WEBHOOKX_RETENTION_TTL_ATTEMPTS": "60d30m",
 			}))
 		})
 

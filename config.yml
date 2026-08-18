@@ -275,8 +275,8 @@ tracing:
 # Data-plane nodes ignore this configuration.
 #------------------------------------------------------------------------------
 #retention:
-#  enabled: true                               # Whether to enable data retention. Defaults to false.
+#  enabled: false                               # Whether to enable data retention. Defaults to false.
 #  interval: 24h                               # How often data retention cleanup runs. Minimum 1h. Defaults to 24h.
 #  ttl:
-#    events: 0                                 # How long to retain events. Set to 0 to disable events cleanup. Defaults to 0.
-#    attempts: 0                               # How long to retain delivery attempts. Set to 0 to disable attempts cleanup. Defaults to 0.
+#    events: 0                                 # How long to retain events. Set to 0 to disable events cleanup. Minimum 1d. Defaults to 0.
+#    attempts: 0                               # How long to retain delivery attempts. Set to 0 to disable attempts cleanup. Minimum 1d. Defaults to 0.

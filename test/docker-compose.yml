@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:13
+    image: postgres:13-alpine
     environment:
       POSTGRES_DB: webhookx_test
       POSTGRES_USER: webhookx
@@ -14,18 +14,18 @@ services:
       - "5432:5432"
 
   redis:
-    image: redis:6.2
+    image: redis:6.2-alpine
     command: "--appendonly yes --appendfsync everysec"
     ports:
       - "6379:6379"
 
   httpbin:
-    image: kennethreitz/httpbin
+    image: kennethreitz/httpbin:latest
     ports:
       - "9999:80"
 
   httpsbin:
-    image: nginx:latest
+    image: nginx:1.31-alpine
     depends_on:
       - httpbin
     ports:
@@ -36,7 +36,7 @@ services:
       - ./server.key:/etc/nginx/certs/server.key:ro
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib
+    image: otel/opentelemetry-collector-contrib:0.159.0
     volumes:
       - ./otel-collector-config.yml:/etc/otelcol-contrib/config.yaml
       - ./output/otel:/tmp/otel

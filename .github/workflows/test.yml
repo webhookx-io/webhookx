@@ -41,6 +41,26 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: cache docker images
+        id: cache-docker
+        uses: actions/cache@v4
+        with:
+          path: /tmp/docker-cache
+          key: ${{ runner.os }}-docker-${{ hashFiles('test/docker-compose.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
+      - name: load cached docker images
+        if: steps.cache-docker.outputs.cache-hit == 'true' || steps.cache-docker.outputs.cache-matched-key != ''
+        run: |
+          if [ -f /tmp/docker-cache/images.tar ]; then
+            docker load -i /tmp/docker-cache/images.tar
+          fi
+      - name: pull and cache docker images
+        if: steps.cache-docker.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /tmp/docker-cache
+          docker compose -f test/docker-compose.yml pull
+          docker save $(docker compose -f test/docker-compose.yml config --images | sort -u) -o /tmp/docker-cache/images.tar
       - name: starts dependencies
         run: |
           mkdir -p test/output/otel
@@ -72,6 +92,26 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: cache docker images
+        id: cache-docker
+        uses: actions/cache@v4
+        with:
+          path: /tmp/docker-cache
+          key: ${{ runner.os }}-docker-${{ hashFiles('test/docker-compose.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
+      - name: load cached docker images
+        if: steps.cache-docker.outputs.cache-hit == 'true' || steps.cache-docker.outputs.cache-matched-key != ''
+        run: |
+          if [ -f /tmp/docker-cache/images.tar ]; then
+            docker load -i /tmp/docker-cache/images.tar
+          fi
+      - name: pull and cache docker images
+        if: steps.cache-docker.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /tmp/docker-cache
+          docker compose -f test/docker-compose.yml pull
+          docker save $(docker compose -f test/docker-compose.yml config --images | sort -u) -o /tmp/docker-cache/images.tar
       - name: starts dependencies
         run: |
           mkdir -p test/output/otel

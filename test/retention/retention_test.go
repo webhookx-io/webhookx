@@ -130,6 +130,122 @@ var _ = Describe("retention", Ordered, func() {
 			}, time.Second*5, time.Microsecond*100)
 		})
 	})
+
+	Context("partial ttl - only events retention enabled", func() {
+		var app *app.Application
+
+		BeforeAll(func() {
+			db := helper.InitDB(true, nil)
+			ws, err := helper.GetDeafultWorkspace()
+			assert.NoError(GinkgoT(), err)
+			eventTTL := 30*24*time.Hour + 30*time.Minute
+			boundaryMargin := 5 * time.Minute
+
+			// add expired event
+			expiredEvent := factory.EventWS(ws.ID)
+			assert.NoError(GinkgoT(), db.Events.Insert(context.TODO(), expiredEvent))
+			_, err = db.SqlDB().Exec("UPDATE events SET created_at = $1 WHERE id = $2", time.Now().Add(-eventTTL-boundaryMargin), expiredEvent.ID)
+			assert.NoError(GinkgoT(), err)
+
+			// add expired attempt
+			expiredAttempt := &entities.Attempt{
+				ID:            utils.KSUID(),
+				EventId:       expiredEvent.ID,
+				Status:        entities.AttemptStatusSuccess,
+				AttemptNumber: 1,
+				BaseModel: entities.BaseModel{
+					WorkspaceId: ws.ID,
+				},
+			}
+			assert.NoError(GinkgoT(), db.Attempts.Insert(context.TODO(), expiredAttempt))
+			_, err = db.SqlDB().Exec("UPDATE attempts SET created_at = $1 WHERE id = $2", time.Now().Add(-eventTTL-boundaryMargin), expiredAttempt.ID)
+			assert.NoError(GinkgoT(), err)
+
+			app = utils.Must(helper.Start(map[string]string{
+				"WEBHOOKX_RETENTION_ENABLED":      "true",
+				"WEBHOOKX_RETENTION_TTL_EVENTS":   "30d30m",
+				"WEBHOOKX_RETENTION_TTL_ATTEMPTS": "0",
+			}))
+		})
+
+		AfterAll(func() {
+			app.Stop()
+		})
+
+		It("should purge expired events only and keep attempts when TTL.Attempts is 0", func() {
+			app.Scheduler().RunNow("retention")
+
+			db := app.DB()
+
+			// expired event is deleted
+			events, err := db.Events.List(context.TODO(), &dao.Query{})
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 0, len(events))
+
+			// expired attempt remains because attempts retention is disabled (TTL.Attempts == 0)
+			attempts, err := db.Attempts.List(context.TODO(), &dao.Query{})
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 1, len(attempts))
+		})
+	})
+
+	Context("partial ttl - only attempts retention enabled", func() {
+		var app *app.Application
+
+		BeforeAll(func() {
+			db := helper.InitDB(true, nil)
+			ws, err := helper.GetDeafultWorkspace()
+			assert.NoError(GinkgoT(), err)
+			attemptTTL := 60*24*time.Hour + 30*time.Minute
+			boundaryMargin := 5 * time.Minute
+
+			// add expired event
+			expiredEvent := factory.EventWS(ws.ID)
+			assert.NoError(GinkgoT(), db.Events.Insert(context.TODO(), expiredEvent))
+			_, err = db.SqlDB().Exec("UPDATE events SET created_at = $1 WHERE id = $2", time.Now().Add(-attemptTTL-boundaryMargin), expiredEvent.ID)
+			assert.NoError(GinkgoT(), err)
+
+			// add expired attempt
+			expiredAttempt := &entities.Attempt{
+				ID:            utils.KSUID(),
+				EventId:       expiredEvent.ID,
+				Status:        entities.AttemptStatusSuccess,
+				AttemptNumber: 1,
+				BaseModel: entities.BaseModel{
+					WorkspaceId: ws.ID,
+				},
+			}
+			assert.NoError(GinkgoT(), db.Attempts.Insert(context.TODO(), expiredAttempt))
+			_, err = db.SqlDB().Exec("UPDATE attempts SET created_at = $1 WHERE id = $2", time.Now().Add(-attemptTTL-boundaryMargin), expiredAttempt.ID)
+			assert.NoError(GinkgoT(), err)
+
+			app = utils.Must(helper.Start(map[string]string{
+				"WEBHOOKX_RETENTION_ENABLED":      "true",
+				"WEBHOOKX_RETENTION_TTL_EVENTS":   "0",
+				"WEBHOOKX_RETENTION_TTL_ATTEMPTS": "60d30m",
+			}))
+		})
+
+		AfterAll(func() {
+			app.Stop()
+		})
+
+		It("should purge expired attempts only and keep events when TTL.Events is 0", func() {
+			app.Scheduler().RunNow("retention")
+
+			db := app.DB()
+
+			// expired attempt is deleted
+			attempts, err := db.Attempts.List(context.TODO(), &dao.Query{})
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 0, len(attempts))
+
+			// expired event remains because events retention is disabled (TTL.Events == 0)
+			events, err := db.Events.List(context.TODO(), &dao.Query{})
+			assert.NoError(GinkgoT(), err)
+			assert.Equal(GinkgoT(), 1, len(events))
+		})
+	})
 })
 
 func Test(t *testing.T) {

@@ -604,6 +604,87 @@ func TestSecretConfig(t *testing.T) {
 	}
 }
 
+func TestRetentionConfig(t *testing.T) {
+	tests := []struct {
+		desc        string
+		cfg         modules.RetentionConfig
+		validateErr error
+	}{
+		{
+			desc: "valid disable",
+			cfg: modules.RetentionConfig{
+				Enabled:  false,
+				Interval: configtypes.Duration(24 * time.Hour),
+			},
+			validateErr: nil,
+		},
+		{
+			desc: "valid enabled with ttls",
+			cfg: modules.RetentionConfig{
+				Enabled:  true,
+				Interval: configtypes.Duration(time.Hour),
+				TTL: modules.RetentionTTLConfig{
+					Events:   configtypes.Duration(24 * time.Hour),
+					Attempts: configtypes.Duration(48 * time.Hour),
+				},
+			},
+			validateErr: nil,
+		},
+		{
+			desc: "interval less than 1g",
+			cfg: modules.RetentionConfig{
+				Interval: configtypes.Duration(30 * time.Minute),
+			},
+			validateErr: errors.New("minimum interval is 1h"),
+		},
+		{
+			desc: "negative events ttl",
+			cfg: modules.RetentionConfig{
+				Interval: configtypes.Duration(time.Hour),
+				TTL: modules.RetentionTTLConfig{
+					Events: configtypes.Duration(-time.Second),
+				},
+			},
+			validateErr: errors.New("ttl.events cannot be negative"),
+		},
+		{
+			desc: "events ttl less than 1d",
+			cfg: modules.RetentionConfig{
+				Interval: configtypes.Duration(time.Hour),
+				TTL: modules.RetentionTTLConfig{
+					Events: configtypes.Duration(12 * time.Hour),
+				},
+			},
+			validateErr: errors.New("minimum ttl.events is 1d"),
+		},
+		{
+			desc: "negative attempts ttl",
+			cfg: modules.RetentionConfig{
+				Interval: configtypes.Duration(time.Hour),
+				TTL: modules.RetentionTTLConfig{
+					Attempts: configtypes.Duration(-time.Second),
+				},
+			},
+			validateErr: errors.New("ttl.attempts cannot be negative"),
+		},
+		{
+			desc: "attempts ttl less than 1d",
+			cfg: modules.RetentionConfig{
+				Interval: configtypes.Duration(time.Hour),
+				TTL: modules.RetentionTTLConfig{
+					Attempts: configtypes.Duration(12 * time.Hour),
+				},
+			},
+			validateErr: errors.New("minimum ttl.attempts is 1d"),
+		},
+	}
+
+	for _, test := range tests {
+		actual := test.cfg.Validate()
+		assert.Equal(t, test.validateErr, actual, "expected %v got %v", test.validateErr, actual)
+	}
+}
+
 func TestConfig(t *testing.T) {
 	cfg := New()
 	assert.Nil(t, cfg.Validate())
@@ -681,17 +762,6 @@ retention:
 		Load()
 
 	assert.Error(t, err)
-}
-
-func TestRetentionConfigRejectsNegativeTTL(t *testing.T) {
-	cfg := modules.RetentionConfig{
-		Interval: configtypes.Duration(time.Hour),
-		TTL: modules.RetentionTTLConfig{
-			Events: configtypes.Duration(-time.Second),
-		},
-	}
-
-	assert.EqualError(t, cfg.Validate(), "ttl.events cannot be negative")
 }
 
 func TestRetentionConfigInterval(t *testing.T) {

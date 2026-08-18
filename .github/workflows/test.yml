@@ -25,7 +25,7 @@ jobs:
         go-version-file: go.mod
     - name: runs tests
       run: |
-        make test-unit FLAGS=-coverprofile=coverage.txt
+        make test-unit FLAGS="-coverpkg=github.com/webhookx-io/webhookx/... -coverprofile=coverage.txt"
         cat coverage.txt
     - name: uploads coverage reselt
       uses: codecov/codecov-action@v4

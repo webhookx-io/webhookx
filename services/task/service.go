@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/webhookx-io/webhookx/constants"
@@ -43,6 +44,10 @@ func (s *TaskService) ScheduleAttempts(ctx context.Context, attempts []*entities
 			if !notify && attempt.ScheduledAt.Before(now) {
 				notify = true
 			}
+			var eventData json.RawMessage
+			if attempt.Event != nil {
+				eventData = attempt.Event.Data
+			}
 			tasks = append(tasks, &taskqueue.TaskMessage{
 				ID:          attempt.ID,
 				ScheduledAt: attempt.ScheduledAt.Time,
@@ -50,7 +55,7 @@ func (s *TaskService) ScheduleAttempts(ctx context.Context, attempts []*entities
 					EventID:    attempt.EventId,
 					EndpointId: attempt.EndpointId,
 					Attempt:    attempt.AttemptNumber,
-					Event:      string(attempt.Event.Data),
+					Event:      string(eventData),
 				},
 			})
 			ids = append(ids, attempt.ID)

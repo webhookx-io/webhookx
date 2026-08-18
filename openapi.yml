@@ -1117,7 +1117,7 @@ components:
         error_code:
           type: string
           nullable: true
-          enum: [ TIMEOUT, UNKNOWN, ENDPOINT_DISABLED, ENDPOINT_NOT_FOUND ]
+          enum: [ TIMEOUT, UNKNOWN, ENDPOINT_DISABLED, ENDPOINT_NOT_FOUND, EVENT_NOT_FOUND ]
         request:
           type: object
           nullable: true

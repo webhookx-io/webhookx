@@ -217,6 +217,10 @@ func (w *Worker) registerEventHandler(bus eventbus.EventBus) {
 			return
 		}
 
+		if event == nil {
+			return
+		}
+
 		for _, e := range attempts {
 			e.Event = event
 		}
@@ -359,16 +363,25 @@ func (w *Worker) loadPending(ctx context.Context) error {
 					return err
 				}
 
-				if len(attempts) > 0 {
-					for _, attempt := range attempts {
-						event, err := w.db.Events.Get(ctx, attempt.EventId)
+				scheduleAttempts := attempts[:0]
+				for _, at := range attempts {
+					event, err := w.db.Events.Get(ctx, at.EventId)
+					if err != nil {
+						return err
+					}
+					if event == nil {
+						err := w.db.Attempts.UpdateErrorCode(ctx, at.ID,
+							entities.AttemptStatusCanceled,
+							entities.AttemptErrorCodeEventNotFound)
 						if err != nil {
 							return err
 						}
-						attempt.Event = event
+						continue
 					}
-					w.services.Task.ScheduleAttempts(ctx, attempts)
+					at.Event = event
+					scheduleAttempts = append(scheduleAttempts, at)
 				}
+				w.services.Task.ScheduleAttempts(ctx, scheduleAttempts)
 
 				if len(attempts) < batchSize {
 					done = true

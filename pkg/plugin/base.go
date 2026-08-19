@@ -16,6 +16,14 @@ type BasePlugin[T Configuration] struct {
 	Config T
 }
 
+func (p *BasePlugin[T]) ConfigSchema() *openapi3.Schema {
+	return p.Config.Schema()
+}
+
+func (p *BasePlugin[T]) Description() string {
+	return ""
+}
+
 func (p *BasePlugin[T]) Init(config map[string]interface{}) error {
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		TagName: "json",
@@ -54,4 +62,3 @@ func (p *BasePlugin[T]) ExecuteInbound(c *Context) error {
 func (p *BasePlugin[T]) ExecuteOutbound(c *Context) error {
 	panic("not implemented")
 }
-

@@ -19,6 +19,7 @@ import (
 	"github.com/webhookx-io/webhookx/config"
 	"github.com/webhookx-io/webhookx/config/modules"
 	"github.com/webhookx-io/webhookx/constants"
+	"github.com/webhookx-io/webhookx/dashboard"
 	"github.com/webhookx-io/webhookx/db"
 	"github.com/webhookx-io/webhookx/db/dao"
 	"github.com/webhookx-io/webhookx/db/migrator"
@@ -186,6 +187,11 @@ func (app *Application) initialize() error {
 		return err
 	}
 
+	// dashboard
+	if err := app.initDashboard(&cfg.Dashboard); err != nil {
+		return err
+	}
+
 	// gateway
 	if err := app.initGateway(&cfg.Proxy, services, dispatcher, metrics); err != nil {
 		return err
@@ -295,6 +301,17 @@ func (app *Application) initAdmin(cfg *modules.AdminConfig, services *services.S
 		}
 		admin := admin.NewAdmin(*cfg, api.NewAPI(opts, services).Handler())
 		app.registerService(admin)
+	}
+	return nil
+}
+
+func (app *Application) initDashboard(cfg *modules.DashboardConfig) error {
+	if cfg.IsEnabled() {
+		dashboard, err := dashboard.NewDashboard(*cfg)
+		if err != nil {
+			return err
+		}
+		app.registerService(dashboard)
 	}
 	return nil
 }
@@ -523,6 +540,7 @@ func (app *Application) Start() error {
 		fmt.Println("- Version:", utils.Colorize(webhookx.VERSION, utils.ColorDarkBlue, colored))
 		fmt.Println("- Proxy URL:", utils.Colorize(app.cfg.Proxy.URL(), utils.ColorDarkBlue, colored))
 		fmt.Println("- Admin URL:", utils.Colorize(app.cfg.Admin.URL(), utils.ColorDarkBlue, colored))
+		fmt.Println("- Dashboard URL:", utils.Colorize(app.cfg.Dashboard.URL(), utils.ColorDarkBlue, colored))
 		fmt.Println("- Status URL:", utils.Colorize(app.cfg.Status.URL(), utils.ColorDarkBlue, colored))
 		fmt.Println("- Worker:", utils.Colorize(app.cfg.Worker.Status(), utils.ColorDarkBlue, colored))
 		fmt.Println()
@@ -573,6 +591,7 @@ func (app *Application) Start() error {
 		app.getService("eventbus"),
 		app.getService("metrics"),
 		app.getService("admin"),
+		app.getService("dashboard"),
 		app.getService("worker"),
 		app.getService("proxy"),
 		app.getService("status"),
@@ -603,7 +622,7 @@ func (app *Application) stop(ctx context.Context) error {
 	defer func() { _ = app.log.Sync() }()
 
 	var errs []error
-	errs = append(errs, stopServices(ctx, time.Second*10, app.getService("proxy"), app.getService("admin"), app.getService("status")))
+	errs = append(errs, stopServices(ctx, time.Second*10, app.getService("proxy"), app.getService("admin"), app.getService("dashboard"), app.getService("status")))
 	errs = append(errs, stopServices(ctx, 0, app.getService("eventbus")))
 	errs = append(errs, stopServices(ctx, 0, app.getService("worker")))
 	errs = append(errs, stopServices(ctx, time.Second*5, app.getService("metrics"), app.getService("tracing")))

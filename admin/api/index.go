@@ -9,6 +9,7 @@ import (
 
 type IndexResponse struct {
 	Version       string         `json:"version"`
+	CommitHash    string         `json:"commit_hash"`
 	Message       string         `json:"message"`
 	Configuration *config.Config `json:"configuration"`
 }
@@ -17,6 +18,7 @@ func (api *API) Index(w http.ResponseWriter, r *http.Request) {
 	var response IndexResponse
 
 	response.Version = webhookx.VERSION
+	response.CommitHash = webhookx.COMMIT
 	response.Message = "Welcome to WebhookX"
 	response.Configuration = api.cfg
 

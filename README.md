@@ -46,7 +46,7 @@ WebhookX is an open-source webhook gateway for receiving, validating, transformi
 - **Secret management (License required):** Reference secrets from external providers.
 
 **Built-in plugins**
-- `webhookx-signature`: Sign outbound requests with HMAC (SHA-256)  by adding `Webhookx-Signature` and `Webhookx-Timestamp` headers.
+- `webhookx-signature`: Sign outbound requests with HMAC (SHA-256) by adding `Webhookx-Signature` and `Webhookx-Timestamp` headers.
 - `wasm`: Transform outbound requests using AssemblyScript, Rust, or TinyGo. See `plugins/wasm`.
 - `function`: Customize inbound behavior with JavaScript (signature verification or request body transformation).
 - `event-validation`: Validate event data against JSON Schema.
@@ -56,7 +56,7 @@ WebhookX is an open-source webhook gateway for receiving, validating, transformi
 
 ## Installation
 
-The WebhookX binary includes both server and CLI command.
+The WebhookX binary includes both server and CLI commands.
 
 ### macOS
 
@@ -105,7 +105,7 @@ Server: WebhookX/{version}
 
 Let's use a sample declarative configuration [webhookx.sample.yml](https://github.com/webhookx-io/webhookx/blob/main/webhookx.sample.yml) in this quick start.
 
-> You may need to install CLI `webhookx` first, see [Installation](#Installation).
+> You may need to install CLI `webhookx` first, see [Installation](#installation).
 
 ```
 webhookx admin sync webhookx.sample.yml
@@ -287,9 +287,7 @@ Requires the following runtime dependencies:
 
 ## Status and Compatibility
 
-The project is currently under active development, hence breaking changes may be introduced in minor releases.
-
-The public API will strictly follow semantic versioning after `v1.0.0`.
+As of `v1.0.0`, the public API follows [semantic versioning](https://semver.org/): breaking changes ship only in major releases. [GitHub Releases](https://github.com/webhookx-io/webhookx/releases) lists what changed in each version.
 
 
 

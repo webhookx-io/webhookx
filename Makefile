@@ -1,15 +1,18 @@
+APP := webhookx
 DIR := $(shell pwd)
 
 LDFLAGS = --ldflags "\
 		-X github.com/webhookx-io/webhookx.COMMIT=`git rev-parse --verify --short HEAD` \
 		-X github.com/webhookx-io/webhookx.VERSION=`git tag -l --points-at HEAD | head -n 1 | sed 's/^v//'`"
 
-.PHONY: clean build install generate test test-coverage test-integration \
-	test-integration-coverage goreleaser migrate-create test-deps
+.PHONY: clean build install generate test test-coverage \
+	test-integration test-integration-coverage goreleaser migrate-create test-deps
 
 clean:
-	go clean
-	go clean -testcache
+	@go clean
+	@go clean -testcache
+	@$(MAKE) -C ui clean
+	@rm -f $(APP)
 
 build:
 	CGO_ENABLED=0 go build -o webhookx ${LDFLAGS} ./cmd/main

@@ -1,0 +1,196 @@
+.openapi-browser .swagger-ui {
+  color: hsl(var(--foreground));
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.openapi-browser .swagger-ui .wrapper {
+  max-width: none;
+  padding: 0;
+}
+
+.openapi-browser .swagger-ui .topbar {
+  display: none;
+}
+
+.openapi-browser .swagger-ui .information-container {
+  padding: 24px 24px 8px;
+}
+
+.openapi-browser .swagger-ui .info {
+  margin: 0;
+}
+
+.openapi-browser .swagger-ui .info .title,
+.openapi-browser .swagger-ui .info li,
+.openapi-browser .swagger-ui .info p,
+.openapi-browser .swagger-ui .info table,
+.openapi-browser .swagger-ui .opblock-tag,
+.openapi-browser .swagger-ui .opblock .opblock-summary-operation-id,
+.openapi-browser .swagger-ui .opblock .opblock-summary-path,
+.openapi-browser .swagger-ui .opblock .opblock-summary-path__deprecated,
+.openapi-browser .swagger-ui .opblock-description-wrapper p,
+.openapi-browser .swagger-ui .opblock-external-docs-wrapper p,
+.openapi-browser .swagger-ui .opblock-title_normal p,
+.openapi-browser .swagger-ui .parameter__name,
+.openapi-browser .swagger-ui .parameter__type,
+.openapi-browser .swagger-ui .response-col_status,
+.openapi-browser .swagger-ui .response-col_description,
+.openapi-browser .swagger-ui .responses-inner h4,
+.openapi-browser .swagger-ui .responses-inner h5,
+.openapi-browser .swagger-ui .model-title,
+.openapi-browser .swagger-ui .model,
+.openapi-browser .swagger-ui section.models h4,
+.openapi-browser .swagger-ui section.models h5 {
+  color: hsl(var(--foreground));
+}
+
+.openapi-browser .swagger-ui .info .title {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.openapi-browser .swagger-ui .info .title small {
+  top: -2px;
+  border-radius: 4px;
+  background: hsl(var(--primary));
+}
+
+.openapi-browser .swagger-ui .info a,
+.openapi-browser .swagger-ui .model-toggle::after {
+  color: hsl(var(--primary));
+}
+
+.openapi-browser .swagger-ui .scheme-container {
+  margin: 16px 0 0;
+  padding: 20px 24px;
+  border-block: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.25);
+  box-shadow: none;
+}
+
+.openapi-browser .swagger-ui .scheme-container .schemes > label,
+.openapi-browser .swagger-ui .scheme-container .schemes-title {
+  color: hsl(var(--foreground));
+}
+
+.openapi-browser .swagger-ui .filter-container {
+  margin: 0;
+  padding: 20px 24px 8px;
+}
+
+.openapi-browser .swagger-ui .filter .operation-filter-input {
+  width: min(420px, 100%);
+  height: 36px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-size: 12px;
+  box-shadow: none;
+}
+
+.openapi-browser .swagger-ui .filter .operation-filter-input:focus {
+  border-color: hsl(var(--primary));
+}
+
+.openapi-browser .swagger-ui .opblock-tag-section {
+  padding: 0 24px;
+}
+
+.openapi-browser .swagger-ui .opblock-tag {
+  margin: 0;
+  padding: 18px 4px 10px;
+  border-bottom: 1px solid hsl(var(--border));
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 16px;
+}
+
+.openapi-browser .swagger-ui .opblock {
+  margin: 10px 0;
+  border-radius: 8px;
+  background: hsl(var(--card));
+  box-shadow: none;
+}
+
+.openapi-browser .swagger-ui .opblock .opblock-summary {
+  min-height: 48px;
+  padding: 4px;
+}
+
+.openapi-browser .swagger-ui .opblock .opblock-summary-method {
+  min-width: 72px;
+  border-radius: 5px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  line-height: 26px;
+  text-shadow: none;
+}
+
+.openapi-browser .swagger-ui .opblock .opblock-summary-path {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.openapi-browser .swagger-ui .opblock .opblock-summary-description {
+  color: hsl(var(--muted-foreground));
+  font-size: 12px;
+}
+
+.openapi-browser .swagger-ui .opblock-body,
+.openapi-browser .swagger-ui .model-box {
+  color: hsl(var(--foreground));
+}
+
+.openapi-browser .swagger-ui .opblock-section-header {
+  background: hsl(var(--muted) / 0.55);
+  box-shadow: none;
+}
+
+.openapi-browser .swagger-ui .opblock-section-header h4,
+.openapi-browser .swagger-ui table thead tr td,
+.openapi-browser .swagger-ui table thead tr th {
+  color: hsl(var(--foreground));
+}
+
+.openapi-browser .swagger-ui .model-box,
+.openapi-browser .swagger-ui section.models {
+  border-color: hsl(var(--border));
+  background: hsl(var(--muted) / 0.3);
+}
+
+.openapi-browser .swagger-ui section.models {
+  margin: 24px;
+  border-radius: 8px;
+}
+
+.openapi-browser .swagger-ui section.models.is-open h4 {
+  border-color: hsl(var(--border));
+}
+
+.openapi-browser .swagger-ui select,
+.openapi-browser .swagger-ui input[type='text'],
+.openapi-browser .swagger-ui textarea {
+  border-color: hsl(var(--border));
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.dark .openapi-browser .swagger-ui svg:not([fill='none']) {
+  filter: invert(0.78);
+}
+
+@media (max-width: 640px) {
+  .openapi-browser .swagger-ui .information-container,
+  .openapi-browser .swagger-ui .scheme-container,
+  .openapi-browser .swagger-ui .filter-container {
+    padding-inline: 16px;
+  }
+
+  .openapi-browser .swagger-ui .opblock-tag-section {
+    padding-inline: 12px;
+  }
+
+  .openapi-browser .swagger-ui .opblock .opblock-summary-description {
+    display: none;
+  }
+}

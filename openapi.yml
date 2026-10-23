@@ -16,6 +16,7 @@ servers:
 paths:
   /:
     get:
+      operationId: Index
       summary: Get WebhookX information
       responses:
         "200":
@@ -27,17 +28,21 @@ paths:
                 properties:
                   version:
                     type: string
+                  commit_hash:
+                    type: string
                   message:
                     type: string
                   configuration:
                     type: object
               example:
                 version: 1.0.0
+                commit_hash: 7a3f91b
                 message: "Welcome to WebhookX"
                 configuration: { }
 
   /license:
     get:
+      operationId: GetLicense
       summary: Get current license information
       responses:
         "200":
@@ -72,8 +77,23 @@ paths:
                   "signature": ""
                 }
 
+  /catalog:
+    get:
+      operationId: GetCatalog
+      summary: Get the catalog
+      tags:
+        - Catalog
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Catalog"
+
   /workspaces:
     get:
+      operationId: PageWorkspace
       parameters:
         - $ref: "#/components/parameters/page_no"
         - $ref: "#/components/parameters/page_size"
@@ -111,6 +131,7 @@ paths:
                             items:
                               $ref: "#/components/schemas/Workspace"
     post:
+      operationId: CreateWorkspace
       summary: Create a workspace
       tags:
         - Workspace
@@ -129,6 +150,7 @@ paths:
 
   /workspaces/{id}:
     get:
+      operationId: GetWorkspace
       summary: Retrieve a workspace
       tags:
         - Workspace
@@ -146,6 +168,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Workspace"
     put:
+      operationId: UpdateWorkspace
       summary: Update a workspace
       tags:
         - Workspace
@@ -168,6 +191,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Workspace"
     delete:
+      operationId: DeleteWorkspace
       summary: Delete a workspace
       tags:
         - Workspace
@@ -186,6 +210,7 @@ paths:
       - $ref: "#/components/parameters/workspace_id"
 
     get:
+      operationId: PageEndpoint
       parameters:
         - $ref: "#/components/parameters/page_no"
         - $ref: "#/components/parameters/page_size"
@@ -224,9 +249,10 @@ paths:
                             items:
                               $ref: "#/components/schemas/Endpoint"
     post:
+      operationId: CreateEndpoint
       tags:
         - Endpoint
-      summary: Create a endpoint
+      summary: Create an endpoint
       requestBody:
         content:
           application/json:
@@ -245,7 +271,8 @@ paths:
       - $ref: "#/components/parameters/workspace_id"
 
     get:
-      summary: Retrieve a endpoint
+      operationId: GetEndpoint
+      summary: Retrieve an endpoint
       tags:
         - Endpoint
       parameters:
@@ -262,7 +289,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/Endpoint"
     put:
-      summary: Update a endpoint
+      operationId: UpdateEndpoint
+      summary: Update an endpoint
       tags:
         - Endpoint
       parameters:
@@ -285,7 +313,8 @@ paths:
                 $ref: "#/components/schemas/Endpoint"
 
     delete:
-      summary: Delete a endpoint
+      operationId: DeleteEndpoint
+      summary: Delete an endpoint
       tags:
         - Endpoint
       parameters:
@@ -303,6 +332,7 @@ paths:
       - $ref: "#/components/parameters/workspace_id"
 
     get:
+      operationId: PageAttempt
       parameters:
         - $ref: "#/components/parameters/page_no"
         - $ref: "#/components/parameters/page_size"
@@ -381,6 +411,7 @@ paths:
       - $ref: "#/components/parameters/workspace_id"
 
     get:
+      operationId: GetAttempt
       summary: Retrieve a webhook attempt
       tags:
         - Attempt
@@ -403,6 +434,7 @@ paths:
       - $ref: "#/components/parameters/workspace_id"
 
     get:
+      operationId: PageEvent
       parameters:
         - $ref: "#/components/parameters/page_no"
         - $ref: "#/components/parameters/page_size"
@@ -472,6 +504,7 @@ paths:
                               $ref: "#/components/schemas/Event"
 
     post:
+      operationId: CreateEvent
       summary: Create an event
       tags:
         - Event
@@ -493,6 +526,7 @@ paths:
       - $ref: "#/components/parameters/workspace_id"
 
     get:
+      operationId: GetEvent
       summary: Retrieve an event
       tags:
         - Event
@@ -515,6 +549,7 @@ paths:
       - $ref: "#/components/parameters/workspace_id"
 
     post:
+      operationId: RetryEvent
       summary: Manually retry an event
       tags:
         - Event
@@ -539,6 +574,7 @@ paths:
       - $ref: "#/components/parameters/workspace_id"
 
     get:
+      operationId: PageSource
       parameters:
         - $ref: "#/components/parameters/page_no"
         - $ref: "#/components/parameters/page_size"
@@ -577,6 +613,7 @@ paths:
                             items:
                               $ref: "#/components/schemas/Source"
     post:
+      operationId: CreateSource
       summary: Create a source
       tags:
         - Source
@@ -598,6 +635,7 @@ paths:
       - $ref: "#/components/parameters/workspace_id"
 
     get:
+      operationId: GetSource
       summary: Retrieve a source
       tags:
         - Source
@@ -615,6 +653,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Source"
     put:
+      operationId: UpdateSource
       summary: Update a source
       tags:
         - Source
@@ -637,6 +676,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Source"
     delete:
+      operationId: DeleteSource
       summary: Delete a source
       tags:
         - Source
@@ -655,6 +695,7 @@ paths:
       - $ref: "#/components/parameters/workspace_id"
 
     get:
+      operationId: PagePlugin
       parameters:
         - $ref: "#/components/parameters/page_no"
         - $ref: "#/components/parameters/page_size"
@@ -703,6 +744,7 @@ paths:
                             items:
                               $ref: "#/components/schemas/Plugin"
     post:
+      operationId: CreatePlugin
       summary: Create a plugin
       tags:
         - Plugin
@@ -724,6 +766,7 @@ paths:
       - $ref: "#/components/parameters/workspace_id"
 
     get:
+      operationId: GetPlugin
       summary: Retrieve a plugin
       tags:
         - Plugin
@@ -741,6 +784,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Plugin"
     put:
+      operationId: UpdatePlugin
       summary: Update a plugin
       tags:
         - Plugin
@@ -763,6 +807,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Plugin"
     delete:
+      operationId: DeletePlugin
       summary: Delete a plugin
       tags:
         - Plugin
@@ -778,6 +823,7 @@ paths:
 
   /workspaces/{ws_id}/config/sync:
     post:
+      operationId: Sync
       parameters:
         - $ref: "#/components/parameters/workspace_id"
       summary: Sync declarative configuration
@@ -797,6 +843,7 @@ paths:
 
   /workspaces/{ws_id}/config/dump:
     post:
+      operationId: Dump
       parameters:
         - $ref: "#/components/parameters/workspace_id"
       summary: Dump declarative configuration
@@ -812,7 +859,8 @@ paths:
 
   /debug/pprof/:
     get:
-      summary: Responds the pprof html page listing the available profiles
+      operationId: PprofIndex
+      summary: Return the pprof HTML page listing the available profiles
       tags:
         - Debug
       responses:
@@ -825,7 +873,8 @@ paths:
 
   /debug/pprof/{profile}:
     get:
-      summary: Responds a specific pprof profile
+      operationId: PprofProfile
+      summary: Return a specific pprof profile
       tags:
         - Debug
       parameters:
@@ -951,6 +1000,31 @@ components:
       description: The resource has been successfully deleted or the resource didn't exist
 
   schemas:
+    Catalog:
+      type: object
+      properties:
+        plugins:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogPlugin"
+
+    CatalogPlugin:
+      type: object
+      required:
+        - name
+        - description
+        - schema
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [ inbound, outbound ]
+        description:
+          type: string
+        schema:
+          type: object
+
     OffsetPagination:
       type: object
       properties:
@@ -1140,7 +1214,7 @@ components:
               type: number
             latency:
               type: integer
-              description: "Latancy of response in milliseconds"
+              description: "Latency of response in milliseconds"
             headers:
               type: object
               nullable: true
@@ -1170,7 +1244,7 @@ components:
           type: string
           nullable: true
           maxLength: 50
-          description: "The unique id used to de-duplication"
+          description: "The unique id used for deduplication"
         created_at:
           type: integer
           readOnly: true
@@ -1282,7 +1356,7 @@ components:
         quota:
           type: integer
           minimum: 0
-          description: Rate limiting quota that allowed in every period.
+          description: Rate limiting quota that is allowed in every period.
         period:
           type: integer
           minimum: 1
@@ -1435,6 +1509,7 @@ components:
         - secret
 
     ConnectAuthPluginConfiguration:
+      description: "The connect-auth plugin configuration"
       oneOf:
         - $ref: "#/components/schemas/GitHubProviderConfig"
         - $ref: "#/components/schemas/SlackProviderConfig"

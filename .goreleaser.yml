@@ -2,6 +2,8 @@ version: 2
 
 before:
   hooks:
+    - make -C ui ci
+    - make -C ui build
     - go mod tidy
 
 builds:

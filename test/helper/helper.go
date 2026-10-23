@@ -38,11 +38,12 @@ import (
 )
 
 var (
-	ProxyHttpURL  = "http://localhost:9700"
-	ProxyHttpsURL = "https://localhost:9700"
-	AdminHttpURL  = "http://localhost:9701"
-	AdminHttpsURL = "https://localhost:9701"
-	StatusHttpURL = "http://localhost:9702"
+	ProxyHttpURL     = "http://localhost:9700"
+	ProxyHttpsURL    = "https://localhost:9700"
+	AdminHttpURL     = "http://localhost:9701"
+	AdminHttpsURL    = "https://localhost:9701"
+	StatusHttpURL    = "http://localhost:9702"
+	DashboardHttpURL = "http://localhost:9705"
 
 	LogFile                  = test.FilePath("webhookx.log")
 	OtelCollectorTracesFile  = test.FilePath("output/otel/traces.json")
@@ -60,6 +61,7 @@ var (
 		"WEBHOOKX_WORKER_DELIVERER_ACL_DENY": "",
 		"WEBHOOKX_PROXY_LISTEN":              "127.0.0.1:9700",
 		"WEBHOOKX_ADMIN_LISTEN":              "127.0.0.1:9701",
+		"WEBHOOKX_DASHBOARD_LISTEN":          "127.0.0.1:9705",
 		"WEBHOOKX_STATUS_LISTEN":             "127.0.0.1:9702",
 		"WEBHOOKX_DATABASE_DATABASE":         "webhookx_test",
 		"WEBHOOKX_DATABASE_MAX_POOL_SIZE":    "20",

@@ -150,6 +150,7 @@ func (api *API) Handler() http.Handler {
 
 	r.HandleFunc("/", api.Index).Methods("GET").Name("admin.root")
 	r.HandleFunc("/license", api.GetLicense).Methods("GET").Name("admin.license.get")
+	r.HandleFunc("/catalog", api.GetCatalog).Methods("GET").Name("admin.catalog")
 
 	r.HandleFunc("/workspaces/{workspace}/config/sync", api.Sync).Methods("POST").Name("admin.config.sync")
 	r.HandleFunc("/workspaces/{workspace}/config/dump", api.Dump).Methods("POST").Name("admin.config.dump")

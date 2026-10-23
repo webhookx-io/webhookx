@@ -48,6 +48,7 @@ var _ = Describe("app", Ordered, func() {
 - Version: dev
 - Proxy URL: http://127.0.0.1:9700
 - Admin URL: http://127.0.0.1:9701
+- Dashboard URL: http://127.0.0.1:9705
 - Status URL: http://127.0.0.1:9702
 - Worker: on
 
@@ -55,11 +56,12 @@ var _ = Describe("app", Ordered, func() {
 			assert.Equal(GinkgoT(), strings.TrimPrefix(expectedstdout, "\n"), stdout)
 
 			stdout = start(map[string]string{
-				"WEBHOOKX_LOG_FILE":       "",
-				"WEBHOOKX_PROXY_LISTEN":   "",
-				"WEBHOOKX_ADMIN_LISTEN":   "",
-				"WEBHOOKX_STATUS_LISTEN":  "",
-				"WEBHOOKX_WORKER_ENABLED": "false",
+				"WEBHOOKX_LOG_FILE":         "",
+				"WEBHOOKX_PROXY_LISTEN":     "",
+				"WEBHOOKX_ADMIN_LISTEN":     "",
+				"WEBHOOKX_DASHBOARD_LISTEN": "",
+				"WEBHOOKX_STATUS_LISTEN":    "",
+				"WEBHOOKX_WORKER_ENABLED":   "false",
 			})
 			expectedstdout = `
  _       __     __    __                __  _  __
@@ -71,6 +73,7 @@ var _ = Describe("app", Ordered, func() {
 - Version: dev
 - Proxy URL: disabled
 - Admin URL: disabled
+- Dashboard URL: disabled
 - Status URL: disabled
 - Worker: off
 

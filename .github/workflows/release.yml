@@ -19,6 +19,12 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
       - name: run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:

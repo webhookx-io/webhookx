@@ -74,6 +74,19 @@ admin:
   #  cert: /path/to/server.crt       # The path to TLS certificate.
   #  key: /path/to/server.key        # The path to TLS certificate key.
 
+
+
+#------------------------------------------------------------------------------
+# Dashboard
+#------------------------------------------------------------------------------
+dashboard:
+  listen: 127.0.0.1:9605
+  #tls:                                 # TLS configuration
+  #  cert: /path/to/server.crt          # The path to TLS certificate.
+  #  key: /path/to/server.key           # The path to TLS certificate key.
+  admin_address: http://127.0.0.1:9601  # The Admin API address used by the Dashboard proxy.
+
+
 #------------------------------------------------------------------------------
 # Status API
 # The Status API provides APIs for retrieving runtime status about WebhookX.

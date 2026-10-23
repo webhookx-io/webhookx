@@ -522,6 +522,7 @@ var _ = Describe("Proxy", Ordered, func() {
 		It("returns error when certificate not found", func() {
 			_, err := helper.Start(map[string]string{
 				"WEBHOOKX_ADMIN_LISTEN":                       "",
+				"WEBHOOKX_DASHBOARD_LISTEN":                   "",
 				"WEBHOOKX_WORKER_DELIVERER_PROXY":             mtlsProxyURL,
 				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CERT":    test.FilePath("fixtures/mtls/notfound.crt"),
 				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_KEY":     test.FilePath("fixtures/mtls/client.key"),
@@ -534,6 +535,7 @@ var _ = Describe("Proxy", Ordered, func() {
 		It("returns error when ca cert not found", func() {
 			_, err := helper.Start(map[string]string{
 				"WEBHOOKX_ADMIN_LISTEN":                           "",
+				"WEBHOOKX_DASHBOARD_LISTEN":                       "",
 				"WEBHOOKX_WORKER_DELIVERER_PROXY":                 mtlsProxyURL,
 				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CLIENT_CERT": test.FilePath("fixtures/mtls/client.crt"),
 				"WEBHOOKX_WORKER_DELIVERER_PROXY_TLS_CLIENT_KEY":  test.FilePath("fixtures/mtls/client.key"),
